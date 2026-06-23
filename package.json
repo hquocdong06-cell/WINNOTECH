@@ -1,0 +1,35 @@
+{
+  "name": "winnotech",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "ajax": "^0.0.4",
+    "bcrypt": "^6.0.0",
+    "body-parser": "^2.2.2",
+    "bootstrap": "^5.3.8",
+    "connect-redis": "^9.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "jquery": "^4.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "module": "^2.0.0",
+    "mongoose": "^9.4.1",
+    "nodemon": "^3.1.14",
+    "passport": "^0.7.0",
+    "passport-facebook": "^3.0.0",
+    "passport-local": "^1.0.0",
+    "redis": "^5.12.1"
+  }
+}
