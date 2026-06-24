@@ -8,11 +8,13 @@ export default function Home() {
   const [cartCount, setCartCount] = useState(0)
 
   // ─── State từ API ───────────────────────────────────────────
-  const [newProducts, setNewProducts] = useState([])       // sản phẩm mới từ DB
-  const [saleProducts, setSaleProducts] = useState([])     // sản phẩm giảm giá từ DB
-  const [categories, setCategories] = useState([])   // danh mục từ DB
+  const [newProducts, setNewProducts] = useState([])           // sản phẩm mới từ DB
+  const [saleProducts, setSaleProducts] = useState([])         // sản phẩm giảm giá từ DB
+  const [featuredProducts, setFeaturedProducts] = useState([]) // sản phẩm nổi bật từ DB
+  const [categories, setCategories] = useState([])             // danh mục từ DB
   const [loadingNew, setLoadingNew] = useState(true)
   const [loadingSale, setLoadingSale] = useState(true)
+  const [loadingFeatured, setLoadingFeatured] = useState(true)
   const [loadingCategories, setLoadingCategories] = useState(true)
 
   // ─── Gọi API lấy sản phẩm mới ──────────────────────────
@@ -33,11 +35,11 @@ export default function Home() {
     fetchNewProducts()
   }, [])
 
-  // ─── Gọi API lấy sản phẩm giảm giá ──────────────────────────
+  // ─── Gọi API lấy sản phẩm giảm giá ─────────────────────────
   useEffect(() => {
     const fetchSaleProducts = async () => {
       try {
-        const res = await fetch(`${API_URL}/products/home/featured`)
+        const res = await fetch(`${API_URL}/products/home/Sale`)
         const data = await res.json()
         if (data.success) {
           setSaleProducts(data.data)
@@ -49,6 +51,24 @@ export default function Home() {
       }
     }
     fetchSaleProducts()
+  }, [])
+
+  // ─── Gọi API lấy sản phẩm nổi bật ───────────────────────────
+  useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      try {
+        const res = await fetch(`${API_URL}/products/home/featured`)
+        const data = await res.json()
+        if (data.success) {
+          setFeaturedProducts(data.data)
+        }
+      } catch (err) {
+        console.error('Lỗi lấy sản phẩm nổi bật:', err)
+      } finally {
+        setLoadingFeatured(false)
+      }
+    }
+    fetchFeaturedProducts()
   }, [])
 
   // ─── Gọi API lấy danh mục ───────────────────────────────────
@@ -129,7 +149,7 @@ export default function Home() {
     if (product.Variants && product.Variants.length > 0) {
       let minActivePrice = Infinity
       let chosenVariant = null
-      
+
       product.Variants.forEach(v => {
         const activePrice = v.sale_price && v.sale_price > 0 ? v.sale_price : v.price
         if (activePrice && activePrice < minActivePrice) {
@@ -279,6 +299,81 @@ export default function Home() {
                 ))
               )}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURED PRODUCTS */}
+      <section className="products-section" style={{ background: 'var(--dark2)' }}>
+        <div className="section-inner">
+          <div className="products-header">
+            <div>
+              <div className="section-label" style={{ color: 'var(--purple2)' }}>🔥 BÁN CHẠY NHẤT</div>
+              <h2 className="section-title" style={{ marginBottom: 0 }}>
+                TOP SẢN PHẨM
+                <br />
+                ĐANG BÁN CHẠY
+              </h2>
+            </div>
+            <div className="products-header-right">
+              <a href="#">XEM TẤT CẢ TOP SẢN PHẨM →</a>
+              <div className="products-nav">
+                <button>←</button>
+                <button>→</button>
+              </div>
+            </div>
+          </div>
+          <div className="products-row">
+            {loadingFeatured ? (
+              <div style={{ color: 'var(--text-muted)', padding: '40px 0' }}>Đang tải sản phẩm nổi bật...</div>
+            ) : featuredProducts.length === 0 ? (
+              <div style={{ color: 'var(--text-muted)', padding: '40px 0' }}>Chưa có sản phẩm nổi bật nào</div>
+            ) : (
+              featuredProducts.slice(0, 10).map((product) => {
+                const imgUrl = getProductImage(product)
+                const { originalPrice, currentPrice, hasSale, salePercent } = getProductPriceInfo(product)
+                return (
+                  <div key={product._id} className="product-card" style={{ background: 'var(--dark3)', border: '1px solid rgba(124,58,237,0.15)' }}>
+                    {hasSale && (
+                      <div className="product-sale-badge" style={{ background: 'var(--purple)' }}>
+                        -{salePercent}%
+                      </div>
+                    )}
+                    <div className="product-img" style={{ background: 'var(--dark2)' }}>
+                      {imgUrl ? (
+                        <img src={imgUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '8px' }} />
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '12px' }}>No Image</div>
+                      )}
+                    </div>
+                    <div className="product-info">
+                      <div className="product-name">{product.name}</div>
+                      <div className="product-cat">
+                        {product.cat_id?.name || product.brand_id?.name || 'Linh kiện PC'}
+                      </div>
+                      <div className="product-footer">
+                        <div className="product-price-container">
+                          {hasSale ? (
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span className="product-price sale-price" style={{ color: 'var(--purple2)' }}>{formatPrice(currentPrice)}</span>
+                              <span className="product-price original-price" style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '11px', fontWeight: 'normal' }}>{formatPrice(originalPrice)}</span>
+                            </div>
+                          ) : (
+                            <span className="product-price">{formatPrice(currentPrice)}</span>
+                          )}
+                        </div>
+                        <button className="btn-cart" style={{ background: 'var(--purple)', color: '#fff' }} onClick={handleAddToCart}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
       </section>
