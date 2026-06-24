@@ -406,7 +406,6 @@ app.get("/products/home/featured", async (req, res) => {
   try {
     const featuredProducts = await ProductModel.find({})
       .sort({ sale: -1 })
-      .limit()
       .lean();
 
     const productIds = featuredProducts.map((p) => p._id);
@@ -441,6 +440,101 @@ app.get("/products/home/featured", async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Lỗi Server, không thể lấy danh sách sản phẩm nổi bật",
+    });
+  }
+});
+
+app.get("/products/home/Newest", async (req, res) => {
+  try { 
+    const newestProducts = await ProductModel.find({})
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // 2. Gom mảng ID sản phẩm để truy vấn hàng loạt (Tối ưu N+1 query)
+    const productIds = newestProducts.map((p) => p._id);
+    
+    // 3. Lấy hình ảnh và biến thể tương ứng
+    const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
+    const variants = await ProductVariantModel.find({
+      p_id: { $in: productIds },
+    }).lean();
+
+    const variantAttrMap = await getVariantAttributeMap(
+      variants.map((v) => v._id)
+    );
+
+    const variantsWithAttributes = variants.map((v) => ({
+      ...v,
+      Attributes: variantAttrMap[v._id.toString()] || [],
+    }));
+
+    const finalProducts = newestProducts.map((product) => ({
+      ...product,
+      AnhSP: images.filter(
+        (img) => img.p_id.toString() === product._id.toString()
+      ),
+      Variants: variantsWithAttributes.filter(
+        (v) => v.p_id.toString() === product._id.toString()
+      ),
+    }));
+
+    return res.status(200).json({ success: true, data: finalProducts });
+
+  } catch (error) {
+    console.error("Lỗi API get newest products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server, không thể lấy danh sách sản phẩm mới nhất",
+    });
+  }
+});
+
+app.get("/products/home/Sale", async (req, res) => {
+  try {
+    const products = await ProductModel.find({}).lean();
+    const productIds = products.map((p) => p._id);
+
+    const variants = await ProductVariantModel.find({ p_id: { $in: productIds } }).lean();
+
+    products.forEach((product) => {
+      const myVariants = variants.filter((v) => v.p_id.toString() === product._id.toString());
+      
+      const allPrices = myVariants.map((v) => v.sale_price > 0);
+      product.GiaSaleCaoNhat = allPrices.length > 0 ? Math.max(...allPrices) : 0;
+    });
+
+    products.sort((a, b) => b.GiaSaleCaoNhat - a.GiaSaleCaoNhat);
+    
+
+
+    const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
+    
+    const variantAttrMap = await getVariantAttributeMap(variants.map((v) => v._id));
+
+    const variantsWithAttributes = variants.map((v) => ({
+      ...v,
+      Attributes: variantAttrMap[v._id.toString()] || [],
+    }));
+
+    const finalData = products.map((product) => {
+      const productIdStr = product._id.toString();
+      
+      delete product.GiaSaleCaoNhat;
+
+      return {
+        ...product,
+        AnhSP: images.filter((img) => img.p_id.toString() === productIdStr),
+        Variants: variantsWithAttributes.filter((v) => v.p_id.toString() === productIdStr),
+      };
+    });
+
+    return res.status(200).json({ success: true, data: finalData });
+
+  } catch (error) {
+    console.error("Lỗi API get sale products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server, không thể lấy danh sách sản phẩm đang giảm giá",
     });
   }
 });
