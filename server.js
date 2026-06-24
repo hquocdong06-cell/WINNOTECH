@@ -291,10 +291,6 @@ app.get("/auth/me", checklogin, async (req, res) => {
   }
 });
 
-
-
-
-
 // ============================================================
 // GET /products  — lấy toàn bộ sản phẩm kèm ảnh + biến thể + thuộc tính
 // FIX:
@@ -410,7 +406,7 @@ app.get("/products/home/featured", async (req, res) => {
   try {
     const featuredProducts = await ProductModel.find({})
       .sort({ sale: -1 })
-      .limit(10)
+      .limit()
       .lean();
 
     const productIds = featuredProducts.map((p) => p._id);
