@@ -4,6 +4,7 @@ import CPU from './pages/CPU'
 import CategoryPage from './pages/CategoryPage'
 import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
+import Checkout from './pages/Checkout'
 import Auth from './pages/Auth'
 import Profile from './pages/Profile'
 import BuildPC from './pages/BuildPC'
@@ -34,6 +35,7 @@ function App() {
       <Route path="/build-pc" element={<BuildPC />} />
       <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="/cart" element={<Cart />} />
+      <Route path="/checkout" element={<Checkout />} />
       <Route path="/profile" element={<Profile />} />
 
       {/* Auth routes — bọc GuestGuard: đã đăng nhập rồi sẽ bị đá về trang chủ */}
