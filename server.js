@@ -619,6 +619,213 @@ app.get("/categories", async (req, res, next) => {
   }
 });
 
+function slugify(text) {
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .replace(/([^a-z0-9\s-]|_)+/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+}
+
+// ============================================================
+// GET /brands — lấy tất cả thương hiệu
+// ============================================================
+app.get("/brands", async (req, res) => {
+  try {
+    const brands = await BrandModel.find({});
+    return res.json({
+      success: true,
+      data: brands,
+    });
+  } catch (error) {
+    console.log("Lỗi API get brands:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server, không thể lấy danh sách thương hiệu",
+    });
+  }
+});
+
+// ============================================================
+// POST /products — tạo sản phẩm mới cùng ảnh và biến thể mặc định
+// ============================================================
+app.post("/products", async (req, res) => {
+  try {
+    const { name, cat_id, brand_id, price, sale, thumnail, description, short_desc, stock, status } = req.body;
+    if (!name) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập tên sản phẩm" });
+    }
+
+    let slug = slugify(name);
+    let uniqueSlug = slug;
+    let count = 1;
+    while (await ProductModel.findOne({ slug: uniqueSlug })) {
+      uniqueSlug = `${slug}-${count}`;
+      count++;
+    }
+
+    const newProduct = await ProductModel.create({
+      name,
+      sale: sale || 0,
+      thumnail: thumnail || "",
+      slug: uniqueSlug,
+      description: description || "",
+      short_desc: short_desc || "",
+      status: status || "active",
+      cat_id: cat_id || null,
+      brand_id: brand_id || null
+    });
+
+    if (thumnail) {
+      await ImageModel.create({
+        p_id: newProduct._id,
+        url: thumnail,
+        alt: name,
+        is_main: true
+      });
+    }
+
+    const priceNum = Number(price) || 0;
+    const saleNum = Number(sale) || 0;
+    const salePrice = saleNum > 0 ? priceNum * (1 - saleNum / 100) : 0;
+
+    const defaultVariant = await ProductVariantModel.create({
+      variant_name: "Mặc định",
+      price: priceNum,
+      sku: "SKU-" + uniqueSlug.toUpperCase(),
+      sale_price: salePrice,
+      status: "active",
+      stock_quantity: Number(stock) || 0,
+      p_id: newProduct._id
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Thêm sản phẩm thành công",
+      data: {
+        product: newProduct,
+        variant: defaultVariant
+      }
+    });
+  } catch (error) {
+    console.error("Lỗi API tạo sản phẩm:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server khi tạo sản phẩm" });
+  }
+});
+
+// ============================================================
+// PUT /products/:id — cập nhật sản phẩm
+// ============================================================
+app.put("/products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, cat_id, brand_id, price, sale, thumnail, description, short_desc, stock, status } = req.body;
+    
+    const product = await ProductModel.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
+    }
+
+    if (name) product.name = name;
+    if (sale !== undefined) product.sale = Number(sale);
+    if (thumnail !== undefined) product.thumnail = thumnail;
+    if (description !== undefined) product.description = description;
+    if (short_desc !== undefined) product.short_desc = short_desc;
+    if (status) product.status = status;
+    if (cat_id) product.cat_id = cat_id;
+    if (brand_id) product.brand_id = brand_id;
+
+    if (name) {
+      let slug = slugify(name);
+      let uniqueSlug = slug;
+      let count = 1;
+      while (await ProductModel.findOne({ slug: uniqueSlug, _id: { $ne: id } })) {
+        uniqueSlug = `${slug}-${count}`;
+        count++;
+      }
+      product.slug = uniqueSlug;
+    }
+
+    await product.save();
+
+    if (thumnail !== undefined) {
+      await ImageModel.findOneAndUpdate(
+        { p_id: id, is_main: true },
+        { url: thumnail, alt: product.name },
+        { upsert: true }
+      );
+    }
+
+    const priceNum = price !== undefined ? Number(price) : 0;
+    const saleNum = product.sale || 0;
+    const salePrice = saleNum > 0 ? priceNum * (1 - saleNum / 100) : 0;
+
+    let variant = await ProductVariantModel.findOne({ p_id: id, variant_name: "Mặc định" });
+    if (variant) {
+      if (price !== undefined) variant.price = priceNum;
+      variant.sale_price = salePrice;
+      if (stock !== undefined) variant.stock_quantity = Number(stock);
+      variant.status = product.status;
+      await variant.save();
+    } else {
+      variant = await ProductVariantModel.create({
+        variant_name: "Mặc định",
+        price: priceNum,
+        sku: "SKU-" + product.slug.toUpperCase(),
+        sale_price: salePrice,
+        status: product.status,
+        stock_quantity: stock !== undefined ? Number(stock) : 0,
+        p_id: product._id
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Cập nhật sản phẩm thành công",
+      data: { product, variant }
+    });
+  } catch (error) {
+    console.error("Lỗi API cập nhật sản phẩm:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server khi cập nhật sản phẩm" });
+  }
+});
+
+// ============================================================
+// DELETE /products/:id — xóa sản phẩm cùng các ảnh, biến thể liên quan
+// ============================================================
+app.delete("/products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedProduct = await ProductModel.findByIdAndDelete(id);
+    if (!deletedProduct) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
+    }
+
+    await ImageModel.deleteMany({ p_id: id });
+
+    const variants = await ProductVariantModel.find({ p_id: id });
+    const variantIds = variants.map(v => v._id);
+    
+    await VariantAttribute.deleteMany({ id_variants: { $in: variantIds } });
+    await ProductVariantModel.deleteMany({ p_id: id });
+
+    return res.json({
+      success: true,
+      message: "Xóa sản phẩm thành công"
+    });
+  } catch (error) {
+    console.error("Lỗi API xóa sản phẩm:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server khi xóa sản phẩm" });
+  }
+});
+
+
+
 // ============================================================
 // GET /categories/:slug — sản phẩm theo danh mục
 // Không thay đổi logic, chỉ giữ nguyên

@@ -39,7 +39,7 @@ function App() {
       <Route path="/cooling" element={<CategoryPage slug="cooling" title="Tản nhiệt (Cooling)" />} />
       <Route path="/case" element={<Case />} />
       <Route path="/build-pc" element={<BuildPC />} />
-      <Route path="/product/:id" element={<ProductDetail />} />
+      <Route path="/product/:slug" element={<ProductDetail />} />
       <Route path="/cart" element={<Cart />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/profile" element={<Profile />} />
