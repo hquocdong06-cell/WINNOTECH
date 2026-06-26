@@ -50,7 +50,7 @@ export default function DefaultLayout({ children }) {
                 <option>CPU</option>
                 <option>GPU</option>
                 <option>RAM</option>
-                <option>Storage</option>
+                <option>SSD</option>
               </select>
               <div className="search-divider" />
               <input type="text" placeholder="Tìm CPU, GPU, RAM,..." />
@@ -147,10 +147,11 @@ export default function DefaultLayout({ children }) {
               <Link to="/cpu">CPU</Link>
               <Link to="/gpu">GPU</Link>
               <Link to="/ram">RAM</Link>
-              <Link to="/storage">Storage</Link>
+              <Link to="/storage">SSD</Link>
               <Link to="/mainboard">Mainboard</Link>
-              <Link to="/psu">PSU</Link>
-              <Link to="/cooling">Cooling</Link>
+              <Link to="/psu">Nguồn</Link>
+              <Link to="/cooling">Tản nhiệt PC</Link>
+              <Link to="/case">Case</Link>
             </div>
           </div>
         </div>

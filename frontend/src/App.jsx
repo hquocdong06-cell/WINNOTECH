@@ -1,6 +1,12 @@
 import { Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
 import CPU from './pages/CPU'
+import GPU from './pages/GPU'
+import RAM from './pages/RAM'
+import SSD from './pages/SSD'
+import Mainboard from './pages/Mainboard'
+import PSU from './pages/PSU'
+import Case from './pages/Case'
 import CategoryPage from './pages/CategoryPage'
 import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
@@ -25,13 +31,13 @@ function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/cpu" element={<CPU />} />
-      <Route path="/gpu" element={<CategoryPage slug="gpu" title="VGA / Card đồ họa" />} />
-      <Route path="/ram" element={<CategoryPage slug="ram" title="RAM (Bộ nhớ trong)" />} />
-      <Route path="/storage" element={<CategoryPage slug="storage" title="Ổ cứng (SSD / HDD)" />} />
-      <Route path="/mainboard" element={<CategoryPage slug="mainboard" title="Mainboard (Bo mạch chủ)" />} />
-      <Route path="/psu" element={<CategoryPage slug="psu" title="Nguồn máy tính (PSU)" />} />
+      <Route path="/gpu" element={<GPU />} />
+      <Route path="/ram" element={<RAM />} />
+      <Route path="/storage" element={<SSD />} />
+      <Route path="/mainboard" element={<Mainboard />} />
+      <Route path="/psu" element={<PSU />} />
       <Route path="/cooling" element={<CategoryPage slug="cooling" title="Tản nhiệt (Cooling)" />} />
-      <Route path="/case" element={<CategoryPage slug="case" title="Vỏ máy tính (Case)" />} />
+      <Route path="/case" element={<Case />} />
       <Route path="/build-pc" element={<BuildPC />} />
       <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="/cart" element={<Cart />} />

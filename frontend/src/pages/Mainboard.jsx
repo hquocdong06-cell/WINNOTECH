@@ -1,156 +1,128 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import DefaultLayout from '../layouts/DefaultLayout'
-import '../assets/styles/cpu.css'
+import '../assets/styles/cpu.css' // Reuse the sidebar layout styles
 
 const API_URL = 'http://localhost:3000'
 
-// --- FILTER OPTION DATA MATCHING USER'S IMAGE ---
+// --- FILTER OPTIONS DATA MATCHING USER'S MAINBOARD IMAGE ---
 const brandsData = [
-  { label: 'AMD', value: 'amd' },
-  { label: 'Intel', value: 'intel' }
+  { label: 'Asrock', value: 'asrock' },
+  { label: 'Asus', value: 'asus' },
+  { label: 'Gigabyte', value: 'gigabyte' },
+  { label: 'Msi', value: 'msi' },
+  { label: 'NZXT', value: 'nzxt' },
+  { label: 'Biostar', value: 'biostar' },
+  { label: 'Colorful', value: 'colorful' }
+]
+
+const seriesData = [
+  { label: 'AORUS', value: 'aorus' },
+  { label: 'Gaming', value: 'gaming' },
+  { label: 'MAG', value: 'mag' },
+  { label: 'MEG', value: 'meg' },
+  { label: 'MPG', value: 'mpg' },
+  { label: 'PRO', value: 'pro' },
+  { label: 'PROART', value: 'proart' },
+  { label: 'Prime', value: 'prime' },
+  { label: 'ROG', value: 'rog' },
+  { label: 'Steel Legend', value: 'steel-legend' },
+  { label: 'TUF', value: 'tuf' }
 ]
 
 const useCaseData = [
   { label: 'Doanh nghiệp', value: 'doanh-nghiep' },
   { label: 'Gaming', value: 'gaming' },
+  { label: 'Gaming Văn Phòng', value: 'gaming-van-phong' },
   { label: 'Học sinh - Sinh viên', value: 'hoc-sinh-sinh-vien' },
   { label: 'Văn phòng', value: 'van-phong' },
   { label: 'Đồ họa - Kỹ thuật', value: 'do-hoa-ky-thuat' }
 ]
 
-const seriesData = [
-  { label: 'Core i3', value: 'core-i3' },
-  { label: 'Core i5', value: 'core-i5' },
-  { label: 'Core i7', value: 'core-i7' },
-  { label: 'Core i9', value: 'core-i9' },
-  { label: 'Pentium', value: 'pentium' },
-  { label: 'Ryzen 3', value: 'ryzen-3' },
-  { label: 'Ryzen 5', value: 'ryzen-5' },
-  { label: 'Ryzen 7', value: 'ryzen-7' },
-  { label: 'Ryzen 9', value: 'ryzen-9' },
-  { label: 'Ryzen Threadripper', value: 'ryzen-threadripper' },
-  { label: 'Ultra 5', value: 'ultra-5' },
-  { label: 'Ultra 7', value: 'ultra-7' },
-  { label: 'Ultra 9', value: 'ultra-9' }
+const driveTypeData = [
+  { label: 'Main AMD', value: 'main-amd' },
+  { label: 'Main Intel', value: 'main-intel' }
 ]
 
-const generationData = [
-  { label: 'AMD Ryzen 5000 Series', value: 'amd-ryzen-5000' },
-  { label: 'AMD Ryzen thế hệ thứ 1', value: 'amd-ryzen-1' },
-  { label: 'AMD Ryzen thế hệ thứ 2', value: 'amd-ryzen-2' },
-  { label: 'AMD Ryzen thế hệ thứ 3', value: 'amd-ryzen-3' },
-  { label: 'AMD Ryzen thế hệ thứ 4', value: 'amd-ryzen-4' },
-  { label: 'AMD Ryzen thế hệ thứ 5', value: 'amd-ryzen-5' },
-  { label: 'AMD Ryzen thế hệ thứ 7', value: 'amd-ryzen-7' },
-  { label: 'AMD Ryzen thế hệ thứ 8', value: 'amd-ryzen-8' },
-  { label: 'AMD Ryzen thế hệ thứ 9', value: 'amd-ryzen-9' },
-  { label: 'AMD Threadripper', value: 'amd-threadripper' },
-  { label: 'Intel Core Ultra series 2', value: 'intel-ultra-2' },
-  { label: 'Intel Core thế hệ thứ 10', value: 'intel-core-10' },
-  { label: 'Intel Core thế hệ thứ 11', value: 'intel-core-11' },
-  { label: 'Intel Core thế hệ thứ 12', value: 'intel-core-12' },
-  { label: 'Intel Core thế hệ thứ 13', value: 'intel-core-13' },
-  { label: 'Intel Core thế hệ thứ 14', value: 'intel-core-14' },
-  { label: 'Intel Pentium G', value: 'intel-pentium-g' },
-  { label: 'Intel Pentium Gold', value: 'intel-pentium-gold' },
-  { label: 'Ryzen Threadripper PRO 9000 WX', value: 'ryzen-threadripper-9000' }
+const chipsetsData = [
+  { label: 'A520', value: 'a520' },
+  { label: 'A620', value: 'a620' },
+  { label: 'B550', value: 'b550' },
+  { label: 'B650', value: 'b650' },
+  { label: 'B660', value: 'b660' },
+  { label: 'B760', value: 'b760' },
+  { label: 'B840', value: 'b840' },
+  { label: 'B850', value: 'b850' },
+  { label: 'B860', value: 'b860' },
+  { label: 'H470', value: 'h470' },
+  { label: 'H610', value: 'h610' },
+  { label: 'X870', value: 'x870' },
+  { label: 'X870E', value: 'x870e' },
+  { label: 'Z490', value: 'z490' },
+  { label: 'Z790', value: 'z790' },
+  { label: 'Z890', value: 'z890' }
 ]
 
-const coresData = [
-  { label: '10', value: '10' },
-  { label: '12', value: '12' },
-  { label: '14', value: '14' },
-  { label: '16', value: '16' },
-  { label: '18', value: '18' },
-  { label: '2', value: '2' },
-  { label: '20', value: '20' },
-  { label: '24', value: '24' },
-  { label: '32', value: '32' },
-  { label: '4', value: '4' },
-  { label: '6', value: '6' },
-  { label: '64', value: '64' },
-  { label: '8', value: '8' },
-  { label: '96', value: '96' }
-]
-
-const socketData = [
+const socketsData = [
   { label: '1200', value: '1200' },
   { label: '1700', value: '1700' },
   { label: '1851', value: '1851' },
   { label: 'AM4', value: 'am4' },
-  { label: 'AM5', value: 'am5' },
-  { label: 'FCLGA1700', value: 'fclga1700' },
-  { label: 'TR4', value: 'tr4' },
-  { label: 'sTR5', value: 'str5' },
-  { label: 'sWRX8', value: 'swrx8' }
+  { label: 'AM5', value: 'am5' }
+]
+
+const sizesData = [
+  { label: 'ATX', value: 'atx' },
+  { label: 'Extended-ATX', value: 'e-atx' },
+  { label: 'Micro-ATX', value: 'm-atx' },
+  { label: 'Mini-ITX', value: 'itx' }
 ]
 
 // --- REALISTIC FALLBACK MOCK DATA ---
-const mockCpuProducts = [
+const mockMainboardProducts = [
   {
-    _id: 'mock-1',
-    name: 'Intel Core i9-14900K',
-    short_desc: '24C/32T, 6.0GHz, LGA1700, 14th Gen',
-    description: 'CPU cao cấp phục vụ gaming và đồ họa chuyên nghiệp, thế hệ 14.',
-    brand_id: { slug: 'intel', name: 'Intel' },
-    slug: 'intel-core-i9-14900k',
-    Variants: [{ price: 18490000, sale_price: 18490000 }],
-    AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=i9-14900K', is_main: true }]
+    _id: 'mock-mb-1',
+    name: 'ASUS PRIME B760M-K D4',
+    short_desc: 'Intel LGA1700, B760 Chipset, m-ATX, DDR4',
+    description: 'Bo mạch chủ ASUS PRIME B760M-K D4 hỗ trợ vi xử lý Intel socket LGA1700 thế hệ 12, 13, 14.',
+    brand_id: { slug: 'asus', name: 'ASUS' },
+    slug: 'asus-prime-b760m-k-d4',
+    Variants: [{ price: 2390000, sale_price: 2250000 }],
+    AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=PRIME+B760M-K', is_main: true }]
   },
   {
-    _id: 'mock-2',
-    name: 'Intel Core i7-14700K',
-    short_desc: '20C/28T, 5.6GHz, LGA1700, 14th Gen',
-    description: 'CPU Intel thế hệ 14 với 20 nhân (8P + 12E), 28 luồng. Hiệu năng đa nhiệm mạnh mẽ.',
-    brand_id: { slug: 'intel', name: 'Intel' },
-    slug: 'intel-core-i7-14700k',
-    Variants: [{ price: 9490000, sale_price: 8541000 }],
-    AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=i7-14700K', is_main: true }]
+    _id: 'mock-mb-2',
+    name: 'MSI MAG B650 TOMAHAWK WIFI',
+    short_desc: 'AMD AM5, B650 Chipset, ATX, DDR5',
+    description: 'Bo mạch chủ chơi game cao cấp MSI MAG B650 TOMAHAWK WIFI cho CPU Ryzen 7000/8000/9000.',
+    brand_id: { slug: 'msi', name: 'MSI' },
+    slug: 'msi-mag-b650-tomahawk-wifi',
+    Variants: [{ price: 6190000, sale_price: 5850000 }],
+    AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=B650+TOMAHAWK', is_main: true }]
   },
   {
-    _id: 'mock-3',
-    name: 'AMD Ryzen 7 7800X3D',
-    short_desc: '8C/16T, 5.0GHz, AM5, 3D V-Cache',
-    description: 'CPU Gaming tốt nhất với V-Cache 3D, 8 nhân 16 luồng, xung nhịp lên tới 5.0GHz.',
-    brand_id: { slug: 'amd', name: 'AMD' },
-    slug: 'amd-ryzen-7-7800x3d',
-    Variants: [{ price: 8990000, sale_price: 7641500 }],
-    AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=Ryzen+7800X3D', is_main: true }]
+    _id: 'mock-mb-3',
+    name: 'GIGABYTE A520M K V2',
+    short_desc: 'AMD AM4, A520 Chipset, Micro-ATX, DDR4',
+    description: 'Bo mạch chủ phổ thông GIGABYTE A520M K V2 cho CPU AMD Ryzen socket AM4.',
+    brand_id: { slug: 'gigabyte', name: 'GIGABYTE' },
+    slug: 'gigabyte-a520m-k-v2',
+    Variants: [{ price: 1590000, sale_price: 1590000 }],
+    AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=GIGABYTE+A520M', is_main: true }]
   },
   {
-    _id: 'mock-4',
-    name: 'Intel Core i5-14600K',
-    short_desc: '14C/20T, 5.3GHz, LGA1700, 14th Gen',
-    description: 'CPU phân khúc tầm trung cận cao cấp tốt nhất cho cả gaming và công việc.',
-    brand_id: { slug: 'intel', name: 'Intel' },
-    slug: 'intel-core-i5-14600k',
-    Variants: [{ price: 8490000, sale_price: 8490000 }],
-    AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=i5-14600K', is_main: true }]
-  },
-  {
-    _id: 'mock-5',
-    name: 'AMD Ryzen 9 7950X',
-    short_desc: '16C/32T, 5.7GHz, AM5, 7000 Series',
-    description: 'CPU cao cấp AMD Ryzen 9 7950X kiến trúc Zen 4 cho đồ họa chuyên nghiệp.',
-    brand_id: { slug: 'amd', name: 'AMD' },
-    slug: 'amd-ryzen-9-7950x',
-    Variants: [{ price: 16990000, sale_price: 16990000 }],
-    AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=Ryzen+7950X', is_main: true }]
-  },
-  {
-    _id: 'mock-6',
-    name: 'Intel Core i3-14100F',
-    short_desc: '4C/8T, 4.7GHz, LGA1700, 14th Gen',
-    description: 'CPU phổ thông giá rẻ cho học sinh sinh viên làm việc văn phòng.',
-    brand_id: { slug: 'intel', name: 'Intel' },
-    slug: 'intel-core-i3-14100f',
-    Variants: [{ price: 2990000, sale_price: 2990000 }],
-    AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=i3-14100F', is_main: true }]
+    _id: 'mock-mb-4',
+    name: 'ASRock Z790 Pro RS D4',
+    short_desc: 'Intel LGA1700, Z790 Chipset, ATX, DDR4',
+    description: 'Bo mạch chủ hiệu năng cao ASRock Z790 Pro RS D4 hỗ trợ CPU Intel thế hệ 12, 13, 14.',
+    brand_id: { slug: 'asrock', name: 'ASRock' },
+    slug: 'asrock-z790-pro-rs-d4',
+    Variants: [{ price: 5490000, sale_price: 5290000 }],
+    AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=ASRock+Z790+Pro', is_main: true }]
   }
 ]
 
-export default function CPU() {
+export default function Mainboard() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
@@ -160,36 +132,39 @@ export default function CPU() {
   // --- FILTERS STATE ---
   const [filters, setFilters] = useState({
     brands: [],
-    useCase: [],
     series: [],
-    generation: [],
-    cores: [],
-    socket: []
+    useCase: [],
+    driveType: [],
+    chipset: [],
+    socket: [],
+    size: []
   })
 
   // --- ACCORDION OPEN/CLOSE STATES ---
   const [openFilters, setOpenFilters] = useState({
     priceRange: true,
     brands: true,
-    useCase: true,
     series: true,
-    generation: true,
-    cores: true,
-    socket: true
+    useCase: true,
+    driveType: true,
+    chipset: true,
+    socket: true,
+    size: true
+  })
+
+  // --- EXPAND FILTERS STATE ---
+  const [expandedFilters, setExpandedFilters] = useState({
+    brands: false,
+    series: false,
+    useCase: false,
+    chipset: false,
+    socket: false,
+    size: false
   })
 
   const toggleFilter = (key) => {
     setOpenFilters(prev => ({ ...prev, [key]: !prev[key] }))
   }
-
-  // --- EXPAND FILTERS STATE ---
-  const [expandedFilters, setExpandedFilters] = useState({
-    useCase: false,
-    series: false,
-    generation: false,
-    cores: false,
-    socket: false
-  })
 
   const toggleExpand = (key) => {
     setExpandedFilters(prev => ({ ...prev, [key]: !prev[key] }))
@@ -197,24 +172,24 @@ export default function CPU() {
 
   // --- FETCH PRODUCTS FROM BACKEND ---
   useEffect(() => {
-    const fetchCPUProducts = async () => {
+    const fetchMainboardProducts = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`${API_URL}/categories/cpu`)
+        const res = await fetch(`${API_URL}/categories/mainboard`)
         const data = await res.json()
         if (data.success && data.data && data.data.products && data.data.products.length > 0) {
           setProducts(data.data.products)
         } else {
-          setProducts(mockCpuProducts)
+          setProducts(mockMainboardProducts)
         }
       } catch (err) {
-        console.error('Lỗi fetch sản phẩm CPU, sử dụng dữ liệu mẫu:', err)
-        setProducts(mockCpuProducts)
+        console.error('Lỗi fetch sản phẩm Mainboard, sử dụng dữ liệu mẫu:', err)
+        setProducts(mockMainboardProducts)
       } finally {
         setLoading(false)
       }
     }
-    fetchCPUProducts()
+    fetchMainboardProducts()
   }, [])
 
   const handleFilterChange = (category, value, isChecked) => {
@@ -256,6 +231,7 @@ export default function CPU() {
     const nameLower = product.name.toLowerCase()
     const descLower = (product.description || '').toLowerCase()
     const specsLower = (product.short_desc || '').toLowerCase()
+    const price = getProductPrice(product)
 
     // 1. Thương hiệu (Brand)
     if (filters.brands.length > 0) {
@@ -263,71 +239,65 @@ export default function CPU() {
       if (!filters.brands.includes(brandSlug.toLowerCase())) return false
     }
 
-
-    // 3. Nhu cầu (Use Case)
-    if (filters.useCase.length > 0) {
-      const match = filters.useCase.some(uc => {
-        if (uc === 'gaming') return nameLower.includes('gaming') || descLower.includes('chơi game') || descLower.includes('gaming')
-        if (uc === 'van-phong') return nameLower.includes('office') || descLower.includes('văn phòng')
-        if (uc === 'hoc-sinh-sinh-vien') return descLower.includes('học sinh') || descLower.includes('sinh viên') || descLower.includes('học tập')
-        if (uc === 'do-hoa-ky-thuat') return descLower.includes('đồ họa') || descLower.includes('kỹ thuật') || descLower.includes('render') || descLower.includes('3d')
-        if (uc === 'doanh-nghiep') return descLower.includes('doanh nghiệp') || descLower.includes('server') || descLower.includes('máy chủ')
-        return false
-      })
-      if (!match) return false
-    }
-
-    // 4. Series CPU
+    // 2. Series mainboard
     if (filters.series.length > 0) {
-      const match = filters.series.some(s => {
-        const query = s.replace('-', ' ') // e.g. "core i3" or "ryzen 3"
+      const match = filters.series.some(ser => {
+        const query = ser.replace('-', ' ').toLowerCase()
         return nameLower.includes(query) || descLower.includes(query)
       })
       if (!match) return false
     }
 
-    // 5. Thế hệ (Generation)
-    if (filters.generation.length > 0) {
-      const match = filters.generation.some(gen => {
-        if (gen === 'intel-core-14') return nameLower.includes('14900') || nameLower.includes('14700') || nameLower.includes('14600') || nameLower.includes('14500') || nameLower.includes('14400') || nameLower.includes('14100') || nameLower.includes('14th') || descLower.includes('thế hệ 14')
-        if (gen === 'intel-core-13') return nameLower.includes('13900') || nameLower.includes('13700') || nameLower.includes('13600') || nameLower.includes('13500') || nameLower.includes('13400') || nameLower.includes('13th') || descLower.includes('thế hệ 13')
-        if (gen === 'intel-core-12') return nameLower.includes('12900') || nameLower.includes('12700') || nameLower.includes('12600') || nameLower.includes('12500') || nameLower.includes('12400') || nameLower.includes('12th') || descLower.includes('thế hệ 12')
-        if (gen === 'intel-core-11') return nameLower.includes('11900') || nameLower.includes('11700') || nameLower.includes('11600') || nameLower.includes('11400') || nameLower.includes('11th') || descLower.includes('thế hệ 11')
-        if (gen === 'intel-core-10') return nameLower.includes('10900') || nameLower.includes('10700') || nameLower.includes('10600') || nameLower.includes('10400') || nameLower.includes('10th') || descLower.includes('thế hệ 10')
-        if (gen === 'amd-ryzen-5000') return nameLower.includes('5600') || nameLower.includes('5700') || nameLower.includes('5800') || nameLower.includes('5900') || nameLower.includes('5000 series')
-        if (gen === 'amd-ryzen-9') return nameLower.includes('9950x') || nameLower.includes('9900x') || nameLower.includes('9700x') || nameLower.includes('9600x') || nameLower.includes('thế hệ thứ 9') || nameLower.includes('ryzen 9000')
-        if (gen === 'amd-ryzen-8') return nameLower.includes('8700g') || nameLower.includes('8600g') || nameLower.includes('8500g') || nameLower.includes('thế hệ thứ 8')
-        if (gen === 'amd-ryzen-7') return nameLower.includes('7800x3d') || nameLower.includes('7950x') || nameLower.includes('7900x') || nameLower.includes('7700') || nameLower.includes('7600') || nameLower.includes('thế hệ thứ 7')
-        if (gen === 'amd-ryzen-5') return nameLower.includes('5600') || nameLower.includes('5500') || nameLower.includes('thế hệ thứ 5')
-        if (gen === 'amd-ryzen-4') return nameLower.includes('4650g') || nameLower.includes('4500') || nameLower.includes('thế hệ thứ 4')
-        if (gen === 'amd-ryzen-3') return nameLower.includes('3600') || nameLower.includes('3700') || nameLower.includes('thế hệ thứ 3')
-        if (gen === 'amd-ryzen-2') return nameLower.includes('2600') || nameLower.includes('2700') || nameLower.includes('thế hệ thứ 2')
-        if (gen === 'amd-ryzen-1') return nameLower.includes('1600') || nameLower.includes('1700') || nameLower.includes('thế hệ thứ 1')
-        if (gen === 'intel-ultra-2') return nameLower.includes('ultra 9 2') || nameLower.includes('ultra 7 2') || nameLower.includes('ultra 5 2') || nameLower.includes('series 2')
-        if (gen === 'intel-pentium-g') return nameLower.includes('pentium g')
-        if (gen === 'intel-pentium-gold') return nameLower.includes('pentium gold')
-        if (gen === 'amd-threadripper') return nameLower.includes('threadripper') && !nameLower.includes('9000')
-        if (gen === 'ryzen-threadripper-9000') return nameLower.includes('threadripper pro 9') || nameLower.includes('9995wx') || nameLower.includes('9000 wx')
+    // 3. Nhu cầu
+    if (filters.useCase.length > 0) {
+      const match = filters.useCase.some(uc => {
+        if (uc === 'gaming') return nameLower.includes('gaming') || nameLower.includes('rog') || nameLower.includes('tuf') || nameLower.includes('aorus') || nameLower.includes('tomahawk') || descLower.includes('chơi game')
+        if (uc === 'van-phong') return nameLower.includes('prime') || nameLower.includes('pro') || price < 2500000
+        if (uc === 'hoc-sinh-sinh-vien') return price < 2000000 || descLower.includes('học tập')
+        if (uc === 'gaming-van-phong') return nameLower.includes('gaming') && price < 3000000
+        if (uc === 'do-hoa-ky-thuat') return nameLower.includes('proart') || nameLower.includes('creator') || nameLower.includes('x870') || nameLower.includes('z790') || nameLower.includes('z890')
+        if (uc === 'doanh-nghiep') return descLower.includes('doanh nghiệp') || nameLower.includes('workstation')
         return false
       })
       if (!match) return false
     }
 
-    // 6. Số nhân thực (Cores)
-    if (filters.cores.length > 0) {
-      const match = filters.cores.some(c => {
-        const pattern1 = `${c}c`
-        const pattern2 = `${c} cores`
-        const pattern3 = `${c} nhân`
-        return specsLower.includes(pattern1) || specsLower.includes(pattern2) || specsLower.includes(pattern3) || descLower.includes(pattern3)
+    // 4. Loại Mainboard
+    if (filters.driveType.length > 0) {
+      const match = filters.driveType.some(type => {
+        if (type === 'main-amd') return nameLower.includes('amd') || specsLower.includes('amd') || nameLower.includes('am4') || nameLower.includes('am5') || specsLower.includes('am4') || specsLower.includes('am5')
+        if (type === 'main-intel') return nameLower.includes('intel') || specsLower.includes('intel') || nameLower.includes('lga') || nameLower.includes('1700') || nameLower.includes('1200') || nameLower.includes('1851')
+        return false
       })
       if (!match) return false
     }
 
-    // 7. Socket
+    // 5. Chipset
+    if (filters.chipset.length > 0) {
+      const match = filters.chipset.some(chip => {
+        const query = chip.toLowerCase()
+        return nameLower.includes(query) || specsLower.includes(query)
+      })
+      if (!match) return false
+    }
+
+    // 6. Socket
     if (filters.socket.length > 0) {
       const match = filters.socket.some(sock => {
-        return specsLower.includes(sock.toLowerCase()) || descLower.includes(sock.toLowerCase()) || nameLower.includes(sock.toLowerCase())
+        const query = sock.toLowerCase()
+        return nameLower.includes(query) || specsLower.includes(query) || (query === '1700' && nameLower.includes('lga1700')) || (query === '1200' && nameLower.includes('lga1200')) || (query === '1851' && nameLower.includes('lga1851'))
+      })
+      if (!match) return false
+    }
+
+    // 7. Chuẩn kích thước
+    if (filters.size.length > 0) {
+      const match = filters.size.some(sz => {
+        if (sz === 'atx') return nameLower.includes('atx') && !nameLower.includes('micro-atx') && !nameLower.includes('m-atx') && !nameLower.includes('mini-itx') && !nameLower.includes('e-atx')
+        if (sz === 'e-atx') return nameLower.includes('e-atx') || nameLower.includes('eatx') || nameLower.includes('extended-atx')
+        if (sz === 'm-atx') return nameLower.includes('m-atx') || nameLower.includes('matx') || nameLower.includes('micro-atx')
+        if (sz === 'itx') return nameLower.includes('itx') || nameLower.includes('mini-itx')
+        return false
       })
       if (!match) return false
     }
@@ -361,7 +331,7 @@ export default function CPU() {
             <span>/</span>
             <span className="active">Sản phẩm</span>
             <span>/</span>
-            <span className="active">BỘ VI XỬ LÝ CPU</span>
+            <span className="active">MAINBOARD - BO MẠCH CHỦ</span>
           </div>
 
           {/* MAIN LAYOUT */}
@@ -383,7 +353,7 @@ export default function CPU() {
                     <div className="price-inputs" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                       <input type="text" value="0đ" disabled style={{ width: '100%', background: 'var(--dark2)', border: '1.5px solid var(--border)', color: 'var(--white)', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px' }} />
                       <span style={{ color: 'var(--text-muted)' }}>-</span>
-                      <input type="text" value="420.000.000đ" disabled style={{ width: '100%', background: 'var(--dark2)', border: '1.5px solid var(--border)', color: 'var(--white)', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px' }} />
+                      <input type="text" value="40.000.000đ" disabled style={{ width: '100%', background: 'var(--dark2)', border: '1.5px solid var(--border)', color: 'var(--white)', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px' }} />
                     </div>
                     <div className="custom-slider-wrapper">
                       <div className="slider-track-line">
@@ -407,8 +377,8 @@ export default function CPU() {
                   </span>
                 </div>
                 {openFilters.brands && (
-                  <div className="filter-options">
-                    {brandsData.map(brand => (
+                  <div className="filter-options" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    {(expandedFilters.brands ? brandsData : brandsData.slice(0, 4)).map(brand => (
                       <label key={brand.value} className="filter-label">
                         <input
                           type="checkbox"
@@ -418,10 +388,74 @@ export default function CPU() {
                         <span>{brand.label}</span>
                       </label>
                     ))}
+                    {brandsData.length > 4 && (
+                      <button 
+                        onClick={() => toggleExpand('brands')} 
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#3b82f6',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          padding: '4px 0 0 0',
+                          textAlign: 'left',
+                          marginTop: '4px',
+                          display: 'block',
+                          fontWeight: '500',
+                          gridColumn: 'span 2'
+                        }}
+                      >
+                        {expandedFilters.brands ? 'Thu gọn' : 'Xem thêm'}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
 
+              {/* SERIES MAINBOARD */}
+              <div className="filter-group">
+                <div className="filter-title" onClick={() => toggleFilter('series')}>
+                  Series mainboard
+                  <span className={`accordion-icon ${openFilters.series ? 'open' : ''}`}>
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
+                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                </div>
+                {openFilters.series && (
+                  <div className="filter-options">
+                    {(expandedFilters.series ? seriesData : seriesData.slice(0, 4)).map(ser => (
+                      <label key={ser.value} className="filter-label">
+                        <input
+                          type="checkbox"
+                          checked={filters.series.includes(ser.value)}
+                          onChange={(e) => handleFilterChange('series', ser.value, e.target.checked)}
+                        />
+                        <span>{ser.label}</span>
+                      </label>
+                    ))}
+                    {seriesData.length > 4 && (
+                      <button 
+                        onClick={() => toggleExpand('series')} 
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#3b82f6',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          padding: '4px 0 0 0',
+                          textAlign: 'left',
+                          marginTop: '4px',
+                          display: 'block',
+                          fontWeight: '500'
+                        }}
+                      >
+                        {expandedFilters.series ? 'Thu gọn' : 'Xem thêm'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* NHU CẦU */}
               <div className="filter-group">
@@ -468,31 +502,57 @@ export default function CPU() {
                 )}
               </div>
 
-              {/* SERIES CPU */}
+              {/* LOẠI MAINBOARD */}
               <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('series')}>
-                  Series CPU
-                  <span className={`accordion-icon ${openFilters.series ? 'open' : ''}`}>
+                <div className="filter-title" onClick={() => toggleFilter('driveType')}>
+                  Loại Mainboard
+                  <span className={`accordion-icon ${openFilters.driveType ? 'open' : ''}`}>
                     <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
                       <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </span>
                 </div>
-                {openFilters.series && (
+                {openFilters.driveType && (
                   <div className="filter-options">
-                    {(expandedFilters.series ? seriesData : seriesData.slice(0, 4)).map(s => (
-                      <label key={s.value} className="filter-label">
+                    {driveTypeData.map(type => (
+                      <label key={type.value} className="filter-label">
                         <input
                           type="checkbox"
-                          checked={filters.series.includes(s.value)}
-                          onChange={(e) => handleFilterChange('series', s.value, e.target.checked)}
+                          checked={filters.driveType.includes(type.value)}
+                          onChange={(e) => handleFilterChange('driveType', type.value, e.target.checked)}
                         />
-                        <span>{s.label}</span>
+                        <span>{type.label}</span>
                       </label>
                     ))}
-                    {seriesData.length > 4 && (
+                  </div>
+                )}
+              </div>
+
+              {/* CHIPSET */}
+              <div className="filter-group">
+                <div className="filter-title" onClick={() => toggleFilter('chipset')}>
+                  Chipset
+                  <span className={`accordion-icon ${openFilters.chipset ? 'open' : ''}`}>
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
+                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                </div>
+                {openFilters.chipset && (
+                  <div className="filter-options">
+                    {(expandedFilters.chipset ? chipsetsData : chipsetsData.slice(0, 4)).map(chip => (
+                      <label key={chip.value} className="filter-label">
+                        <input
+                          type="checkbox"
+                          checked={filters.chipset.includes(chip.value)}
+                          onChange={(e) => handleFilterChange('chipset', chip.value, e.target.checked)}
+                        />
+                        <span>{chip.label}</span>
+                      </label>
+                    ))}
+                    {chipsetsData.length > 4 && (
                       <button 
-                        onClick={() => toggleExpand('series')} 
+                        onClick={() => toggleExpand('chipset')} 
                         style={{
                           background: 'none',
                           border: 'none',
@@ -506,98 +566,7 @@ export default function CPU() {
                           fontWeight: '500'
                         }}
                       >
-                        {expandedFilters.series ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* THẾ HỆ */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('generation')}>
-                  Thế hệ
-                  <span className={`accordion-icon ${openFilters.generation ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.generation && (
-                  <div className="filter-options">
-                    {(expandedFilters.generation ? generationData : generationData.slice(0, 4)).map(gen => (
-                      <label key={gen.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.generation.includes(gen.value)}
-                          onChange={(e) => handleFilterChange('generation', gen.value, e.target.checked)}
-                        />
-                        <span style={{ fontSize: '12px' }}>{gen.label}</span>
-                      </label>
-                    ))}
-                    {generationData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('generation')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500'
-                        }}
-                      >
-                        {expandedFilters.generation ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* SỐ NHÂN THỰC */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('cores')}>
-                  Số nhân thực
-                  <span className={`accordion-icon ${openFilters.cores ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.cores && (
-                  <div className="filter-options" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {(expandedFilters.cores ? coresData : coresData.slice(0, 4)).map(c => (
-                      <label key={c.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.cores.includes(c.value)}
-                          onChange={(e) => handleFilterChange('cores', c.value, e.target.checked)}
-                        />
-                        <span>{c.label}</span>
-                      </label>
-                    ))}
-                    {coresData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('cores')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500',
-                          gridColumn: 'span 2'
-                        }}
-                      >
-                        {expandedFilters.cores ? 'Thu gọn' : 'Xem thêm'}
+                        {expandedFilters.chipset ? 'Thu gọn' : 'Xem thêm'}
                       </button>
                     )}
                   </div>
@@ -616,7 +585,7 @@ export default function CPU() {
                 </div>
                 {openFilters.socket && (
                   <div className="filter-options">
-                    {(expandedFilters.socket ? socketData : socketData.slice(0, 4)).map(sock => (
+                    {(expandedFilters.socket ? socketsData : socketsData.slice(0, 4)).map(sock => (
                       <label key={sock.value} className="filter-label">
                         <input
                           type="checkbox"
@@ -626,7 +595,7 @@ export default function CPU() {
                         <span>{sock.label}</span>
                       </label>
                     ))}
-                    {socketData.length > 4 && (
+                    {socketsData.length > 4 && (
                       <button 
                         onClick={() => toggleExpand('socket')} 
                         style={{
@@ -648,13 +617,58 @@ export default function CPU() {
                   </div>
                 )}
               </div>
+
+              {/* CHUẨN KÍCH THƯỚC */}
+              <div className="filter-group">
+                <div className="filter-title" onClick={() => toggleFilter('size')}>
+                  Chuẩn kích thước
+                  <span className={`accordion-icon ${openFilters.size ? 'open' : ''}`}>
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
+                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                </div>
+                {openFilters.size && (
+                  <div className="filter-options">
+                    {(expandedFilters.size ? sizesData : sizesData.slice(0, 4)).map(sz => (
+                      <label key={sz.value} className="filter-label">
+                        <input
+                          type="checkbox"
+                          checked={filters.size.includes(sz.value)}
+                          onChange={(e) => handleFilterChange('size', sz.value, e.target.checked)}
+                        />
+                        <span>{sz.label}</span>
+                      </label>
+                    ))}
+                    {sizesData.length > 4 && (
+                      <button 
+                        onClick={() => toggleExpand('size')} 
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#3b82f6',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          padding: '4px 0 0 0',
+                          textAlign: 'left',
+                          marginTop: '4px',
+                          display: 'block',
+                          fontWeight: '500'
+                        }}
+                      >
+                        {expandedFilters.size ? 'Thu gọn' : 'Xem thêm'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </aside>
 
             {/* MAIN CONTENT - PRODUCTS */}
             <main className="cpu-main">
               {/* HEADER */}
               <div className="cpu-main-header">
-                <h1>BỘ VI XỬ LÝ CPU</h1>
+                <h1>MAINBOARD (BO MẠCH CHỦ)</h1>
                 
                 <div className="cpu-main-header-right">
                   <div className="cpu-sort">
@@ -693,7 +707,7 @@ export default function CPU() {
               {loading ? (
                 <div style={{color: '#aaa', padding: '40px 0', textAlign: 'center'}}>Đang tải sản phẩm...</div>
               ) : visibleProducts.length === 0 ? (
-                <div style={{color: '#aaa', padding: '40px 0', textAlign: 'center'}}>Không tìm thấy CPU nào phù hợp với bộ lọc hiện tại.</div>
+                <div style={{color: '#aaa', padding: '40px 0', textAlign: 'center'}}>Không tìm thấy bo mạch chủ nào phù hợp với bộ lọc hiện tại.</div>
               ) : (
                 <div className="cpu-grid">
                   {visibleProducts.map(product => {
