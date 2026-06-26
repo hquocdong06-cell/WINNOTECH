@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import CPU from './pages/CPU'
 import GPU from './pages/GPU'
@@ -45,7 +45,7 @@ function App() {
       <Route path="/profile" element={<Profile />} />
 
       {/* Auth routes — bọc GuestGuard: đã đăng nhập rồi sẽ bị đá về trang chủ */}
-      <Route path="/auth" element={<GuestGuard><Auth /></GuestGuard>} />
+      <Route path="/auth" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<GuestGuard><Auth /></GuestGuard>} />
       <Route path="/register" element={<GuestGuard><Auth /></GuestGuard>} />
 
