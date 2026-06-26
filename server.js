@@ -149,6 +149,7 @@ app.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = new UserModel({
+      name: email.split('@')[0] || 'User',
       phone: phone,
       email: email,
       password: hashedPassword,

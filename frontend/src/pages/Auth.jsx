@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import '../assets/styles/auth.css'
 
 export default function Auth() {
   const navigate = useNavigate()
-  const [isLogin, setIsLogin] = useState(true)
+  const location = useLocation()
+  const isLogin = location.pathname !== '/register'
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [errors, setErrors] = useState({})
@@ -312,7 +313,7 @@ export default function Auth() {
               {/* Switch to Register */}
               <div className="auth-footer">
                 <span>Chưa có tài khoản? </span>
-                <button type="button" onClick={() => setIsLogin(false)} className="switch-link">
+                <button type="button" onClick={() => navigate('/register')} className="switch-link">
                   Đăng ký →
                 </button>
               </div>
@@ -480,7 +481,7 @@ export default function Auth() {
               {/* Switch to Login */}
               <div className="auth-footer">
                 <span>Đã có tài khoản? </span>
-                <button type="button" onClick={() => setIsLogin(true)} className="switch-link">
+                <button type="button" onClick={() => navigate('/login')} className="switch-link">
                   Đăng nhập ngay →
                 </button>
               </div>
