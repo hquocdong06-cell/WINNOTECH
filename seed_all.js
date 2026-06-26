@@ -135,22 +135,7 @@ async function seedAll() {
 
     // ═══════════════════════════════════════════════════════════
     // 4. ATTRIBUTES + ATTRIBUTE VALUES
-    // ═══════════════════════════════════════════════════════════
-    console.log("\n🏷️  Tạo Attributes...");
-    const attrColor = await Attribute.create({ name: "Màu sắc" });
-    const attrRAMSize = await Attribute.create({ name: "Dung lượng RAM" });
-    const attrStorage = await Attribute.create({ name: "Dung lượng lưu trữ" });
-
-    const colorBlack = await AttributeValue.create({ name: "Đen", slug: "den", value: "Đen", id_attribute: attrColor._id });
-    const colorWhite = await AttributeValue.create({ name: "Trắng", slug: "trang", value: "Trắng", id_attribute: attrColor._id });
-    const ram16 = await AttributeValue.create({ name: "16GB", slug: "16gb", value: "16GB", id_attribute: attrRAMSize._id });
-    const ram32 = await AttributeValue.create({ name: "32GB", slug: "32gb", value: "32GB", id_attribute: attrRAMSize._id });
-    const ssd512 = await AttributeValue.create({ name: "512GB", slug: "512gb", value: "512GB", id_attribute: attrStorage._id });
-    const ssd1tb = await AttributeValue.create({ name: "1TB", slug: "1tb", value: "1TB", id_attribute: attrStorage._id });
-    const ssd2tb = await AttributeValue.create({ name: "2TB", slug: "2tb", value: "2TB", id_attribute: attrStorage._id });
-    console.log("✅ Đã tạo Attributes + Values");
-
-    // ═══════════════════════════════════════════════════════════
+    // ════�    // ═══════════════════════════════════════════════════════════
     // 5. PRODUCTS (12 sản phẩm linh kiện PC thật)
     // ═══════════════════════════════════════════════════════════
     console.log("\n📦 Tạo Products...");
@@ -165,6 +150,7 @@ async function seedAll() {
         status: "active",
         cat_id: catCPU._id,
         brand_id: brAMD._id,
+        thumnail: "http://localhost:3000/public/images/anh_cpu_amd/image_1.png",
       },
       {
         name: "Intel Core i7-14700K",
@@ -175,6 +161,7 @@ async function seedAll() {
         status: "active",
         cat_id: catCPU._id,
         brand_id: brIntel._id,
+        thumnail: "http://localhost:3000/public/images/anh_cpu_intel/image_5.png",
       },
       // --- GPU ---
       {
@@ -186,6 +173,7 @@ async function seedAll() {
         status: "active",
         cat_id: catGPU._id,
         brand_id: brASUS._id,
+        thumnail: "http://localhost:3000/public/images/anh_vga_asus/image_6.png",
       },
       {
         name: "MSI GeForce RTX 4060 VENTUS 2X",
@@ -196,6 +184,7 @@ async function seedAll() {
         status: "active",
         cat_id: catGPU._id,
         brand_id: brMSI._id,
+        thumnail: "http://localhost:3000/public/images/anh_vga_msi/image_9.png",
       },
       // --- MAINBOARD ---
       {
@@ -207,6 +196,7 @@ async function seedAll() {
         status: "active",
         cat_id: catMainboard._id,
         brand_id: brMSI._id,
+        thumnail: "http://localhost:3000/public/images/anh_mainboard_msi/image_10.png",
       },
       {
         name: "ASUS ROG Strix B760-F Gaming WiFi",
@@ -217,6 +207,7 @@ async function seedAll() {
         status: "active",
         cat_id: catMainboard._id,
         brand_id: brASUS._id,
+        thumnail: "http://localhost:3000/public/images/anh_mainboard_asus/image_12.png",
       },
       // --- RAM ---
       {
@@ -228,6 +219,7 @@ async function seedAll() {
         status: "active",
         cat_id: catRAM._id,
         brand_id: brGSkill._id,
+        thumnail: "http://localhost:3000/public/images/anh_ram_kingston/image_15.png",
       },
       {
         name: "Corsair Vengeance DDR5 32GB (2x16GB) 5600MHz",
@@ -238,6 +230,7 @@ async function seedAll() {
         status: "active",
         cat_id: catRAM._id,
         brand_id: brCorsair._id,
+        thumnail: "http://localhost:3000/public/images/anh_ram_corsair/image_13.png",
       },
       // --- STORAGE ---
       {
@@ -249,9 +242,58 @@ async function seedAll() {
         status: "active",
         cat_id: catStorage._id,
         brand_id: brSamsung._id,
+        thumnail: "http://localhost:3000/public/images/anh_o_cung/image_22.png",
       },
       {
         name: "WD Black SN850X 1TB NVMe M.2 SSD",
+        slug: "wd-black-sn850x-1tb",
+        sale: 12,
+        description: "SSD NVMe PCIe 4.0 cho gaming, tốc độ đọc 7300MB/s, Game Mode 2.0 tối ưu hiệu năng.",
+        short_desc: "NVMe, PCIe 4.0, 7300MB/s, Game Mode",
+        status: "active",
+        cat_id: catStorage._id,
+        brand_id: brWD._id,
+        thumnail: "http://localhost:3000/public/images/anh_o_cung/image_24.png",
+      },
+      // --- PSU ---
+      {
+        name: "Corsair RM850e 850W 80 Plus Gold",
+        slug: "corsair-rm850e-850w",
+        sale: 5,
+        description: "Nguồn full modular 850W chuẩn 80+ Gold, quạt 140mm, hiệu suất 90%. ATX 3.0, hỗ trợ GPU 12VHPWR.",
+        short_desc: "850W, 80+ Gold, Full Modular, ATX 3.0",
+        status: "active",
+        cat_id: catPSU._id,
+        brand_id: brCorsair._id,
+        thumnail: "http://localhost:3000/public/images/anh_nguon_may_tinh/image_30.png",
+      },
+      // --- COOLING ---
+      {
+        name: "NZXT Kraken X63 RGB AIO 280mm",
+        slug: "nzxt-kraken-x63-rgb-280mm",
+        sale: 10,
+        description: "Tản nhiệt nước AIO 280mm, màn hình LCD hiển thị nhiệt độ/GIF, 2 quạt 140mm RGB.",
+        short_desc: "AIO 280mm, LCD Display, RGB",
+        status: "active",
+        cat_id: catCooling._id,
+        brand_id: brNZXT._id,
+        thumnail: "http://localhost:3000/public/images/anh_tan_nhiet/image_32.png",
+      },
+    ]);
+    console.log(`✅ Đã tạo ${products.length} products`);
+
+    // ═══════════════════════════════════════════════════════════
+    // 6. IMAGES (ảnh sản phẩm - dùng ảnh thật từ backend)
+    // ═══════════════════════════════════════════════════════════
+    console.log("\n🖼️  Tạo Images...");
+    const imageData = products.map((p) => ({
+      p_id: p._id,
+      url: p.thumnail,
+      alt: p.name,
+      is_main: true,
+    }));
+    const images = await Image.insertMany(imageData);
+    console.log(`✅ Đã tạo ${images.length} images`);   name: "WD Black SN850X 1TB NVMe M.2 SSD",
         slug: "wd-black-sn850x-1tb",
         sale: 12,
         description: "SSD NVMe PCIe 4.0 cho gaming, tốc độ đọc 7300MB/s, Game Mode 2.0 tối ưu hiệu năng.",
