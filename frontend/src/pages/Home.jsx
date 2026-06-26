@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/home.css'
 
@@ -333,7 +334,8 @@ export default function Home() {
                 const imgUrl = getProductImage(product)
                 const { originalPrice, currentPrice, hasSale, salePercent } = getProductPriceInfo(product)
                 return (
-                  <div key={product._id} className="product-card" style={{ background: 'var(--dark3)', border: '1px solid rgba(124,58,237,0.15)' }}>
+                  <Link key={product._id} to={`/product/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', cursor: 'pointer' }}>
+                  <div className="product-card" style={{ background: 'var(--dark3)', border: '1px solid rgba(124,58,237,0.15)' }}>
                     {hasSale && (
                       <div className="product-sale-badge" style={{ background: 'var(--purple)' }}>
                         -{salePercent}%
@@ -371,6 +373,7 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+                  </Link>
                 )
               })
             )}
@@ -408,7 +411,8 @@ export default function Home() {
                 const imgUrl = getProductImage(product)
                 const { originalPrice, currentPrice, hasSale, salePercent } = getProductPriceInfo(product)
                 return (
-                  <div key={product._id} className="product-card">
+                  <Link key={product._id} to={`/product/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', cursor: 'pointer' }}>
+                  <div className="product-card">
                     {hasSale && (
                       <div className="product-sale-badge">
                         -{salePercent}%
@@ -437,7 +441,7 @@ export default function Home() {
                             <span className="product-price">{formatPrice(currentPrice)}</span>
                           )}
                         </div>
-                        <button className="btn-cart" onClick={handleAddToCart}>
+                        <button className="btn-cart" onClick={(e) => { e.preventDefault(); handleAddToCart() }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
                             <line x1="3" y1="6" x2="21" y2="6" />
@@ -446,6 +450,7 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+                  </Link>
                 )
               })
             )}
@@ -484,7 +489,8 @@ export default function Home() {
                 const imgUrl = getProductImage(product)
                 const { originalPrice, currentPrice, hasSale, salePercent } = getProductPriceInfo(product)
                 return (
-                  <div key={product._id} className="product-card" style={{ background: 'var(--dark2)' }}>
+                  <Link key={product._id} to={`/product/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', cursor: 'pointer' }}>
+                  <div className="product-card" style={{ background: 'var(--dark2)' }}>
                     {hasSale && (
                       <div className="product-sale-badge" style={{ background: '#ef4444' }}>
                         -{salePercent}%
@@ -513,7 +519,7 @@ export default function Home() {
                             <span className="product-price">{formatPrice(currentPrice)}</span>
                           )}
                         </div>
-                        <button className="btn-cart" style={{ background: 'var(--yellow)', color: '#000' }} onClick={handleAddToCart}>
+                        <button className="btn-cart" style={{ background: 'var(--yellow)', color: '#000' }} onClick={(e) => { e.preventDefault(); handleAddToCart() }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
                             <line x1="3" y1="6" x2="21" y2="6" />
@@ -522,6 +528,7 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+                  </Link>
                 )
               })
             )}
@@ -579,28 +586,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="faq-section">
-        <div className="section-inner">
-          <div className="faq-layout">
-            <div className="faq-left">
-              <h3>BẠN CÓ THẮC MẮC?</h3>
-              <p>Chúng tôi đã tổng hợp những câu hỏi thường gặp nhau.</p>
-              <button className="btn-faq">XEM FAQ →</button>
-            </div>
-            <div className="faq-right">
-              {faqs.map((faq, index) => (
-                <div key={index} className="faq-item">
-                  <div className="faq-q">
-                    {faq}
-                    <div className="faq-icon">+</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+
 
       {/* NEWSLETTER */}
       <section className="newsletter-section">
