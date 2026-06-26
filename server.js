@@ -43,11 +43,20 @@ var privatekey = fs.readFileSync("./key/privatekey.pem");
 
 connectDB();
 
-// CORS — cho phép FE (localhost:5173) gọi API
+// CORS — cho phép FE (localhost:5173, 5174, 5175...) gọi API & ảnh
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: function(origin, callback) {
+    // Cho phép requests không có origin (ví dụ từ Postman, mobile)
+    // và mọi cổng localhost 5173–5179 (Vite dev server)
+    if (!origin || /^http:\/\/localhost:(517[0-9])$/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true  // bắt buộc để cookie hoạt động
 }));
+
 
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));

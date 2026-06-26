@@ -135,7 +135,22 @@ async function seedAll() {
 
     // ═══════════════════════════════════════════════════════════
     // 4. ATTRIBUTES + ATTRIBUTE VALUES
-    // ════�    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
+    console.log("\n🏷️  Tạo Attributes...");
+    const attrColor = await Attribute.create({ name: "Màu sắc" });
+    const attrRAMSize = await Attribute.create({ name: "Dung lượng RAM" });
+    const attrStorage = await Attribute.create({ name: "Dung lượng lưu trữ" });
+
+    const colorBlack = await AttributeValue.create({ name: "Đen", slug: "den", value: "Đen", id_attribute: attrColor._id });
+    const colorWhite = await AttributeValue.create({ name: "Trắng", slug: "trang", value: "Trắng", id_attribute: attrColor._id });
+    const ram16 = await AttributeValue.create({ name: "16GB", slug: "16gb", value: "16GB", id_attribute: attrRAMSize._id });
+    const ram32 = await AttributeValue.create({ name: "32GB", slug: "32gb", value: "32GB", id_attribute: attrRAMSize._id });
+    const ssd512 = await AttributeValue.create({ name: "512GB", slug: "512gb", value: "512GB", id_attribute: attrStorage._id });
+    const ssd1tb = await AttributeValue.create({ name: "1TB", slug: "1tb", value: "1TB", id_attribute: attrStorage._id });
+    const ssd2tb = await AttributeValue.create({ name: "2TB", slug: "2tb", value: "2TB", id_attribute: attrStorage._id });
+    console.log("✅ Đã tạo Attributes + Values");
+
+    // ═══════════════════════════════════════════════════════════
     // 5. PRODUCTS (12 sản phẩm linh kiện PC thật)
     // ═══════════════════════════════════════════════════════════
     console.log("\n📦 Tạo Products...");
@@ -289,51 +304,6 @@ async function seedAll() {
     const imageData = products.map((p) => ({
       p_id: p._id,
       url: p.thumnail,
-      alt: p.name,
-      is_main: true,
-    }));
-    const images = await Image.insertMany(imageData);
-    console.log(`✅ Đã tạo ${images.length} images`);   name: "WD Black SN850X 1TB NVMe M.2 SSD",
-        slug: "wd-black-sn850x-1tb",
-        sale: 12,
-        description: "SSD NVMe PCIe 4.0 cho gaming, tốc độ đọc 7300MB/s, Game Mode 2.0 tối ưu hiệu năng.",
-        short_desc: "NVMe, PCIe 4.0, 7300MB/s, Game Mode",
-        status: "active",
-        cat_id: catStorage._id,
-        brand_id: brWD._id,
-      },
-      // --- PSU ---
-      {
-        name: "Corsair RM850e 850W 80 Plus Gold",
-        slug: "corsair-rm850e-850w",
-        sale: 5,
-        description: "Nguồn full modular 850W chuẩn 80+ Gold, quạt 140mm, hiệu suất 90%. ATX 3.0, hỗ trợ GPU 12VHPWR.",
-        short_desc: "850W, 80+ Gold, Full Modular, ATX 3.0",
-        status: "active",
-        cat_id: catPSU._id,
-        brand_id: brCorsair._id,
-      },
-      // --- COOLING ---
-      {
-        name: "NZXT Kraken X63 RGB AIO 280mm",
-        slug: "nzxt-kraken-x63-rgb-280mm",
-        sale: 10,
-        description: "Tản nhiệt nước AIO 280mm, màn hình LCD hiển thị nhiệt độ/GIF, 2 quạt 140mm RGB.",
-        short_desc: "AIO 280mm, LCD Display, RGB",
-        status: "active",
-        cat_id: catCooling._id,
-        brand_id: brNZXT._id,
-      },
-    ]);
-    console.log(`✅ Đã tạo ${products.length} products`);
-
-    // ═══════════════════════════════════════════════════════════
-    // 6. IMAGES (ảnh sản phẩm - dùng placeholder)
-    // ═══════════════════════════════════════════════════════════
-    console.log("\n🖼️  Tạo Images...");
-    const imageData = products.map((p, i) => ({
-      p_id: p._id,
-      url: `https://placehold.co/600x400/1a1a2e/7c3aed?text=${encodeURIComponent(p.name.substring(0, 20))}`,
       alt: p.name,
       is_main: true,
     }));
