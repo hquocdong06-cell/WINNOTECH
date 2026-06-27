@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
+import { addToCart } from '../redux/cartSlice'
+import { toast } from 'react-toastify'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/product-detail.css'
 
 const API_URL = 'http://localhost:3000'
 
 export default function ProductDetail() {
+  const dispatch = useDispatch()
   const { slug } = useParams()
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('description')
@@ -123,12 +127,18 @@ export default function ProductDetail() {
   }
 
   const handleAddToCart = () => {
-    console.log('Thêm vào giỏ hàng:', {
+    dispatch(addToCart({
       product_id: product._id,
-      variant_id: activeVariant?._id,
-      quantity
+      variant_id: activeVariant?._id || 'default',
+      name: product.name + (activeVariant ? ` - ${activeVariant.attributes.map(a => a.value).join(', ')}` : ''),
+      price: currentPrice,
+      quantity,
+      image: images[0]
+    }))
+    toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`, {
+      position: "bottom-right",
+      autoClose: 3000,
     })
-    alert(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`)
   }
 
   return (

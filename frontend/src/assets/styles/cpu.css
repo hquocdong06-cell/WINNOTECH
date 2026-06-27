@@ -366,9 +366,18 @@
 .cpu-card-name {
   font-size: 14px;
   font-weight: 700;
-  color: var(--white);
   margin: 0 0 6px 0;
   line-height: 1.4;
+}
+
+.cpu-card-name a {
+  color: var(--white);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.cpu-card-name a:hover {
+  color: var(--yellow);
 }
 
 .cpu-card-specs {

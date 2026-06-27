@@ -1,7 +1,13 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+import { selectCartTotalQuantity } from '../redux/cartSlice'
+import CartDrawer from '../components/CartDrawer'
 
 export default function DefaultLayout({ children }) {
+  const [isCartOpen, setIsCartOpen] = useState(false)
+  const cartTotalQuantity = useSelector(selectCartTotalQuantity)
+
   return (
     <>
       {/* TOP BAR */}
@@ -76,7 +82,7 @@ export default function DefaultLayout({ children }) {
                 </svg>
                 <span>Tài khoản</span>
               </Link>
-              <button className="nav-cart-btn">
+              <button className="nav-cart-btn" onClick={() => setIsCartOpen(true)}>
                 <div className="cart-btn-inner">
                   <div style={{ position: 'relative' }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -84,7 +90,7 @@ export default function DefaultLayout({ children }) {
                       <line x1="3" y1="6" x2="21" y2="6" />
                       <path d="M16 10a4 4 0 0 1-8 0" />
                     </svg>
-                    <div className="cart-badge-new">0</div>
+                    <div className="cart-badge-new">{cartTotalQuantity}</div>
                   </div>
                   <span>Giỏ hàng</span>
                 </div>
@@ -159,6 +165,8 @@ export default function DefaultLayout({ children }) {
 
       {/* MAIN CONTENT */}
       {children}
+
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
       {/* FOOTER */}
       <footer>

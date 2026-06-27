@@ -1547,6 +1547,64 @@ app.get("/vouchers/check/:code", checklogin, async (req, res) => {
   }
 });
 
+// ============================================================
+// CART APIs
+// ============================================================
+
+// Lấy danh sách giỏ hàng
+app.get("/api/cart/:u_id", async (req, res) => {
+  try {
+    const { u_id } = req.params;
+    const cartItems = await CartItemModel.find({ u_id }).populate("variant_id").lean();
+    return res.json({ success: true, data: cartItems });
+  } catch (error) {
+    console.error("Lỗi get cart:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// Thêm vào giỏ hàng
+app.post("/api/cart", async (req, res) => {
+  try {
+    const { u_id, variant_id, quantity, price } = req.body;
+    let item = await CartItemModel.findOne({ u_id, variant_id });
+    if (item) {
+      item.quantity += quantity;
+      await item.save();
+    } else {
+      item = new CartItemModel({ u_id, variant_id, quantity, price });
+      await item.save();
+    }
+    return res.json({ success: true, data: item });
+  } catch (error) {
+    console.error("Lỗi add cart:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// Cập nhật số lượng
+app.put("/api/cart/:id", async (req, res) => {
+  try {
+    const { quantity } = req.body;
+    const item = await CartItemModel.findByIdAndUpdate(req.params.id, { quantity }, { new: true });
+    return res.json({ success: true, data: item });
+  } catch (error) {
+    console.error("Lỗi update cart:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// Xóa khỏi giỏ hàng
+app.delete("/api/cart/:id", async (req, res) => {
+  try {
+    await CartItemModel.findByIdAndDelete(req.params.id);
+    return res.json({ success: true, message: "Đã xóa" });
+  } catch (error) {
+    console.error("Lỗi delete cart:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
