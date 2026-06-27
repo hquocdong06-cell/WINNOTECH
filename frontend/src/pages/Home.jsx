@@ -305,7 +305,7 @@ export default function Home() {
       </section>
 
       {/* FEATURED PRODUCTS */}
-      <section className="products-section" style={{ background: 'var(--dark2)' }}>
+      <section className="products-section">
         <div className="section-inner">
           <div className="products-header">
             <div>
@@ -326,26 +326,26 @@ export default function Home() {
           </div>
           <div className="products-row">
             {loadingFeatured ? (
-              <div style={{ color: 'var(--text-muted)', padding: '40px 0' }}>Đang tải sản phẩm nổi bật...</div>
+              <div className="products-empty">Đang tải sản phẩm nổi bật...</div>
             ) : featuredProducts.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', padding: '40px 0' }}>Chưa có sản phẩm nổi bật nào</div>
+              <div className="products-empty">Chưa có sản phẩm nổi bật nào</div>
             ) : (
               featuredProducts.slice(0, 10).map((product) => {
                 const imgUrl = getProductImage(product)
                 const { originalPrice, currentPrice, hasSale, salePercent } = getProductPriceInfo(product)
                 return (
-                  <Link key={product._id} to={`/product/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', cursor: 'pointer' }}>
-                  <div className="product-card" style={{ background: 'var(--dark3)', border: '1px solid rgba(124,58,237,0.15)' }}>
+                  <Link key={product._id} to={`/product/${product.slug}`} className="product-link">
+                  <div className="product-card">
                     {hasSale && (
-                      <div className="product-sale-badge" style={{ background: 'var(--purple)' }}>
+                      <div className="product-sale-badge">
                         -{salePercent}%
                       </div>
                     )}
-                    <div className="product-img" style={{ background: 'var(--dark2)' }}>
+                    <div className="item-visual-box">
                       {imgUrl ? (
-                        <img src={imgUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '8px' }} />
+                        <img src={imgUrl} alt={product.name} />
                       ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '12px' }}>No Image</div>
+                        <div className="no-image">No Image</div>
                       )}
                     </div>
                     <div className="product-info">
@@ -356,15 +356,15 @@ export default function Home() {
                       <div className="product-footer">
                         <div className="product-price-container">
                           {hasSale ? (
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span className="product-price sale-price" style={{ color: 'var(--purple2)' }}>{formatPrice(currentPrice)}</span>
-                              <span className="product-price original-price" style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '11px', fontWeight: 'normal' }}>{formatPrice(originalPrice)}</span>
-                            </div>
+                            <>
+                              <span className="product-price sale-price">{formatPrice(currentPrice)}</span>
+                              <span className="original-price">{formatPrice(originalPrice)}</span>
+                            </>
                           ) : (
                             <span className="product-price">{formatPrice(currentPrice)}</span>
                           )}
                         </div>
-                        <button className="btn-cart" style={{ background: 'var(--purple)', color: '#fff' }} onClick={handleAddToCart}>
+                        <button className="btn-cart" onClick={(e) => { e.preventDefault(); handleAddToCart() }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
                             <line x1="3" y1="6" x2="21" y2="6" />
@@ -403,26 +403,26 @@ export default function Home() {
           </div>
           <div className="products-row">
             {loadingNew ? (
-              <div style={{ color: 'var(--text-muted)', padding: '40px 0' }}>Đang tải sản phẩm mới...</div>
+              <div className="products-empty">Đang tải sản phẩm mới...</div>
             ) : newProducts.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', padding: '40px 0' }}>Chưa có sản phẩm mới nào</div>
+              <div className="products-empty">Chưa có sản phẩm mới nào</div>
             ) : (
               newProducts.map((product) => {
                 const imgUrl = getProductImage(product)
                 const { originalPrice, currentPrice, hasSale, salePercent } = getProductPriceInfo(product)
                 return (
-                  <Link key={product._id} to={`/product/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', cursor: 'pointer' }}>
+                  <Link key={product._id} to={`/product/${product.slug}`} className="product-link">
                   <div className="product-card">
                     {hasSale && (
                       <div className="product-sale-badge">
                         -{salePercent}%
                       </div>
                     )}
-                    <div className="product-img">
+                    <div className="item-visual-box">
                       {imgUrl ? (
-                        <img src={imgUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '8px' }} />
+                        <img src={imgUrl} alt={product.name} />
                       ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '12px' }}>No Image</div>
+                        <div className="no-image">No Image</div>
                       )}
                     </div>
                     <div className="product-info">
@@ -433,10 +433,10 @@ export default function Home() {
                       <div className="product-footer">
                         <div className="product-price-container">
                           {hasSale ? (
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span className="product-price sale-price" style={{ color: 'var(--yellow)' }}>{formatPrice(currentPrice)}</span>
-                              <span className="product-price original-price" style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '11px', fontWeight: 'normal' }}>{formatPrice(originalPrice)}</span>
-                            </div>
+                            <>
+                              <span className="product-price sale-price">{formatPrice(currentPrice)}</span>
+                              <span className="original-price">{formatPrice(originalPrice)}</span>
+                            </>
                           ) : (
                             <span className="product-price">{formatPrice(currentPrice)}</span>
                           )}
@@ -460,11 +460,11 @@ export default function Home() {
 
 
       {/* DISCOUNTED PRODUCTS */}
-      <section className="products-section products-section-sale" style={{ background: 'var(--dark)' }}>
+      <section className="products-section products-section-sale">
         <div className="section-inner">
           <div className="products-header">
             <div>
-              <div className="section-label" style={{ color: 'var(--yellow)' }}>SIÊU ƯU ĐÃI</div>
+              <div className="section-label section-label-yellow">SIÊU ƯU ĐÃI</div>
               <h2 className="section-title" style={{ marginBottom: 0 }}>
                 SẢN PHẨM GIẢM GIÁ
                 <br />
@@ -481,26 +481,26 @@ export default function Home() {
           </div>
           <div className="products-row">
             {loadingSale ? (
-              <div style={{ color: 'var(--text-muted)', padding: '40px 0' }}>Đang tải sản phẩm giảm giá...</div>
+              <div className="products-empty">Đang tải sản phẩm giảm giá...</div>
             ) : saleProducts.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', padding: '40px 0' }}>Không có sản phẩm giảm giá nào</div>
+              <div className="products-empty">Không có sản phẩm giảm giá nào</div>
             ) : (
               saleProducts.map((product) => {
                 const imgUrl = getProductImage(product)
                 const { originalPrice, currentPrice, hasSale, salePercent } = getProductPriceInfo(product)
                 return (
-                  <Link key={product._id} to={`/product/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', cursor: 'pointer' }}>
-                  <div className="product-card" style={{ background: 'var(--dark2)' }}>
+                  <Link key={product._id} to={`/product/${product.slug}`} className="product-link">
+                  <div className="product-card">
                     {hasSale && (
-                      <div className="product-sale-badge" style={{ background: '#ef4444' }}>
+                      <div className="product-sale-badge">
                         -{salePercent}%
                       </div>
                     )}
-                    <div className="product-img" style={{ background: 'var(--dark3)' }}>
+                    <div className="item-visual-box">
                       {imgUrl ? (
-                        <img src={imgUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '8px' }} />
+                        <img src={imgUrl} alt={product.name} />
                       ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '12px' }}>No Image</div>
+                        <div className="no-image">No Image</div>
                       )}
                     </div>
                     <div className="product-info">
@@ -511,15 +511,15 @@ export default function Home() {
                       <div className="product-footer">
                         <div className="product-price-container">
                           {hasSale ? (
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span className="product-price sale-price" style={{ color: '#ef4444' }}>{formatPrice(currentPrice)}</span>
-                              <span className="product-price original-price" style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '11px', fontWeight: 'normal' }}>{formatPrice(originalPrice)}</span>
-                            </div>
+                            <>
+                              <span className="product-price sale-price">{formatPrice(currentPrice)}</span>
+                              <span className="original-price">{formatPrice(originalPrice)}</span>
+                            </>
                           ) : (
                             <span className="product-price">{formatPrice(currentPrice)}</span>
                           )}
                         </div>
-                        <button className="btn-cart" style={{ background: 'var(--yellow)', color: '#000' }} onClick={(e) => { e.preventDefault(); handleAddToCart() }}>
+                        <button className="btn-cart" onClick={(e) => { e.preventDefault(); handleAddToCart() }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
                             <line x1="3" y1="6" x2="21" y2="6" />
