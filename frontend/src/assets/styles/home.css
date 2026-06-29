@@ -970,7 +970,7 @@ nav {
 }
 
 .sale-price {
-  color: var(--accent)
+  color: #ffffff;
 }
 
 .original-price {
@@ -983,10 +983,10 @@ nav {
 .btn-cart {
   width: 34px;
   height: 34px;
-  background: var(--accent);
+  background: var(--yellow);
   border: none;
   border-radius: 8px;
-  color: var(--accent-contrast);
+  color: #fff;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -997,11 +997,44 @@ nav {
 
 .btn-cart:hover {
   transform: scale(1.08);
-  filter: brightness(1.12)
+  filter: brightness(1.12);
 }
 
 .btn-cart:active {
-  transform: scale(.96)
+  transform: scale(.96);
+}
+
+/* ── PRODUCT ACTIONS (cart + wishlist group) ── */
+.product-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-wishlist-home {
+  width: 34px;
+  height: 34px;
+  background: var(--dark2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .15s ease, border-color .2s ease, color .2s ease, background .2s ease;
+  flex-shrink: 0;
+}
+
+.btn-wishlist-home:hover {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.08);
+  transform: scale(1.08);
+}
+
+.btn-wishlist-home:active {
+  transform: scale(.96);
 }
 
 /* ── PRODUCT CARD ACCENTS ── */
