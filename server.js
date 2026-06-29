@@ -7,7 +7,6 @@ var app = express();
 var port = 3000;
 const passport = require("passport");
 var LocalStrategy = require("passport-local").Strategy;
-var FacebookStrategy = require("passport-facebook").Strategy;
 
 const bcrypt = require("bcrypt");
 const UserModel = require("./models/User");
