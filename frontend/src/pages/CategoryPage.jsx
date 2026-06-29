@@ -12,7 +12,7 @@ const FILTER_CONFIG = {
     { title: 'Dung lượng VRAM', key: 'vram', options: [{ label: '8GB', value: '8gb' }, { label: '16GB', value: '16gb' }] }
   ],
   ram: [
-    { title: 'Hãng', key: 'brands', options: [{ label: 'G.Skill', value: 'gskill' }, { label: 'Corsair', value: 'corsair' }] },
+    { title: 'Hãng', key: 'brands', options: [{ label: 'Kingston', value: 'kingston' }, { label: 'Corsair', value: 'corsair' }] },
     { title: 'Dung lượng', key: 'capacity', options: [{ label: '32GB', value: '32gb' }, { label: '16GB', value: '16gb' }] },
     { title: 'Chuẩn RAM', key: 'type', options: [{ label: 'DDR5', value: 'ddr5' }] }
   ],

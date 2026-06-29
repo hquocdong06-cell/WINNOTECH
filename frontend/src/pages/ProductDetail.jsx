@@ -1,94 +1,27 @@
-import React, { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
+import { addToCart } from '../redux/cartSlice'
+import { toast } from 'react-toastify'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/product-detail.css'
 
+const API_URL = 'http://localhost:3000'
+
 export default function ProductDetail() {
-  const { id } = useParams()
+  const dispatch = useDispatch()
+  const { slug } = useParams()
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('description')
   const [isFavorite, setIsFavorite] = useState(false)
   const [selectedImage, setSelectedImage] = useState(0)
 
-  // Mock product data - Replace with API call
-  const product = {
-    id: 1,
-    brand: 'ASUS',
-    name: 'ASUS TUF Gaming GeForce RTX 4070 Ti SUPER 16GB GDDR6X',
-    category: 'GPU / NVIDIA',
-    price: '18.490.000đ',
-    status: 'Còn hàng',
-    rating: 4.9,
-    reviews: 123,
-    sold: 356,
-    images: [
-      '/src/assets/images/ASUS ROG Strix GeForce RTX 4070 Ti Super.png',
-      '/src/assets/images/ASUS ROG Strix GeForce RTX 4070 Ti Super.png',
-      '/src/assets/images/ASUS ROG Strix GeForce RTX 4070 Ti Super.png',
-      '/src/assets/images/ASUS ROG Strix GeForce RTX 4070 Ti Super.png'
-    ],
-    specs: {
-      'Memory': '16GB GDDR6X',
-      'Clock Speed': '2640 MHz',
-      'Memory Bus': '256-bit',
-      'PCIe': 'PCIe 4.0'
-    },
-    description: `ASUS TUF Gaming GeForce RTX 4070 Ti SUPER 16GB GDDR6X là card đồ họa mạnh mẽ với hiệu năng vượt trội, được thiết kế riêng cho các game thủ và nhà sáng tạo nội dung.
+  const [productData, setProductData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [relatedProducts, setRelatedProducts] = useState([])
 
-Đặc điểm nổi bật:
-- Hỗ trợ Ray Tracing và DLSS 3
-- Quạt tản nhiệt Axial-Tech với công nghệ Air flow
-- Hệ thống nguồn điện ổn định
-- Thiết kế TUF Gaming bền bỉ
-
-Hiệu suất vô cùng ổn định, tiếp tục sử dụng được lâu dài nhờ công nghệ chế tạo tiên tiến.`,
-    features: [
-      'Được hỗ trợ bởi NVIDIA DLSS 3 kiến trúc Ada Levelset siêu tối ưu',
-      'Quạt Axial-tech với hệ thống Dual Ball Bearing làm mát hiệu quả',
-      'Thế 2x2-slot như được chế tạo cho phù hợp sây kiềm kĩ thuật quản lý độ ổn định',
-      'Linh hoạt TUF, được làm theo tiêu chuẩn chất lượng cao'
-    ]
-  }
-
-  // Related products
-  const relatedProducts = [
-    {
-      id: 2,
-      name: 'ASUS TUF Gaming GeForce RTX 4070 SUPER 12GB GDDR6X',
-      specs: '12GB GDDR6X • 1980 MHz',
-      price: '15.990.000đ',
-      image: '/src/assets/images/ASUS ROG Strix GeForce RTX 4070 Ti Super.png'
-    },
-    {
-      id: 3,
-      name: 'MSI Gaming GeForce RTX 4060 SUPER 16GB GDDR6X',
-      specs: '16GB GDDR6X • 2565 MHz',
-      price: '28.990.000đ',
-      image: '/src/assets/images/ASUS ROG Strix GeForce RTX 4070 Ti Super.png'
-    },
-    {
-      id: 4,
-      name: 'GIGABYTE GeForce RTX 4070 SUPER 16GB GDDR6X',
-      specs: '16GB GDDR6X • 2640 MHz',
-      price: '17.990.000đ',
-      image: '/src/assets/images/ASUS ROG Strix GeForce RTX 4070 Ti Super.png'
-    },
-    {
-      id: 5,
-      name: 'ASUS ROG Strix GeForce RTX 4090 24GB GDDR6X',
-      specs: '24GB GDDR6X • 2640 MHz',
-      price: '49.990.000đ',
-      image: '/src/assets/images/ASUS ROG Strix GeForce RTX 4070 Ti Super.png'
-    }
-  ]
-
-  // Sidebar filters
-  const [filters, setFilters] = useState({
-    brands: [],
-    productLines: [],
-    sockets: []
-  })
-
+  // Sidebar mock filters (giữ giao diện đẹp mắt của template)
   const brands = ['NVIDIA', 'AMD', 'ASUS', 'MSI', 'GIGABYTE']
   const productLines = [
     'GeForce RTX 40 Series',
@@ -98,14 +31,114 @@ Hiệu suất vô cùng ổn định, tiếp tục sử dụng được lâu dà
   ]
   const sockets = ['PCIe 4.0', 'PCIe 3.0', 'PCIe 5.0']
 
+  useEffect(() => {
+    const fetchProductDetail = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch(`${API_URL}/products/${slug}`)
+        const data = await res.json()
+        if (data.success) {
+          setProductData(data.data)
+          setError(null)
+          
+          // Lấy sản phẩm liên quan từ cùng Category
+          const catSlug = data.data.product?.cat_id?.slug
+          if (catSlug) {
+            const catRes = await fetch(`${API_URL}/categories/${catSlug}`)
+            const catData = await catRes.json()
+            if (catData.success && catData.data?.products) {
+              const filtered = catData.data.products.filter(p => p._id !== data.data.product._id)
+              setRelatedProducts(filtered.slice(0, 4))
+            }
+          }
+        } else {
+          setError(data.message || 'Không tìm thấy sản phẩm')
+        }
+      } catch (err) {
+        console.error('Lỗi lấy chi tiết sản phẩm:', err)
+        setError('Không thể tải chi tiết sản phẩm')
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (slug) {
+      fetchProductDetail()
+    }
+  }, [slug])
+
+  if (loading) {
+    return (
+      <DefaultLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', color: '#fff', fontSize: '18px' }}>
+          ⏳ Đang tải thông tin sản phẩm...
+        </div>
+      </DefaultLayout>
+    )
+  }
+
+  if (error || !productData) {
+    return (
+      <DefaultLayout>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '60vh', color: '#fff', gap: '20px' }}>
+          <h2>❌ {error || 'Không tìm thấy sản phẩm'}</h2>
+          <Link to="/" className="btn-primary" style={{ textDecoration: 'none', padding: '10px 20px', background: 'var(--accent-color)', color: '#000', borderRadius: '4px', fontWeight: 600 }}>
+            Quay lại trang chủ
+          </Link>
+        </div>
+      </DefaultLayout>
+    )
+  }
+
+  const { product, AnhSP, Variants } = productData
+
+  const formatPrice = (price) => {
+    if (!price && price !== 0) return 'Liên hệ'
+    return price.toLocaleString('vi-VN') + 'đ'
+  }
+
+  // Gallery images list
+  const getProductImages = () => {
+    const list = []
+    if (AnhSP && AnhSP.length > 0) {
+      AnhSP.forEach(img => list.push(img.url))
+    }
+    if (list.length === 0 && product.thumnail) {
+      list.push(product.thumnail)
+    }
+    if (list.length === 0) {
+      list.push('https://images.unsplash.com/photo-1591485121907-26859ff93e37?q=80&w=2670&auto=format&fit=crop')
+    }
+    return list
+  }
+
+  const images = getProductImages()
+
+  // Price calculations
+  const hasVariants = Variants && Variants.length > 0
+  const activeVariant = hasVariants ? Variants[0] : null
+  const originalPrice = activeVariant ? activeVariant.price : (product.price || 0)
+  const currentPrice = activeVariant && activeVariant.sale_price > 0 ? activeVariant.sale_price : originalPrice
+  const hasSale = product.sale > 0 || (activeVariant && activeVariant.sale_price > 0)
+  const salePercent = product.sale || (activeVariant ? Math.round((1 - activeVariant.sale_price / activeVariant.price) * 100) : 0)
+
   const handleQuantityChange = (e) => {
     const value = parseInt(e.target.value)
     if (value > 0) setQuantity(value)
   }
 
   const handleAddToCart = () => {
-    console.log('Added to cart:', { product: product.id, quantity })
-    // Add API call here
+    dispatch(addToCart({
+      product_id: product._id,
+      variant_id: activeVariant?._id || 'default',
+      name: product.name + (activeVariant ? ` - ${activeVariant.attributes.map(a => a.value).join(', ')}` : ''),
+      price: currentPrice,
+      quantity,
+      image: images[0]
+    }))
+    toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`, {
+      position: "bottom-right",
+      autoClose: 3000,
+    })
   }
 
   return (
@@ -113,22 +146,21 @@ Hiệu suất vô cùng ổn định, tiếp tục sử dụng được lâu dà
       {/* BREADCRUMB */}
       <div className="breadcrumb-section">
         <div className="breadcrumb-inner">
-          <a href="/">Trang chủ</a>
+          <Link to="/">Trang chủ</Link>
           <span>/</span>
-          <a href="/products">Sản phẩm</a>
+          <span>Sản phẩm</span>
           <span>/</span>
-          <a href="/products?category=gpu">GPU</a>
+          <span>{product.cat_id?.name || 'Linh kiện'}</span>
           <span>/</span>
-          <a href="/products?brand=asus">ASUS TUF Gaming GeForce RTX 4070 Ti SUPER 16GB GDDR6X</a>
+          <span style={{ color: 'var(--accent-color)' }}>{product.name}</span>
         </div>
       </div>
 
       {/* MAIN CONTENT */}
       <div className="product-detail-section">
         <div className="section-inner">
-          {/* SIDEBAR FILTERS */}
+          {/* SIDEBAR FILTERS (MOCK) */}
           <aside className="product-sidebar">
-            {/* HÃNG */}
             <div className="filter-group">
               <button className="filter-title">
                 <span>HÃNG</span>
@@ -137,15 +169,13 @@ Hiệu suất vô cùng ổn định, tiếp tục sử dụng được lâu dà
               <div className="filter-content">
                 {brands.map((brand) => (
                   <label key={brand} className="filter-item">
-                    <input type="checkbox" />
+                    <input type="checkbox" defaultChecked={brand.toLowerCase() === product.brand_id?.name?.toLowerCase()} />
                     <span>{brand}</span>
                   </label>
                 ))}
               </div>
-              <a href="#" className="filter-viewmore">Xem thêm</a>
             </div>
 
-            {/* DÒNG SẢN PHẨM */}
             <div className="filter-group">
               <button className="filter-title">
                 <span>DÒNG SẢN PHẨM</span>
@@ -161,7 +191,6 @@ Hiệu suất vô cùng ổn định, tiếp tục sử dụng được lâu dà
               </div>
             </div>
 
-            {/* SOCKET */}
             <div className="filter-group">
               <button className="filter-title">
                 <span>SOCKET</span>
@@ -176,46 +205,25 @@ Hiệu suất vô cùng ổn định, tiếp tục sử dụng được lâu dà
                 ))}
               </div>
             </div>
-
-            {/* PRICE RANGE */}
-            <div className="filter-group">
-              <button className="filter-title">
-                <span>TẦM GIÁ</span>
-                <span className="filter-toggle">−</span>
-              </button>
-              <div className="filter-content">
-                <input type="range" min="1000000" max="50000000" defaultValue="18490000" className="price-slider" />
-                <div className="price-display">
-                  <span>1.000.000đ</span>
-                  <span>50.000.000đ</span>
-                </div>
-              </div>
-              <button className="btn-filter-apply">ÁP DỤNG BỘ LỌC</button>
-            </div>
           </aside>
 
           {/* PRODUCT MAIN */}
           <main className="product-main">
-            {/* PRODUCT HEADER */}
-            <div className="product-header">
-              <span className="breadcrumb-text">Trang chủ / Sản phẩm / GPU / ASUS TUF Gaming GeForce RTX 4070 Ti SUPER 16GB GDDR6X</span>
-            </div>
-
-            {/* PRODUCT GRID */}
             <div className="product-grid">
               {/* LEFT: IMAGE GALLERY */}
               <div className="product-gallery">
-                <div className="gallery-main">
-                  <img src={product.images[selectedImage]} alt={product.name} />
+                <div className="gallery-main" style={{ background: 'var(--dark2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', overflow: 'hidden' }}>
+                  <img src={images[selectedImage]} alt={product.name} style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }} />
                 </div>
                 <div className="gallery-thumbnails">
-                  {product.images.map((img, idx) => (
+                  {images.map((img, idx) => (
                     <button
                       key={idx}
                       className={`gallery-thumb ${selectedImage === idx ? 'active' : ''}`}
                       onClick={() => setSelectedImage(idx)}
+                      style={{ background: 'var(--dark2)', borderRadius: '4px', overflow: 'hidden', border: selectedImage === idx ? '1px solid var(--accent-color)' : '1px solid transparent' }}
                     >
-                      <img src={img} alt={`Thumbnail ${idx + 1}`} />
+                      <img src={img} alt={`Thumbnail ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     </button>
                   ))}
                 </div>
@@ -223,46 +231,41 @@ Hiệu suất vô cùng ổn định, tiếp tục sử dụng được lâu dà
 
               {/* RIGHT: PRODUCT INFO */}
               <div className="product-info-section">
-                {/* BRAND & NAME */}
                 <div className="product-header-info">
-                  <span className="product-brand">{product.brand}</span>
-                  <h1 className="product-title">{product.name}</h1>
+                  <span className="product-brand" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{product.brand_id?.name || 'Chính hãng'}</span>
+                  <h1 className="product-title" style={{ fontSize: '24px', margin: '8px 0', color: '#fff' }}>{product.name}</h1>
                 </div>
 
-                {/* STATUS & RATING */}
                 <div className="product-meta">
-                  <span className="status-badge">Còn hàng</span>
+                  <span className="status-badge" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>
+                    {product.status === 'active' ? 'Còn hàng' : 'Hết hàng'}
+                  </span>
                   <div className="rating">
                     <span className="stars">⭐⭐⭐⭐⭐</span>
-                    <span className="rating-value">4.9</span>
-                    <span className="rating-count">({product.reviews} đánh giá)</span>
-                    <span className="sold-count">| Đã bán {product.sold}</span>
+                    <span className="rating-value" style={{ marginLeft: '4px' }}>5.0</span>
                   </div>
                 </div>
 
-                {/* SPECS TABLE */}
-                <div className="specs-table">
-                  <div className="specs-row">
-                    <div className="specs-item">
-                      <div className="specs-label">16GB GDDR6X</div>
-                    </div>
-                    <div className="specs-item">
-                      <div className="specs-label">Clock Speed</div>
-                      <div className="specs-value">2640 MHz</div>
-                    </div>
-                    <div className="specs-item">
-                      <div className="specs-label">PCIe 4.0</div>
-                    </div>
-                    <div className="specs-item">
-                      <div className="specs-label">256-bit</div>
-                    </div>
-                  </div>
+                {/* SHORT DESC */}
+                <div className="specs-table" style={{ marginTop: '20px', background: 'var(--dark2)', padding: '15px', borderRadius: '8px', border: '1px solid #333' }}>
+                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+                    {product.short_desc || 'Không có mô tả ngắn cho sản phẩm này.'}
+                  </p>
                 </div>
 
                 {/* PRICE */}
-                <div className="product-pricing">
-                  <span className="price-note">Giá cả bao gồm VAT</span>
-                  <div className="price-main">18.490.000đ</div>
+                <div className="product-pricing" style={{ margin: '20px 0' }}>
+                  <span className="price-note" style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)' }}>Giá đã bao gồm VAT</span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '15px', marginTop: '5px' }}>
+                    <span className="price-main" style={{ fontSize: '28px', color: 'var(--accent-color)', fontWeight: 'bold' }}>
+                      {formatPrice(currentPrice)}
+                    </span>
+                    {hasSale && (
+                      <span className="price-original" style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '16px' }}>
+                        {formatPrice(originalPrice)}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* QUANTITY & ACTIONS */}
@@ -283,129 +286,53 @@ Hiệu suất vô cùng ổn định, tiếp tục sử dụng được lâu dà
                       className="qty-btn"
                     >+</button>
                   </div>
-                  <button className="btn-add-cart" onClick={handleAddToCart}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                      <line x1="3" y1="6" x2="21" y2="6" />
-                    </svg>
+                  <button className="btn-add-cart" onClick={handleAddToCart} style={{ background: 'var(--accent-color)', color: '#000', fontWeight: 'bold' }}>
                     THÊM VÀO GIỎ
                   </button>
                 </div>
 
-                {/* WISHLIST */}
                 <button 
                   className="btn-wishlist"
                   onClick={() => setIsFavorite(!isFavorite)}
+                  style={{ color: isFavorite ? 'var(--accent-color)' : '#fff' }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                   </svg>
                   YÊU THÍCH
                 </button>
-
-                {/* BENEFITS */}
-                <div className="product-benefits">
-                  <div className="benefit-item">
-                    <span className="benefit-icon">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <rect x="1" y="3" width="15" height="13" rx="1"/>
-                        <path d="M16 8h4l3 3v5h-7V8z"/>
-                        <circle cx="5.5" cy="18.5" r="2.5"/>
-                        <circle cx="18.5" cy="18.5" r="2.5"/>
-                      </svg>
-                    </span>
-                    <div>
-                      <div className="benefit-title">Miễn phí vận chuyển</div>
-                      <div className="benefit-text">Cho đơn từ 1.000.000đ</div>
-                    </div>
-                  </div>
-                  <div className="benefit-item">
-                    <span className="benefit-icon">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                        <path d="m9 12 2 2 4-4"/>
-                      </svg>
-                    </span>
-                    <div>
-                      <div className="benefit-title">Bảo hành chính hãng</div>
-                      <div className="benefit-text">36 tháng</div>
-                    </div>
-                  </div>
-                  <div className="benefit-item">
-                    <span className="benefit-icon">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <path d="M1 4v6h6"/>
-                        <path d="M23 20v-6h-6"/>
-                        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
-                      </svg>
-                    </span>
-                    <div>
-                      <div className="benefit-title">Đổi trả miễn phí</div>
-                      <div className="benefit-text">30 ngày</div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
             {/* TABS */}
-            <div className="product-tabs">
-              <div className="tabs-header">
+            <div className="product-tabs" style={{ marginTop: '40px' }}>
+              <div className="tabs-header" style={{ borderBottom: '1px solid #333' }}>
                 <button 
                   className={`tab-btn ${activeTab === 'description' ? 'active' : ''}`}
                   onClick={() => setActiveTab('description')}
                 >
-                  MỎ TẢ
-                </button>
-                <button 
-                  className={`tab-btn ${activeTab === 'specs' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('specs')}
-                >
-                  THÔNG SỐ KỸ THUẬT
+                  MÔ TẢ CHI TIẾT
                 </button>
                 <button 
                   className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
                   onClick={() => setActiveTab('reviews')}
                 >
-                  ĐÁNH GIÁ (128)
+                  ĐÁNH GIÁ (0)
                 </button>
               </div>
 
-              <div className="tabs-content">
+              <div className="tabs-content" style={{ padding: '20px 0' }}>
                 {activeTab === 'description' && (
-                  <div className="tab-pane">
-                    <p>{product.description}</p>
-                    <ul className="features-list">
-                      {product.features.map((feature, idx) => (
-                        <li key={idx}>
-                          <span className="feature-icon">✓</span>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {activeTab === 'specs' && (
-                  <div className="tab-pane">
-                    <table className="specs-details">
-                      <tbody>
-                        {Object.entries(product.specs).map(([key, value]) => (
-                          <tr key={key}>
-                            <td className="spec-label">{key}</td>
-                            <td className="spec-value">{value}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="tab-pane" style={{ lineHeight: '1.8', color: '#ccc', fontSize: '15px' }}>
+                    <div style={{ whiteSpace: 'pre-line' }}>{product.description || 'Không có mô tả chi tiết cho sản phẩm này.'}</div>
                   </div>
                 )}
 
                 {activeTab === 'reviews' && (
                   <div className="tab-pane">
-                    <div className="reviews-section">
+                    <div className="reviews-section" style={{ color: 'var(--text-muted)' }}>
                       <p>Hiện chưa có đánh giá. Hãy là người đầu tiên đánh giá sản phẩm này!</p>
-                      <button className="btn-review">VIẾT ĐÁNH GIÁ</button>
+                      <button className="btn-review" style={{ background: '#1e1e1e', color: '#fff', border: '1px solid #333', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', marginTop: '10px' }}>VIẾT ĐÁNH GIÁ</button>
                     </div>
                   </div>
                 )}
@@ -413,34 +340,35 @@ Hiệu suất vô cùng ổn định, tiếp tục sử dụng được lâu dà
             </div>
 
             {/* RELATED PRODUCTS */}
-            <div className="related-products">
-              <div className="related-header">
-                <h2>SẢN PHẨM LIÊN QUAN</h2>
-                <a href="#">XEM TẤT CẢ →</a>
+            {relatedProducts.length > 0 && (
+              <div className="related-products" style={{ marginTop: '50px' }}>
+                <div className="related-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h2 style={{ fontSize: '20px', color: '#fff' }}>SẢN PHẨM LIÊN QUAN</h2>
+                </div>
+                <div className="related-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
+                  {relatedProducts.map((item) => {
+                    const itemImg = item.AnhSP && item.AnhSP.length > 0 ? item.AnhSP[0].url : item.thumnail
+                    const itemPrice = item.price || 0
+                    const itemSalePrice = item.Variants && item.Variants.length > 0 && item.Variants[0].sale_price > 0 ? item.Variants[0].sale_price : itemPrice
+                    return (
+                      <Link key={item._id} to={`/product/${item.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div className="related-card" style={{ background: 'var(--dark2)', border: '1px solid #333', padding: '15px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}>
+                          <div className="related-img" style={{ height: '150px', background: 'var(--dark3)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', overflow: 'hidden' }}>
+                            <img src={itemImg || 'https://images.unsplash.com/photo-1591485121907-26859ff93e37?q=80&w=2670&auto=format&fit=crop'} alt={item.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                          </div>
+                          <div className="related-info" style={{ marginTop: '10px' }}>
+                            <div className="related-name" style={{ fontWeight: 600, fontSize: '14px', height: '40px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', color: '#fff' }}>{item.name}</div>
+                            <div className="related-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                              <div className="related-price" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{formatPrice(itemSalePrice || itemPrice)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
               </div>
-              <div className="related-grid">
-                {relatedProducts.map((item) => (
-                  <div key={item.id} className="related-card">
-                    <div className="related-img">
-                      <img src={item.image} alt={item.name} />
-                    </div>
-                    <div className="related-info">
-                      <div className="related-name">{item.name}</div>
-                      <div className="related-specs">{item.specs}</div>
-                      <div className="related-footer">
-                        <div className="related-price">{item.price}</div>
-                        <button className="btn-related-cart">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                            <line x1="3" y1="6" x2="21" y2="6" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </main>
         </div>
       </div>

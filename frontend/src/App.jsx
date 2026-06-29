@@ -1,6 +1,14 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import Home from './pages/Home'
 import CPU from './pages/CPU'
+import GPU from './pages/GPU'
+import RAM from './pages/RAM'
+import SSD from './pages/SSD'
+import Mainboard from './pages/Mainboard'
+import PSU from './pages/PSU'
+import Case from './pages/Case'
 import CategoryPage from './pages/CategoryPage'
 import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
@@ -22,41 +30,44 @@ import Settings from './admin/pages/Settings'
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/cpu" element={<CPU />} />
-      <Route path="/gpu" element={<CategoryPage slug="gpu" title="VGA / Card đồ họa" />} />
-      <Route path="/ram" element={<CategoryPage slug="ram" title="RAM (Bộ nhớ trong)" />} />
-      <Route path="/storage" element={<CategoryPage slug="storage" title="Ổ cứng (SSD / HDD)" />} />
-      <Route path="/mainboard" element={<CategoryPage slug="mainboard" title="Mainboard (Bo mạch chủ)" />} />
-      <Route path="/psu" element={<CategoryPage slug="psu" title="Nguồn máy tính (PSU)" />} />
-      <Route path="/cooling" element={<CategoryPage slug="cooling" title="Tản nhiệt (Cooling)" />} />
-      <Route path="/case" element={<CategoryPage slug="case" title="Vỏ máy tính (Case)" />} />
-      <Route path="/build-pc" element={<BuildPC />} />
-      <Route path="/product/:id" element={<ProductDetail />} />
-      <Route path="/cart" element={<Cart />} />
-      <Route path="/checkout" element={<Checkout />} />
-      <Route path="/profile" element={<Profile />} />
+    <>
+      <ToastContainer position="bottom-right" autoClose={3000} />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/cpu" element={<CPU />} />
+        <Route path="/gpu" element={<GPU />} />
+        <Route path="/ram" element={<RAM />} />
+        <Route path="/storage" element={<SSD />} />
+        <Route path="/mainboard" element={<Mainboard />} />
+        <Route path="/psu" element={<PSU />} />
+        <Route path="/cooling" element={<CategoryPage slug="cooling" title="Tản nhiệt (Cooling)" />} />
+        <Route path="/case" element={<Case />} />
+        <Route path="/build-pc" element={<BuildPC />} />
+        <Route path="/product/:slug" element={<ProductDetail />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/profile" element={<Profile />} />
 
-      {/* Auth routes — bọc GuestGuard: đã đăng nhập rồi sẽ bị đá về trang chủ */}
-      <Route path="/auth" element={<GuestGuard><Auth /></GuestGuard>} />
-      <Route path="/login" element={<GuestGuard><Auth /></GuestGuard>} />
-      <Route path="/register" element={<GuestGuard><Auth /></GuestGuard>} />
+        {/* Auth routes */}
+        <Route path="/auth" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<GuestGuard><Auth /></GuestGuard>} />
+        <Route path="/register" element={<GuestGuard><Auth /></GuestGuard>} />
 
-      {/* Admin Routes */}
-      <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<Dashboard />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="products" element={<Products />} />
-        <Route path="categories" element={<Categories />} />
-        <Route path="orders" element={<Orders />} />
-        <Route path="customers" element={<Customers />} />
-        <Route path="reviews" element={<Reviews />} />
-        <Route path="promotions" element={<Promotions />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-    </Routes>
+        {/* Admin Routes */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="products" element={<Products />} />
+          <Route path="categories" element={<Categories />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="reviews" element={<Reviews />} />
+          <Route path="promotions" element={<Promotions />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+      </Routes>
+    </>
   )
   
 }

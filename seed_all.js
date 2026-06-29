@@ -165,6 +165,7 @@ async function seedAll() {
         status: "active",
         cat_id: catCPU._id,
         brand_id: brAMD._id,
+        thumnail: "http://localhost:3000/public/images/anh_cpu_amd/image_1.png",
       },
       {
         name: "Intel Core i7-14700K",
@@ -175,6 +176,7 @@ async function seedAll() {
         status: "active",
         cat_id: catCPU._id,
         brand_id: brIntel._id,
+        thumnail: "http://localhost:3000/public/images/anh_cpu_intel/image_5.png",
       },
       // --- GPU ---
       {
@@ -186,6 +188,7 @@ async function seedAll() {
         status: "active",
         cat_id: catGPU._id,
         brand_id: brASUS._id,
+        thumnail: "http://localhost:3000/public/images/anh_vga_asus/image_6.png",
       },
       {
         name: "MSI GeForce RTX 4060 VENTUS 2X",
@@ -196,6 +199,7 @@ async function seedAll() {
         status: "active",
         cat_id: catGPU._id,
         brand_id: brMSI._id,
+        thumnail: "http://localhost:3000/public/images/anh_vga_msi/image_9.png",
       },
       // --- MAINBOARD ---
       {
@@ -207,6 +211,7 @@ async function seedAll() {
         status: "active",
         cat_id: catMainboard._id,
         brand_id: brMSI._id,
+        thumnail: "http://localhost:3000/public/images/anh_mainboard_msi/image_10.png",
       },
       {
         name: "ASUS ROG Strix B760-F Gaming WiFi",
@@ -217,6 +222,7 @@ async function seedAll() {
         status: "active",
         cat_id: catMainboard._id,
         brand_id: brASUS._id,
+        thumnail: "http://localhost:3000/public/images/anh_mainboard_asus/image_12.png",
       },
       // --- RAM ---
       {
@@ -228,6 +234,7 @@ async function seedAll() {
         status: "active",
         cat_id: catRAM._id,
         brand_id: brGSkill._id,
+        thumnail: "http://localhost:3000/public/images/anh_ram_kingston/image_15.png",
       },
       {
         name: "Corsair Vengeance DDR5 32GB (2x16GB) 5600MHz",
@@ -238,6 +245,7 @@ async function seedAll() {
         status: "active",
         cat_id: catRAM._id,
         brand_id: brCorsair._id,
+        thumnail: "http://localhost:3000/public/images/anh_ram_corsair/image_13.png",
       },
       // --- STORAGE ---
       {
@@ -249,6 +257,7 @@ async function seedAll() {
         status: "active",
         cat_id: catStorage._id,
         brand_id: brSamsung._id,
+        thumnail: "http://localhost:3000/public/images/anh_o_cung/image_22.png",
       },
       {
         name: "WD Black SN850X 1TB NVMe M.2 SSD",
@@ -259,6 +268,7 @@ async function seedAll() {
         status: "active",
         cat_id: catStorage._id,
         brand_id: brWD._id,
+        thumnail: "http://localhost:3000/public/images/anh_o_cung/image_24.png",
       },
       // --- PSU ---
       {
@@ -270,6 +280,7 @@ async function seedAll() {
         status: "active",
         cat_id: catPSU._id,
         brand_id: brCorsair._id,
+        thumnail: "http://localhost:3000/public/images/anh_nguon_may_tinh/image_30.png",
       },
       // --- COOLING ---
       {
@@ -281,17 +292,18 @@ async function seedAll() {
         status: "active",
         cat_id: catCooling._id,
         brand_id: brNZXT._id,
+        thumnail: "http://localhost:3000/public/images/anh_tan_nhiet/image_32.png",
       },
     ]);
     console.log(`✅ Đã tạo ${products.length} products`);
 
     // ═══════════════════════════════════════════════════════════
-    // 6. IMAGES (ảnh sản phẩm - dùng placeholder)
+    // 6. IMAGES (ảnh sản phẩm - dùng ảnh thật từ backend)
     // ═══════════════════════════════════════════════════════════
     console.log("\n🖼️  Tạo Images...");
-    const imageData = products.map((p, i) => ({
+    const imageData = products.map((p) => ({
       p_id: p._id,
-      url: `https://placehold.co/600x400/1a1a2e/7c3aed?text=${encodeURIComponent(p.name.substring(0, 20))}`,
+      url: p.thumnail,
       alt: p.name,
       is_main: true,
     }));

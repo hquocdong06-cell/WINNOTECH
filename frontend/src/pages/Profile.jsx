@@ -27,7 +27,7 @@ export default function Profile() {
           setUser(data.user)
         } else {
           // Chưa đăng nhập → redirect về trang login
-          navigate('/auth')
+          navigate('/login')
         }
       } catch (err) {
         console.error('Lỗi lấy profile:', err)
@@ -43,7 +43,7 @@ export default function Profile() {
   const handleLogout = async () => {
     try {
       await fetch(`${API_URL}/logout`, { credentials: 'include' })
-      navigate('/auth')
+      navigate('/login')
     } catch (err) {
       console.error('Lỗi đăng xuất:', err)
     }
