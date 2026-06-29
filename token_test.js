@@ -7,7 +7,7 @@ var fs = require("fs");
 var data = { username: 'SG' };
 
 // var privatekey = fs.readFileSync('./key/privatekey.pem');
-var cert = fs.readFileSync('./key/publickey.cr
+var cert = fs.readFileSync('./key/publickey.crt');
 
 
 // var token = jwt.sign(data, privatekey, {
