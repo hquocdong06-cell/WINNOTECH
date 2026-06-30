@@ -111,9 +111,353 @@ const mockPsuProducts = [
     slug: 'asus-tuf-gaming-750w-gold',
     Variants: [{ price: 2890000, sale_price: 2690000 }],
     AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=ASUS+TUF+750W', is_main: true }]
+  },
+  {
+    "_id": "mock-psu-5",
+    "name": "Corsair RM1000x Shift 1000W 80 Plus Gold",
+    "short_desc": "1000W, ATX, 80 Plus Gold, Full Modular",
+    "description": "Nguồn Corsair RM1000x Shift 1000W cổng kết nối ở mặt bên, Full Modular tiện đi dây.",
+    "brand_id": {
+      "slug": "corsair",
+      "name": "Corsair"
+    },
+    "slug": "corsair-rm1000x-shift-1000w",
+    "Variants": [
+      {
+        "price": 6490000,
+        "sale_price": 5990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RM1000x+Shift",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-6",
+    "name": "Seasonic Focus GX-850 850W 80 Plus Gold",
+    "short_desc": "850W, ATX, 80 Plus Gold, Full Modular, 10 năm BH",
+    "description": "Nguồn Seasonic Focus GX-850 850W 80 Plus Gold bảo hành 10 năm uy tín.",
+    "brand_id": {
+      "slug": "seasonic",
+      "name": "Seasonic"
+    },
+    "slug": "seasonic-focus-gx-850-850w",
+    "Variants": [
+      {
+        "price": 4990000,
+        "sale_price": 4790000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Seasonic+Focus+GX",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-7",
+    "name": "ASUS ROG LOKI SFX-L 1000W 80 Plus Platinum",
+    "short_desc": "1000W, SFX-L, 80 Plus Platinum, Full Modular, RGB",
+    "description": "Nguồn mini ASUS ROG LOKI SFX-L 1000W Platinum, RGB Aura Sync, cho case nhỏ gọn.",
+    "brand_id": {
+      "slug": "asus",
+      "name": "ASUS"
+    },
+    "slug": "asus-rog-loki-sfx-l-1000w",
+    "Variants": [
+      {
+        "price": 7990000,
+        "sale_price": 7490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=ROG+LOKI+1000W",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-8",
+    "name": "MSI MAG A850GL PCIE5 850W 80 Plus Gold",
+    "short_desc": "850W, ATX, 80 Plus Gold, Full Modular, PCIe 5.0",
+    "description": "Nguồn MSI MAG A850GL 850W hỗ trợ PCIe 5.0 16-pin cho RTX 40/50 Series.",
+    "brand_id": {
+      "slug": "msi",
+      "name": "MSI"
+    },
+    "slug": "msi-mag-a850gl-pcie5-850w",
+    "Variants": [
+      {
+        "price": 3990000,
+        "sale_price": 3790000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=MSI+MAG+A850GL",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-9",
+    "name": "be quiet! Dark Power Pro 13 1300W 80 Plus Titanium",
+    "short_desc": "1300W, ATX, 80 Plus Titanium, Full Modular",
+    "description": "Nguồn be quiet! Dark Power Pro 13 1300W Titanium hiệu suất tối đa, siêu yên tĩnh.",
+    "brand_id": {
+      "slug": "be-quiet",
+      "name": "be quiet!"
+    },
+    "slug": "be-quiet-dark-power-pro-13-1300w",
+    "Variants": [
+      {
+        "price": 9990000,
+        "sale_price": 9490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Dark+Power+Pro+13",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-10",
+    "name": "Cooler Master V SFX Gold 850W",
+    "short_desc": "850W, SFX, 80 Plus Gold, Full Modular",
+    "description": "Nguồn nhỏ gọn SFX Cooler Master V Gold 850W Full Modular cho ITX build.",
+    "brand_id": {
+      "slug": "cooler-master",
+      "name": "Cooler Master"
+    },
+    "slug": "cooler-master-v-sfx-gold-850w",
+    "Variants": [
+      {
+        "price": 4290000,
+        "sale_price": 3990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=CM+V+SFX+Gold",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-11",
+    "name": "Corsair HX1500i 1500W 80 Plus Platinum",
+    "short_desc": "1500W, ATX, 80 Plus Platinum, Full Modular, iCUE",
+    "description": "Nguồn Corsair HX1500i 1500W Platinum tích hợp iCUE giám sát công suất thời gian thực.",
+    "brand_id": {
+      "slug": "corsair",
+      "name": "Corsair"
+    },
+    "slug": "corsair-hx1500i-1500w",
+    "Variants": [
+      {
+        "price": 9990000,
+        "sale_price": 9490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=HX1500i+Platinum",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-12",
+    "name": "Seasonic Prime TX-1000 1000W 80 Plus Titanium",
+    "short_desc": "1000W, ATX, 80 Plus Titanium, Full Modular, 12 năm BH",
+    "description": "Nguồn đỉnh cao Seasonic Prime TX-1000 Titanium hiệu suất 94%, bảo hành 12 năm.",
+    "brand_id": {
+      "slug": "seasonic",
+      "name": "Seasonic"
+    },
+    "slug": "seasonic-prime-tx-1000-1000w",
+    "Variants": [
+      {
+        "price": 7990000,
+        "sale_price": 7590000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Prime+TX-1000",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-13",
+    "name": "MSI MPG A1000G PCIE5 1000W 80 Plus Gold",
+    "short_desc": "1000W, ATX, 80 Plus Gold, Full Modular, PCIe 5.0",
+    "description": "Nguồn MSI MPG A1000G 1000W Full Modular PCIe 5.0 cho build gaming cao cấp.",
+    "brand_id": {
+      "slug": "msi",
+      "name": "MSI"
+    },
+    "slug": "msi-mpg-a1000g-pcie5-1000w",
+    "Variants": [
+      {
+        "price": 5490000,
+        "sale_price": 5190000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=MPG+A1000G",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-14",
+    "name": "ASUS TUF Gaming 1000W Gold PCIe 5.0",
+    "short_desc": "1000W, ATX, 80 Plus Gold, Full Modular, PCIe 5.0",
+    "description": "Nguồn ASUS TUF Gaming 1000W Gold Full Modular PCIe 5.0 bền vững cho hệ thống gaming.",
+    "brand_id": {
+      "slug": "asus",
+      "name": "ASUS"
+    },
+    "slug": "asus-tuf-gaming-1000w-gold-pcie5",
+    "Variants": [
+      {
+        "price": 4990000,
+        "sale_price": 4690000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=TUF+Gaming+1000W",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-15",
+    "name": "Corsair RM750x 750W 80 Plus Gold",
+    "short_desc": "750W, ATX, 80 Plus Gold, Full Modular, Fanless",
+    "description": "Nguồn Corsair RM750x 750W Gold không quạt ở tải thấp, siêu yên tĩnh Full Modular.",
+    "brand_id": {
+      "slug": "corsair",
+      "name": "Corsair"
+    },
+    "slug": "corsair-rm750x-750w-gold",
+    "Variants": [
+      {
+        "price": 3490000,
+        "sale_price": 3290000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RM750x+Gold",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-16",
+    "name": "DeepCool PQ850M 850W 80 Plus Gold",
+    "short_desc": "850W, ATX, 80 Plus Gold, Semi Modular",
+    "description": "Nguồn DeepCool PQ850M 850W 80 Plus Gold Semi Modular giá tốt hiệu suất ổn định.",
+    "brand_id": {
+      "slug": "deepcool",
+      "name": "DeepCool"
+    },
+    "slug": "deepcool-pq850m-850w-gold",
+    "Variants": [
+      {
+        "price": 2690000,
+        "sale_price": 2490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=DeepCool+PQ850M",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-17",
+    "name": "Thermaltake Toughpower GF3 1200W 80 Plus Gold",
+    "short_desc": "1200W, ATX, 80 Plus Gold, Full Modular, PCIe 5.0",
+    "description": "Nguồn Thermaltake Toughpower GF3 1200W Gold Full Modular cho hệ thống build RTX 4090.",
+    "brand_id": {
+      "slug": "thermaltake",
+      "name": "Thermaltake"
+    },
+    "slug": "thermaltake-toughpower-gf3-1200w",
+    "Variants": [
+      {
+        "price": 5990000,
+        "sale_price": 5690000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=ToughPower+GF3+1200",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-18",
+    "name": "FSP Hydro PTM Pro 1200W 80 Plus Platinum",
+    "short_desc": "1200W, ATX, 80 Plus Platinum, Full Modular",
+    "description": "Nguồn FSP Hydro PTM Pro 1200W Platinum Full Modular chất lượng cao, bảo hành 7 năm.",
+    "brand_id": {
+      "slug": "fsp",
+      "name": "FSP"
+    },
+    "slug": "fsp-hydro-ptm-pro-1200w",
+    "Variants": [
+      {
+        "price": 5490000,
+        "sale_price": 5190000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=FSP+Hydro+PTM+Pro",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-psu-19",
+    "name": "Gigabyte UD750GM PG5 750W 80 Plus Gold",
+    "short_desc": "750W, ATX, 80 Plus Gold, Full Modular, PCIe 5.0",
+    "description": "Nguồn Gigabyte UD750GM PG5 750W 80 Plus Gold PCIe 5.0 giá tốt cho hệ thống mid-range.",
+    "brand_id": {
+      "slug": "gigabyte",
+      "name": "GIGABYTE"
+    },
+    "slug": "gigabyte-ud750gm-pg5-750w",
+    "Variants": [
+      {
+        "price": 2490000,
+        "sale_price": 2290000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=UD750GM+PG5",
+        "is_main": true
+      }
+    ]
   }
 ]
-
 export default function PSU() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -167,8 +511,12 @@ export default function PSU() {
       try {
         const res = await fetch(`${API_URL}/categories/psu`)
         const data = await res.json()
-        if (data.success && data.data && data.data.products && data.data.products.length > 0) {
-          setProducts(data.data.products)
+        if (data.success && data.data && data.data.products) {
+          const apiProducts = data.data.products
+          // Merge real products + mock products (loại trùng theo tên)
+          const apiNames = apiProducts.map(p => p.name.toLowerCase())
+          const uniqueMocks = mockPsuProducts.filter(m => !apiNames.includes(m.name.toLowerCase()))
+          setProducts([...apiProducts, ...uniqueMocks])
         } else {
           setProducts(mockPsuProducts)
         }

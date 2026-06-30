@@ -147,9 +147,353 @@ const mockCpuProducts = [
     slug: 'intel-core-i3-14100f',
     Variants: [{ price: 2990000, sale_price: 2990000 }],
     AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=i3-14100F', is_main: true }]
+  },
+  {
+    "_id": "mock-cpu-7",
+    "name": "Intel Core i9-13900KS",
+    "short_desc": "24C/32T, 6.0GHz, LGA1700, 13th Gen",
+    "description": "CPU Intel đỉnh cao thế hệ 13, tốc độ boost 6.0GHz, 24 nhân 32 luồng.",
+    "brand_id": {
+      "slug": "intel",
+      "name": "Intel"
+    },
+    "slug": "intel-core-i9-13900ks",
+    "Variants": [
+      {
+        "price": 21490000,
+        "sale_price": 19890000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=i9-13900KS",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-8",
+    "name": "AMD Ryzen 9 9950X",
+    "short_desc": "16C/32T, 5.7GHz, AM5, Zen 5",
+    "description": "CPU AMD Ryzen 9 9950X thế hệ mới nhất kiến trúc Zen 5, hiệu năng cực đỉnh.",
+    "brand_id": {
+      "slug": "amd",
+      "name": "AMD"
+    },
+    "slug": "amd-ryzen-9-9950x",
+    "Variants": [
+      {
+        "price": 22990000,
+        "sale_price": 21490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Ryzen+9950X",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-9",
+    "name": "Intel Core Ultra 9 285K",
+    "short_desc": "24C/24T, 5.7GHz, LGA1851, Arrow Lake",
+    "description": "CPU Intel Core Ultra 9 285K thế hệ Arrow Lake, 24 nhân hiệu năng cao.",
+    "brand_id": {
+      "slug": "intel",
+      "name": "Intel"
+    },
+    "slug": "intel-core-ultra-9-285k",
+    "Variants": [
+      {
+        "price": 18990000,
+        "sale_price": 18990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Ultra+9+285K",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-10",
+    "name": "AMD Ryzen 5 7600X",
+    "short_desc": "6C/12T, 5.3GHz, AM5, Zen 4",
+    "description": "CPU tầm trung AMD Ryzen 5 7600X với kiến trúc Zen 4, hiệu suất gaming xuất sắc.",
+    "brand_id": {
+      "slug": "amd",
+      "name": "AMD"
+    },
+    "slug": "amd-ryzen-5-7600x",
+    "Variants": [
+      {
+        "price": 5990000,
+        "sale_price": 5390000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Ryzen+5+7600X",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-11",
+    "name": "Intel Core i5-13600K",
+    "short_desc": "14C/20T, 5.1GHz, LGA1700, 13th Gen",
+    "description": "CPU Intel Core i5-13600K thế hệ 13 với 14 nhân 20 luồng, hiệu năng gaming tốt.",
+    "brand_id": {
+      "slug": "intel",
+      "name": "Intel"
+    },
+    "slug": "intel-core-i5-13600k",
+    "Variants": [
+      {
+        "price": 7290000,
+        "sale_price": 6990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=i5-13600K",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-12",
+    "name": "AMD Ryzen 7 9700X",
+    "short_desc": "8C/16T, 5.5GHz, AM5, Zen 5",
+    "description": "CPU AMD Ryzen 7 9700X Zen 5, tối ưu gaming với xung nhịp boost 5.5GHz.",
+    "brand_id": {
+      "slug": "amd",
+      "name": "AMD"
+    },
+    "slug": "amd-ryzen-7-9700x",
+    "Variants": [
+      {
+        "price": 9990000,
+        "sale_price": 9490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Ryzen+7+9700X",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-13",
+    "name": "Intel Core i7-13700K",
+    "short_desc": "16C/24T, 5.4GHz, LGA1700, 13th Gen",
+    "description": "Intel Core i7-13700K với 16 nhân 24 luồng, hiệu năng đa nhiệm xuất sắc.",
+    "brand_id": {
+      "slug": "intel",
+      "name": "Intel"
+    },
+    "slug": "intel-core-i7-13700k",
+    "Variants": [
+      {
+        "price": 10490000,
+        "sale_price": 9890000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=i7-13700K",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-14",
+    "name": "AMD Ryzen 5 5600X",
+    "short_desc": "6C/12T, 4.6GHz, AM4, Zen 3",
+    "description": "CPU gaming tầm trung AMD Ryzen 5 5600X với kiến trúc Zen 3 ổn định lâu dài.",
+    "brand_id": {
+      "slug": "amd",
+      "name": "AMD"
+    },
+    "slug": "amd-ryzen-5-5600x",
+    "Variants": [
+      {
+        "price": 3490000,
+        "sale_price": 3190000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Ryzen+5+5600X",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-15",
+    "name": "Intel Core Ultra 7 265K",
+    "short_desc": "20C/20T, 5.5GHz, LGA1851, Arrow Lake",
+    "description": "Intel Core Ultra 7 265K Arrow Lake, 20 nhân hiệu suất cao cho gaming và đồ họa.",
+    "brand_id": {
+      "slug": "intel",
+      "name": "Intel"
+    },
+    "slug": "intel-core-ultra-7-265k",
+    "Variants": [
+      {
+        "price": 12990000,
+        "sale_price": 12490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Ultra+7+265K",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-16",
+    "name": "AMD Ryzen 9 7950X3D",
+    "short_desc": "16C/32T, 5.7GHz, AM5, 3D V-Cache",
+    "description": "CPU đỉnh cao AMD với 3D V-Cache, 16 nhân 32 luồng, gaming và render cực mạnh.",
+    "brand_id": {
+      "slug": "amd",
+      "name": "AMD"
+    },
+    "slug": "amd-ryzen-9-7950x3d",
+    "Variants": [
+      {
+        "price": 24990000,
+        "sale_price": 22990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Ryzen+7950X3D",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-17",
+    "name": "Intel Core i5-14400F",
+    "short_desc": "10C/16T, 4.7GHz, LGA1700, 14th Gen",
+    "description": "CPU phổ thông Intel Core i5-14400F tốt nhất cho tầm giá 4-5 triệu.",
+    "brand_id": {
+      "slug": "intel",
+      "name": "Intel"
+    },
+    "slug": "intel-core-i5-14400f",
+    "Variants": [
+      {
+        "price": 5290000,
+        "sale_price": 4990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=i5-14400F",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-18",
+    "name": "AMD Ryzen 5 7600",
+    "short_desc": "6C/12T, 5.1GHz, AM5, Zen 4",
+    "description": "CPU AMD Ryzen 5 7600 không khóa xung, hiệu quả cao cho nhu cầu gaming cơ bản.",
+    "brand_id": {
+      "slug": "amd",
+      "name": "AMD"
+    },
+    "slug": "amd-ryzen-5-7600",
+    "Variants": [
+      {
+        "price": 4990000,
+        "sale_price": 4690000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Ryzen+5+7600",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-19",
+    "name": "Intel Core i3-12100F",
+    "short_desc": "4C/8T, 4.3GHz, LGA1700, 12th Gen",
+    "description": "CPU Intel giá rẻ thế hệ 12 cho PC văn phòng, học tập tiết kiệm ngân sách.",
+    "brand_id": {
+      "slug": "intel",
+      "name": "Intel"
+    },
+    "slug": "intel-core-i3-12100f",
+    "Variants": [
+      {
+        "price": 1990000,
+        "sale_price": 1890000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=i3-12100F",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-20",
+    "name": "AMD Ryzen Threadripper PRO 7985WX",
+    "short_desc": "64C/128T, 5.1GHz, sTR5, Workstation",
+    "description": "CPU workstation siêu cao cấp AMD Threadripper PRO 7985WX với 64 nhân 128 luồng.",
+    "brand_id": {
+      "slug": "amd",
+      "name": "AMD"
+    },
+    "slug": "amd-threadripper-pro-7985wx",
+    "Variants": [
+      {
+        "price": 189000000,
+        "sale_price": 185000000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Threadripper+7985WX",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-cpu-21",
+    "name": "Intel Core i9-12900K",
+    "short_desc": "16C/24T, 5.2GHz, LGA1700, 12th Gen",
+    "description": "CPU Intel Core i9-12900K thế hệ 12 với kiến trúc hybrid P-core + E-core mạnh mẽ.",
+    "brand_id": {
+      "slug": "intel",
+      "name": "Intel"
+    },
+    "slug": "intel-core-i9-12900k",
+    "Variants": [
+      {
+        "price": 9990000,
+        "sale_price": 9490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=i9-12900K",
+        "is_main": true
+      }
+    ]
   }
 ]
-
 export default function CPU() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -202,8 +546,12 @@ export default function CPU() {
       try {
         const res = await fetch(`${API_URL}/categories/cpu`)
         const data = await res.json()
-        if (data.success && data.data && data.data.products && data.data.products.length > 0) {
-          setProducts(data.data.products)
+        if (data.success && data.data && data.data.products) {
+          const apiProducts = data.data.products
+          // Merge real products + mock products (loại trùng theo tên)
+          const apiNames = apiProducts.map(p => p.name.toLowerCase())
+          const uniqueMocks = mockCpuProducts.filter(m => !apiNames.includes(m.name.toLowerCase()))
+          setProducts([...apiProducts, ...uniqueMocks])
         } else {
           setProducts(mockCpuProducts)
         }

@@ -135,9 +135,353 @@ const mockCaseProducts = [
     slug: 'aigo-c218m-black',
     Variants: [{ price: 790000, sale_price: 690000 }],
     AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=Aigo+C218M', is_main: true }]
+  },
+  {
+    "_id": "mock-case-5",
+    "name": "Lian Li PC-O11 Dynamic EVO XL Black",
+    "short_desc": "Full Tower, Black, E-ATX/ATX, Kính cường lực",
+    "description": "Case Lian Li PC-O11 Dynamic EVO XL Full Tower thiết kế hai buồng chứa, bể cá 360.",
+    "brand_id": {
+      "slug": "lian-li",
+      "name": "Lian Li"
+    },
+    "slug": "lian-li-o11-dynamic-evo-xl-black",
+    "Variants": [
+      {
+        "price": 4490000,
+        "sale_price": 4290000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=O11+Dynamic+EVO+XL",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-6",
+    "name": "NZXT H9 Flow Mid Tower White",
+    "short_desc": "Mid Tower, White, ATX, Kính cường lực 4 mặt",
+    "description": "Case NZXT H9 Flow thiết kế 4 mặt kính, tối ưu luồng khí, màu trắng sang trọng.",
+    "brand_id": {
+      "slug": "nzxt",
+      "name": "NZXT"
+    },
+    "slug": "nzxt-h9-flow-mid-tower-white",
+    "Variants": [
+      {
+        "price": 4990000,
+        "sale_price": 4690000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=NZXT+H9+Flow+White",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-7",
+    "name": "Fractal Design Torrent Compact Black",
+    "short_desc": "Mid Tower, Black, ATX, Luồng khí cực mạnh",
+    "description": "Case Fractal Design Torrent Compact tối ưu luồng khí với 2 fan 180mm mặt trước.",
+    "brand_id": {
+      "slug": "fractal-design",
+      "name": "Fractal Design"
+    },
+    "slug": "fractal-design-torrent-compact-black",
+    "Variants": [
+      {
+        "price": 4290000,
+        "sale_price": 3990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Torrent+Compact",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-8",
+    "name": "Corsair 5000D Airflow Black",
+    "short_desc": "Mid Tower, Black, ATX, Luồng khí cao cấp",
+    "description": "Case Corsair 5000D Airflow Mid Tower thiết kế thông thoáng tối ưu cho hệ thống hiệu năng cao.",
+    "brand_id": {
+      "slug": "corsair",
+      "name": "Corsair"
+    },
+    "slug": "corsair-5000d-airflow-black",
+    "Variants": [
+      {
+        "price": 3990000,
+        "sale_price": 3790000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Corsair+5000D+Airflow",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-9",
+    "name": "Lian Li PC-O11 Vision White",
+    "short_desc": "Mid Tower, White, ATX, Kính cường lực 3 mặt",
+    "description": "Case Lian Li PC-O11 Vision bản trắng đẹp, kính cường lực 3 mặt, hỗ trợ AIO 420mm.",
+    "brand_id": {
+      "slug": "lian-li",
+      "name": "Lian Li"
+    },
+    "slug": "lian-li-o11-vision-white",
+    "Variants": [
+      {
+        "price": 3490000,
+        "sale_price": 3290000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=O11+Vision+White",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-10",
+    "name": "ASUS Prime AP201 Black Mesh",
+    "short_desc": "Micro-ATX, Black, Lưới thép, Kính cường lực",
+    "description": "Case ASUS Prime AP201 Micro-ATX lưới thép tối ưu luồng khí, thiết kế gọn nhẹ.",
+    "brand_id": {
+      "slug": "asus",
+      "name": "ASUS"
+    },
+    "slug": "asus-prime-ap201-black-mesh",
+    "Variants": [
+      {
+        "price": 1890000,
+        "sale_price": 1790000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=ASUS+Prime+AP201",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-11",
+    "name": "MSI MAG FORGE 320R Airflow Black",
+    "short_desc": "Mid Tower, Black, ATX, Lưới + Kính cường lực",
+    "description": "Case MSI MAG FORGE 320R Airflow Mid Tower lưới 3 mặt hỗ trợ 3 fan 120mm mặt trước.",
+    "brand_id": {
+      "slug": "msi",
+      "name": "MSI"
+    },
+    "slug": "msi-mag-forge-320r-airflow-black",
+    "Variants": [
+      {
+        "price": 1590000,
+        "sale_price": 1490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=MAG+FORGE+320R",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-12",
+    "name": "Thermaltake The Tower 900 Black Full Tower",
+    "short_desc": "Full Tower, Black, E-ATX, Kính cường lực dọc",
+    "description": "Case Thermaltake The Tower 900 Full Tower thiết kế dọc độc đáo, kính cường lực toàn thân.",
+    "brand_id": {
+      "slug": "thermaltake",
+      "name": "Thermaltake"
+    },
+    "slug": "thermaltake-the-tower-900-black",
+    "Variants": [
+      {
+        "price": 8990000,
+        "sale_price": 8490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=The+Tower+900",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-13",
+    "name": "NZXT H5 Flow Black",
+    "short_desc": "Mid Tower, Black, ATX, Luồng khí tốt",
+    "description": "Case NZXT H5 Flow Mid Tower giá tốt luồng khí xuất sắc, hỗ trợ AIO 360mm mặt trước.",
+    "brand_id": {
+      "slug": "nzxt",
+      "name": "NZXT"
+    },
+    "slug": "nzxt-h5-flow-black",
+    "Variants": [
+      {
+        "price": 2490000,
+        "sale_price": 2290000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=NZXT+H5+Flow",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-14",
+    "name": "Cooler Master NR200P MAX White",
+    "short_desc": "Mini-ITX, White, SFX, Kính cường lực",
+    "description": "Case ITX Cooler Master NR200P MAX màu trắng kèm sẵn PSU SFX 850W, AIO 280mm.",
+    "brand_id": {
+      "slug": "cooler-master",
+      "name": "Cooler Master"
+    },
+    "slug": "cooler-master-nr200p-max-white",
+    "Variants": [
+      {
+        "price": 5490000,
+        "sale_price": 5190000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=NR200P+MAX+White",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-15",
+    "name": "be quiet! Silent Base 802 Black",
+    "short_desc": "Mid Tower, Black, E-ATX, Cách âm cao cấp",
+    "description": "Case be quiet! Silent Base 802 tích hợp vật liệu cách âm, 3 fan Pure Wings 3 140mm.",
+    "brand_id": {
+      "slug": "be-quiet",
+      "name": "be quiet!"
+    },
+    "slug": "be-quiet-silent-base-802-black",
+    "Variants": [
+      {
+        "price": 4290000,
+        "sale_price": 3990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Silent+Base+802",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-16",
+    "name": "Fractal Design North Charcoal Black",
+    "short_desc": "Mid Tower, Black, ATX, Mặt trước gỗ tự nhiên",
+    "description": "Case Fractal Design North mặt trước gỗ tự nhiên thiết kế Scandinavian phong cách mộc mạc.",
+    "brand_id": {
+      "slug": "fractal-design",
+      "name": "Fractal Design"
+    },
+    "slug": "fractal-design-north-charcoal-black",
+    "Variants": [
+      {
+        "price": 3490000,
+        "sale_price": 3290000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Fractal+North",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-17",
+    "name": "Phanteks Eclipse G500A D-RGB Black",
+    "short_desc": "Mid Tower, Black, ATX, Lưới + RGB",
+    "description": "Case Phanteks Eclipse G500A mặt lưới thép D-RGB, 3 fan Digital RGB đi kèm.",
+    "brand_id": {
+      "slug": "phanteks",
+      "name": "Phanteks"
+    },
+    "slug": "phanteks-eclipse-g500a-drgb-black",
+    "Variants": [
+      {
+        "price": 2790000,
+        "sale_price": 2590000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Eclipse+G500A",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-18",
+    "name": "Lian Li LANCOOL III RGB Black",
+    "short_desc": "Mid Tower, Black, E-ATX, RGB, 3 Fan ARGB",
+    "description": "Case Lian Li LANCOOL III kèm 3 fan ARGB 140mm, tối ưu luồng khí full mesh.",
+    "brand_id": {
+      "slug": "lian-li",
+      "name": "Lian Li"
+    },
+    "slug": "lian-li-lancool-iii-rgb-black",
+    "Variants": [
+      {
+        "price": 3290000,
+        "sale_price": 3090000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=LANCOOL+III+RGB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-case-19",
+    "name": "DeepCool CH560 Digital Black",
+    "short_desc": "Mid Tower, Black, E-ATX, Màn hình LCD 2.1 inch",
+    "description": "Case DeepCool CH560 Digital tích hợp màn hình LCD 2.1 inch hiển thị thông số hệ thống.",
+    "brand_id": {
+      "slug": "deepcool",
+      "name": "DeepCool"
+    },
+    "slug": "deepcool-ch560-digital-black",
+    "Variants": [
+      {
+        "price": 2990000,
+        "sale_price": 2790000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=CH560+Digital",
+        "is_main": true
+      }
+    ]
   }
 ]
-
 export default function Case() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -197,8 +541,12 @@ export default function Case() {
       try {
         const res = await fetch(`${API_URL}/categories/case`)
         const data = await res.json()
-        if (data.success && data.data && data.data.products && data.data.products.length > 0) {
-          setProducts(data.data.products)
+        if (data.success && data.data && data.data.products) {
+          const apiProducts = data.data.products
+          // Merge real products + mock products (loại trùng theo tên)
+          const apiNames = apiProducts.map(p => p.name.toLowerCase())
+          const uniqueMocks = mockCaseProducts.filter(m => !apiNames.includes(m.name.toLowerCase()))
+          setProducts([...apiProducts, ...uniqueMocks])
         } else {
           setProducts(mockCaseProducts)
         }
