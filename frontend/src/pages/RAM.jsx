@@ -121,9 +121,353 @@ const mockRamProducts = [
     slug: 'adata-xpg-spectrix-d50-rgb-ddr4-8gb',
     Variants: [{ price: 690000, sale_price: 690000 }],
     AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=Adata+XPG+D50', is_main: true }]
+  },
+  {
+    "_id": "mock-ram-5",
+    "name": "Corsair Dominator Platinum RGB DDR5 64GB (2x32GB) 6000MHz",
+    "short_desc": "64GB (2x32GB), DDR5, 6000MHz, RGB",
+    "description": "RAM DDR5 cao cấp Corsair Dominator Platinum RGB 64GB tốc độ 6000MHz, CL30.",
+    "brand_id": {
+      "slug": "corsair",
+      "name": "Corsair"
+    },
+    "slug": "corsair-dominator-platinum-rgb-ddr5-64gb",
+    "Variants": [
+      {
+        "price": 7990000,
+        "sale_price": 7590000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Dominator+64GB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-6",
+    "name": "G.Skill Trident Z5 Neo RGB DDR5 32GB (2x16GB) 6000MHz AMD",
+    "short_desc": "32GB (2x16GB), DDR5, 6000MHz, AMD EXPO",
+    "description": "RAM DDR5 tối ưu cho AMD Ryzen 7000 Series, G.Skill Trident Z5 Neo 6000MHz EXPO.",
+    "brand_id": {
+      "slug": "gskill",
+      "name": "G.Skill"
+    },
+    "slug": "gskill-trident-z5-neo-rgb-ddr5-32gb",
+    "Variants": [
+      {
+        "price": 3990000,
+        "sale_price": 3790000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Z5+Neo+AMD",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-7",
+    "name": "Kingston FURY Beast DDR5 32GB (2x16GB) 5600MHz",
+    "short_desc": "32GB (2x16GB), DDR5, 5600MHz, Intel XMP",
+    "description": "RAM DDR5 Kingston FURY Beast 32GB 5600MHz với Intel XMP 3.0 tương thích tốt.",
+    "brand_id": {
+      "slug": "kingston",
+      "name": "Kingston"
+    },
+    "slug": "kingston-fury-beast-ddr5-32gb-5600",
+    "Variants": [
+      {
+        "price": 2790000,
+        "sale_price": 2590000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Fury+Beast+DDR5",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-8",
+    "name": "Corsair Vengeance RGB DDR5 32GB (2x16GB) 5600MHz",
+    "short_desc": "32GB (2x16GB), DDR5, 5600MHz, RGB",
+    "description": "RAM Corsair Vengeance RGB DDR5 32GB 5600MHz đèn RGB đẹp, hiệu năng ổn định.",
+    "brand_id": {
+      "slug": "corsair",
+      "name": "Corsair"
+    },
+    "slug": "corsair-vengeance-rgb-ddr5-32gb-5600",
+    "Variants": [
+      {
+        "price": 3290000,
+        "sale_price": 3090000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Vengeance+RGB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-9",
+    "name": "TeamGroup T-Force Delta RGB DDR5 32GB 6000MHz",
+    "short_desc": "32GB (2x16GB), DDR5, 6000MHz, RGB",
+    "description": "RAM DDR5 TeamGroup T-Force Delta RGB 32GB 6000MHz CL30 giá tốt.",
+    "brand_id": {
+      "slug": "teamgroup",
+      "name": "TeamGroup"
+    },
+    "slug": "teamgroup-delta-rgb-ddr5-32gb-6000",
+    "Variants": [
+      {
+        "price": 3490000,
+        "sale_price": 3290000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=T-Force+Delta",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-10",
+    "name": "G.Skill Ripjaws V DDR4 32GB (2x16GB) 3600MHz",
+    "short_desc": "32GB (2x16GB), DDR4, 3600MHz, Red",
+    "description": "RAM DDR4 G.Skill Ripjaws V 32GB 3600MHz màu đỏ tản nhiệt thấp profile.",
+    "brand_id": {
+      "slug": "gskill",
+      "name": "G.Skill"
+    },
+    "slug": "gskill-ripjaws-v-ddr4-32gb-3600",
+    "Variants": [
+      {
+        "price": 1990000,
+        "sale_price": 1890000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Ripjaws+V+32GB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-11",
+    "name": "Corsair Vengeance LPX DDR4 16GB (2x8GB) 3200MHz",
+    "short_desc": "16GB (2x8GB), DDR4, 3200MHz, Black",
+    "description": "RAM Corsair Vengeance LPX DDR4 16GB 3200MHz classic tin cậy profile thấp.",
+    "brand_id": {
+      "slug": "corsair",
+      "name": "Corsair"
+    },
+    "slug": "corsair-vengeance-lpx-ddr4-16gb-3200",
+    "Variants": [
+      {
+        "price": 990000,
+        "sale_price": 890000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Vengeance+LPX",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-12",
+    "name": "Kingston FURY Renegade RGB DDR5 64GB (2x32GB) 6400MHz",
+    "short_desc": "64GB (2x32GB), DDR5, 6400MHz, RGB",
+    "description": "RAM DDR5 cao cấp Kingston FURY Renegade RGB 64GB 6400MHz CL32 XMP 3.0.",
+    "brand_id": {
+      "slug": "kingston",
+      "name": "Kingston"
+    },
+    "slug": "kingston-fury-renegade-rgb-ddr5-64gb",
+    "Variants": [
+      {
+        "price": 7490000,
+        "sale_price": 7090000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Renegade+64GB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-13",
+    "name": "Crucial Pro DDR5 32GB (2x16GB) 5600MHz",
+    "short_desc": "32GB (2x16GB), DDR5, 5600MHz",
+    "description": "RAM Crucial Pro DDR5 32GB 5600MHz giá tốt, ổn định cho mọi nhu cầu.",
+    "brand_id": {
+      "slug": "crucial",
+      "name": "Crucial"
+    },
+    "slug": "crucial-pro-ddr5-32gb-5600",
+    "Variants": [
+      {
+        "price": 2490000,
+        "sale_price": 2290000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Crucial+Pro+32GB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-14",
+    "name": "Adata XPG LANCER RGB DDR5 32GB (2x16GB) 6000MHz",
+    "short_desc": "32GB (2x16GB), DDR5, 6000MHz, RGB",
+    "description": "RAM Adata XPG LANCER RGB DDR5 32GB 6000MHz thiết kế đẹp hiệu năng cao.",
+    "brand_id": {
+      "slug": "adata",
+      "name": "Adata"
+    },
+    "slug": "adata-xpg-lancer-rgb-ddr5-32gb",
+    "Variants": [
+      {
+        "price": 3190000,
+        "sale_price": 2990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=XPG+Lancer+RGB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-15",
+    "name": "G.Skill Trident Z5 RGB DDR5 96GB (2x48GB) 6600MHz",
+    "short_desc": "96GB (2x48GB), DDR5, 6600MHz, RGB",
+    "description": "RAM DDR5 siêu dung lượng G.Skill Trident Z5 RGB 96GB 6600MHz cho workstation.",
+    "brand_id": {
+      "slug": "gskill",
+      "name": "G.Skill"
+    },
+    "slug": "gskill-trident-z5-rgb-ddr5-96gb",
+    "Variants": [
+      {
+        "price": 9990000,
+        "sale_price": 9490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Z5+RGB+96GB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-16",
+    "name": "Lexar ARES RGB DDR5 32GB (2x16GB) 6000MHz",
+    "short_desc": "32GB (2x16GB), DDR5, 6000MHz, RGB",
+    "description": "RAM Lexar ARES RGB DDR5 32GB mới tốc độ cao, thiết kế gaming hiện đại.",
+    "brand_id": {
+      "slug": "lexar",
+      "name": "Lexar"
+    },
+    "slug": "lexar-ares-rgb-ddr5-32gb",
+    "Variants": [
+      {
+        "price": 2890000,
+        "sale_price": 2690000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Lexar+ARES",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-17",
+    "name": "Patriot Viper Venom DDR5 32GB (2x16GB) 6200MHz",
+    "short_desc": "32GB (2x16GB), DDR5, 6200MHz, RGB",
+    "description": "RAM Patriot Viper Venom DDR5 32GB 6200MHz tốc độ cao, tản nhiệt vây ấn tượng.",
+    "brand_id": {
+      "slug": "patriot",
+      "name": "Patriot"
+    },
+    "slug": "patriot-viper-venom-ddr5-32gb",
+    "Variants": [
+      {
+        "price": 3390000,
+        "sale_price": 3190000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Viper+Venom",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-18",
+    "name": "Kingston FURY Beast RGB DDR4 32GB (2x16GB) 3600MHz",
+    "short_desc": "32GB (2x16GB), DDR4, 3600MHz, RGB",
+    "description": "RAM DDR4 Kingston FURY Beast RGB 32GB 3600MHz tản nhiệt RGB đẹp.",
+    "brand_id": {
+      "slug": "kingston",
+      "name": "Kingston"
+    },
+    "slug": "kingston-fury-beast-rgb-ddr4-32gb",
+    "Variants": [
+      {
+        "price": 2190000,
+        "sale_price": 1990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Fury+Beast+RGB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ram-19",
+    "name": "GeIL POLARIS RGB DDR5 32GB (2x16GB) 6000MHz",
+    "short_desc": "32GB (2x16GB), DDR5, 6000MHz, RGB",
+    "description": "RAM GeIL POLARIS RGB DDR5 32GB 6000MHz giá rẻ nhất phân khúc DDR5 gaming.",
+    "brand_id": {
+      "slug": "geil",
+      "name": "GeIL"
+    },
+    "slug": "geil-polaris-rgb-ddr5-32gb",
+    "Variants": [
+      {
+        "price": 2690000,
+        "sale_price": 2490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=GeIL+POLARIS",
+        "is_main": true
+      }
+    ]
   }
 ]
-
 export default function RAM() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -176,8 +520,12 @@ export default function RAM() {
       try {
         const res = await fetch(`${API_URL}/categories/ram`)
         const data = await res.json()
-        if (data.success && data.data && data.data.products && data.data.products.length > 0) {
-          setProducts(data.data.products)
+        if (data.success && data.data && data.data.products) {
+          const apiProducts = data.data.products
+          // Merge real products + mock products (loại trùng theo tên)
+          const apiNames = apiProducts.map(p => p.name.toLowerCase())
+          const uniqueMocks = mockRamProducts.filter(m => !apiNames.includes(m.name.toLowerCase()))
+          setProducts([...apiProducts, ...uniqueMocks])
         } else {
           setProducts(mockRamProducts)
         }

@@ -550,10 +550,6 @@ app.get("/products/home/Sale", async (req, res) => {
 
 // ============================================================
 // GET /products/:slug — chi tiết sản phẩm theo slug
-// FIX:
-//   - Bỏ Attribute.find({ id_variants }) — field này không còn tồn tại
-//   - Bỏ logic filter attr.id_variants (không còn field này trong Attribute)
-//   - Dùng getVariantAttributeMap()
 // ============================================================
 app.get("/products/:slug", async (req, res, next) => {
   try {
@@ -599,7 +595,6 @@ app.get("/products/:slug", async (req, res, next) => {
 
 // ============================================================
 // GET /categories — lấy tất cả danh mục
-// Không thay đổi logic, chỉ giữ nguyên
 // ============================================================
 app.get("/categories", async (req, res, next) => {
   try {

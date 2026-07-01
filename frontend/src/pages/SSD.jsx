@@ -125,9 +125,353 @@ const mockStorageProducts = [
     slug: 'kingston-nv2-m2-pcie-gen4-1tb',
     Variants: [{ price: 1750000, sale_price: 1690000 }],
     AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=Kingston+NV2', is_main: true }]
+  },
+  {
+    "_id": "mock-ssd-5",
+    "name": "Samsung 990 EVO M.2 NVMe 2TB PCIe Gen4",
+    "short_desc": "2TB, M.2 NVMe, PCIe Gen4/5 x4, V-NAND",
+    "description": "SSD Samsung 990 EVO 2TB M.2 NVMe tốc độ đọc 5000MB/s, giao tiếp PCIe Gen4/5.",
+    "brand_id": {
+      "slug": "samsung",
+      "name": "Samsung"
+    },
+    "slug": "samsung-990-evo-m2-2tb",
+    "Variants": [
+      {
+        "price": 3490000,
+        "sale_price": 3290000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Samsung+990+EVO+2TB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-6",
+    "name": "WD Black SN850X M.2 NVMe 1TB PCIe Gen4",
+    "short_desc": "1TB, M.2 NVMe, PCIe Gen4 x4, 7300MB/s",
+    "description": "SSD WD Black SN850X 1TB M.2 PCIe Gen4 tốc độ đọc 7300MB/s, tối ưu cho gaming.",
+    "brand_id": {
+      "slug": "western-digital",
+      "name": "Western Digital"
+    },
+    "slug": "wd-black-sn850x-1tb",
+    "Variants": [
+      {
+        "price": 2890000,
+        "sale_price": 2690000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=WD+SN850X+1TB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-7",
+    "name": "Seagate FireCuda 530 M.2 NVMe 2TB PCIe Gen4",
+    "short_desc": "2TB, M.2 NVMe, PCIe Gen4 x4, 7300MB/s",
+    "description": "SSD Seagate FireCuda 530 2TB M.2 PCIe Gen4 tốc độ đỉnh 7300MB/s, đẳng cấp gaming.",
+    "brand_id": {
+      "slug": "seagate",
+      "name": "Seagate"
+    },
+    "slug": "seagate-firecuda-530-m2-2tb",
+    "Variants": [
+      {
+        "price": 5990000,
+        "sale_price": 5590000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=FireCuda+530+2TB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-8",
+    "name": "Kingston FURY Renegade M.2 NVMe 1TB PCIe Gen4",
+    "short_desc": "1TB, M.2 NVMe, PCIe Gen4 x4, 7300MB/s",
+    "description": "SSD Kingston FURY Renegade 1TB M.2 NVMe PCIe Gen4 tốc độ cao với tản nhiệt đồng.",
+    "brand_id": {
+      "slug": "kingston",
+      "name": "Kingston"
+    },
+    "slug": "kingston-fury-renegade-m2-1tb",
+    "Variants": [
+      {
+        "price": 2490000,
+        "sale_price": 2390000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Fury+Renegade+1TB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-9",
+    "name": "Samsung 870 EVO 2.5 inch SATA 1TB",
+    "short_desc": "1TB, 2.5 inch, SATA 3, V-NAND MLC",
+    "description": "SSD SATA 2.5 inch Samsung 870 EVO 1TB bền bỉ tin cậy, tốc độ đọc 560MB/s.",
+    "brand_id": {
+      "slug": "samsung",
+      "name": "Samsung"
+    },
+    "slug": "samsung-870-evo-sata-1tb",
+    "Variants": [
+      {
+        "price": 1990000,
+        "sale_price": 1890000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=870+EVO+SATA+1TB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-10",
+    "name": "Crucial P3 Plus M.2 NVMe 2TB PCIe Gen4",
+    "short_desc": "2TB, M.2 NVMe, PCIe Gen4 x4, 5000MB/s",
+    "description": "SSD Crucial P3 Plus 2TB M.2 NVMe PCIe Gen4 x4 giá tốt tốc độ 5000MB/s.",
+    "brand_id": {
+      "slug": "crucial",
+      "name": "Crucial"
+    },
+    "slug": "crucial-p3-plus-m2-2tb",
+    "Variants": [
+      {
+        "price": 2290000,
+        "sale_price": 2190000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Crucial+P3+Plus+2TB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-11",
+    "name": "ADATA XPG GAMMIX S70 Blade M.2 NVMe 1TB PCIe Gen4",
+    "short_desc": "1TB, M.2 NVMe, PCIe Gen4 x4, 7400MB/s",
+    "description": "SSD ADATA XPG GAMMIX S70 Blade 1TB NVMe PCIe Gen4 tốc độ 7400MB/s, tản nhiệt nhôm.",
+    "brand_id": {
+      "slug": "adata",
+      "name": "Adata"
+    },
+    "slug": "adata-xpg-gammix-s70-blade-1tb",
+    "Variants": [
+      {
+        "price": 2190000,
+        "sale_price": 1990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=GAMMIX+S70+1TB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-12",
+    "name": "WD Blue SN580 M.2 NVMe 500GB PCIe Gen4",
+    "short_desc": "500GB, M.2 NVMe, PCIe Gen4 x4, 4150MB/s",
+    "description": "SSD WD Blue SN580 500GB M.2 NVMe PCIe Gen4 phù hợp nhu cầu phổ thông.",
+    "brand_id": {
+      "slug": "western-digital",
+      "name": "Western Digital"
+    },
+    "slug": "wd-blue-sn580-500gb",
+    "Variants": [
+      {
+        "price": 990000,
+        "sale_price": 890000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=WD+SN580+500GB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-13",
+    "name": "Seagate Barracuda 3.5 inch SATA 4TB HDD",
+    "short_desc": "4TB, 3.5 inch, SATA 3, 5400 RPM",
+    "description": "Ổ cứng HDD Seagate Barracuda 4TB 3.5 inch SATA phổ thông lưu trữ dung lượng lớn.",
+    "brand_id": {
+      "slug": "seagate",
+      "name": "Seagate"
+    },
+    "slug": "seagate-barracuda-35-sata-4tb",
+    "Variants": [
+      {
+        "price": 2390000,
+        "sale_price": 2290000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Barracuda+4TB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-14",
+    "name": "Samsung 990 PRO M.2 NVMe 2TB PCIe Gen4 Heatsink",
+    "short_desc": "2TB, M.2 NVMe, PCIe Gen4, Tản nhiệt nhôm",
+    "description": "SSD Samsung 990 PRO 2TB M.2 NVMe bản Heatsink tản nhiệt nhôm nguyên bản.",
+    "brand_id": {
+      "slug": "samsung",
+      "name": "Samsung"
+    },
+    "slug": "samsung-990-pro-m2-2tb-heatsink",
+    "Variants": [
+      {
+        "price": 5990000,
+        "sale_price": 5690000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=990+PRO+2TB+HS",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-15",
+    "name": "Lexar NM790 M.2 NVMe 1TB PCIe Gen4",
+    "short_desc": "1TB, M.2 NVMe, PCIe Gen4 x4, 7400MB/s",
+    "description": "SSD Lexar NM790 1TB M.2 NVMe PCIe Gen4 tốc độ 7400MB/s giá rẻ nhất phân khúc.",
+    "brand_id": {
+      "slug": "lexar",
+      "name": "Lexar"
+    },
+    "slug": "lexar-nm790-m2-1tb",
+    "Variants": [
+      {
+        "price": 1590000,
+        "sale_price": 1490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Lexar+NM790+1TB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-16",
+    "name": "WD Black SN850X 2TB PCIe Gen4 Heatsink",
+    "short_desc": "2TB, M.2 NVMe, PCIe Gen4, Heatsink",
+    "description": "SSD WD Black SN850X 2TB có tản nhiệt heatsink tích hợp, tối ưu cho PS5 và PC gaming.",
+    "brand_id": {
+      "slug": "western-digital",
+      "name": "Western Digital"
+    },
+    "slug": "wd-black-sn850x-2tb-heatsink",
+    "Variants": [
+      {
+        "price": 4990000,
+        "sale_price": 4690000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=SN850X+2TB+HS",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-17",
+    "name": "Crucial MX500 2.5 inch SATA 1TB",
+    "short_desc": "1TB, 2.5 inch, SATA 3, 3D NAND",
+    "description": "SSD SATA 2.5 inch Crucial MX500 1TB tin cậy tốc độ đọc 560MB/s nâng cấp laptop tốt.",
+    "brand_id": {
+      "slug": "crucial",
+      "name": "Crucial"
+    },
+    "slug": "crucial-mx500-sata-1tb",
+    "Variants": [
+      {
+        "price": 1790000,
+        "sale_price": 1690000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=MX500+1TB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-18",
+    "name": "Kingston NV3 M.2 NVMe 2TB PCIe Gen3",
+    "short_desc": "2TB, M.2 NVMe, PCIe Gen3 x4, 6000MB/s",
+    "description": "SSD Kingston NV3 2TB M.2 NVMe PCIe Gen3 dung lượng lớn giá phải chăng.",
+    "brand_id": {
+      "slug": "kingston",
+      "name": "Kingston"
+    },
+    "slug": "kingston-nv3-m2-2tb",
+    "Variants": [
+      {
+        "price": 1990000,
+        "sale_price": 1890000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Kingston+NV3+2TB",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-ssd-19",
+    "name": "TeamGroup MP44 M.2 NVMe 1TB PCIe Gen4",
+    "short_desc": "1TB, M.2 NVMe, PCIe Gen4 x4, 7400MB/s",
+    "description": "SSD TeamGroup MP44 1TB M.2 NVMe PCIe Gen4 tốc độ 7400MB/s hiệu năng cao.",
+    "brand_id": {
+      "slug": "teamgroup",
+      "name": "TeamGroup"
+    },
+    "slug": "teamgroup-mp44-m2-1tb",
+    "Variants": [
+      {
+        "price": 1690000,
+        "sale_price": 1590000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=TeamGroup+MP44",
+        "is_main": true
+      }
+    ]
   }
 ]
-
 export default function SSD() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -183,8 +527,12 @@ export default function SSD() {
       try {
         const res = await fetch(`${API_URL}/categories/storage`)
         const data = await res.json()
-        if (data.success && data.data && data.data.products && data.data.products.length > 0) {
-          setProducts(data.data.products)
+        if (data.success && data.data && data.data.products) {
+          const apiProducts = data.data.products
+          // Merge real products + mock products (loại trùng theo tên)
+          const apiNames = apiProducts.map(p => p.name.toLowerCase())
+          const uniqueMocks = mockStorageProducts.filter(m => !apiNames.includes(m.name.toLowerCase()))
+          setProducts([...apiProducts, ...uniqueMocks])
         } else {
           setProducts(mockStorageProducts)
         }

@@ -476,12 +476,15 @@
 }
 
 .cpu-card .btn-add-cart {
-  background: var(--yellow);
-  color: #fff;
+  background: var(--dark2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
 }
 
 .cpu-card .btn-add-cart:hover {
-  filter: brightness(1.12);
+  border-color: rgba(200, 230, 0, 0.4);
+  color: var(--yellow);
+  background: rgba(200, 230, 0, 0.08);
   transform: scale(1.08);
 }
 
@@ -490,7 +493,7 @@
 }
 
 .cpu-card .btn-add-cart svg {
-  fill: #fff;
+  fill: currentColor;
   display: block;
   width: 16px;
   height: 16px;

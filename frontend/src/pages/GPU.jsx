@@ -219,9 +219,353 @@ const mockGpuProducts = [
     slug: 'colorful-gt-1030-4g-v',
     Variants: [{ price: 1990000, sale_price: 1990000 }],
     AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=Colorful+GT1030', is_main: true }]
+  },
+  {
+    "_id": "mock-gpu-5",
+    "name": "ASUS TUF Gaming GeForce RTX 4090 OC",
+    "short_desc": "24GB GDDR6X, DLSS 3, 3 Fan, 384-bit",
+    "description": "GPU cao cấp nhất thế hệ RTX 40, ASUS TUF Gaming RTX 4090 OC 24GB GDDR6X.",
+    "brand_id": {
+      "slug": "asus",
+      "name": "ASUS"
+    },
+    "slug": "asus-tuf-rtx-4090-oc",
+    "Variants": [
+      {
+        "price": 59990000,
+        "sale_price": 55990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RTX+4090+TUF",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-6",
+    "name": "MSI GeForce RTX 4080 Super GAMING X SLIM",
+    "short_desc": "16GB GDDR6X, DLSS 3, 2 Fan, 256-bit",
+    "description": "Card đồ họa MSI RTX 4080 Super Gaming X Slim tiết kiệm không gian, hiệu năng cao.",
+    "brand_id": {
+      "slug": "msi",
+      "name": "MSI"
+    },
+    "slug": "msi-rtx-4080-super-gaming-x-slim",
+    "Variants": [
+      {
+        "price": 35990000,
+        "sale_price": 34490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RTX+4080+Super",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-7",
+    "name": "Gigabyte Radeon RX 7900 XTX GAMING OC",
+    "short_desc": "24GB GDDR6, RDNA3, 3 Fan, 384-bit",
+    "description": "Card đồ họa AMD RX 7900 XTX 24GB của Gigabyte, cạnh tranh trực tiếp RTX 4080.",
+    "brand_id": {
+      "slug": "gigabyte",
+      "name": "Gigabyte"
+    },
+    "slug": "gigabyte-rx-7900-xtx-gaming-oc",
+    "Variants": [
+      {
+        "price": 29990000,
+        "sale_price": 28490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RX+7900+XTX",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-8",
+    "name": "ASUS ROG Strix GeForce RTX 5090",
+    "short_desc": "32GB GDDR7, DLSS 4, 3 Fan, 512-bit",
+    "description": "GPU thế hệ mới nhất RTX 5090 ASUS ROG Strix, 32GB GDDR7 kiến trúc Blackwell.",
+    "brand_id": {
+      "slug": "asus",
+      "name": "ASUS"
+    },
+    "slug": "asus-rog-strix-rtx-5090",
+    "Variants": [
+      {
+        "price": 89990000,
+        "sale_price": 85990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RTX+5090+ROG",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-9",
+    "name": "MSI GeForce RTX 4070 GAMING X TRIO",
+    "short_desc": "12GB GDDR6X, DLSS 3, 3 Fan, 192-bit",
+    "description": "Card đồ họa gaming MSI RTX 4070 Gaming X Trio 12GB GDDR6X hiệu năng tuyệt vời.",
+    "brand_id": {
+      "slug": "msi",
+      "name": "MSI"
+    },
+    "slug": "msi-rtx-4070-gaming-x-trio",
+    "Variants": [
+      {
+        "price": 17490000,
+        "sale_price": 16890000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RTX+4070+Trio",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-10",
+    "name": "Gigabyte GeForce RTX 4060 Ti AERO OC",
+    "short_desc": "8GB GDDR6, DLSS 3, 2 Fan, 128-bit",
+    "description": "Card đồ họa Gigabyte RTX 4060 Ti AERO OC 8GB màu trắng thiết kế đẹp.",
+    "brand_id": {
+      "slug": "gigabyte",
+      "name": "Gigabyte"
+    },
+    "slug": "gigabyte-rtx-4060-ti-aero-oc",
+    "Variants": [
+      {
+        "price": 11490000,
+        "sale_price": 10990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RTX+4060Ti+AERO",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-11",
+    "name": "ASUS DUAL Radeon RX 9070 XT OC",
+    "short_desc": "16GB GDDR6, RDNA4, 2 Fan, 256-bit",
+    "description": "GPU AMD thế hệ RDNA4 RX 9070 XT 16GB GDDR6 hiệu năng ray-tracing cải thiện mạnh.",
+    "brand_id": {
+      "slug": "asus",
+      "name": "ASUS"
+    },
+    "slug": "asus-dual-rx-9070-xt-oc",
+    "Variants": [
+      {
+        "price": 21990000,
+        "sale_price": 20990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RX+9070+XT",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-12",
+    "name": "MSI Radeon RX 7600 MECH 2X OC",
+    "short_desc": "8GB GDDR6, RDNA3, 2 Fan, 128-bit",
+    "description": "Card đồ họa AMD tầm trung RX 7600 8GB MSI MECH 2X OC giá tốt nhất phân khúc.",
+    "brand_id": {
+      "slug": "msi",
+      "name": "MSI"
+    },
+    "slug": "msi-rx-7600-mech-2x-oc",
+    "Variants": [
+      {
+        "price": 6490000,
+        "sale_price": 5990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RX+7600+MECH",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-13",
+    "name": "Gigabyte GeForce RTX 5080 AORUS Master",
+    "short_desc": "16GB GDDR7, DLSS 4, 3 Fan, 256-bit",
+    "description": "GPU RTX 5080 Gigabyte AORUS Master 16GB GDDR7 thế hệ Blackwell hiệu năng đỉnh.",
+    "brand_id": {
+      "slug": "gigabyte",
+      "name": "Gigabyte"
+    },
+    "slug": "gigabyte-rtx-5080-aorus-master",
+    "Variants": [
+      {
+        "price": 49990000,
+        "sale_price": 47990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RTX+5080+AORUS",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-14",
+    "name": "ASUS DUAL GeForce RTX 4060 OC",
+    "short_desc": "8GB GDDR6, DLSS 3, 2 Fan, 128-bit",
+    "description": "GPU ASUS DUAL RTX 4060 OC 8GB lựa chọn tầm trung hiệu năng 1080p tốt nhất.",
+    "brand_id": {
+      "slug": "asus",
+      "name": "ASUS"
+    },
+    "slug": "asus-dual-rtx-4060-oc",
+    "Variants": [
+      {
+        "price": 8990000,
+        "sale_price": 8490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RTX+4060+DUAL",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-15",
+    "name": "MSI GeForce RTX 5070 Ti SUPRIM X",
+    "short_desc": "16GB GDDR7, DLSS 4, 3 Fan, 256-bit",
+    "description": "GPU RTX 5070 Ti MSI SUPRIM X phiên bản cao cấp nhất thế hệ Blackwell tầm trung cao.",
+    "brand_id": {
+      "slug": "msi",
+      "name": "MSI"
+    },
+    "slug": "msi-rtx-5070-ti-suprim-x",
+    "Variants": [
+      {
+        "price": 35990000,
+        "sale_price": 34490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RTX+5070Ti+SUPRIM",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-16",
+    "name": "Colorful iGame GeForce RTX 4070 Ultra W OC",
+    "short_desc": "12GB GDDR6X, DLSS 3, 3 Fan, 192-bit",
+    "description": "Card đồ họa RTX 4070 Colorful iGame Ultra W OC thiết kế độc đáo màu trắng.",
+    "brand_id": {
+      "slug": "colorful",
+      "name": "Colorful"
+    },
+    "slug": "colorful-igame-rtx-4070-ultra-w-oc",
+    "Variants": [
+      {
+        "price": 17990000,
+        "sale_price": 16990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RTX+4070+iGame",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-17",
+    "name": "Gigabyte Radeon RX 9070 GAMING OC",
+    "short_desc": "16GB GDDR6, RDNA4, 3 Fan, 256-bit",
+    "description": "GPU AMD RX 9070 16GB Gigabyte GAMING OC kiến trúc RDNA4 mới nhất.",
+    "brand_id": {
+      "slug": "gigabyte",
+      "name": "Gigabyte"
+    },
+    "slug": "gigabyte-rx-9070-gaming-oc",
+    "Variants": [
+      {
+        "price": 18490000,
+        "sale_price": 17990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RX+9070+Gaming",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-18",
+    "name": "ASUS ROG Strix GeForce RTX 4070 Super OC",
+    "short_desc": "12GB GDDR6X, DLSS 3, 3 Fan, 192-bit",
+    "description": "GPU ASUS ROG Strix RTX 4070 Super OC hiệu năng 1440p gaming tốt nhất.",
+    "brand_id": {
+      "slug": "asus",
+      "name": "ASUS"
+    },
+    "slug": "asus-rog-strix-rtx-4070-super-oc",
+    "Variants": [
+      {
+        "price": 21490000,
+        "sale_price": 20490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RTX+4070S+ROG",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-gpu-19",
+    "name": "MSI GeForce RTX 5070 GAMING TRIO OC",
+    "short_desc": "12GB GDDR7, DLSS 4, 3 Fan, 192-bit",
+    "description": "GPU RTX 5070 MSI Gaming Trio OC 12GB GDDR7 Blackwell hiệu năng 1440p xuất sắc.",
+    "brand_id": {
+      "slug": "msi",
+      "name": "MSI"
+    },
+    "slug": "msi-rtx-5070-gaming-trio-oc",
+    "Variants": [
+      {
+        "price": 22990000,
+        "sale_price": 21990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=RTX+5070+Trio",
+        "is_main": true
+      }
+    ]
   }
 ]
-
 export default function GPU() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -277,8 +621,12 @@ export default function GPU() {
       try {
         const res = await fetch(`${API_URL}/categories/gpu`)
         const data = await res.json()
-        if (data.success && data.data && data.data.products && data.data.products.length > 0) {
-          setProducts(data.data.products)
+        if (data.success && data.data && data.data.products) {
+          const apiProducts = data.data.products
+          // Merge real products + mock products (loại trùng theo tên)
+          const apiNames = apiProducts.map(p => p.name.toLowerCase())
+          const uniqueMocks = mockGpuProducts.filter(m => !apiNames.includes(m.name.toLowerCase()))
+          setProducts([...apiProducts, ...uniqueMocks])
         } else {
           setProducts(mockGpuProducts)
         }

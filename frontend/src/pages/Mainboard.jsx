@@ -119,9 +119,353 @@ const mockMainboardProducts = [
     slug: 'asrock-z790-pro-rs-d4',
     Variants: [{ price: 5490000, sale_price: 5290000 }],
     AnhSP: [{ url: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=ASRock+Z790+Pro', is_main: true }]
+  },
+  {
+    "_id": "mock-mb-5",
+    "name": "ASUS ROG MAXIMUS Z790 HERO",
+    "short_desc": "Intel LGA1700, Z790 Chipset, ATX, DDR5, WiFi 6E",
+    "description": "Bo mạch chủ ASUS ROG MAXIMUS Z790 HERO cao cấp nhất cho Intel 12/13/14th Gen.",
+    "brand_id": {
+      "slug": "asus",
+      "name": "ASUS"
+    },
+    "slug": "asus-rog-maximus-z790-hero",
+    "Variants": [
+      {
+        "price": 29990000,
+        "sale_price": 27990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=ROG+MAXIMUS+Z790",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-6",
+    "name": "MSI MAG Z790 TOMAHAWK WIFI DDR5",
+    "short_desc": "Intel LGA1700, Z790 Chipset, ATX, DDR5, WiFi 6E",
+    "description": "Bo mạch chủ gaming MSI MAG Z790 TOMAHAWK WIFI DDR5 hiệu năng cao cho CPU Intel gen 12-14.",
+    "brand_id": {
+      "slug": "msi",
+      "name": "MSI"
+    },
+    "slug": "msi-mag-z790-tomahawk-wifi-ddr5",
+    "Variants": [
+      {
+        "price": 8290000,
+        "sale_price": 7890000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Z790+TOMAHAWK",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-7",
+    "name": "GIGABYTE Z790 AORUS Elite AX DDR5",
+    "short_desc": "Intel LGA1700, Z790 Chipset, ATX, DDR5, WiFi 6E",
+    "description": "Bo mạch chủ GIGABYTE Z790 AORUS Elite AX DDR5 tính năng cao cấp cho Intel gen 12-14.",
+    "brand_id": {
+      "slug": "gigabyte",
+      "name": "GIGABYTE"
+    },
+    "slug": "gigabyte-z790-aorus-elite-ax-ddr5",
+    "Variants": [
+      {
+        "price": 8990000,
+        "sale_price": 8490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Z790+AORUS+Elite",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-8",
+    "name": "ASUS TUF Gaming X670E-Plus WiFi",
+    "short_desc": "AMD AM5, X670E Chipset, ATX, DDR5, WiFi 6",
+    "description": "Bo mạch chủ ASUS TUF Gaming X670E-Plus WiFi cho CPU AMD Ryzen 7000/8000/9000 Series.",
+    "brand_id": {
+      "slug": "asus",
+      "name": "ASUS"
+    },
+    "slug": "asus-tuf-gaming-x670e-plus-wifi",
+    "Variants": [
+      {
+        "price": 9490000,
+        "sale_price": 8990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=X670E+TUF+Gaming",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-9",
+    "name": "MSI MPG X670E CARBON WIFI",
+    "short_desc": "AMD AM5, X670E Chipset, ATX, DDR5, WiFi 6E",
+    "description": "Bo mạch chủ MSI MPG X670E CARBON WIFI cao cấp cho CPU AMD Ryzen AM5 thế hệ mới.",
+    "brand_id": {
+      "slug": "msi",
+      "name": "MSI"
+    },
+    "slug": "msi-mpg-x670e-carbon-wifi",
+    "Variants": [
+      {
+        "price": 12490000,
+        "sale_price": 11990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=X670E+CARBON",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-10",
+    "name": "GIGABYTE B760 DS3H AX DDR4",
+    "short_desc": "Intel LGA1700, B760 Chipset, ATX, DDR4, WiFi 6",
+    "description": "Bo mạch chủ GIGABYTE B760 DS3H AX DDR4 phổ thông hỗ trợ CPU Intel gen 12/13/14.",
+    "brand_id": {
+      "slug": "gigabyte",
+      "name": "GIGABYTE"
+    },
+    "slug": "gigabyte-b760-ds3h-ax-ddr4",
+    "Variants": [
+      {
+        "price": 2890000,
+        "sale_price": 2690000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=B760+DS3H+AX",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-11",
+    "name": "ASRock B650M Pro RS WiFi",
+    "short_desc": "AMD AM5, B650 Chipset, Micro-ATX, DDR5, WiFi 6",
+    "description": "Bo mạch chủ nhỏ gọn ASRock B650M Pro RS WiFi cho CPU AMD Ryzen 7000 Series AM5.",
+    "brand_id": {
+      "slug": "asrock",
+      "name": "ASRock"
+    },
+    "slug": "asrock-b650m-pro-rs-wifi",
+    "Variants": [
+      {
+        "price": 4290000,
+        "sale_price": 3990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=B650M+Pro+RS",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-12",
+    "name": "ASUS ProArt Z790-Creator WiFi",
+    "short_desc": "Intel LGA1700, Z790 Chipset, ATX, DDR5, Thunderbolt 4",
+    "description": "Bo mạch chủ ASUS ProArt Z790-Creator WiFi chuyên đồ họa và sáng tạo nội dung.",
+    "brand_id": {
+      "slug": "asus",
+      "name": "ASUS"
+    },
+    "slug": "asus-proart-z790-creator-wifi",
+    "Variants": [
+      {
+        "price": 15990000,
+        "sale_price": 14990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=ProArt+Z790+Creator",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-13",
+    "name": "MSI PRO B760M-A WiFi DDR4",
+    "short_desc": "Intel LGA1700, B760 Chipset, Micro-ATX, DDR4, WiFi",
+    "description": "Bo mạch chủ văn phòng MSI PRO B760M-A WiFi DDR4 giá tốt cho Intel gen 12-14.",
+    "brand_id": {
+      "slug": "msi",
+      "name": "MSI"
+    },
+    "slug": "msi-pro-b760m-a-wifi-ddr4",
+    "Variants": [
+      {
+        "price": 2990000,
+        "sale_price": 2790000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=B760M-A+WiFi",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-14",
+    "name": "GIGABYTE X670E AORUS Master",
+    "short_desc": "AMD AM5, X670E Chipset, ATX, DDR5, WiFi 6E",
+    "description": "Bo mạch chủ GIGABYTE X670E AORUS Master cao cấp cho CPU AMD Ryzen 7000 AM5.",
+    "brand_id": {
+      "slug": "gigabyte",
+      "name": "GIGABYTE"
+    },
+    "slug": "gigabyte-x670e-aorus-master",
+    "Variants": [
+      {
+        "price": 16990000,
+        "sale_price": 15990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=X670E+AORUS+Master",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-15",
+    "name": "ASUS PRIME A620M-K",
+    "short_desc": "AMD AM5, A620 Chipset, Micro-ATX, DDR5",
+    "description": "Bo mạch chủ giá rẻ ASUS PRIME A620M-K hỗ trợ CPU AMD Ryzen AM5 entry-level.",
+    "brand_id": {
+      "slug": "asus",
+      "name": "ASUS"
+    },
+    "slug": "asus-prime-a620m-k",
+    "Variants": [
+      {
+        "price": 1990000,
+        "sale_price": 1890000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=PRIME+A620M-K",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-16",
+    "name": "MSI MEG Z790 ACE MAX",
+    "short_desc": "Intel LGA1700, Z790 Chipset, E-ATX, DDR5, WiFi 7",
+    "description": "Bo mạch chủ đỉnh cao MSI MEG Z790 ACE MAX với WiFi 7 và PCIe 5.0 cho CPU Intel gen 12-14.",
+    "brand_id": {
+      "slug": "msi",
+      "name": "MSI"
+    },
+    "slug": "msi-meg-z790-ace-max",
+    "Variants": [
+      {
+        "price": 22990000,
+        "sale_price": 21990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=MEG+Z790+ACE+MAX",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-17",
+    "name": "ASRock Z790 Taichi Carrara",
+    "short_desc": "Intel LGA1700, Z790 Chipset, E-ATX, DDR5, WiFi 6E",
+    "description": "Bo mạch chủ siêu cao cấp ASRock Z790 Taichi Carrara thiết kế trắng sang trọng.",
+    "brand_id": {
+      "slug": "asrock",
+      "name": "ASRock"
+    },
+    "slug": "asrock-z790-taichi-carrara",
+    "Variants": [
+      {
+        "price": 18990000,
+        "sale_price": 17990000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=Z790+Taichi+Carrara",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-18",
+    "name": "GIGABYTE B650 AORUS Elite AX",
+    "short_desc": "AMD AM5, B650 Chipset, ATX, DDR5, WiFi 6E",
+    "description": "Bo mạch chủ GIGABYTE B650 AORUS Elite AX tính năng cao cho CPU AMD Ryzen AM5.",
+    "brand_id": {
+      "slug": "gigabyte",
+      "name": "GIGABYTE"
+    },
+    "slug": "gigabyte-b650-aorus-elite-ax",
+    "Variants": [
+      {
+        "price": 6490000,
+        "sale_price": 6190000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=B650+AORUS+Elite",
+        "is_main": true
+      }
+    ]
+  },
+  {
+    "_id": "mock-mb-19",
+    "name": "ASUS ROG STRIX B650E-F Gaming WiFi",
+    "short_desc": "AMD AM5, B650E Chipset, ATX, DDR5, WiFi 6E",
+    "description": "Bo mạch chủ ASUS ROG STRIX B650E-F Gaming WiFi cao cấp cho AMD Ryzen 7000/9000.",
+    "brand_id": {
+      "slug": "asus",
+      "name": "ASUS"
+    },
+    "slug": "asus-rog-strix-b650e-f-gaming-wifi",
+    "Variants": [
+      {
+        "price": 9990000,
+        "sale_price": 9490000
+      }
+    ],
+    "AnhSP": [
+      {
+        "url": "https://placehold.co/600x400/0d1117/c8e600?text=B650E-F+ROG+STRIX",
+        "is_main": true
+      }
+    ]
   }
 ]
-
 export default function Mainboard() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -177,8 +521,12 @@ export default function Mainboard() {
       try {
         const res = await fetch(`${API_URL}/categories/mainboard`)
         const data = await res.json()
-        if (data.success && data.data && data.data.products && data.data.products.length > 0) {
-          setProducts(data.data.products)
+        if (data.success && data.data && data.data.products) {
+          const apiProducts = data.data.products
+          // Merge real products + mock products (loại trùng theo tên)
+          const apiNames = apiProducts.map(p => p.name.toLowerCase())
+          const uniqueMocks = mockMainboardProducts.filter(m => !apiNames.includes(m.name.toLowerCase()))
+          setProducts([...apiProducts, ...uniqueMocks])
         } else {
           setProducts(mockMainboardProducts)
         }
