@@ -62,7 +62,7 @@ const ProductFormModal = ({ isOpen, onClose, product }) => {
                 <h3 className="font-semibold text-[15px] mb-4">Trạng thái & Danh mục</h3>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">Trạng thái</label>
-                  <select defaultValue={product?.status} className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none">
+                  <select defaultValue={product?.status} className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white">
                     <option value="Active">Đang bán (Active)</option>
                     <option value="Draft">Bản nháp (Draft)</option>
                     <option value="Hidden">Đã ẩn (Hidden)</option>
@@ -70,14 +70,14 @@ const ProductFormModal = ({ isOpen, onClose, product }) => {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">Danh mục</label>
-                  <select defaultValue={product?.category} className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none">
+                  <select defaultValue={product?.category} className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white">
                     <option value="">Chọn danh mục</option>
                     {mockCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">Thương hiệu</label>
-                  <select defaultValue={product?.brand} className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none">
+                  <select defaultValue={product?.brand} className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white">
                     <option value="">Chọn thương hiệu</option>
                     {mockBrands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                   </select>
@@ -88,15 +88,15 @@ const ProductFormModal = ({ isOpen, onClose, product }) => {
                 <h3 className="font-semibold text-[15px] mb-4">Giá bán mặc định</h3>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">Giá gốc (VNĐ)</label>
-                  <input type="number" defaultValue={product?.price} className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none" />
+                  <input type="number" defaultValue={product?.price} className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white" />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">Giá khuyến mãi (VNĐ)</label>
-                  <input type="number" defaultValue={product?.salePrice} className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none" />
+                  <input type="number" defaultValue={product?.salePrice} className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white" />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">Tồn kho</label>
-                  <input type="number" defaultValue={product?.stock} className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none" />
+                  <input type="number" defaultValue={product?.stock} className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white" />
                 </div>
               </div>
 

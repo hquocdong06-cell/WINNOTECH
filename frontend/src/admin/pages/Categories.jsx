@@ -25,9 +25,23 @@ const mockCategories = [
   },
 ];
 
+import CategoryFormModal from '../components/CategoryFormModal';
+
 const Categories = () => {
   const [categories] = useState(mockCategories);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+
+  const handleOpenAddModal = () => {
+    setEditingCategory(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (cat) => {
+    setEditingCategory(cat);
+    setIsModalOpen(true);
+  };
 
   return (
     <div className="p-8 text-white min-h-screen">
@@ -38,6 +52,7 @@ const Categories = () => {
           <p className="text-gray-400 text-sm">Giao diện UI (chưa gắn chức năng API)</p>
         </div>
         <button 
+          onClick={handleOpenAddModal}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#d4ff00] hover:bg-[#bce600] text-black font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(212,255,0,0.2)]"
         >
           <Plus className="w-5 h-5" /> Thêm Danh mục
@@ -53,7 +68,7 @@ const Categories = () => {
             placeholder="Tìm kiếm danh mục..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[#1e1e1e] border border-[#333] rounded-lg text-sm focus:border-[#d4ff00] outline-none transition-colors"
+            className="w-full pl-10 pr-4 py-2.5 bg-[#1e1e1e] border border-[#333] rounded-lg text-sm focus:border-[#d4ff00] outline-none text-white transition-colors"
           />
         </div>
       </div>
@@ -91,6 +106,7 @@ const Categories = () => {
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
                     <button 
+                      onClick={() => handleOpenEditModal(cat)}
                       className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-md text-gray-300 hover:text-blue-400 transition-colors" 
                       title="Sửa danh mục"
                     >
@@ -109,6 +125,12 @@ const Categories = () => {
           </tbody>
         </table>
       </div>
+      
+      <CategoryFormModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        category={editingCategory} 
+      />
     </div>
   );
 };
