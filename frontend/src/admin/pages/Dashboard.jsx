@@ -72,19 +72,19 @@ const Dashboard = () => {
           <div className="flex bg-[#222] p-1 rounded-lg border border-[#333]">
             <button 
               onClick={() => setRevenueTab('day')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${revenueTab === 'day' ? 'bg-[#d4ff00] text-black' : 'text-gray-400 hover:text-white'}`}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${revenueTab === 'day' ? 'bg-[#d4ff00] text-black' : 'text-gray-400 hover:bg-[#333] hover:text-white'}`}
             >
               Hôm nay
             </button>
             <button 
               onClick={() => setRevenueTab('month')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${revenueTab === 'month' ? 'bg-[#d4ff00] text-black' : 'text-gray-400 hover:text-white'}`}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${revenueTab === 'month' ? 'bg-[#d4ff00] text-black' : 'text-gray-400 hover:bg-[#333] hover:text-white'}`}
             >
               Tháng này
             </button>
             <button 
               onClick={() => setRevenueTab('year')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${revenueTab === 'year' ? 'bg-[#d4ff00] text-black' : 'text-gray-400 hover:text-white'}`}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${revenueTab === 'year' ? 'bg-[#d4ff00] text-black' : 'text-gray-400 hover:bg-[#333] hover:text-white'}`}
             >
               Năm nay
             </button>
