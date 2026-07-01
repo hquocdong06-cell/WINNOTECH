@@ -1,4 +1,4 @@
-@tailwind base;
+/* @tailwind base; Bỏ qua base để không hỏng CSS cũ của dự án */
 @tailwind components;
 @tailwind utilities;
 
