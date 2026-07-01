@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, Settings2, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Settings2, Edit, Eye, EyeOff } from 'lucide-react';
 import { mockProducts, mockCategories, mockBrands } from '../mockData';
 import ProductFormModal from '../components/ProductFormModal';
 import VariantManagementModal from '../components/VariantManagementModal';
@@ -120,10 +120,10 @@ const Products = () => {
                       <Edit className="w-4 h-4" />
                     </button>
                     <button 
-                      className="p-2 bg-[#222] hover:bg-red-500/20 border border-[#444] hover:border-red-500/50 rounded-md text-gray-300 hover:text-red-500 transition-colors" 
-                      title="Xóa sản phẩm"
+                      className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-md text-gray-300 hover:text-white transition-colors" 
+                      title={product.status === 'Active' ? 'Ẩn sản phẩm' : 'Hiện sản phẩm'}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      {product.status === 'Active' ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4 text-gray-500" />}
                     </button>
                   </div>
                 </td>

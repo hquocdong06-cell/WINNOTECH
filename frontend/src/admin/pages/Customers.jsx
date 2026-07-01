@@ -36,8 +36,8 @@ const Customers = () => {
                 <td style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{c.spent}</td>
                 <td>
                   <div className="action-icons">
-                    <button className="icon-btn view">👁️</button>
-                    <button className="icon-btn delete">🗑️</button>
+                    <button className="icon-btn edit" title="Sửa">✏️</button>
+                    <button className="icon-btn toggle" title="Ẩn/Hiện">👁️</button>
                   </div>
                 </td>
               </tr>

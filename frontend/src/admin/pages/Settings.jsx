@@ -40,15 +40,7 @@ const Settings = () => {
                    <div style={{ width: '20px', height: '20px', background: '#000', borderRadius: '50%', position: 'absolute', right: '2px', top: '2px' }}></div>
                 </div>
              </div>
-             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Màu chủ đạo (Primary Color)</span>
-                <div style={{ width: '24px', height: '24px', background: 'var(--accent-color)', borderRadius: '4px' }}></div>
-             </div>
-             <hr style={{ border: 'none', borderTop: '1px solid #333' }} />
-             <div className="filter-group">
-               <label>Lời chào trang chủ</label>
-               <input type="text" defaultValue="Chào mừng bạn đến với WINNO TECH!" />
-             </div>
+
           </div>
         </div>
       </div>

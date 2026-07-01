@@ -36,7 +36,7 @@ const Promotions = () => {
                 <td>
                   <div className="action-icons">
                     <button className="icon-btn edit">✏️</button>
-                    <button className="icon-btn delete">🗑️</button>
+                    <button className="icon-btn toggle" title="Ẩn/Hiện">👁️</button>
                   </div>
                 </td>
               </tr>
