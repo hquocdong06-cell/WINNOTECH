@@ -792,31 +792,7 @@ app.put("/products/:id", async (req, res) => {
 // ============================================================
 // DELETE /products/:id — xóa sản phẩm cùng các ảnh, biến thể liên quan
 // ============================================================
-app.delete("/products/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deletedProduct = await ProductModel.findByIdAndDelete(id);
-    if (!deletedProduct) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
-    }
 
-    await ImageModel.deleteMany({ p_id: id });
-
-    const variants = await ProductVariantModel.find({ p_id: id });
-    const variantIds = variants.map(v => v._id);
-    
-    await VariantAttribute.deleteMany({ id_variants: { $in: variantIds } });
-    await ProductVariantModel.deleteMany({ p_id: id });
-
-    return res.json({
-      success: true,
-      message: "Xóa sản phẩm thành công"
-    });
-  } catch (error) {
-    console.error("Lỗi API xóa sản phẩm:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server khi xóa sản phẩm" });
-  }
-});
 
 
 
