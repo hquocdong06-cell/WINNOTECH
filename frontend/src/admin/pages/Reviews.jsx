@@ -35,7 +35,7 @@ const Reviews = () => {
                 <td>
                   <div className="action-icons">
                     <button className="icon-btn view" title="Duyệt">✅</button>
-                    <button className="icon-btn delete">🗑️</button>
+                    <button className="icon-btn toggle" title="Ẩn/Hiện">👁️</button>
                   </div>
                 </td>
               </tr>
