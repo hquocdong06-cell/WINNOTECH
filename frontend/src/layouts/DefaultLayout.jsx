@@ -109,10 +109,10 @@ export default function DefaultLayout({ children }) {
         <div className="nav-catbar">
           <div className="nav-catbar-inner">
             <Link to="/build-pc" className="btn-build-pc" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="#000" style={{marginRight:'5px',verticalAlign:'middle'}}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="#111" style={{marginRight:'5px',verticalAlign:'middle'}}>
                 <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"/>
               </svg>
-              + Build PC ngay
+              Build PC ngay
             </Link>
             <div className="category-menu-wrapper">
               <button className="btn-category-menu">

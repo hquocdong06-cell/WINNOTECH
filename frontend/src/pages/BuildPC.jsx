@@ -425,7 +425,6 @@ export default function BuildPC() {
                     </div>
                     <div className="bp-step-info">
                       <div className="bp-step-name">
-                        <StepIcon id={step.id} style={{ marginRight: '6px' }} />
                         {step.label}
                       </div>
                       {isDone

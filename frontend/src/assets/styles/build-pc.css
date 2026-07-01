@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 /* ══════════════════════════════════════════════════════════════
    BUILD PC PAGE  —  WINNOTech
    ══════════════════════════════════════════════════════════════ */
@@ -78,14 +80,20 @@
   margin-bottom: 10px;
 }
 .bp-header-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-size: clamp(36px, 5vw, 60px);
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1;
   margin: 0 0 12px;
   color: var(--bp-text);
 }
-.bp-header-title span { color: var(--bp-yellow); }
+.bp-header-title span {
+  color: var(--bp-yellow);
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  font-style: inherit;
+  display: inline;
+}
 
 .bp-header-sub {
   font-size: 13px;
@@ -506,7 +514,8 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  background: var(--bp-yellow);
+  background: #111111;
+  border: 1px solid var(--bp-border);
   border-radius: 10px;
   padding: 18px 20px;
 }
@@ -519,12 +528,12 @@
 .bp-trust-title {
   font-size: 10px;
   font-weight: 800;
-  color: #000;
+  color: #ffffff;
   letter-spacing: .5px;
 }
 .bp-trust-sub {
   font-size: 9px;
-  color: #444;
+  color: rgba(255, 255, 255, 0.5);
   margin-top: 2px;
 }
 

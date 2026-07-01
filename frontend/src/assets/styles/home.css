@@ -108,7 +108,7 @@ nav {
 }
 
 .logo {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-size: 26px;
   letter-spacing: 2px;
   color: var(--white);
@@ -279,8 +279,8 @@ nav {
 }
 
 .btn-build-pc {
-  background: var(--yellow);
-  color: #000;
+  background: #ffffff;
+  color: #111111;
   border: none;
   border-radius: 4px;
   padding: 8px 16px;
@@ -294,7 +294,7 @@ nav {
 }
 
 .btn-build-pc:hover {
-  background: var(--yellow2)
+  background: #e8e8e8
 }
 
 .btn-category-menu {
@@ -410,7 +410,7 @@ nav {
 }
 
 .hero-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-size: clamp(56px, 7vw, 88px);
   line-height: .95;
   color: var(--white);
@@ -534,7 +534,7 @@ nav {
 }
 
 .pc-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-size: 48px;
   color: rgba(140, 80, 255, .6);
   letter-spacing: 4px
@@ -1135,7 +1135,7 @@ nav {
 }
 
 .about-brand-box .brand-name {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-size: 32px;
   color: #000;
   letter-spacing: 2px;
@@ -1446,7 +1446,7 @@ nav {
 }
 
 .newsletter-left h2 {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Oswald', sans-serif;
   font-size: clamp(32px, 4vw, 52px);
   line-height: .95;
   color: var(--white)
