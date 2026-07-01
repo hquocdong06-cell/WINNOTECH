@@ -50,7 +50,13 @@ export default function DefaultLayout({ children }) {
               <span style={{ color: 'white' }}>WINNO</span><span style={{ color: 'var(--yellow)' }}>TECH</span>
             </Link>
 
-            <div className="nav-search">
+            <form 
+              className="nav-search" 
+              onSubmit={(e) => {
+                e.preventDefault();
+                window.location.href = `/?search=${e.target.search.value}`;
+              }}
+            >
               <select className="search-select">
                 <option>Tất cả</option>
                 <option>CPU</option>
@@ -59,14 +65,14 @@ export default function DefaultLayout({ children }) {
                 <option>Ổ cứng</option>
               </select>
               <div className="search-divider" />
-              <input type="text" placeholder="Tìm CPU, GPU, RAM,..." />
-              <button className="search-btn">
+              <input type="text" name="search" placeholder="Tìm CPU, GPU, RAM,..." defaultValue={new URLSearchParams(window.location.search).get('search') || ''} />
+              <button type="submit" className="search-btn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <circle cx="11" cy="11" r="8" />
                   <path d="m21 21-4.35-4.35" />
                 </svg>
               </button>
-            </div>
+            </form>
 
             <div className="nav-actions">
               <button className="nav-action-btn">

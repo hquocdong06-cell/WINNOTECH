@@ -43,16 +43,16 @@ const VariantManagementModal = ({ isOpen, onClose, product }) => {
                   product.variants.map((v, idx) => (
                     <tr key={idx} className="hover:bg-[#252525] transition-colors">
                       <td className="px-4 py-3">
-                        <input type="text" defaultValue={v.name} className="w-full bg-[#141414] border border-[#444] rounded px-2 py-1 text-sm focus:border-[#d4ff00] outline-none" />
+                        <input type="text" defaultValue={v.name} className="w-full bg-[#141414] border border-[#444] rounded px-2 py-1 text-sm focus:border-[#d4ff00] outline-none text-white" />
                       </td>
                       <td className="px-4 py-3">
-                        <input type="text" defaultValue={v.sku} className="w-24 bg-[#141414] border border-[#444] rounded px-2 py-1 text-sm focus:border-[#d4ff00] outline-none" />
+                        <input type="text" defaultValue={v.sku} className="w-24 bg-[#141414] border border-[#444] rounded px-2 py-1 text-sm focus:border-[#d4ff00] outline-none text-white" />
                       </td>
                       <td className="px-4 py-3">
-                        <input type="number" defaultValue={v.price} className="w-28 bg-[#141414] border border-[#444] rounded px-2 py-1 text-sm focus:border-[#d4ff00] outline-none" />
+                        <input type="number" defaultValue={v.price} className="w-28 bg-[#141414] border border-[#444] rounded px-2 py-1 text-sm focus:border-[#d4ff00] outline-none text-white" />
                       </td>
                       <td className="px-4 py-3">
-                        <input type="number" defaultValue={v.stock} className="w-20 bg-[#141414] border border-[#444] rounded px-2 py-1 text-sm focus:border-[#d4ff00] outline-none" />
+                        <input type="number" defaultValue={v.stock} className="w-20 bg-[#141414] border border-[#444] rounded px-2 py-1 text-sm focus:border-[#d4ff00] outline-none text-white" />
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors">

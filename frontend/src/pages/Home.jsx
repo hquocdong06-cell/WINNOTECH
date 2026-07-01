@@ -178,6 +178,14 @@ export default function Home() {
     return { originalPrice, currentPrice, hasSale, salePercent }
   }
 
+  // ─── Lọc sản phẩm theo tìm kiếm (Frontend) ─────────────────
+  const searchParams = new URLSearchParams(window.location.search)
+  const searchQuery = (searchParams.get('search') || '').toLowerCase()
+
+  const filteredNewProducts = newProducts.filter(p => p.name.toLowerCase().includes(searchQuery))
+  const filteredSaleProducts = saleProducts.filter(p => p.name.toLowerCase().includes(searchQuery))
+  const filteredFeaturedProducts = featuredProducts.filter(p => p.name.toLowerCase().includes(searchQuery))
+
 
   return (
     <DefaultLayout>
@@ -327,10 +335,10 @@ export default function Home() {
           <div className="products-row">
             {loadingFeatured ? (
               <div className="products-empty">Đang tải sản phẩm nổi bật...</div>
-            ) : featuredProducts.length === 0 ? (
-              <div className="products-empty">Chưa có sản phẩm nổi bật nào</div>
+            ) : filteredFeaturedProducts.length === 0 ? (
+              <div className="products-empty">Chưa có sản phẩm nổi bật nào phù hợp</div>
             ) : (
-              featuredProducts.slice(0, 10).map((product) => {
+              filteredFeaturedProducts.slice(0, 10).map((product) => {
                 const imgUrl = getProductImage(product)
                 const { originalPrice, currentPrice, hasSale, salePercent } = getProductPriceInfo(product)
                 return (
@@ -410,10 +418,10 @@ export default function Home() {
           <div className="products-row">
             {loadingNew ? (
               <div className="products-empty">Đang tải sản phẩm mới...</div>
-            ) : newProducts.length === 0 ? (
-              <div className="products-empty">Chưa có sản phẩm mới nào</div>
+            ) : filteredNewProducts.length === 0 ? (
+              <div className="products-empty">Chưa có sản phẩm mới nào phù hợp</div>
             ) : (
-              newProducts.map((product) => {
+              filteredNewProducts.map((product) => {
                 const imgUrl = getProductImage(product)
                 const { originalPrice, currentPrice, hasSale, salePercent } = getProductPriceInfo(product)
                 return (
@@ -494,10 +502,10 @@ export default function Home() {
           <div className="products-row">
             {loadingSale ? (
               <div className="products-empty">Đang tải sản phẩm giảm giá...</div>
-            ) : saleProducts.length === 0 ? (
-              <div className="products-empty">Không có sản phẩm giảm giá nào</div>
+            ) : filteredSaleProducts.length === 0 ? (
+              <div className="products-empty">Không có sản phẩm giảm giá nào phù hợp</div>
             ) : (
-              saleProducts.map((product) => {
+              filteredSaleProducts.map((product) => {
                 const imgUrl = getProductImage(product)
                 const { originalPrice, currentPrice, hasSale, salePercent } = getProductPriceInfo(product)
                 return (
