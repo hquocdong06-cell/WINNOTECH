@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/cart.css'
+import '../assets/styles/home.css'
 
 export default function Cart() {
   const [cartItems, setCartItems] = useState([
@@ -250,21 +251,40 @@ export default function Cart() {
                 {/* BENEFITS */}
                 <div className="summary-benefits">
                   <div className="benefit-item">
-                    <span className="benefit-icon">🚚</span>
+                    <span className="benefit-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                        <rect x="1" y="3" width="15" height="13" rx="1" />
+                        <path d="M16 8h4l3 3v4h-7V8z" />
+                        <circle cx="5.5" cy="18.5" r="2.5" />
+                        <circle cx="18.5" cy="18.5" r="2.5" />
+                      </svg>
+                    </span>
                     <div>
                       <div className="benefit-title">Miễn phí vận chuyển</div>
                       <div className="benefit-text">Cho đơn từ 1.000.000đ</div>
                     </div>
                   </div>
                   <div className="benefit-item">
-                    <span className="benefit-icon">🛡️</span>
+                    <span className="benefit-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        <path d="m9 12 2 2 4-4" />
+                      </svg>
+                    </span>
                     <div>
                       <div className="benefit-title">Bảo hành chính hãng</div>
                       <div className="benefit-text">36 tháng</div>
                     </div>
                   </div>
                   <div className="benefit-item">
-                    <span className="benefit-icon">🔄</span>
+                    <span className="benefit-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                        <path d="M3 2v6h6" />
+                        <path d="M21 12A9 9 0 0 0 6 5.3L3 8" />
+                        <path d="M21 22v-6h-6" />
+                        <path d="M3 12a9 9 0 0 0 15 6.7l3-2.7" />
+                      </svg>
+                    </span>
                     <div>
                       <div className="benefit-title">Đổi trả miễn phí</div>
                       <div className="benefit-text">30 ngày</div>
@@ -284,21 +304,24 @@ export default function Cart() {
               </div>
               <div className="related-grid">
                 {relatedProducts.map((item) => (
-                  <div key={item.id} className="related-card">
-                    <div className="related-img">
+                  <div key={item.id} className="product-card">
+                    <div className="item-visual-box">
                       <img src={item.image} alt={item.name} />
                     </div>
-                    <div className="related-info">
-                      <div className="related-name">{item.name}</div>
-                      <div className="related-specs">{item.specs}</div>
-                      <div className="related-footer">
-                        <div className="related-price">{formatPrice(item.price)}</div>
-                        <button className="btn-related-cart">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                            <line x1="3" y1="6" x2="21" y2="6" />
-                          </svg>
-                        </button>
+                    <div className="product-info">
+                      <div className="product-name" style={{ minHeight: '38px', fontSize: '13px' }}>{item.name}</div>
+                      <div className="product-cat">{item.specs}</div>
+                      <div className="product-footer">
+                        <div className="product-price-container">
+                          <span className="product-price">{formatPrice(item.price)}</span>
+                        </div>
+                        <div className="product-actions">
+                          <button className="btn-cart">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

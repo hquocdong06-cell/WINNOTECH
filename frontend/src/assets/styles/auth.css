@@ -398,3 +398,23 @@
     max-width: 100%;
   }
 }
+
+/* ── REGISTER COLUMN REDISTRIBUTION ── */
+.auth-content.content-register {
+  max-width: 680px;
+  transition: max-width 0.3s ease;
+}
+
+.register-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 580px) {
+  .register-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+

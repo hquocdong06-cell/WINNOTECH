@@ -458,3 +458,294 @@
   }
 }
 
+/* ══════════════════════════════════════════════════════════
+   SHIPPING INFO CARD — logged-in user (Shopee/Tiki style)
+══════════════════════════════════════════════════════════ */
+.co-shipping-card {
+  background: #161616;
+  border: 1.5px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color .2s;
+}
+.co-shipping-card:hover { border-color: rgba(200,230,0,.25); }
+
+.co-shipping-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(200,230,0,.1);
+  color: #c8e600;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 20px;
+  border: 1px solid rgba(200,230,0,.2);
+  width: fit-content;
+  margin-bottom: 4px;
+}
+.co-shipping-card-badge svg { stroke: #c8e600; }
+
+.co-shipping-card-body { display: flex; flex-direction: column; gap: 4px; }
+.co-shipping-name  { font-size: 15px; font-weight: 800; color: #fff; }
+.co-shipping-phone { font-size: 13px; color: #aaa; }
+.co-shipping-addr  { font-size: 13px; color: #888; line-height: 1.5; }
+
+.co-btn-change-addr {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid rgba(200,230,0,.3);
+  color: #c8e600;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .2s, border-color .2s;
+  width: fit-content;
+  margin-top: 4px;
+}
+.co-btn-change-addr svg { stroke: #c8e600; }
+.co-btn-change-addr:hover {
+  background: rgba(200,230,0,.08);
+  border-color: rgba(200,230,0,.55);
+}
+
+/* Empty state */
+.co-shipping-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 0;
+  color: #555;
+}
+.co-shipping-empty svg { stroke: #444; }
+.co-shipping-empty p { font-size: 13px; color: #666; margin: 0; }
+.co-btn-add-address {
+  background: rgba(200,230,0,.1);
+  border: 1px solid rgba(200,230,0,.3);
+  color: #c8e600;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 9px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .2s;
+}
+.co-btn-add-address:hover { background: rgba(200,230,0,.18); }
+
+/* Loading skeleton */
+.co-shipping-loading { display: flex; flex-direction: column; gap: 10px; padding: 8px 0; }
+.co-shipping-skeleton {
+  height: 14px;
+  background: linear-gradient(90deg, #1a1a1a 25%, #242424 50%, #1a1a1a 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 6px;
+  width: 100%;
+}
+.co-shipping-skeleton--sm { width: 45%; }
+.co-shipping-skeleton--md { width: 70%; }
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   ADDRESS SELECTOR MODAL
+══════════════════════════════════════════════════════════ */
+.asm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.75);
+  backdrop-filter: blur(4px);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.asm-panel {
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,.6);
+  animation: asm-in .2s ease;
+}
+@keyframes asm-in {
+  from { opacity: 0; transform: translateY(16px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.asm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid #1e1e1e;
+  flex-shrink: 0;
+}
+.asm-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: .5px;
+}
+.asm-header-title svg { stroke: #c8e600; }
+.asm-close {
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  color: #888;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+.asm-close:hover { background: rgba(239,68,68,.1); color: #f87171; border-color: rgba(239,68,68,.3); }
+.asm-body {
+  padding: 16px 22px 22px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a2a transparent;
+}
+.asm-list { display: flex; flex-direction: column; gap: 10px; }
+.asm-addr-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #161616;
+  border: 1.5px solid #252525;
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.asm-addr-item:hover { border-color: #3a3a3a; }
+.asm-addr-item.selected { border-color: #c8e600; background: rgba(200,230,0,.04); }
+.asm-radio {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid #444;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  transition: border-color .2s;
+}
+.asm-addr-item.selected .asm-radio { border-color: #c8e600; }
+.asm-radio-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #c8e600;
+  display: none;
+}
+.asm-addr-item.selected .asm-radio-dot { display: block; }
+.asm-addr-info { flex: 1; min-width: 0; }
+.asm-addr-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.asm-addr-name   { font-size: 14px; font-weight: 700; color: #fff; }
+.asm-addr-phone  { font-size: 12px; color: #888; }
+.asm-default-badge {
+  font-size: 10px; font-weight: 700;
+  background: rgba(200,230,0,.12);
+  color: #c8e600;
+  border: 1px solid rgba(200,230,0,.25);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.asm-addr-detail { font-size: 12px; color: #666; line-height: 1.5; }
+.asm-btn-new {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: transparent;
+  border: 1.5px dashed #2a2a2a;
+  color: #888;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .2s, color .2s;
+}
+.asm-btn-new:hover { border-color: rgba(200,230,0,.4); color: #c8e600; }
+.asm-btn-new svg { stroke: currentColor; }
+
+/* Inline new address form */
+.asm-new-form { display: flex; flex-direction: column; gap: 16px; }
+.asm-new-form-title {
+  font-size: 13px; font-weight: 700;
+  color: #c8e600;
+  letter-spacing: .5px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #1e1e1e;
+}
+.asm-new-form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+.asm-btn-cancel-new {
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  color: #888;
+  font-size: 12px; font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .2s, color .2s;
+}
+.asm-btn-cancel-new:hover { border-color: #444; color: #ccc; }
+.asm-btn-save-new {
+  background: #c8e600;
+  border: none;
+  color: #000;
+  font-size: 12px; font-weight: 800;
+  padding: 9px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .2s;
+}
+.asm-btn-save-new:hover { background: #d4f000; }
+
+@media (max-width: 600px) {
+  .asm-overlay { padding: 12px; align-items: flex-end; }
+  .asm-panel { max-height: 90vh; border-radius: 14px 14px 0 0; }
+}
