@@ -1436,3 +1436,34 @@
   .odm-flow-line { top: 7.5px; }
 }
 
+@media (max-width: 1024px) {
+  .profile-inner {
+    padding: 0 16px !important;
+  }
+  .profile-layout {
+    grid-template-columns: 1fr !important;
+    gap: 24px;
+    padding-bottom: 40px;
+  }
+  .profile-info-layout {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .profile-info-fields {
+    grid-template-columns: 1fr !important;
+    width: 100%;
+    gap: 16px;
+  }
+  .profile-card {
+    padding: 16px !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .profile-card table {
+    width: 100%;
+    min-width: 600px;
+  }
+}
+
+
