@@ -430,4 +430,31 @@
   .co-right { position: static; }
   .checkout-steps { padding: 0 16px; }
   .checkout-breadcrumb { padding: 14px 16px; }
+  .checkout-top-bar { padding: 10px 16px; }
 }
+
+@media (max-width: 600px) {
+  .co-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .checkout-steps {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 0 16px;
+  }
+  .step-item {
+    width: 100%;
+  }
+  .step-item::after,
+  .step-connector {
+    display: none !important;
+  }
+  .step-label {
+    display: inline-block;
+  }
+}
+
