@@ -15,6 +15,7 @@ export default function Profile() {
   const [editSaving, setEditSaving] = useState(false)
   const [editSuccess, setEditSuccess] = useState(false)
   const [orderFilter, setOrderFilter] = useState('all')
+  const [selectedOrder, setSelectedOrder] = useState(null)
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [newAddress, setNewAddress] = useState({ fullName: '', phone: '', province: '', district: '', detail: '' })
   const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' })
@@ -49,14 +50,80 @@ export default function Profile() {
 
   const getInitial = () => (!user || !user.name) ? '?' : user.name.charAt(0).toUpperCase()
 
+  const orderDetails = {
+    '#WIN123456': {
+      id: '#WIN123456', date: '20/05/2024 14:32', status: 'completed', payMethod: 'Thanh toán khi nhận hàng (COD)',
+      trackingCode: 'GHTK9812347890', estimatedDelivery: '22/05/2024',
+      receiver: { name: 'Vũ Đông', phone: '0901 234 567', address: '123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', note: 'Giao giờ hành chính' },
+      products: [
+        { name: 'AMD Ryzen 7 7800X3D', variant: 'Box có fan', price: '9.990.000đ', qty: 1, subtotal: '9.990.000đ' },
+        { name: 'G.Skill Trident Z5 RGB 32GB DDR5', variant: 'Black / 6000MHz', price: '3.990.000đ', qty: 2, subtotal: '7.980.000đ' },
+        { name: 'Samsung 990 Pro 1TB NVMe SSD', variant: 'PCIe 4.0', price: '2.590.000đ', qty: 2, subtotal: '5.180.000đ' }
+      ],
+      payment: { subtotal: '23.150.000đ', shipping: '0đ', discount: '-4.660.000đ', voucher: '-0đ', points: '-0đ', total: '18.490.000đ' },
+      shipping: { carrier: 'Giao hàng tiết kiệm (GHTK)', tracking: 'GHTK9812347890' },
+      timeline: [
+        { time: '20/05 14:32', event: 'Đặt hàng thành công', done: true },
+        { time: '20/05 14:55', event: 'Shop xác nhận đơn hàng', done: true },
+        { time: '21/05 08:15', event: 'Đơn vị vận chuyển lấy hàng', done: true },
+        { time: '22/05 10:30', event: 'Đang giao hàng đến bạn', done: true },
+        { time: '22/05 15:48', event: 'Giao hàng thành công', done: true }
+      ]
+    },
+    '#WIN123455': {
+      id: '#WIN123455', date: '18/05/2024 09:10', status: 'delivering', payMethod: 'Ví MoMo',
+      trackingCode: 'VTP20240518001', estimatedDelivery: '19/05/2024',
+      receiver: { name: 'Vũ Đông', phone: '0901 234 567', address: '123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', note: '' },
+      products: [
+        { name: 'ASUS ROG Strix GeForce RTX 4070 Ti Super', variant: 'Black Edition', price: '18.990.000đ', qty: 1, subtotal: '18.990.000đ' },
+        { name: 'Corsair RM1000x 1000W 80+ Gold', variant: 'Màu trắng', price: '4.990.000đ', qty: 1, subtotal: '4.990.000đ' }
+      ],
+      payment: { subtotal: '23.980.000đ', shipping: '30.000đ', discount: '-20.000đ', voucher: '-0đ', points: '-0đ', total: '23.990.000đ' },
+      shipping: { carrier: 'Viettel Post', tracking: 'VTP20240518001' },
+      timeline: [
+        { time: '18/05 09:10', event: 'Đặt hàng thành công', done: true },
+        { time: '18/05 09:45', event: 'Shop xác nhận đơn hàng', done: true },
+        { time: '18/05 15:00', event: 'Đơn vị vận chuyển lấy hàng', done: true },
+        { time: '19/05 08:00', event: 'Đang giao hàng đến bạn', done: true },
+        { time: '—', event: 'Giao hàng thành công', done: false }
+      ]
+    },
+    '#WIN123453': {
+      id: '#WIN123453', date: '14/05/2024 11:20', status: 'cancelled', payMethod: 'Chuyển khoản ngân hàng',
+      trackingCode: '—', estimatedDelivery: '—',
+      receiver: { name: 'Vũ Đông', phone: '0901 234 567', address: '123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', note: '' },
+      products: [
+        { name: 'Kingston Fury Beast 16GB DDR4 3200MHz', variant: 'Black', price: '1.290.000đ', qty: 1, subtotal: '1.290.000đ' }
+      ],
+      payment: { subtotal: '1.290.000đ', shipping: '30.000đ', discount: '-0đ', voucher: '-0đ', points: '-0đ', total: '1.320.000đ' },
+      shipping: { carrier: '—', tracking: '—' },
+      timeline: [
+        { time: '14/05 11:20', event: 'Đặt hàng thành công', done: true },
+        { time: '14/05 12:05', event: 'Người mua hủy đơn', done: true }
+      ]
+    }
+  }
+
+  const getOrderDetail = (orderId) => orderDetails[orderId] || {
+    id: orderId, date: '—', status: 'pending', payMethod: 'COD', trackingCode: '—', estimatedDelivery: '—',
+    receiver: { name: 'Vũ Đông', phone: '0901 234 567', address: '123 Nguyễn Huệ, Q.1, TP.HCM', note: '' },
+    products: [{ name: 'Sản phẩm mẫu', variant: '—', price: '0đ', qty: 1, subtotal: '0đ' }],
+    payment: { subtotal: '0đ', shipping: '0đ', discount: '0đ', voucher: '0đ', points: '0đ', total: '0đ' },
+    shipping: { carrier: '—', tracking: '—' },
+    timeline: [{ time: '—', event: 'Chưa có dữ liệu', done: false }]
+  }
+
   const orders = [
     { id: '#WIN123456', date: '20/05/2024', total: '18.490.000đ', status: 'completed', items: 3 },
-    { id: '#WIN123455', date: '18/05/2024', total: '23.990.000đ', status: 'processing', items: 2 },
-    { id: '#WIN123454', date: '16/05/2024', total: '12.890.000đ', status: 'completed', items: 1 },
+    { id: '#WIN123455', date: '18/05/2024', total: '23.990.000đ', status: 'delivering', items: 2 },
+    { id: '#WIN123454', date: '16/05/2024', total: '12.890.000đ', status: 'shipped', items: 1 },
     { id: '#WIN123453', date: '14/05/2024', total: '5.490.000đ', status: 'cancelled', items: 1 },
-    { id: '#WIN123452', date: '10/05/2024', total: '32.990.000đ', status: 'completed', items: 4 },
-    { id: '#WIN123451', date: '05/05/2024', total: '8.990.000đ', status: 'processing', items: 2 },
-    { id: '#WIN123450', date: '01/05/2024', total: '15.490.000đ', status: 'completed', items: 2 }
+    { id: '#WIN123452', date: '10/05/2024', total: '32.990.000đ', status: 'done', items: 4 },
+    { id: '#WIN123451', date: '05/05/2024', total: '8.990.000đ', status: 'pending', items: 2 },
+    { id: '#WIN123450', date: '01/05/2024', total: '15.490.000đ', status: 'preparing', items: 2 },
+    { id: '#WIN123449', date: '28/04/2024', total: '9.990.000đ', status: 'handover', items: 1 },
+    { id: '#WIN123448', date: '25/04/2024', total: '27.500.000đ', status: 'delivery_fail', items: 3 },
+    { id: '#WIN123447', date: '20/04/2024', total: '14.200.000đ', status: 'refund', items: 2 }
   ]
 
   const wishlistProducts = [
@@ -71,7 +138,25 @@ export default function Profile() {
     { id: 2, fullName: 'Vũ Đông', phone: '0912 345 678', detail: '456 Lê Lợi, Phường 2, Quận Gò Vấp, TP. Hồ Chí Minh', isDefault: false }
   ]
 
-  const statusMap = { completed: 'Hoàn thành', processing: 'Đang xử lý', cancelled: 'Đã hủy' }
+  const statusMap = {
+    pending:      'Chờ xác nhận',
+    preparing:    'Đang chuẩn bị hàng',
+    handover:     'Bàn giao vận chuyển',
+    shipped:      'Đang vận chuyển',
+    delivering:   'Đang giao hàng',
+    completed:    'Đã giao hàng',
+    done:         'Hoàn thành',
+    cancelled:    'Đã hủy',
+    delivery_fail:'Giao không thành công',
+    refund:       'Trả hàng / Hoàn tiền'
+  }
+
+  // Thứ tự các bước trong flow chính
+  const ORDER_FLOW = ['pending','preparing','handover','shipped','delivering','completed','done']
+
+  // Lấy chỉ số bước hiện tại trong flow
+  const getFlowStep = (status) => ORDER_FLOW.indexOf(status)
+
   const filteredOrders = orderFilter === 'all' ? orders : orders.filter(o => o.status === orderFilter)
 
   const menuItems = [
@@ -100,6 +185,213 @@ export default function Profile() {
   if (error) return <DefaultLayout><div className="profile-page"><div className="profile-inner" style={{padding:'80px 40px',textAlign:'center'}}><div style={{color:'#f87171',marginBottom:'16px'}}>{error}</div><button onClick={()=>navigate('/auth')} style={{background:'var(--yellow)',color:'#000',border:'none',padding:'10px 24px',borderRadius:'6px',fontWeight:700,cursor:'pointer'}}>Đăng nhập</button></div></div></DefaultLayout>
   if (!user) return null
 
+  // ── ORDER DETAIL MODAL ──────────────────────────────────────────
+  const OrderDetailModal = ({ detail, onClose }) => {
+    const flowStep = getFlowStep(detail.status)
+    const isMainFlow = flowStep !== -1
+    // Close on Escape
+    React.useEffect(() => {
+      const handler = e => { if (e.key === 'Escape') onClose() }
+      document.addEventListener('keydown', handler)
+      document.body.style.overflow = 'hidden'
+      return () => { document.removeEventListener('keydown', handler); document.body.style.overflow = '' }
+    }, [])
+    return (
+      <div className="odm-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+        <div className="odm-panel">
+          {/* ── HEADER ── */}
+          <div className="odm-header">
+            <div className="odm-header-left">
+              <div className="odm-header-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div>
+                <div className="odm-header-id">{detail.id}</div>
+                <div className="odm-header-date">Đặt ngày {detail.date}</div>
+              </div>
+            </div>
+            <div className="odm-header-right">
+              <span className={`order-status status-${detail.status}`}>{statusMap[detail.status]}</span>
+              <button className="odm-close" onClick={onClose}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="odm-body">
+
+            {/* ── SECTION 1: THÔNG TIN ĐƠN HÀNG ── */}
+            <div className="odm-section">
+              <div className="odm-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Thông tin đơn hàng
+              </div>
+              <div className="odm-info-grid">
+                <div className="odm-info-row"><span className="odm-info-label">Mã đơn hàng</span><span className="odm-info-value odm-id-text">{detail.id}</span></div>
+                <div className="odm-info-row"><span className="odm-info-label">Ngày đặt hàng</span><span className="odm-info-value">{detail.date}</span></div>
+                <div className="odm-info-row"><span className="odm-info-label">Trạng thái</span><span className={`order-status status-${detail.status}`} style={{fontSize:'11px'}}>{statusMap[detail.status]}</span></div>
+                <div className="odm-info-row"><span className="odm-info-label">Phương thức thanh toán</span><span className="odm-info-value">{detail.payMethod}</span></div>
+                <div className="odm-info-row"><span className="odm-info-label">Mã vận đơn</span><span className="odm-info-value odm-tracking">{detail.trackingCode}</span></div>
+                <div className="odm-info-row"><span className="odm-info-label">Dự kiến giao</span><span className="odm-info-value">{detail.estimatedDelivery}</span></div>
+              </div>
+            </div>
+
+            {/* ── SECTION 2: NGƯỜI NHẬN ── */}
+            <div className="odm-section">
+              <div className="odm-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Thông tin người nhận
+              </div>
+              <div className="odm-info-grid">
+                <div className="odm-info-row"><span className="odm-info-label">Họ tên</span><span className="odm-info-value">{detail.receiver.name}</span></div>
+                <div className="odm-info-row"><span className="odm-info-label">Số điện thoại</span><span className="odm-info-value">{detail.receiver.phone}</span></div>
+                <div className="odm-info-row odm-info-row--full"><span className="odm-info-label">Địa chỉ</span><span className="odm-info-value">{detail.receiver.address}</span></div>
+                {detail.receiver.note && <div className="odm-info-row odm-info-row--full"><span className="odm-info-label">Ghi chú</span><span className="odm-info-value odm-note">{detail.receiver.note}</span></div>}
+              </div>
+            </div>
+
+            {/* ── SECTION 3: DANH SÁCH SẢN PHẨM ── */}
+            <div className="odm-section">
+              <div className="odm-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                Danh sách sản phẩm ({detail.products.length})
+              </div>
+              <div className="odm-products">
+                {detail.products.map((p, i) => (
+                  <div key={i} className="odm-product-row">
+                    <div className="odm-product-img">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28" opacity="0.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </div>
+                    <div className="odm-product-info">
+                      <div className="odm-product-name">{p.name}</div>
+                      <div className="odm-product-variant">{p.variant}</div>
+                      <div className="odm-product-pricing">
+                        <span className="odm-product-price">{p.price}</span>
+                        <span className="odm-product-qty">× {p.qty}</span>
+                        <span className="odm-product-subtotal">{p.subtotal}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── SECTION 4: THANH TOÁN ── */}
+            <div className="odm-section">
+              <div className="odm-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Thông tin thanh toán
+              </div>
+              <div className="odm-payment">
+                <div className="odm-payment-row"><span>Tạm tính</span><span>{detail.payment.subtotal}</span></div>
+                <div className="odm-payment-row"><span>Phí vận chuyển</span><span>{detail.payment.shipping}</span></div>
+                <div className="odm-payment-row odm-payment-row--discount"><span>Mã giảm giá</span><span>{detail.payment.discount}</span></div>
+                <div className="odm-payment-row odm-payment-row--discount"><span>Voucher</span><span>{detail.payment.voucher}</span></div>
+                <div className="odm-payment-row odm-payment-row--discount"><span>Điểm thưởng</span><span>{detail.payment.points}</span></div>
+                <div className="odm-payment-divider"/>
+                <div className="odm-payment-row odm-payment-row--total"><span>Tổng thanh toán</span><span>{detail.payment.total}</span></div>
+              </div>
+            </div>
+
+            {/* ── SECTION 5: VẬN CHUYỂN + FLOW ── */}
+            <div className="odm-section">
+              <div className="odm-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                Thông tin vận chuyển
+              </div>
+              <div className="odm-info-grid">
+                <div className="odm-info-row"><span className="odm-info-label">Đơn vị vận chuyển</span><span className="odm-info-value">{detail.shipping.carrier}</span></div>
+                <div className="odm-info-row"><span className="odm-info-label">Mã tracking</span><span className="odm-info-value odm-tracking">{detail.shipping.tracking}</span></div>
+              </div>
+              {/* Mini flow tracker */}
+              {isMainFlow && (
+                <div className="odm-flow-mini">
+                  {ORDER_FLOW.map((step, idx) => (
+                    <div key={step} className={`odm-flow-step ${ idx < flowStep ? 'done' : idx === flowStep ? 'active' : 'pending'}`}>
+                      <div className="odm-flow-dot">
+                        {idx < flowStep && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" width="8" height="8"><polyline points="20 6 9 17 4 12"/></svg>}
+                        {idx === flowStep && <div className="odm-flow-pulse"/>}
+                      </div>
+                      {idx < ORDER_FLOW.length - 1 && <div className={`odm-flow-line ${idx < flowStep ? 'done' : ''}`}/>}
+                      <div className="odm-flow-label">{statusMap[step]}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── SECTION 6: CÁC NÚT CHỨC NĂNG ── */}
+            <div className="odm-section">
+              <div className="odm-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg>
+                Thao tác
+              </div>
+              <div className="odm-actions">
+                {(detail.status === 'done' || detail.status === 'completed') && (
+                  <button className="odm-action-btn odm-action-btn--rebuy">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.53"/></svg>Mua lại
+                  </button>
+                )}
+                {detail.status === 'pending' && (
+                  <button className="odm-action-btn odm-action-btn--cancel">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Hủy đơn
+                  </button>
+                )}
+                {['shipped','delivering','completed'].includes(detail.status) && (
+                  <button className="odm-action-btn odm-action-btn--track">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Theo dõi vận chuyển
+                  </button>
+                )}
+                {detail.status === 'done' && (
+                  <button className="odm-action-btn odm-action-btn--review">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Đánh giá sản phẩm
+                  </button>
+                )}
+                {(detail.status === 'delivery_fail' || detail.status === 'refund') && (
+                  <button className="odm-action-btn odm-action-btn--refund">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.53"/></svg>Yêu cầu trả hàng / hoàn tiền
+                  </button>
+                )}
+                <button className="odm-action-btn odm-action-btn--contact">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Liên hệ shop
+                </button>
+                <button className="odm-action-btn odm-action-btn--invoice">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Tải hóa đơn
+                </button>
+              </div>
+            </div>
+
+            {/* ── SECTION 7: TIMELINE LỊCH SỬ ── */}
+            <div className="odm-section">
+              <div className="odm-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Lịch sử đơn hàng
+              </div>
+              <div className="odm-timeline">
+                {detail.timeline.map((item, i) => (
+                  <div key={i} className={`odm-timeline-item ${item.done ? 'done' : 'pending'}`}>
+                    <div className="odm-timeline-dot">
+                      {item.done
+                        ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" width="8" height="8"><polyline points="20 6 9 17 4 12"/></svg>
+                        : <div className="odm-timeline-ring"/>}
+                    </div>
+                    {i < detail.timeline.length - 1 && <div className={`odm-timeline-line ${item.done ? 'done' : ''}`}/>}
+                    <div className="odm-timeline-content">
+                      <div className="odm-timeline-event">{item.event}</div>
+                      <div className="odm-timeline-time">{item.time}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>{/* end odm-body */}
+        </div>{/* end odm-panel */}
+      </div>
+    )
+  }
+  // ── END ORDER DETAIL MODAL ────────────────────────────────────
+
   const EyeOff = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
   const EyeOn = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
 
@@ -114,6 +406,7 @@ export default function Profile() {
 
   return (
     <DefaultLayout>
+      {selectedOrder && <OrderDetailModal detail={selectedOrder} onClose={() => setSelectedOrder(null)} />}
       <div className="profile-page">
         <div className="profile-inner">
           <div className="profile-breadcrumb">
@@ -296,12 +589,29 @@ export default function Profile() {
                 <div className="profile-card">
                   <div className="profile-card-title">ĐƠN HÀNG CỦA TÔI</div>
                   <div className="profile-order-filters">
-                    {[{key:'all',label:'Tất cả',count:orders.length},{key:'processing',label:'Đang xử lý',count:orders.filter(o=>o.status==='processing').length},{key:'completed',label:'Hoàn thành',count:orders.filter(o=>o.status==='completed').length},{key:'cancelled',label:'Đã hủy',count:orders.filter(o=>o.status==='cancelled').length}].map(f=>(
-                      <button key={f.key} className={'profile-order-filter-btn' + (orderFilter===f.key?' active':'') + (f.key!=='all'?' '+f.key:'')} onClick={()=>setOrderFilter(f.key)}>
+                    {[
+                      { key: 'all',          label: 'Tất cả',               count: orders.length },
+                      { key: 'pending',      label: 'Chờ xác nhận',         count: orders.filter(o=>o.status==='pending').length },
+                      { key: 'preparing',   label: 'Chuẩn bị hàng',        count: orders.filter(o=>o.status==='preparing').length },
+                      { key: 'handover',    label: 'Bàn giao VC',          count: orders.filter(o=>o.status==='handover').length },
+                      { key: 'shipped',     label: 'Đang vận chuyển',      count: orders.filter(o=>o.status==='shipped').length },
+                      { key: 'delivering',  label: 'Đang giao',            count: orders.filter(o=>o.status==='delivering').length },
+                      { key: 'completed',   label: 'Đã giao hàng',         count: orders.filter(o=>o.status==='completed').length },
+                      { key: 'done',        label: 'Hoàn thành',           count: orders.filter(o=>o.status==='done').length },
+                      { key: 'cancelled',   label: 'Đã hủy',               count: orders.filter(o=>o.status==='cancelled').length },
+                      { key: 'delivery_fail',label: 'Giao thất bại',       count: orders.filter(o=>o.status==='delivery_fail').length },
+                      { key: 'refund',      label: 'Hoàn tiền',            count: orders.filter(o=>o.status==='refund').length },
+                    ].filter(f => f.key === 'all' || f.count > 0).map(f => (
+                      <button
+                        key={f.key}
+                        className={'profile-order-filter-btn' + (orderFilter===f.key?' active':'') + (f.key!=='all'?' status-'+f.key:'')}
+                        onClick={() => setOrderFilter(f.key)}
+                      >
                         {f.label}<span className="profile-order-filter-count">{f.count}</span>
                       </button>
                     ))}
                   </div>
+
                   {filteredOrders.length === 0 ? (
                     <div className="profile-empty-state">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
@@ -309,29 +619,91 @@ export default function Profile() {
                     </div>
                   ) : (
                     <div className="profile-orders-list">
-                      {filteredOrders.map(order => (
-                        <div key={order.id} className="profile-order-item">
-                          <div className="profile-order-item-header">
-                            <div className="profile-order-item-id">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                              {order.id}
+                      {filteredOrders.map(order => {
+                        const flowStep = getFlowStep(order.status)
+                        const isMainFlow = flowStep !== -1
+                        return (
+                          <div key={order.id} className={`profile-order-item order-item--${order.status}`}>
+                            {/* Header */}
+                            <div className="profile-order-item-header">
+                              <div className="profile-order-item-id">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                {order.id}
+                              </div>
+                              <span className={`order-status status-${order.status}`}>{statusMap[order.status]}</span>
                             </div>
-                            <span className={'order-status ' + order.status}>{statusMap[order.status]}</span>
-                          </div>
-                          <div className="profile-order-item-body">
-                            <div className="profile-order-item-meta">
-                              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> {order.date}</span>
-                              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg> {order.items} sản phẩm</span>
+
+                            {/* Status flow tracker – chỉ hiển thị cho đơn trong flow chính */}
+                            {isMainFlow && (
+                              <div className="order-flow-tracker">
+                                {ORDER_FLOW.map((step, idx) => (
+                                  <div
+                                    key={step}
+                                    className={`flow-step ${
+                                      idx < flowStep ? 'done' : idx === flowStep ? 'active' : 'pending'
+                                    }`}
+                                  >
+                                    <div className="flow-step-dot">
+                                      {idx < flowStep && (
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>
+                                      )}
+                                      {idx === flowStep && <div className="flow-step-pulse"/>}
+                                    </div>
+                                    {idx < ORDER_FLOW.length - 1 && <div className={`flow-step-line ${idx < flowStep ? 'done' : ''}`}/>}
+                                    <div className="flow-step-label">{statusMap[step]}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Trạng thái phụ badge */}
+                            {!isMainFlow && (
+                              <div className={`order-sub-status sub-${order.status}`}>
+                                {order.status === 'cancelled' && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>}
+                                {order.status === 'delivery_fail' && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
+                                {order.status === 'refund' && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.53"/></svg>}
+                                {statusMap[order.status]}
+                              </div>
+                            )}
+
+                            {/* Meta + tổng tiền */}
+                            <div className="profile-order-item-body">
+                              <div className="profile-order-item-meta">
+                                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> {order.date}</span>
+                                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg> {order.items} sản phẩm</span>
+                              </div>
+                              <div className="profile-order-item-total">{order.total}</div>
                             </div>
-                            <div className="profile-order-item-total">{order.total}</div>
+
+                            {/* Action buttons */}
+                            <div className="profile-order-item-actions">
+                              {(order.status === 'done' || order.status === 'completed') &&
+                                <button className="profile-order-btn profile-order-btn--rebuy">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.53"/></svg>Mua lại
+                                </button>
+                              }
+                              {order.status === 'pending' &&
+                                <button className="profile-order-btn profile-order-btn--cancel">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Hủy đơn
+                                </button>
+                              }
+                              {order.status === 'delivery_fail' &&
+                                <button className="profile-order-btn profile-order-btn--refund">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.53"/></svg>Yêu cầu hoàn tiền
+                                </button>
+                              }
+                              {(order.status === 'done') &&
+                                <button className="profile-order-btn profile-order-btn--review">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Đánh giá
+                                </button>
+                              }
+                              <button className="profile-order-btn profile-order-btn--detail" onClick={() => setSelectedOrder(getOrderDetail(order.id))}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết
+                              </button>
+                            </div>
                           </div>
-                          <div className="profile-order-item-actions">
-                            {order.status === 'completed' && <button className="profile-order-btn profile-order-btn--rebuy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.53"/></svg>Mua lại</button>}
-                            {order.status === 'processing' && <button className="profile-order-btn profile-order-btn--cancel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Hủy đơn</button>}
-                            <button className="profile-order-btn profile-order-btn--detail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết</button>
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>

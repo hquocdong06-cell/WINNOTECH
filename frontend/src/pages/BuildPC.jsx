@@ -420,7 +420,7 @@ export default function BuildPC() {
                     <div className="bp-step-num">
                       {isDone
                         ? <span className="bp-step-check">✓</span>
-                        : <span>{idx + 1}</span>
+                        : <StepIcon id={step.id} size={16} />
                       }
                     </div>
                     <div className="bp-step-info">
