@@ -18,6 +18,15 @@ export default function Home() {
   const [loadingFeatured, setLoadingFeatured] = useState(true)
   const [loadingCategories, setLoadingCategories] = useState(true)
 
+  // Fallback data khi không có backend
+  const fallbackProducts = [
+    { _id: '1', name: 'Intel Core i9-14900K', price: 15000000, thumnail: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=i9' },
+    { _id: '2', name: 'VGA ASUS ROG Strix RTX 4090', price: 50000000, sale: 10, thumnail: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=4090' },
+    { _id: '3', name: 'RAM Corsair Vengeance 32GB', price: 3000000, thumnail: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=RAM' },
+    { _id: '4', name: 'Mainboard ASUS Z790', price: 8000000, thumnail: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=Z790' },
+    { _id: '5', name: 'SSD Samsung 990 Pro 2TB', price: 4500000, sale: 5, thumnail: 'https://placehold.co/600x400/1a1a2e/7c3aed?text=SSD' }
+  ];
+
   // ─── Gọi API lấy sản phẩm mới ──────────────────────────
   useEffect(() => {
     const fetchNewProducts = async () => {
@@ -26,9 +35,12 @@ export default function Home() {
         const data = await res.json()
         if (data.success) {
           setNewProducts(data.data)
+        } else {
+          setNewProducts(fallbackProducts)
         }
       } catch (err) {
         console.error('Lỗi lấy sản phẩm mới:', err)
+        setNewProducts(fallbackProducts)
       } finally {
         setLoadingNew(false)
       }
@@ -44,9 +56,12 @@ export default function Home() {
         const data = await res.json()
         if (data.success) {
           setSaleProducts(data.data)
+        } else {
+          setSaleProducts(fallbackProducts.filter(p => p.sale))
         }
       } catch (err) {
         console.error('Lỗi lấy sản phẩm giảm giá:', err)
+        setSaleProducts(fallbackProducts.filter(p => p.sale))
       } finally {
         setLoadingSale(false)
       }
@@ -62,9 +77,12 @@ export default function Home() {
         const data = await res.json()
         if (data.success) {
           setFeaturedProducts(data.data)
+        } else {
+          setFeaturedProducts(fallbackProducts)
         }
       } catch (err) {
         console.error('Lỗi lấy sản phẩm nổi bật:', err)
+        setFeaturedProducts(fallbackProducts)
       } finally {
         setLoadingFeatured(false)
       }
@@ -79,10 +97,13 @@ export default function Home() {
         const res = await fetch(`${API_URL}/categories`)
         const data = await res.json()
         if (data.success) {
-          setCategories(data.data) // data.data là mảng danh mục từ DB
+          setCategories(data.data)
+        } else {
+          setCategories([{ _id: '1', name: 'CPU', slug: 'cpu' }, { _id: '2', name: 'VGA', slug: 'gpu' }])
         }
       } catch (err) {
         console.error('Lỗi lấy danh mục:', err)
+        setCategories([{ _id: '1', name: 'CPU', slug: 'cpu' }, { _id: '2', name: 'VGA', slug: 'gpu' }])
       } finally {
         setLoadingCategories(false)
       }
