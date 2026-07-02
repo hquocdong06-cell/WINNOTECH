@@ -1755,6 +1755,96 @@ app.delete("/categories/:id", async (req, res) => {
   }
 });
 
+
+// ============================================================
+// FAVORITES (YÊU THÍCH) ROUTES
+// ============================================================
+
+// GET /favorites/ids — chỉ trả mảng productId (nhẹ, dùng để check trạng thái)
+app.get("/favorites/ids", checklogin, async (req, res) => {
+  try {
+    const favs = await Favorite.find({ user_id: req.user._id }).lean();
+    const ids = favs.map(f => f.product_id.toString());
+    return res.json({ success: true, data: ids });
+  } catch (error) {
+    console.error("Lỗi GET favorites/ids:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// GET /favorites — lấy danh sách yêu thích kèm thông tin sản phẩm
+app.get("/favorites", checklogin, async (req, res) => {
+  try {
+    const favs = await Favorite.find({ user_id: req.user._id }).lean();
+    if (favs.length === 0) return res.json({ success: true, data: [] });
+
+    const productIds = favs.map(f => f.product_id);
+    const products = await ProductModel.find({ _id: { $in: productIds } })
+      .populate("cat_id brand_id")
+      .lean();
+    const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
+    const variants = await ProductVariantModel.find({ p_id: { $in: productIds } }).lean();
+
+    const data = products.map(p => {
+      const pImages = images.filter(img => img.p_id.toString() === p._id.toString());
+      const pVariants = variants.filter(v => v.p_id.toString() === p._id.toString());
+      const firstVariant = pVariants[0];
+      const price = firstVariant?.sale_price > 0 ? firstVariant.sale_price : (firstVariant?.price || 0);
+      const thumb = pImages[0]?.url || p.thumnail || "";
+      return {
+        _id: p._id,
+        name: p.name,
+        slug: p.slug,
+        price,
+        originalPrice: firstVariant?.price || 0,
+        hasSale: firstVariant?.sale_price > 0,
+        image: thumb.startsWith("http") ? thumb : thumb ? `http://localhost:3000${thumb}` : "",
+        cat_id: p.cat_id,
+      };
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error("Lỗi GET favorites:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// POST /favorites/:productId — toggle yêu thích
+app.post("/favorites/:productId", checklogin, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const user_id = req.user._id;
+
+    const product = await ProductModel.findById(productId).lean();
+    if (!product) return res.status(404).json({ success: false, message: "Sản phẩm không tồn tại" });
+
+    const existing = await Favorite.findOne({ user_id, product_id: productId });
+    if (existing) {
+      await Favorite.findByIdAndDelete(existing._id);
+      return res.json({ success: true, action: "removed", message: "Đã xóa khỏi danh sách yêu thích" });
+    } else {
+      await Favorite.create({ user_id, product_id: productId });
+      return res.json({ success: true, action: "added", message: "Đã thêm vào danh sách yêu thích" });
+    }
+  } catch (error) {
+    console.error("Lỗi toggle favorite:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// DELETE /favorites/:productId — xóa khỏi yêu thích
+app.delete("/favorites/:productId", checklogin, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    await Favorite.findOneAndDelete({ user_id: req.user._id, product_id: productId });
+    return res.json({ success: true, message: "Đã xóa khỏi danh sách yêu thích" });
+  } catch (error) {
+    console.error("Lỗi DELETE favorite:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });

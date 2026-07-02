@@ -2,11 +2,20 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/profile.css'
+import { useDispatch } from 'react-redux'
+import { addToCart } from '../redux/cartSlice'
+import { toast } from 'react-toastify'
+
+const formatPrice = (price) => {
+  if (!price && price !== 0) return 'Liên hệ'
+  return price.toLocaleString('vi-VN') + 'đ'
+}
 
 const API_URL = 'http://localhost:3000'
 
 export default function Profile() {
   const navigate = useNavigate()
+  const dispatch = useDispatch()
   const [activeTab, setActiveTab] = useState('overview')
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -126,12 +135,9 @@ export default function Profile() {
     { id: '#WIN123447', date: '20/04/2024', total: '14.200.000đ', status: 'refund', items: 2 }
   ]
 
-  const wishlistProducts = [
-    { id: 1, name: 'ASUS ROG Strix GeForce RTX 4070 Ti Super', price: '49.990.000đ', image: new URL('../assets/images/ASUS ROG Strix GeForce RTX 4070 Ti Super.png', import.meta.url).href },
-    { id: 2, name: 'MSI MAG B650 Tomahawk WiFi DDR5 - ATX', price: '6.490.000đ', image: new URL('../assets/images/MSI MAG B650 Tomahawk WiFi.png', import.meta.url).href },
-    { id: 3, name: 'G.Skill Trident Z5 RGB 32GB DDR5 6000MHz', price: '3.990.000đ', image: new URL('../assets/images/G.Skill Trident Z5 RGB DDR5 32GB.png', import.meta.url).href },
-    { id: 4, name: 'AMD Ryzen 7 7800X3D', price: '18.490.000đ', image: new URL('../assets/images/AMD Ryzen 7 7800X3D.png', import.meta.url).href }
-  ]
+  // State for real wishlist data
+  const [wishlistProducts, setWishlistProducts] = useState([]);
+  const [isLoadingWishlist, setIsLoadingWishlist] = useState(false);
 
   const addresses = [
     { id: 1, fullName: 'Vũ Đông', phone: '0901 234 567', detail: '123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', isDefault: true },
@@ -158,6 +164,69 @@ export default function Profile() {
   const getFlowStep = (status) => ORDER_FLOW.indexOf(status)
 
   const filteredOrders = orderFilter === 'all' ? orders : orders.filter(o => o.status === orderFilter)
+
+  // Fetch wishlist when tab changes to wishlist
+  useEffect(() => {
+    if (activeTab === 'wishlist') {
+      const fetchWishlist = async () => {
+        setIsLoadingWishlist(true);
+        try {
+          const res = await fetch(`${API_URL}/favorites`, { credentials: 'include' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) setWishlistProducts(data.data || []);
+          }
+        } catch (err) {
+          console.error('Error fetching favorites:', err);
+        } finally {
+          setIsLoadingWishlist(false);
+        }
+      };
+      fetchWishlist();
+    }
+  }, [activeTab]);
+
+  const handleRemoveFavorite = async (productId) => {
+    try {
+      const res = await fetch(`${API_URL}/favorites/${productId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setWishlistProducts(prev => prev.filter(p => p._id !== productId));
+          toast.info('Đã xóa khỏi danh sách yêu thích', { position: 'bottom-right', autoClose: 2000 });
+        }
+      }
+    } catch (err) {
+      toast.error('Lỗi khi xóa yêu thích', { position: 'bottom-right' });
+    }
+  };
+
+  const handleAddToCart = async (product) => {
+    try {
+      const payload = {
+        product_id: product._id,
+        quantity: 1,
+      };
+      const res = await fetch(`${API_URL}/cart/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        dispatch(addToCart(data.data));
+        toast.success('Đã thêm vào giỏ hàng', { position: 'bottom-right', autoClose: 2000 });
+      } else {
+        toast.error(data.message || 'Lỗi thêm vào giỏ', { position: 'bottom-right' });
+      }
+    } catch (err) {
+      toast.error('Lỗi kết nối', { position: 'bottom-right' });
+    }
+  };
 
   const menuItems = [
     { key: 'overview', label: 'Tổng quan' },
@@ -502,15 +571,25 @@ export default function Profile() {
                     <button className="profile-orders-viewall" onClick={() => setActiveTab('wishlist')}>Xem tất cả <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg></button>
                   </div>
                   <div className="profile-wishlist-grid">
-                    {wishlistProducts.map(p => (
-                      <div key={p.id} className="profile-wishlist-card">
-                        <button className="wishlist-heart"><svg viewBox="0 0 24 24" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-                        <div className="wishlist-img"><img src={p.image} alt={p.name} onError={e=>{e.target.style.display='none'}}/></div>
+                    {wishlistProducts.slice(0, 4).map(p => (
+                      <div key={p._id} className="profile-wishlist-card">
+                        <button className="wishlist-heart" onClick={() => handleRemoveFavorite(p._id)}>
+                          <svg viewBox="0 0 24 24" strokeWidth="2" fill="currentColor" stroke="currentColor">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                          </svg>
+                        </button>
+                        <div className="wishlist-img">
+                          <img src={p.image || 'https://via.placeholder.com/150'} alt={p.name} onError={e=>{e.target.style.display='none'}}/>
+                        </div>
                         <div className="wishlist-info">
                           <div className="wishlist-name">{p.name}</div>
                           <div className="wishlist-footer">
-                            <span className="wishlist-price">{p.price}</span>
-                            <button className="wishlist-cart-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg></button>
+                            <span className="wishlist-price">{formatPrice(p.price)}</span>
+                            <button className="wishlist-cart-btn" onClick={() => handleAddToCart(p)}>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
+                              </svg>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -716,22 +795,28 @@ export default function Profile() {
                     <div className="profile-card-title">DANH SÁCH YÊU THÍCH</div>
                     <span className="profile-wishlist-count">{wishlistProducts.length} sản phẩm</span>
                   </div>
-                  {wishlistProducts.length === 0 ? (
-                    <div className="profile-empty-state">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                      <p>Chưa có sản phẩm yêu thích</p>
-                    </div>
-                  ) : (
-                    <div className="profile-wishlist-full-grid">
-                      {wishlistProducts.map(p => (
-                        <div key={p.id} className="profile-wishlist-full-card">
-                          <div className="profile-wishlist-full-img"><img src={p.image} alt={p.name} onError={e=>{e.target.style.display='none'}}/></div>
-                          <div className="profile-wishlist-full-info">
-                            <div className="profile-wishlist-full-name">{p.name}</div>
-                            <div className="profile-wishlist-full-price">{p.price}</div>
-                            <div className="profile-wishlist-full-actions">
-                              <button className="profile-wishlist-btn-cart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>Thêm vào giỏ</button>
-                              <button className="profile-wishlist-btn-remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>Xóa</button>
+                    {isLoadingWishlist ? (
+                      <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>⏳ Đang tải...</div>
+                    ) : wishlistProducts.length === 0 ? (
+                      <div className="profile-empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        <p>Chưa có sản phẩm yêu thích</p>
+                      </div>
+                    ) : (
+                      <div className="profile-wishlist-full-grid">
+                        {wishlistProducts.map(p => (
+                          <div key={p._id} className="profile-wishlist-full-card">
+                            <div className="profile-wishlist-full-img"><img src={p.image || 'https://via.placeholder.com/150'} alt={p.name} onError={e=>{e.target.style.display='none'}}/></div>
+                            <div className="profile-wishlist-full-info">
+                              <div className="profile-wishlist-full-name">{p.name}</div>
+                              <div className="profile-wishlist-full-price">{formatPrice(p.price)}</div>
+                              <div className="profile-wishlist-full-actions">
+                                <button className="profile-wishlist-btn-cart" onClick={() => handleAddToCart(p)}>
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>Thêm vào giỏ
+                                </button>
+                                <button className="profile-wishlist-btn-remove" onClick={() => handleRemoveFavorite(p._id)}>
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>Xóa
+                                </button>
                             </div>
                           </div>
                         </div>

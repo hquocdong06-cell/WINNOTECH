@@ -362,7 +362,7 @@ export default function Cart() {
                       </div>
 
                       {/* THÀNH TIỀN */}
-                      <div style={{ minWidth: '110px', textAlign: 'right', fontWeight: 700, color: '#c8e600', fontSize: '14px' }}>
+                      <div className="item-subtotal" style={{ minWidth: '110px', textAlign: 'right', fontWeight: 700, color: '#c8e600', fontSize: '14px' }}>
                         {formatPrice(price * qty)}
                       </div>
 

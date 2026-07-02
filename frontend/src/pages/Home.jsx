@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/home.css'
+import useFavorite from '../hooks/useFavorite'
 
 const API_URL = 'http://localhost:3000'
 const PAGE_SIZE = 10
@@ -66,15 +67,16 @@ const CartSVG = () => (
     <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
   </svg>
 )
-const HeartSVG = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const HeartSVG = ({ isFilled }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill={isFilled ? "#ef4444" : "none"} stroke={isFilled ? "#ef4444" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
   </svg>
 )
 
-const ProductCard = ({ product, onAddToCart }) => {
+const ProductCard = ({ product, onAddToCart, favoriteIds, onToggleFavorite }) => {
   const imgUrl = getProductImage(product)
   const { originalPrice, currentPrice, hasSale, salePercent } = getProductPriceInfo(product)
+  const isFav = favoriteIds?.has(product._id)
   return (
     <Link to={`/product/${product.slug}`} className="product-link">
       <div className="product-card">
@@ -103,8 +105,12 @@ const ProductCard = ({ product, onAddToCart }) => {
               <button className="btn-cart" onClick={(e) => { e.preventDefault(); onAddToCart?.() }}>
                 <CartSVG />
               </button>
-              <button className="btn-wishlist-home" onClick={(e) => e.preventDefault()} title="Thêm vào yêu thích">
-                <HeartSVG />
+              <button 
+                className="btn-wishlist-home" 
+                onClick={(e) => { e.preventDefault(); onToggleFavorite?.(product._id) }} 
+                title="Thêm vào yêu thích"
+              >
+                <HeartSVG isFilled={isFav} />
               </button>
             </div>
           </div>
@@ -174,6 +180,8 @@ const ProductSection = ({
   viewAllText,
   viewAllHref = '#',
   className = '',
+  favoriteIds,
+  onToggleFavorite
 }) => {
   const { shownPage, currentItems, totalPages, goPage, animClass, isAnimating } = usePageFlip(products)
 
@@ -221,7 +229,7 @@ const ProductSection = ({
               <div className="products-empty" style={{ gridColumn: '1/-1' }}>{emptyMsg}</div>
             ) : (
               currentItems.map(product => (
-                <ProductCard key={product._id} product={product} />
+                <ProductCard key={product._id} product={product} favoriteIds={favoriteIds} onToggleFavorite={onToggleFavorite} />
               ))
             )}
           </div>
@@ -265,11 +273,11 @@ const getMaxDiscountPct = (product) => {
 
 const hasTrueDiscount = (product) =>
   getMaxDiscountPct(product) > 0
-
 // ============================================================
 // Home — main component
 // ============================================================
 export default function Home() {
+  const { favoriteIds, toggleFavorite } = useFavorite()
   const [featuredProducts, setFeaturedProducts] = useState([])  // Bán chạy
   const [newProducts, setNewProducts]           = useState([])  // Hàng mới
   const [saleProducts, setSaleProducts]         = useState([])  // Giảm giá
@@ -436,6 +444,8 @@ export default function Home() {
         titleLine2="ĐANG BÁN CHẠY"
         viewAllText="XEM TẤT CẢ TOP SẢN PHẨM →"
         viewAllHref="/shop"
+        favoriteIds={favoriteIds}
+        onToggleFavorite={toggleFavorite}
       />
 
       {/* ── HÀNG MỚI VỀ ── */}
@@ -448,6 +458,8 @@ export default function Home() {
         titleLine2="ĐÓN ĐẦU CÔNG NGHỆ MỚI"
         viewAllText="XEM TẤT CẢ SẢN PHẨM →"
         viewAllHref="/shop"
+        favoriteIds={favoriteIds}
+        onToggleFavorite={toggleFavorite}
       />
 
       {/* ── GIẢM GIÁ ── */}
@@ -462,6 +474,8 @@ export default function Home() {
         viewAllText="XEM TẤT CẢ KHUYẾN MÃI →"
         viewAllHref="/shop"
         className="products-section-sale"
+        favoriteIds={favoriteIds}
+        onToggleFavorite={toggleFavorite}
       />
 
       {/* ── BLOG ── */}
