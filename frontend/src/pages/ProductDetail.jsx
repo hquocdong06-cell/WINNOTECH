@@ -5,6 +5,7 @@ import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/product-detail.css'
+import { findMockProductBySlug, mockProducts } from '../data/mockProducts'
 
 const API_URL = 'http://localhost:3000'
 
@@ -41,22 +42,61 @@ export default function ProductDetail() {
           setProductData(data.data)
           setError(null)
           
-          // Lấy sản phẩm liên quan từ cùng Category
-          const catSlug = data.data.product?.cat_id?.slug
-          if (catSlug) {
-            const catRes = await fetch(`${API_URL}/categories/${catSlug}`)
-            const catData = await catRes.json()
-            if (catData.success && catData.data?.products) {
-              const filtered = catData.data.products.filter(p => p._id !== data.data.product._id)
-              setRelatedProducts(filtered.slice(0, 4))
+          // Lấy sản phẩm liên quan từ cùng Category — gọi /products rồi lọc theo cat_id
+          const catId = data.data.product?.cat_id?._id || data.data.product?.cat_id
+          const currentProductId = data.data.product._id
+          if (catId) {
+            try {
+              const allRes = await fetch(`${API_URL}/products`)
+              const allData = await allRes.json()
+              if (allData.success && Array.isArray(allData.data)) {
+                const related = allData.data
+                  .filter(p => {
+                    const pCatId = p.cat_id?._id || p.cat_id
+                    return String(pCatId) === String(catId) && String(p._id) !== String(currentProductId)
+                  })
+                  .slice(0, 4)
+                setRelatedProducts(related)
+              }
+            } catch {
+              // Không lấy được related products → bỏ qua
             }
           }
         } else {
-          setError(data.message || 'Không tìm thấy sản phẩm')
+          // Thử fallback sang mock data
+          const mockItem = findMockProductBySlug(slug)
+          if (mockItem) {
+            setProductData({
+              product: mockItem.product,
+              AnhSP: mockItem.product.AnhSP || [],
+              Variants: mockItem.product.Variants || []
+            })
+            setError(null)
+            const related = mockProducts[mockItem.category]
+              .filter(p => p.slug !== slug)
+              .slice(0, 4)
+            setRelatedProducts(related)
+          } else {
+            setError(data.message || 'Không tìm thấy sản phẩm')
+          }
         }
       } catch (err) {
-        console.error('Lỗi lấy chi tiết sản phẩm:', err)
-        setError('Không thể tải chi tiết sản phẩm')
+        console.error('Lỗi lấy chi tiết sản phẩm, thử fallback mock data:', err)
+        const mockItem = findMockProductBySlug(slug)
+        if (mockItem) {
+          setProductData({
+            product: mockItem.product,
+            AnhSP: mockItem.product.AnhSP || [],
+            Variants: mockItem.product.Variants || []
+          })
+          setError(null)
+          const related = mockProducts[mockItem.category]
+            .filter(p => p.slug !== slug)
+            .slice(0, 4)
+          setRelatedProducts(related)
+        } else {
+          setError('Không thể tải chi tiết sản phẩm')
+        }
       } finally {
         setLoading(false)
       }
@@ -100,14 +140,25 @@ export default function ProductDetail() {
   const getProductImages = () => {
     const list = []
     if (AnhSP && AnhSP.length > 0) {
-      AnhSP.forEach(img => list.push(img.url))
+      AnhSP.forEach(img => {
+        const url = img.url.startsWith('http') ? img.url : `${API_URL}${img.url}`
+        list.push(url)
+      })
     }
     if (list.length === 0 && product.thumnail) {
-      list.push(product.thumnail)
+      const thumb = product.thumnail.startsWith('http') ? product.thumnail : `${API_URL}${product.thumnail}`
+      list.push(thumb)
     }
     if (list.length === 0) {
       list.push('https://images.unsplash.com/photo-1591485121907-26859ff93e37?q=80&w=2670&auto=format&fit=crop')
     }
+    
+    // Đảm bảo luôn có ít nhất 4 ảnh (1 ảnh chính + 3 ảnh phụ thêm)
+    const baseImg = list[0]
+    while (list.length < 4) {
+      list.push(baseImg)
+    }
+    
     return list
   }
 
@@ -126,19 +177,48 @@ export default function ProductDetail() {
     if (value > 0) setQuantity(value)
   }
 
-  const handleAddToCart = () => {
-    dispatch(addToCart({
-      product_id: product._id,
-      variant_id: activeVariant?._id || 'default',
-      name: product.name + (activeVariant ? ` - ${activeVariant.attributes.map(a => a.value).join(', ')}` : ''),
-      price: currentPrice,
-      quantity,
-      image: images[0]
-    }))
-    toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`, {
-      position: "bottom-right",
-      autoClose: 3000,
-    })
+  const handleAddToCart = async () => {
+    if (!activeVariant) {
+      toast.error('Sản phẩm này hiện tại chưa có sẵn biến thể!', { position: 'bottom-right' })
+      return
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/cart/add`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variant_id: activeVariant._id,
+          quantity: quantity
+        })
+      })
+      const data = await res.json()
+      
+      if (res.status === 401 || !data.success) {
+        toast.error(data.message || 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!', {
+          position: "bottom-right",
+          autoClose: 3000,
+        })
+        return
+      }
+
+      dispatch(addToCart({
+        product_id: product._id,
+        variant_id: activeVariant._id,
+        name: product.name + (activeVariant.attributes && activeVariant.attributes.length > 0 ? ` - ${activeVariant.attributes.map(a => a.value).join(', ')}` : ''),
+        price: currentPrice,
+        quantity,
+        image: images[0]
+      }))
+
+      toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`, {
+        position: "bottom-right",
+        autoClose: 3000,
+      })
+    } catch (err) {
+      toast.error('Không thể kết nối tới server!', { position: 'bottom-right' })
+    }
   }
 
   return (
@@ -159,61 +239,13 @@ export default function ProductDetail() {
       {/* MAIN CONTENT */}
       <div className="product-detail-section">
         <div className="section-inner">
-          {/* SIDEBAR FILTERS (MOCK) */}
-          <aside className="product-sidebar">
-            <div className="filter-group">
-              <button className="filter-title">
-                <span>HÃNG</span>
-                <span className="filter-toggle">−</span>
-              </button>
-              <div className="filter-content">
-                {brands.map((brand) => (
-                  <label key={brand} className="filter-item">
-                    <input type="checkbox" defaultChecked={brand.toLowerCase() === product.brand_id?.name?.toLowerCase()} />
-                    <span>{brand}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="filter-group">
-              <button className="filter-title">
-                <span>DÒNG SẢN PHẨM</span>
-                <span className="filter-toggle">−</span>
-              </button>
-              <div className="filter-content">
-                {productLines.map((line) => (
-                  <label key={line} className="filter-item">
-                    <input type="checkbox" />
-                    <span>{line}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="filter-group">
-              <button className="filter-title">
-                <span>SOCKET</span>
-                <span className="filter-toggle">−</span>
-              </button>
-              <div className="filter-content">
-                {sockets.map((socket) => (
-                  <label key={socket} className="filter-item">
-                    <input type="checkbox" />
-                    <span>{socket}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </aside>
-
           {/* PRODUCT MAIN */}
           <main className="product-main">
             <div className="product-grid">
               {/* LEFT: IMAGE GALLERY */}
               <div className="product-gallery">
                 <div className="gallery-main" style={{ background: 'var(--dark2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', overflow: 'hidden' }}>
-                  <img src={images[selectedImage]} alt={product.name} style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }} />
+                  <img src={images[selectedImage]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
                 <div className="gallery-thumbnails">
                   {images.map((img, idx) => (
@@ -346,10 +378,20 @@ export default function ProductDetail() {
                   <h2 style={{ fontSize: '20px', color: '#fff' }}>SẢN PHẨM LIÊN QUAN</h2>
                 </div>
                 <div className="related-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
-                  {relatedProducts.map((item) => {
-                    const itemImg = item.AnhSP && item.AnhSP.length > 0 ? item.AnhSP[0].url : item.thumnail
-                    const itemPrice = item.price || 0
-                    const itemSalePrice = item.Variants && item.Variants.length > 0 && item.Variants[0].sale_price > 0 ? item.Variants[0].sale_price : itemPrice
+                {relatedProducts.map((item) => {
+                    // Xử lý ảnh: ưu tiên AnhSP, fallback thumnail; thêm API_URL nếu là relative path
+                    const rawImg = item.AnhSP && item.AnhSP.length > 0
+                      ? item.AnhSP[0].url
+                      : (item.thumnail || '')
+                    const itemImg = rawImg
+                      ? (rawImg.startsWith('http') ? rawImg : `${API_URL}${rawImg}`)
+                      : null
+
+                    // Xử lý giá: ưu tiên sale_price của variant đầu tiên
+                    const firstVariant = item.Variants && item.Variants.length > 0 ? item.Variants[0] : null
+                    const itemBasePrice = firstVariant?.price || item.price || 0
+                    const itemSalePrice = firstVariant?.sale_price > 0 ? firstVariant.sale_price : itemBasePrice
+                    const displayPrice = itemSalePrice || itemBasePrice
                     return (
                       <Link key={item._id} to={`/product/${item.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                         <div className="related-card" style={{ background: 'var(--dark2)', border: '1px solid #333', padding: '15px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}>
@@ -359,7 +401,7 @@ export default function ProductDetail() {
                           <div className="related-info" style={{ marginTop: '10px' }}>
                             <div className="related-name" style={{ fontWeight: 600, fontSize: '14px', height: '40px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', color: '#fff' }}>{item.name}</div>
                             <div className="related-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                              <div className="related-price" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{formatPrice(itemSalePrice || itemPrice)}</div>
+                              <div className="related-price" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{formatPrice(displayPrice)}</div>
                             </div>
                           </div>
                         </div>

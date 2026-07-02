@@ -1,12 +1,42 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { useSelector } from 'react-redux'
-import { selectCartTotalQuantity } from '../redux/cartSlice'
+import { useSelector, useDispatch } from 'react-redux'
+import { selectCartTotalQuantity, setCart } from '../redux/cartSlice'
 import CartDrawer from '../components/CartDrawer'
+
+const API_URL = 'http://localhost:3000'
 
 export default function DefaultLayout({ children }) {
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const dispatch = useDispatch()
   const cartTotalQuantity = useSelector(selectCartTotalQuantity)
+
+  // Sync giỏ hàng từ DB vào Redux khi mount (nếu đã đăng nhập)
+  useEffect(() => {
+    const syncCartFromDB = async () => {
+      try {
+        const res = await fetch(`${API_URL}/cart`, { credentials: 'include' })
+        if (!res.ok) return // Chưa login hoặc lỗi → bỏ qua, giữ Redux/localStorage
+        const data = await res.json()
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          const reduxItems = data.data.map(d => ({
+            product_id: d.product?._id,
+            variant_id: d.cartItem?.variant_id,
+            name: d.product?.name || 'Sản phẩm',
+            price: d.variant?.sale_price > 0 ? d.variant.sale_price : (d.variant?.price || 0),
+            quantity: d.cartItem?.quantity || 1,
+            image: d.AnhSP?.[0]?.url
+              ? (d.AnhSP[0].url.startsWith('http') ? d.AnhSP[0].url : `${API_URL}${d.AnhSP[0].url}`)
+              : (d.product?.thumnail || ''),
+          }))
+          dispatch(setCart(reduxItems))
+        }
+      } catch {
+        // Không thể kết nối server → giữ nguyên localStorage
+      }
+    }
+    syncCartFromDB()
+  }, [dispatch])
 
   return (
     <>

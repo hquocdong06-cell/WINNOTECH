@@ -121,68 +121,21 @@ const BUILD_STEPS = [
 
 const REQUIRED_STEPS = BUILD_STEPS.filter(s => s.required).map(s => s.id)
 
-// ─── Mock sản phẩm mẫu theo danh mục ─────────────────────────────────────
-const MOCK_PRODUCTS = {
-  cpu: [
-    { id: 'cpu1', name: 'AMD Ryzen 9 7950X3D', price: 17990000, specs: '16 nhân · 32 luồng · 4.2–5.7GHz · 144MB Cache · 120W', socket: 'AM5', tdp: 120, brand: 'AMD', stock: true },
-    { id: 'cpu2', name: 'AMD Ryzen 7 7800X3D', price: 12490000, specs: '8 nhân · 16 luồng · 4.2–5.0GHz · 96MB Cache · 120W',  socket: 'AM5', tdp: 120, brand: 'AMD', stock: true },
-    { id: 'cpu3', name: 'AMD Ryzen 9 7900X',   price: 11990000, specs: '12 nhân · 24 luồng · 4.7–5.6GHz · 76MB Cache · 170W', socket: 'AM5', tdp: 170, brand: 'AMD', stock: true },
-    { id: 'cpu4', name: 'AMD Ryzen 7 7700X',   price:  8290000, specs: '8 nhân · 16 luồng · 4.5–5.4GHz · 40MB Cache · 105W',  socket: 'AM5', tdp: 105, brand: 'AMD', stock: true },
-    { id: 'cpu5', name: 'AMD Ryzen 5 7600X',   price:  6490000, specs: '6 nhân · 12 luồng · 4.7–5.3GHz · 38MB Cache · 105W',  socket: 'AM5', tdp: 105, brand: 'AMD', stock: true },
-    { id: 'cpu6', name: 'Intel Core i9-14900K', price: 15990000, specs: '24 nhân · 32 luồng · 3.2–6.0GHz · 36MB Cache · 125W', socket: 'LGA1700', tdp: 125, brand: 'Intel', stock: true },
-    { id: 'cpu7', name: 'Intel Core i7-14700K', price: 11490000, specs: '20 nhân · 28 luồng · 3.4–5.6GHz · 33MB Cache · 125W', socket: 'LGA1700', tdp: 125, brand: 'Intel', stock: true },
-    { id: 'cpu8', name: 'Intel Core i5-14600K', price:  8490000, specs: '14 nhân · 20 luồng · 3.5–5.3GHz · 24MB Cache · 125W', socket: 'LGA1700', tdp: 125, brand: 'Intel', stock: true },
-  ],
-  mainboard: [
-    { id: 'mb1', name: 'ASUS TUF GAMING B650-PLUS WIFI',  price:  5690000, specs: 'AM5 · DDR5 · PCIe 5.0 · 4x M.2 · WiFi 6', socket: 'AM5',     ramType: 'DDR5', formFactor: 'ATX',    stock: true },
-    { id: 'mb2', name: 'MSI MAG B650 TOMAHAWK WIFI',       price:  5290000, specs: 'AM5 · DDR5 · PCIe 4.0 · 3x M.2 · WiFi 6', socket: 'AM5',     ramType: 'DDR5', formFactor: 'ATX',    stock: true },
-    { id: 'mb3', name: 'GIGABYTE B650M DS3H',              price:  3490000, specs: 'AM5 · DDR5 · PCIe 4.0 · 2x M.2',           socket: 'AM5',     ramType: 'DDR5', formFactor: 'mATX',   stock: true },
-    { id: 'mb4', name: 'ASUS ROG STRIX Z790-E GAMING',    price: 12990000, specs: 'LGA1700 · DDR5 · PCIe 5.0 · 5x M.2 · WiFi 6E', socket: 'LGA1700', ramType: 'DDR5', formFactor: 'ATX', stock: true },
-    { id: 'mb5', name: 'MSI PRO Z790-P WIFI',             price:  6990000, specs: 'LGA1700 · DDR5 · PCIe 4.0 · 3x M.2 · WiFi 6', socket: 'LGA1700', ramType: 'DDR5', formFactor: 'ATX', stock: true },
-    { id: 'mb6', name: 'ASUS PRIME B760M-A D4',           price:  3290000, specs: 'LGA1700 · DDR4 · PCIe 4.0 · 2x M.2',           socket: 'LGA1700', ramType: 'DDR4', formFactor: 'mATX', stock: true },
-  ],
-  ram: [
-    { id: 'ram1', name: 'G.Skill Trident Z5 RGB 32GB (2x16GB) DDR5 6000MHz', price: 4590000, specs: 'DDR5 · 6000MHz · CL36 · 32GB Kit', ramType: 'DDR5', capacity: 32, stock: true },
-    { id: 'ram2', name: 'Kingston Fury Beast 32GB DDR5 5200MHz',              price: 3890000, specs: 'DDR5 · 5200MHz · CL40 · 32GB Kit', ramType: 'DDR5', capacity: 32, stock: true },
-    { id: 'ram3', name: 'Corsair Vengeance RGB 32GB DDR5 6000MHz',            price: 4290000, specs: 'DDR5 · 6000MHz · CL36 · 32GB Kit', ramType: 'DDR5', capacity: 32, stock: true },
-    { id: 'ram4', name: 'G.Skill Ripjaws V 32GB DDR4 3600MHz',               price: 2290000, specs: 'DDR4 · 3600MHz · CL16 · 32GB Kit', ramType: 'DDR4', capacity: 32, stock: true },
-    { id: 'ram5', name: 'Corsair Vengeance LPX 16GB DDR4 3200MHz',           price: 1390000, specs: 'DDR4 · 3200MHz · CL16 · 16GB Kit', ramType: 'DDR4', capacity: 16, stock: true },
-  ],
-  gpu: [
-    { id: 'gpu1', name: 'ASUS ROG Strix RTX 4070 Ti SUPER 16GB GDDR6X', price: 17490000, specs: '16GB GDDR6X · PCIe 4.0 · TDP 285W', tdp: 285, tier: 5, stock: true },
-    { id: 'gpu2', name: 'MSI Gaming X Trio RTX 4070 SUPER 12GB',         price: 12990000, specs: '12GB GDDR6X · PCIe 4.0 · TDP 220W', tdp: 220, tier: 4, stock: true },
-    { id: 'gpu3', name: 'Gigabyte RTX 4060 Ti Gaming OC 16GB',           price:  9490000, specs: '16GB GDDR6  · PCIe 4.0 · TDP 165W', tdp: 165, tier: 3, stock: true },
-    { id: 'gpu4', name: 'ASUS Dual RTX 4060 OC 8GB',                     price:  6990000, specs: '8GB GDDR6   · PCIe 4.0 · TDP 115W', tdp: 115, tier: 2, stock: true },
-    { id: 'gpu5', name: 'AMD Radeon RX 7900 XTX 24GB',                   price: 20990000, specs: '24GB GDDR6  · PCIe 4.0 · TDP 355W', tdp: 355, tier: 5, stock: true },
-    { id: 'gpu6', name: 'AMD Radeon RX 7700 XT 12GB',                    price:  8490000, specs: '12GB GDDR6  · PCIe 4.0 · TDP 245W', tdp: 245, tier: 3, stock: true },
-  ],
-  storage: [
-    { id: 'sto1', name: 'Samsung 990 PRO 1TB NVMe PCIe 4.0',        price: 2990000, specs: '1TB · M.2 2280 · PCIe 4.0 · Read 7450MB/s',  type: 'NVMe', stock: true },
-    { id: 'sto2', name: 'WD Black SN850X 1TB NVMe PCIe 4.0',        price: 2790000, specs: '1TB · M.2 2280 · PCIe 4.0 · Read 7300MB/s',  type: 'NVMe', stock: true },
-    { id: 'sto3', name: 'Seagate Barracuda 2TB HDD 7200RPM',         price: 1590000, specs: '2TB · 3.5" · SATA · 7200RPM · 256MB Cache',   type: 'HDD',  stock: true },
-    { id: 'sto4', name: 'Kingston A400 480GB SATA SSD',              price:   890000, specs: '480GB · 2.5" · SATA · Read 500MB/s',         type: 'SATA', stock: true },
-    { id: 'sto5', name: 'Samsung 990 PRO 2TB NVMe PCIe 4.0',        price: 5290000, specs: '2TB · M.2 2280 · PCIe 4.0 · Read 7450MB/s',  type: 'NVMe', stock: true },
-  ],
-  psu: [
-    { id: 'psu1', name: 'Corsair RM850e 850W 80 Plus Gold',    price: 3590000, specs: '850W · 80 Plus Gold · Modular · ATX 3.0',    wattage: 850,  rating: 'Gold',     stock: true },
-    { id: 'psu2', name: 'Seasonic Focus GX-750 750W Gold',     price: 3290000, specs: '750W · 80 Plus Gold · Fully Modular · ATX',   wattage: 750,  rating: 'Gold',     stock: true },
-    { id: 'psu3', name: 'EVGA SuperNOVA 1000 G6 1000W Gold',  price: 5490000, specs: '1000W · 80 Plus Gold · Fully Modular',        wattage: 1000, rating: 'Gold',     stock: true },
-    { id: 'psu4', name: 'be quiet! Straight Power 12 850W Platinum', price: 4990000, specs: '850W · 80 Plus Platinum · Modular', wattage: 850,  rating: 'Platinum',  stock: true },
-    { id: 'psu5', name: 'Cooler Master MWE Bronze 650W',       price: 1590000, specs: '650W · 80 Plus Bronze · Semi-modular',        wattage: 650,  rating: 'Bronze',   stock: true },
-  ],
-  cooling: [
-    { id: 'cool1', name: 'Noctua NH-D15 Chromax Black',         price: 3290000, specs: 'Dual Tower · Tương thích: AM5, LGA1700 · 300W TDP', type: 'Air',    tdp: 300, stock: true },
-    { id: 'cool2', name: 'Corsair iCUE H150i ELITE 360mm AIO', price: 5990000, specs: '360mm AIO · Tương thích: AM5, LGA1700 · RGB',       type: 'Liquid', tdp: 350, stock: true },
-    { id: 'cool3', name: 'Deepcool AK620 Dual Tower',           price: 1490000, specs: 'Dual Tower · 260W TDP · Tương thích: AM5, LGA1700', type: 'Air',    tdp: 260, stock: true },
-    { id: 'cool4', name: 'NZXT Kraken 240mm AIO',               price: 3990000, specs: '240mm AIO · LCD Display · Tương thích: AM5, LGA1700', type: 'Liquid', tdp: 300, stock: true },
-  ],
-  case: [
-    { id: 'case1', name: 'Lian Li PC-O11 Dynamic EVO',  price: 3290000, specs: 'Mid Tower · E-ATX/ATX/mATX · Kính cường lực · RGB', formFactor: ['ATX','mATX','E-ATX'], stock: true },
-    { id: 'case2', name: 'NZXT H510 Flow',              price: 1890000, specs: 'Mid Tower · ATX/mATX/Mini-ITX · Mesh front',        formFactor: ['ATX','mATX','ITX'],   stock: true },
-    { id: 'case3', name: 'Fractal Design Meshify C',    price: 2490000, specs: 'Mid Tower · ATX/mATX · Mesh · High airflow',        formFactor: ['ATX','mATX'],         stock: true },
-    { id: 'case4', name: 'Cooler Master Q300L V2',      price:   890000, specs: 'mATX Tower · mATX/Mini-ITX · Compact',            formFactor: ['mATX','ITX'],         stock: true },
-    { id: 'case5', name: 'Phanteks Eclipse G360',       price: 1590000, specs: 'Mid Tower · ATX/mATX · DRGB · 3 quạt trước',      formFactor: ['ATX','mATX'],         stock: true },
-  ],
+// ─── Mapping step → category slug trong DB ────────────────────────────────
+const STEP_TO_SLUG = {
+  cpu:        'cpu',
+  mainboard:  'mainboard',
+  ram:        'ram',
+  gpu:        'gpu',
+  storage:    'storage',
+  psu:        'psu',
+  cooling:    'tan-nhiet',
+  case:       'case',
+  // monitor / peripheral / extra chưa có category trong DB → dùng mock
+}
+
+// Sản phẩm mock cho các danh mục chưa có trong DB
+const STATIC_FALLBACK = {
   monitor: [
     { id: 'mon1', name: 'LG 27GP850-B 27" QHD 165Hz Nano IPS', price: 8490000, specs: '27" QHD 2560×1440 · 165Hz · 1ms · IPS · FreeSync', stock: true },
     { id: 'mon2', name: 'ASUS ROG Swift 27" 4K 160Hz OLED',     price:19990000, specs: '27" 4K UHD · 160Hz · 0.03ms · OLED · G-Sync', stock: true },
@@ -198,6 +151,106 @@ const MOCK_PRODUCTS = {
   ],
 }
 
+// ─── Helper lấy URL ảnh sản phẩm ─────────────────────────────────────────
+function getImg(product) {
+  const firstImg = product.AnhSP?.[0]?.url || product.thumnail || ''
+  if (!firstImg) return null
+  return firstImg.startsWith('http') ? firstImg : `${API_URL}${firstImg}`
+}
+
+// ─── Normalize sản phẩm API → format BuildPC ──────────────────────────────
+function normalizeProduct(p, stepId) {
+  const variant = p.Variants?.[0]
+  const attrs   = variant?.Attributes || []
+  const getAttr = (key) => {
+    const found = attrs.find(a => a.name?.toLowerCase().includes(key.toLowerCase()))
+    return found?.value || ''
+  }
+
+  // Tính giá: ưu tiên sale_price nếu > 0
+  const rawPrice = (variant?.sale_price > 0 ? variant.sale_price : variant?.price) || p.price || 0
+
+  // Tạo specs string từ attributes hoặc description
+  const specParts = attrs.slice(0, 4).map(a => `${a.value}`).filter(Boolean)
+  const specs = specParts.length > 0 ? specParts.join(' · ') : (p.description?.slice(0, 80) || p.name)
+
+  // Socket detection
+  const socketAttr = getAttr('socket') || getAttr('Socket')
+  let socket = socketAttr
+  if (!socket) {
+    if (p.name.includes('AM5') || p.name.includes('Ryzen 7000') || p.name.includes('Ryzen 9000')) socket = 'AM5'
+    else if (p.name.includes('AM4') || p.name.includes('Ryzen 5000') || p.name.includes('Ryzen 3000')) socket = 'AM4'
+    else if (p.name.includes('LGA1700') || p.name.includes('i9-1') || p.name.includes('i7-1') || p.name.includes('i5-1') || p.name.includes('i3-1')) socket = 'LGA1700'
+    else if (p.name.includes('LGA1200')) socket = 'LGA1200'
+  }
+
+  // RAM type detection
+  const ramTypeAttr = getAttr('ddr') || getAttr('memory type') || getAttr('ram type')
+  let ramType = ''
+  if (ramTypeAttr) ramType = ramTypeAttr.toUpperCase().includes('DDR5') ? 'DDR5' : 'DDR4'
+  else if (p.name.includes('DDR5')) ramType = 'DDR5'
+  else if (p.name.includes('DDR4')) ramType = 'DDR4'
+
+  // Form factor (case & mainboard)
+  const ffAttr = getAttr('form') || getAttr('kích thước')
+  let formFactor = ffAttr || 'ATX'
+  let formFactorArr = ['ATX', 'mATX', 'ITX'] // default: hỗ trợ tất cả
+  if (ffAttr) {
+    if (ffAttr.toLowerCase().includes('mini-itx') || ffAttr.toLowerCase().includes('itx')) formFactorArr = ['ATX','mATX','ITX']
+    else if (ffAttr.toLowerCase().includes('matx') || ffAttr.toLowerCase().includes('micro')) formFactorArr = ['mATX','ITX']
+    else formFactorArr = ['ATX','mATX','ITX']
+    formFactor = ffAttr
+  }
+
+  // TDP / wattage
+  const tdpAttr = getAttr('tdp') || getAttr('watt') || getAttr('tpd')
+  let tdp = 65
+  let wattage = 0
+  if (tdpAttr) {
+    const num = parseInt(tdpAttr)
+    if (!isNaN(num)) {
+      if (stepId === 'psu') wattage = num
+      else tdp = num
+    }
+  }
+  if (stepId === 'psu') {
+    // Estimate wattage từ tên sản phẩm
+    const wMatch = p.name.match(/(\d{2,4})W/i)
+    if (wMatch) wattage = parseInt(wMatch[1])
+  }
+
+  // GPU tier
+  let tier = 3
+  const gpuName = p.name.toLowerCase()
+  if (gpuName.includes('4090') || gpuName.includes('7900 xtx')) tier = 5
+  else if (gpuName.includes('4080') || gpuName.includes('4070 ti') || gpuName.includes('7900 xt')) tier = 4
+  else if (gpuName.includes('4070') || gpuName.includes('7800 xt') || gpuName.includes('7700 xt')) tier = 3
+  else if (gpuName.includes('4060 ti') || gpuName.includes('7600 xt')) tier = 2
+  else if (gpuName.includes('4060') || gpuName.includes('7600')) tier = 1
+
+  // Brand
+  const brand = p.brand_id?.name || (p.name.includes('Intel') ? 'Intel' : p.name.includes('AMD') ? 'AMD' : p.name.includes('ASUS') ? 'ASUS' : p.name.includes('MSI') ? 'MSI' : p.name.includes('GIGABYTE') || p.name.includes('Gigabyte') ? 'GIGABYTE' : '')
+
+  return {
+    id:         p._id,
+    _id:        p._id,
+    name:       p.name,
+    price:      rawPrice,
+    specs,
+    image:      getImg(p),
+    stock:      p.active !== false,
+    brand,
+    // compatibility fields
+    socket,
+    ramType,
+    formFactor,
+    formFactorArr,
+    tdp,
+    wattage,
+    tier,
+  }
+}
+
 // ─── Compatibility Check Engine ───────────────────────────────────────────
 function checkCompatibility(selected) {
   const issues = []
@@ -211,14 +264,14 @@ function checkCompatibility(selected) {
   const cse = selected.case
 
   // 1. Socket CPU ↔ Mainboard
-  if (cpu && mb) {
+  if (cpu && mb && cpu.socket && mb.socket) {
     if (cpu.socket !== mb.socket) {
       issues.push(`❌ Socket không khớp: CPU ${cpu.socket} ≠ Mainboard ${mb.socket}`)
     }
   }
 
   // 2. RAM Type ↔ Mainboard
-  if (ram && mb) {
+  if (ram && mb && ram.ramType && mb.ramType) {
     if (ram.ramType !== mb.ramType) {
       issues.push(`❌ RAM type không khớp: RAM ${ram.ramType} ≠ Mainboard hỗ trợ ${mb.ramType}`)
     }
@@ -226,16 +279,19 @@ function checkCompatibility(selected) {
 
   // 3. Form Factor Case ↔ Mainboard
   if (cse && mb) {
-    if (!cse.formFactor.includes(mb.formFactor)) {
-      issues.push(`❌ Form factor không khớp: Case hỗ trợ ${cse.formFactor.join('/')} nhưng Mainboard là ${mb.formFactor}`)
+    const caseFF  = cse.formFactorArr || cse.formFactor || []
+    const mbFF    = mb.formFactor || ''
+    const arr     = Array.isArray(caseFF) ? caseFF : [caseFF]
+    if (mbFF && arr.length > 0 && !arr.some(f => mbFF.includes(f) || f.includes(mbFF))) {
+      issues.push(`❌ Form factor không khớp: Case hỗ trợ ${arr.join('/')} nhưng Mainboard là ${mbFF}`)
     }
   }
 
   // 4. PSU Wattage vs Total TDP
-  if (psu) {
-    let totalTdp = 50 // baseline system
-    if (cpu) totalTdp += cpu.tdp || 0
-    if (gpu) totalTdp += gpu.tdp || 0
+  if (psu && psu.wattage) {
+    let totalTdp = 50
+    if (cpu) totalTdp += cpu.tdp || 65
+    if (gpu) totalTdp += gpu.tdp || 150
     const recommended = Math.ceil((totalTdp * 1.25) / 50) * 50
 
     if (psu.wattage < totalTdp) {
@@ -247,8 +303,8 @@ function checkCompatibility(selected) {
 
   // 5. Bottleneck CPU ↔ GPU
   if (cpu && gpu) {
-    const cpuTier = cpu.id === 'cpu1' ? 5 : cpu.id === 'cpu2' || cpu.id === 'cpu6' ? 4 : cpu.id === 'cpu3' || cpu.id === 'cpu7' ? 3 : cpu.id === 'cpu4' || cpu.id === 'cpu8' ? 2 : 1
     const gpuTier = gpu.tier || 3
+    const cpuTier = cpu.tier || 3
     const diff = Math.abs(cpuTier - gpuTier)
     if (diff >= 2) {
       if (cpuTier < gpuTier) warnings.push(`⚠️ CPU có thể bị bottleneck bởi GPU mạnh hơn ~${diff * 20}%`)
@@ -288,6 +344,39 @@ export default function BuildPC() {
   const [showSummaryModal, setShowSummaryModal] = useState(false)
   const [addedAnimation, setAddedAnimation]     = useState(null)
 
+  // ── Dynamic products from API ──────────────────────────────────────────
+  const [productsCache, setProductsCache] = useState({})  // stepId → normalized[]
+  const [loading, setLoading]             = useState(false)
+  const [fetchError, setFetchError]       = useState(null)
+
+  // Fetch products khi đổi step (chỉ fetch nếu chưa có trong cache)
+  useEffect(() => {
+    const slug = STEP_TO_SLUG[activeStep]
+    if (!slug) return  // dùng static fallback
+    if (productsCache[activeStep]) return  // đã có cache, không fetch lại
+
+    setLoading(true)
+    setFetchError(null)
+
+    fetch(`${API_URL}/categories/${slug}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.data?.products?.length > 0) {
+          const normalized = data.data.products.map(p => normalizeProduct(p, activeStep))
+          setProductsCache(prev => ({ ...prev, [activeStep]: normalized }))
+        } else {
+          // Nếu API 404 hoặc chưa có sản phẩm, set mảng rỗng
+          setProductsCache(prev => ({ ...prev, [activeStep]: [] }))
+          setFetchError(`Chưa có sản phẩm ${BUILD_STEPS.find(s => s.id === activeStep)?.label} trong hệ thống`)
+        }
+      })
+      .catch(() => {
+        setProductsCache(prev => ({ ...prev, [activeStep]: [] }))
+        setFetchError('Không thể kết nối server')
+      })
+      .finally(() => setLoading(false))
+  }, [activeStep])
+
   // Re-run compatibility check whenever selection changes
   useEffect(() => {
     setCompatibility(checkCompatibility(selected))
@@ -308,7 +397,10 @@ export default function BuildPC() {
   const progressPct   = Math.round((selectedCount / BUILD_STEPS.length) * 100)
 
   // ── Products for current step ─────────────────────────────────────────
-  const rawProducts = MOCK_PRODUCTS[activeStep] || []
+  // Nếu step có slug → lấy từ cache API; ngược lại dùng static fallback
+  const rawProducts = STEP_TO_SLUG[activeStep]
+    ? (productsCache[activeStep] || [])
+    : (STATIC_FALLBACK[activeStep] || [])
   const brands      = BRAND_FILTERS[activeStep] || BRAND_FILTERS.default
 
   const filteredProducts = rawProducts
@@ -484,7 +576,16 @@ export default function BuildPC() {
 
               {/* Product cards */}
               <div className="bp-products">
-                {filteredProducts.map(product => {
+                {loading && (
+                  <div className="bp-loading">
+                    <div className="bp-loading-spinner"></div>
+                    <span>Đang tải sản phẩm...</span>
+                  </div>
+                )}
+                {!loading && fetchError && filteredProducts.length === 0 && (
+                  <div className="bp-empty">{fetchError}</div>
+                )}
+                {!loading && filteredProducts.map(product => {
                   const isSelected = selected[activeStep]?.id === product.id
                   const isAnimating = addedAnimation === product.id
                   return (
@@ -494,7 +595,11 @@ export default function BuildPC() {
                       onClick={() => handleSelect(product)}
                     >
                       <div className="bp-product-img">
-                        <div className="bp-product-img-placeholder">
+                        {product.image
+                          ? <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }} />
+                          : null
+                        }
+                        <div className="bp-product-img-placeholder" style={{ display: product.image ? 'none' : 'flex' }}>
                           <StepIcon id={activeStep} size={32} />
                         </div>
                         {isSelected && <div className="bp-product-check-badge">✓</div>}
@@ -518,8 +623,8 @@ export default function BuildPC() {
                     </div>
                   )
                 })}
-                {filteredProducts.length === 0 && (
-                  <div className="bp-empty">Không có sản phẩm phù hợp</div>
+                {!loading && filteredProducts.length === 0 && !fetchError && (
+                  <div className="bp-empty">Không có sản phẩm phù hợp với bộ lọc</div>
                 )}
               </div>
 

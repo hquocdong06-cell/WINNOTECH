@@ -31,6 +31,29 @@ const { Voucher, UserVoucher } = require("./models/Voucher");
 const { BuildPC, BuildItem } = require("./models/BuildPc");
 const checklogin = require("./middleware/AuthMiddleware");
 const path = require("path");
+const multer = require("multer");
+
+// ============================================================
+// MULTER — cấu hình upload file ảnh
+// ============================================================
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, "public", "images", "uploads");
+    fs.mkdirSync(uploadDir, { recursive: true });
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e6) + ext;
+    cb(null, uniqueName);
+  },
+});
+const fileFilter = (req, file, cb) => {
+  const allowed = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+  if (allowed.includes(file.mimetype)) cb(null, true);
+  else cb(new Error("Chỉ chấp nhận file ảnh (jpg, png, gif, webp)"), false);
+};
+const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 
 var cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
@@ -792,8 +815,59 @@ app.put("/products/:id", async (req, res) => {
 // ============================================================
 // DELETE /products/:id — xóa sản phẩm cùng các ảnh, biến thể liên quan
 // ============================================================
+app.delete("/products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await ProductModel.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
+    }
 
+    // Xóa ảnh file vật lý nếu có trên server
+    const images = await ImageModel.find({ p_id: id });
+    images.forEach((img) => {
+      if (img.url && img.url.startsWith("/public/images/uploads/")) {
+        const filePath = path.join(__dirname, img.url);
+        fs.unlink(filePath, () => {}); // bỏ qua lỗi nếu file không tồn tại
+      }
+    });
 
+    // Cascade delete
+    await ImageModel.deleteMany({ p_id: id });
+    await ProductVariantModel.deleteMany({ p_id: id });
+    await ProductModel.findByIdAndDelete(id);
+
+    return res.json({ success: true, message: "Xóa sản phẩm thành công" });
+  } catch (error) {
+    console.error("Lỗi API xóa sản phẩm:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server khi xóa sản phẩm" });
+  }
+});
+
+// ============================================================
+// PATCH /products/:id/status — toggle trạng thái active/hidden
+// ============================================================
+app.patch("/products/:id/status", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!status || !["active", "hidden", "draft"].includes(status)) {
+      return res.status(400).json({ success: false, message: "Trạng thái không hợp lệ" });
+    }
+    const product = await ProductModel.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
+    }
+    return res.json({ success: true, message: "Cập nhật trạng thái thành công", data: product });
+  } catch (error) {
+    console.error("Lỗi API cập nhật trạng thái:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
 
 
 // ============================================================
@@ -898,13 +972,12 @@ app.post("/cart/add", async (req, res) => {
       price: currentPrice,
     };
 
-    // Kiểm tra token — login thì lưu DB, chưa login thì trả về FE tự lưu
+    // Kiểm tra token từ cookie — login thì lưu DB, chưa login thì trả về FE tự lưu
     let u_id = null;
-    const authHeader = req.headers["authorization"];
-    if (authHeader) {
+    const cookieToken = req.cookies && req.cookies.token;
+    if (cookieToken) {
       try {
-        const token = authHeader.split(" ")[1];
-        const verify = jwt.verify(token, cert, { algorithms: ["RS256"] });
+        const verify = jwt.verify(cookieToken, cert, { algorithms: ["RS256"] });
         u_id = verify._id;
       } catch (err) {
         console.log("Token lỗi hoặc hết hạn, coi như khách vãng lai (Guest)");
@@ -1572,6 +1645,113 @@ app.delete("/api/cart/:id", async (req, res) => {
   } catch (error) {
     console.error("Lỗi delete cart:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ============================================================
+// POST /upload — upload ảnh dùng chung cho sản phẩm & danh mục
+// ============================================================
+app.post("/upload", upload.single("image"), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Không có file nào được upload" });
+    }
+    const url = `/public/images/uploads/${req.file.filename}`;
+    return res.json({ success: true, url, message: "Upload ảnh thành công" });
+  } catch (error) {
+    console.error("Lỗi upload ảnh:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server khi upload ảnh" });
+  }
+});
+
+// ============================================================
+// POST /categories — tạo danh mục mới
+// ============================================================
+app.post("/categories", async (req, res) => {
+  try {
+    const { name, image } = req.body;
+    if (!name) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập tên danh mục" });
+    }
+    let slug = slugify(name);
+    let uniqueSlug = slug;
+    let count = 1;
+    while (await CategoryModel.findOne({ slug: uniqueSlug })) {
+      uniqueSlug = `${slug}-${count}`;
+      count++;
+    }
+    const newCat = await CategoryModel.create({
+      name,
+      slug: uniqueSlug,
+      image: image || "",
+      status: "active",
+    });
+    return res.status(201).json({ success: true, message: "Tạo danh mục thành công", data: newCat });
+  } catch (error) {
+    console.error("Lỗi tạo danh mục:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server khi tạo danh mục" });
+  }
+});
+
+// ============================================================
+// PUT /categories/:id — cập nhật danh mục
+// ============================================================
+app.put("/categories/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, image } = req.body;
+    const cat = await CategoryModel.findById(id);
+    if (!cat) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy danh mục" });
+    }
+    if (name) {
+      cat.name = name;
+      let slug = slugify(name);
+      let uniqueSlug = slug;
+      let count = 1;
+      while (await CategoryModel.findOne({ slug: uniqueSlug, _id: { $ne: id } })) {
+        uniqueSlug = `${slug}-${count}`;
+        count++;
+      }
+      cat.slug = uniqueSlug;
+    }
+    if (image !== undefined) cat.image = image;
+    await cat.save();
+    return res.json({ success: true, message: "Cập nhật danh mục thành công", data: cat });
+  } catch (error) {
+    console.error("Lỗi cập nhật danh mục:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server khi cập nhật danh mục" });
+  }
+});
+
+// ============================================================
+// DELETE /categories/:id — xóa danh mục
+// ============================================================
+app.delete("/categories/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cat = await CategoryModel.findById(id);
+    if (!cat) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy danh mục" });
+    }
+    // Kiểm tra còn sản phẩm thuộc danh mục không
+    const productCount = await ProductModel.countDocuments({ cat_id: id });
+    if (productCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể xóa! Danh mục này đang chứa ${productCount} sản phẩm. Hãy chuyển hoặc xóa sản phẩm trước.`,
+      });
+    }
+    // Xóa ảnh vật lý nếu là ảnh upload
+    if (cat.image && cat.image.startsWith("/public/images/uploads/")) {
+      const filePath = path.join(__dirname, cat.image);
+      fs.unlink(filePath, () => {});
+    }
+    await CategoryModel.findByIdAndDelete(id);
+    return res.json({ success: true, message: "Xóa danh mục thành công" });
+  } catch (error) {
+    console.error("Lỗi xóa danh mục:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server khi xóa danh mục" });
   }
 });
 

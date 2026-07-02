@@ -2449,3 +2449,101 @@ footer {
   color: var(--white);
   padding-left: 4px;
 }
+
+/* ============================================================
+   PAGE-FLIP ANIMATIONS — Product sections
+   ============================================================ */
+
+/* Wrapper clips the sliding content */
+.products-row-wrapper {
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+/* ── Exit animations ── */
+@keyframes pfExitNext {
+  from { transform: translateX(0) scale(1); opacity: 1; }
+  to   { transform: translateX(-70px) scale(0.97); opacity: 0; }
+}
+@keyframes pfExitPrev {
+  from { transform: translateX(0) scale(1); opacity: 1; }
+  to   { transform: translateX(70px) scale(0.97); opacity: 0; }
+}
+
+/* ── Enter animations ── */
+@keyframes pfEnterFromRight {
+  from { transform: translateX(70px) scale(0.97); opacity: 0; }
+  to   { transform: translateX(0) scale(1); opacity: 1; }
+}
+@keyframes pfEnterFromLeft {
+  from { transform: translateX(-70px) scale(0.97); opacity: 0; }
+  to   { transform: translateX(0) scale(1); opacity: 1; }
+}
+
+.flip-exit-next  { animation: pfExitNext      0.26s cubic-bezier(0.4, 0, 0.6, 1) forwards; }
+.flip-exit-prev  { animation: pfExitPrev      0.26s cubic-bezier(0.4, 0, 0.6, 1) forwards; }
+.flip-enter-right { animation: pfEnterFromRight 0.34s cubic-bezier(0.0, 0, 0.2, 1) forwards; }
+.flip-enter-left  { animation: pfEnterFromLeft  0.34s cubic-bezier(0.0, 0, 0.2, 1) forwards; }
+
+/* ── Page dot indicator ── */
+.section-page-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.page-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gray3);
+  border: none;
+  cursor: pointer;
+  transition: width 0.3s ease, background 0.3s ease, border-radius 0.3s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.page-dot.active {
+  width: 28px;
+  border-radius: 4px;
+  background: var(--yellow);
+}
+
+.page-dot:hover:not(.active) {
+  background: var(--gray);
+}
+
+/* ── Page counter badge ── */
+.page-counter-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  background: rgba(255,255,255,0.06);
+  padding: 3px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* ── Nav button disabled ── */
+.products-nav button:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Products header right layout ── */
+.products-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.products-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}

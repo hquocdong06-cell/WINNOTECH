@@ -40,9 +40,7 @@
 }
 
 .product-detail-section .section-inner {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 40px;
+  display: block;
 }
 
 /* ── SIDEBAR FILTERS ── */
@@ -215,8 +213,8 @@
 /* ── PRODUCT GRID ── */
 .product-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 40px;
   margin-bottom: 40px;
 }
 
@@ -224,18 +222,18 @@
 .product-gallery {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .gallery-main {
   background: var(--dark3);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 12px;
+  padding: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 380px;
+  min-height: 520px;
   aspect-ratio: 1;
 }
 

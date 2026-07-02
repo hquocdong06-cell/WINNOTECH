@@ -557,9 +557,13 @@ export default function RAM() {
   const getProductImage = (product) => {
     if (product.AnhSP && product.AnhSP.length > 0) {
       const mainImg = product.AnhSP.find(img => img.is_main)
-      return mainImg ? mainImg.url : product.AnhSP[0].url
+      const url = mainImg ? mainImg.url : product.AnhSP[0].url
+      return url.startsWith('http') ? url : `${API_URL}${url}`
     }
-    return product.thumnail || 'https://placehold.co/600x400/1a1a2e/7c3aed?text=No+Image'
+    if (product.thumnail) {
+      return product.thumnail.startsWith('http') ? product.thumnail : `${API_URL}${product.thumnail}`
+    }
+    return 'https://placehold.co/600x400/1a1a2e/7c3aed?text=No+Image'
   }
 
   const getProductPrice = (product) => {
