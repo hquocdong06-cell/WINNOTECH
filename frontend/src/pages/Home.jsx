@@ -197,8 +197,9 @@ const ProductSection = ({
         <div className="products-header">
           <div>
             <div className="section-label" style={sectionLabelStyle}>{sectionLabel}</div>
-            <h2 className="section-title" style={{ marginBottom: 0 }}>
-              {titleLine1}<br />{titleLine2}
+            <h2 className="section-title" style={{ marginBottom: 0, lineHeight: 1.2 }}>
+              <span style={{ display: 'block' }}>{titleLine1}</span>
+              <span style={{ display: 'block', marginTop: '12px' }}>{titleLine2}</span>
             </h2>
           </div>
           <div className="products-header-right">
@@ -553,7 +554,7 @@ export default function Home() {
           <div className="blog-header">
             <div>
               <div className="section-label">KIẾN THỨC & HƯỚNG DẪN</div>
-              <h2 className="section-title" style={{ marginBottom: 0 }}>NÂNG TẦM TRẢI NGHIỆM</h2>
+              <h2 className="section-title" style={{ marginBottom: 0, lineHeight: 1.6 }}>NÂNG TẦM TRẢI NGHIỆM</h2>
             </div>
             <Link to="/blog" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}>
               XEM TẤT CẢ BÀI VIẾT →
@@ -602,7 +603,7 @@ export default function Home() {
       <section className="newsletter-section">
         <div className="newsletter-inner">
           <div className="newsletter-left">
-            <h2>LUÔN CẬP NHẬT<br /><span>CÔNG NGHỆ MỚI</span></h2>
+            <h2 style={{ lineHeight: '1.3' }}>LUÔN CẬP NHẬT<br /><span>CÔNG NGHỆ MỚI</span></h2>
           </div>
           <div className="newsletter-right">
             <div className="newsletter-form">
