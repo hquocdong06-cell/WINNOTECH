@@ -989,15 +989,33 @@ app.post("/cart/add", async (req, res) => {
       // Đã login — lưu vào DB
       let existingCart = await CartItemModel.findOne({ u_id, variant_id });
 
+      const reqQty = parseInt(quantity) || 1;
+      if (variant.stock_quantity !== undefined && variant.stock_quantity <= 0) {
+        return res.status(400).json({ success: false, message: "Sản phẩm này đã hết hàng!" });
+      }
+
       if (existingCart) {
-        existingCart.quantity += parseInt(quantity);
+        const totalQty = existingCart.quantity + reqQty;
+        if (variant.stock_quantity !== undefined && totalQty > variant.stock_quantity) {
+          return res.status(400).json({
+            success: false,
+            message: `Không thể thêm! Số lượng trong giỏ (${existingCart.quantity}) + thêm mới (${reqQty}) vượt quá tồn kho (${variant.stock_quantity} sản phẩm).`
+          });
+        }
+        existingCart.quantity = totalQty;
         existingCart.price = currentPrice;
         await existingCart.save();
       } else {
+        if (variant.stock_quantity !== undefined && reqQty > variant.stock_quantity) {
+          return res.status(400).json({
+            success: false,
+            message: `Không thể thêm! Số lượng yêu cầu (${reqQty}) vượt quá tồn kho (${variant.stock_quantity} sản phẩm).`
+          });
+        }
         await CartItemModel.create({
           u_id,
           variant_id,
-          quantity,
+          quantity: reqQty,
           price: currentPrice,
         });
       }
@@ -1010,6 +1028,17 @@ app.post("/cart/add", async (req, res) => {
       });
     } else {
       // Chưa login — trả về để FE lưu LocalStorage
+      const reqQty = parseInt(quantity) || 1;
+      if (variant.stock_quantity !== undefined && variant.stock_quantity <= 0) {
+        return res.status(400).json({ success: false, message: "Sản phẩm này đã hết hàng!" });
+      }
+      if (variant.stock_quantity !== undefined && reqQty > variant.stock_quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Không thể thêm! Số lượng yêu cầu (${reqQty}) vượt quá tồn kho (${variant.stock_quantity} sản phẩm).`
+        });
+      }
+
       return res.json({
         success: true,
         is_logged_in: false,
@@ -1101,11 +1130,24 @@ app.put("/cart/:cartItemId", checklogin, async (req, res) => {
         .json({ success: false, message: "Số lượng không hợp lệ" });
     }
 
-    const cartItem = await CartItemModel.findOneAndUpdate(
-      { _id: cartItemId, u_id: req.user._id },
-      { quantity: parseInt(quantity) },
-      { new: true },
-    );
+    const cartItem = await CartItemModel.findOne({ _id: cartItemId, u_id: req.user._id });
+    if (!cartItem) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy item trong giỏ hàng",
+      });
+    }
+
+    const variant = await ProductVariantModel.findById(cartItem.variant_id);
+    if (variant && variant.stock_quantity !== undefined && parseInt(quantity) > variant.stock_quantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Số lượng yêu cầu (${quantity}) vượt quá tồn kho hiện tại (${variant.stock_quantity} sản phẩm).`
+      });
+    }
+
+    cartItem.quantity = parseInt(quantity);
+    await cartItem.save();
 
     if (!cartItem) {
       return res.status(404).json({
@@ -1630,8 +1672,22 @@ app.post("/api/cart", async (req, res) => {
 app.put("/api/cart/:id", async (req, res) => {
   try {
     const { quantity } = req.body;
-    const item = await CartItemModel.findByIdAndUpdate(req.params.id, { quantity }, { new: true });
-    return res.json({ success: true, data: item });
+    const cartItem = await CartItemModel.findById(req.params.id);
+    if (!cartItem) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy item trong giỏ" });
+    }
+
+    const variant = await ProductVariantModel.findById(cartItem.variant_id);
+    if (variant && variant.stock_quantity !== undefined && parseInt(quantity) > variant.stock_quantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Số lượng yêu cầu (${quantity}) vượt quá tồn kho hiện tại (${variant.stock_quantity} sản phẩm).`
+      });
+    }
+
+    cartItem.quantity = parseInt(quantity);
+    await cartItem.save();
+    return res.json({ success: true, data: cartItem });
   } catch (error) {
     console.error("Lỗi update cart:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
@@ -1993,6 +2049,80 @@ app.delete("/admin/posts/:id", checklogin, checkAdmin, async (req, res) => {
     return res.json({ success: true, message: "Đã xóa bài viết thành công" });
   } catch (error) {
     console.error("Lỗi DELETE admin posts:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ============================================================
+// ADMIN PRODUCT VARIANT CRUD
+// ============================================================
+
+// GET /admin/products/:productId/variants — Lấy danh sách biến thể
+app.get("/admin/products/:productId/variants", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const variants = await ProductVariantModel.find({ p_id: req.params.productId }).lean();
+    return res.json({ success: true, data: variants });
+  } catch (error) {
+    console.error("Lỗi GET admin variants:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// POST /admin/products/:productId/variants — Thêm biến thể mới
+app.post("/admin/products/:productId/variants", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { variant_name, price, sku, sale_price, stock_quantity, status } = req.body;
+    if (!variant_name || !price || !sku) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ tên, SKU và giá của biến thể" });
+    }
+    const v = await ProductVariantModel.create({
+      variant_name,
+      price: Number(price) || 0,
+      sku,
+      sale_price: Number(sale_price) || 0,
+      stock_quantity: Number(stock_quantity) || 0,
+      status: status || "active",
+      p_id: productId
+    });
+    return res.status(201).json({ success: true, data: v });
+  } catch (error) {
+    console.error("Lỗi POST admin variants:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// PUT /admin/variants/:variantId — Cập nhật biến thể
+app.put("/admin/variants/:variantId", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { variantId } = req.params;
+    const { variant_name, price, sku, sale_price, stock_quantity, status } = req.body;
+    const v = await ProductVariantModel.findByIdAndUpdate(
+      variantId,
+      { variant_name, price: Number(price) || 0, sku, sale_price: Number(sale_price) || 0, stock_quantity: Number(stock_quantity) || 0, status },
+      { new: true }
+    );
+    if (!v) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy biến thể" });
+    }
+    return res.json({ success: true, data: v });
+  } catch (error) {
+    console.error("Lỗi PUT admin variants:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// DELETE /admin/variants/:variantId — Xóa biến thể
+app.delete("/admin/variants/:variantId", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { variantId } = req.params;
+    const deleted = await ProductVariantModel.findByIdAndDelete(variantId);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy biến thể" });
+    }
+    return res.json({ success: true, message: "Xóa biến thể thành công" });
+  } catch (error) {
+    console.error("Lỗi DELETE admin variants:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });

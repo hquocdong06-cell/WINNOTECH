@@ -13,6 +13,7 @@ const API_URL = 'http://localhost:3000'
 export default function ProductDetail() {
   const dispatch = useDispatch()
   const { slug } = useParams()
+  const [selectedVariantId, setSelectedVariantId] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('description')
   const { favoriteIds, toggleFavorite } = useFavorite()
@@ -107,6 +108,13 @@ export default function ProductDetail() {
     }
   }, [slug])
 
+  // Sync selected variant id
+  useEffect(() => {
+    if (productData?.Variants && productData.Variants.length > 0) {
+      setSelectedVariantId(productData.Variants[0]._id)
+    }
+  }, [productData])
+
   if (loading) {
     return (
       <DefaultLayout>
@@ -167,20 +175,31 @@ export default function ProductDetail() {
 
   // Price calculations
   const hasVariants = Variants && Variants.length > 0
-  const activeVariant = hasVariants ? Variants[0] : null
+  const activeVariant = Variants?.find(v => v._id === selectedVariantId) || (hasVariants ? Variants[0] : null)
   const originalPrice = activeVariant ? activeVariant.price : (product.price || 0)
   const currentPrice = activeVariant && activeVariant.sale_price > 0 ? activeVariant.sale_price : originalPrice
   const hasSale = product.sale > 0 || (activeVariant && activeVariant.sale_price > 0)
   const salePercent = product.sale || (activeVariant ? Math.round((1 - activeVariant.sale_price / activeVariant.price) * 100) : 0)
 
+  const isOutOfStock = activeVariant && activeVariant.stock_quantity !== undefined ? activeVariant.stock_quantity <= 0 : false
+  const availableStock = activeVariant && activeVariant.stock_quantity !== undefined ? activeVariant.stock_quantity : 999
+
   const handleQuantityChange = (e) => {
     const value = parseInt(e.target.value)
-    if (value > 0) setQuantity(value)
+    if (value > 0) setQuantity(Math.min(value, availableStock))
   }
 
   const handleAddToCart = async () => {
     if (!activeVariant) {
       toast.error('Sản phẩm này hiện tại chưa có sẵn biến thể!', { position: 'bottom-right' })
+      return
+    }
+    if (activeVariant.stock_quantity !== undefined && activeVariant.stock_quantity <= 0) {
+      toast.error('Sản phẩm này đã hết hàng!', { position: 'bottom-right' })
+      return
+    }
+    if (activeVariant.stock_quantity !== undefined && quantity > activeVariant.stock_quantity) {
+      toast.error(`Chỉ còn lại ${activeVariant.stock_quantity} sản phẩm trong kho!`, { position: 'bottom-right' })
       return
     }
 
@@ -270,8 +289,14 @@ export default function ProductDetail() {
                 </div>
 
                 <div className="product-meta">
-                  <span className="status-badge" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>
-                    {product.status === 'active' ? 'Còn hàng' : 'Hết hàng'}
+                  <span className="status-badge" style={{ 
+                    background: isOutOfStock ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)', 
+                    color: isOutOfStock ? '#ef4444' : '#22c55e', 
+                    padding: '4px 8px', 
+                    borderRadius: '4px', 
+                    fontSize: '12px' 
+                  }}>
+                    {isOutOfStock ? 'Hết hàng' : (activeVariant && activeVariant.stock_quantity !== undefined ? `Còn hàng (${availableStock} sản phẩm)` : 'Còn hàng')}
                   </span>
                   <div className="rating">
                     <span className="stars">⭐⭐⭐⭐⭐</span>
@@ -301,26 +326,73 @@ export default function ProductDetail() {
                   </div>
                 </div>
 
+                {/* SELECT VARIANT CHIPS */}
+                {Variants && Variants.length > 1 && (
+                  <div className="variant-selector" style={{ margin: '20px 0 10px 0' }}>
+                    <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '8px' }}>
+                      Phiên bản / Biến thể:
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {Variants.map(v => (
+                        <button
+                          key={v._id}
+                          onClick={() => { setSelectedVariantId(v._id); setQuantity(1); }}
+                          style={{
+                            background: selectedVariantId === v._id ? 'var(--accent-color)' : 'var(--dark2)',
+                            color: selectedVariantId === v._id ? '#000' : '#fff',
+                            border: selectedVariantId === v._id ? '1px solid var(--accent-color)' : '1px solid #444',
+                            padding: '6px 14px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {v.variant_name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* QUANTITY & ACTIONS */}
                 <div className="product-actions">
                   <div className="quantity-selector">
                     <button 
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
                       className="qty-btn"
+                      disabled={isOutOfStock}
+                      style={{ opacity: isOutOfStock ? 0.3 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
                     >−</button>
                     <input 
                       type="number" 
-                      value={quantity} 
+                      value={isOutOfStock ? 0 : quantity} 
                       onChange={handleQuantityChange}
                       className="qty-input"
+                      disabled={isOutOfStock}
+                      style={{ color: isOutOfStock ? '#666' : '#fff' }}
                     />
                     <button 
-                      onClick={() => setQuantity(quantity + 1)}
+                      onClick={() => setQuantity(Math.min(availableStock, quantity + 1))}
                       className="qty-btn"
+                      disabled={isOutOfStock}
+                      style={{ opacity: isOutOfStock ? 0.3 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
                     >+</button>
                   </div>
-                  <button className="btn-add-cart" onClick={handleAddToCart} style={{ background: 'var(--accent-color)', color: '#000', fontWeight: 'bold' }}>
-                    THÊM VÀO GIỎ
+                  <button 
+                    className="btn-add-cart" 
+                    onClick={handleAddToCart} 
+                    disabled={isOutOfStock}
+                    style={{ 
+                      background: isOutOfStock ? '#444' : 'var(--accent-color)', 
+                      color: isOutOfStock ? '#888' : '#000', 
+                      fontWeight: 'bold',
+                      cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                      border: 'none'
+                    }}
+                  >
+                    {isOutOfStock ? 'HẾT HÀNG' : 'THÊM VÀO GIỎ'}
                   </button>
                 </div>
 

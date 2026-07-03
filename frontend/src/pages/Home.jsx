@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
+import { addToCart } from '../redux/cartSlice'
+import { toast } from 'react-toastify'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/home.css'
 import useFavorite from '../hooks/useFavorite'
@@ -82,10 +85,18 @@ const ProductCard = ({ product, onAddToCart, favoriteIds, onToggleFavorite }) =>
   const imgUrl = getProductImage(product)
   const { originalPrice, currentPrice, hasSale, salePercent } = getProductPriceInfo(product)
   const isFav = favoriteIds?.has(product._id)
+
+  const defaultVariant = product.Variants?.find(v => v.variant_name === 'Mặc định') || product.Variants?.[0]
+  const isOutOfStock = defaultVariant && defaultVariant.stock_quantity !== undefined ? defaultVariant.stock_quantity <= 0 : false
+
   return (
     <Link to={`/product/${product.slug}`} className="product-link">
-      <div className="product-card">
-        {hasSale && <div className="product-sale-badge">-{salePercent}%</div>}
+      <div className="product-card" style={isOutOfStock ? { opacity: 0.85 } : {}}>
+        {isOutOfStock ? (
+          <div className="product-sale-badge" style={{ background: '#ef4444', color: '#fff' }}>Hết hàng</div>
+        ) : (
+          hasSale && <div className="product-sale-badge">-{salePercent}%</div>
+        )}
         <div className="item-visual-box">
           {imgUrl
             ? <img src={imgUrl} alt={product.name} />
@@ -107,7 +118,16 @@ const ProductCard = ({ product, onAddToCart, favoriteIds, onToggleFavorite }) =>
               )}
             </div>
             <div className="product-actions">
-              <button className="btn-cart" onClick={(e) => { e.preventDefault(); onAddToCart?.() }}>
+              <button 
+                className="btn-cart" 
+                onClick={(e) => { 
+                  e.preventDefault(); 
+                  if (!isOutOfStock) onAddToCart?.(); 
+                }}
+                disabled={isOutOfStock}
+                style={isOutOfStock ? { background: '#222', color: '#555', cursor: 'not-allowed', borderColor: '#333' } : {}}
+                title={isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ'}
+              >
                 <CartSVG />
               </button>
               <button 
@@ -186,7 +206,8 @@ const ProductSection = ({
   viewAllHref = '#',
   className = '',
   favoriteIds,
-  onToggleFavorite
+  onToggleFavorite,
+  onAddToCart
 }) => {
   const { shownPage, currentItems, totalPages, goPage, animClass, isAnimating } = usePageFlip(products)
 
@@ -235,7 +256,7 @@ const ProductSection = ({
               <div className="products-empty" style={{ gridColumn: '1/-1' }}>{emptyMsg}</div>
             ) : (
               currentItems.map(product => (
-                <ProductCard key={product._id} product={product} favoriteIds={favoriteIds} onToggleFavorite={onToggleFavorite} />
+                <ProductCard key={product._id} product={product} favoriteIds={favoriteIds} onToggleFavorite={onToggleFavorite} onAddToCart={() => onAddToCart?.(product)} />
               ))
             )}
           </div>
@@ -283,6 +304,7 @@ const hasTrueDiscount = (product) =>
 // Home — main component
 // ============================================================
 export default function Home() {
+  const dispatch = useDispatch()
   const { favoriteIds, toggleFavorite } = useFavorite()
   const [featuredProducts, setFeaturedProducts] = useState([])  // Bán chạy
   const [newProducts, setNewProducts]           = useState([])  // Hàng mới
@@ -293,6 +315,57 @@ export default function Home() {
   const [loadingCategories, setLoadingCategories] = useState(true)
 
   const [currentBanner, setCurrentBanner] = useState(0)
+
+  const handleQuickAddToCart = async (product) => {
+    const defaultVariant = product.Variants?.find(v => v.variant_name === 'Mặc định') || product.Variants?.[0];
+    if (!defaultVariant) {
+      toast.error('Sản phẩm chưa có biến thể sẵn sàng!', { position: 'bottom-right' })
+      return
+    }
+    if (defaultVariant.stock_quantity !== undefined && defaultVariant.stock_quantity <= 0) {
+      toast.error('Sản phẩm này đã hết hàng!', { position: 'bottom-right' })
+      return
+    }
+    
+    try {
+      const res = await fetch(`${API_URL}/cart/add`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variant_id: defaultVariant._id,
+          quantity: 1
+        })
+      })
+      const data = await res.json()
+      
+      if (res.status === 400 || !data.success) {
+        toast.error(data.message || 'Lỗi khi thêm sản phẩm vào giỏ hàng!', { position: 'bottom-right' })
+        return
+      }
+
+      if (res.status === 401) {
+        toast.error('Vui lòng đăng nhập để mua hàng!', { position: 'bottom-right' })
+        return
+      }
+
+      const currentPrice = defaultVariant.sale_price > 0 ? defaultVariant.sale_price : defaultVariant.price
+      const imgUrl = getProductImage(product)
+
+      dispatch(addToCart({
+        product_id: product._id,
+        variant_id: defaultVariant._id,
+        name: product.name,
+        price: currentPrice,
+        quantity: 1,
+        image: imgUrl
+      }))
+
+      toast.success('Đã thêm sản phẩm vào giỏ hàng!', { position: 'bottom-right' })
+    } catch (err) {
+      toast.error('Lỗi khi thêm vào giỏ hàng!', { position: 'bottom-right' })
+    }
+  }
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -516,6 +589,7 @@ export default function Home() {
         viewAllHref="/shop"
         favoriteIds={favoriteIds}
         onToggleFavorite={toggleFavorite}
+        onAddToCart={handleQuickAddToCart}
       />
 
       {/* ── HÀNG MỚI VỀ ── */}
@@ -530,6 +604,7 @@ export default function Home() {
         viewAllHref="/shop"
         favoriteIds={favoriteIds}
         onToggleFavorite={toggleFavorite}
+        onAddToCart={handleQuickAddToCart}
       />
 
       {/* ── GIẢM GIÁ ── */}
@@ -546,6 +621,7 @@ export default function Home() {
         className="products-section-sale"
         favoriteIds={favoriteIds}
         onToggleFavorite={toggleFavorite}
+        onAddToCart={handleQuickAddToCart}
       />
 
       {/* ── BLOG ── */}

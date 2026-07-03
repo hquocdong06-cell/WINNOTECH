@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
+import { addToCart } from '../redux/cartSlice'
+import { toast } from 'react-toastify'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/cpu.css' // Reuse the sidebar layout styles
 
@@ -483,11 +486,64 @@ const mockCaseProducts = [
   }
 ]
 export default function Case() {
+  const dispatch = useDispatch()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState('grid')
   const [sortBy, setSortBy] = useState('popular')
+
+  const handleQuickAddToCart = async (product) => {
+    const variantsList = product.Variants || product.variants;
+    const defaultVariant = variantsList?.find(v => v.variant_name === 'Mặc định') || variantsList?.[0];
+    if (!defaultVariant) {
+      toast.error('Sản phẩm chưa có biến thể sẵn sàng!', { position: 'bottom-right' })
+      return
+    }
+    if (defaultVariant.stock_quantity !== undefined && defaultVariant.stock_quantity <= 0) {
+      toast.error('Sản phẩm này đã hết hàng!', { position: 'bottom-right' })
+      return
+    }
+    
+    try {
+      const res = await fetch(`${API_URL}/cart/add`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variant_id: defaultVariant._id,
+          quantity: 1
+        })
+      })
+      const data = await res.json()
+      
+      if (res.status === 400 || !data.success) {
+        toast.error(data.message || 'Lỗi khi thêm sản phẩm vào giỏ hàng!', { position: 'bottom-right' })
+        return
+      }
+
+      if (res.status === 401) {
+        toast.error('Vui lòng đăng nhập để mua hàng!', { position: 'bottom-right' })
+        return
+      }
+
+      const currentPrice = defaultVariant.sale_price > 0 ? defaultVariant.sale_price : defaultVariant.price
+      const imgUrl = getProductImage(product)
+
+      dispatch(addToCart({
+        product_id: product._id,
+        variant_id: defaultVariant._id,
+        name: product.name,
+        price: currentPrice,
+        quantity: 1,
+        image: imgUrl
+      }))
+
+      toast.success('Đã thêm sản phẩm vào giỏ hàng!', { position: 'bottom-right' })
+    } catch (err) {
+      toast.error('Lỗi khi thêm vào giỏ hàng!', { position: 'bottom-right' })
+    }
+  }
 
   // --- FILTERS STATE ---
   const [filters, setFilters] = useState({
@@ -1185,8 +1241,17 @@ export default function Case() {
                   {visibleProducts.map(product => {
                     const price = getProductPrice(product)
                     const image = getProductImage(product)
+                    const variantsList = product.Variants || product.variants
+                    const defaultVariant = variantsList?.find(v => v.variant_name === 'Mặc định') || variantsList?.[0]
+                    const isOutOfStock = defaultVariant && defaultVariant.stock_quantity !== undefined ? defaultVariant.stock_quantity <= 0 : false
+
                     return (
-                      <div key={product._id} className="cpu-card">
+                      <div key={product._id} className="cpu-card" style={isOutOfStock ? { opacity: 0.85 } : {}}>
+                        {isOutOfStock ? (
+                          <div className="cpu-card-sale-badge" style={{ background: '#ef4444' }}>Hết hàng</div>
+                        ) : (
+                          product.sale > 0 && <div className="cpu-card-sale-badge">-{product.sale}%</div>
+                        )}
                         <div className="cpu-card-img">
                           <Link to={`/product/${product.slug}`}>
                             <img src={image} alt={product.name} />
@@ -1200,7 +1265,13 @@ export default function Case() {
                           <div className="cpu-card-footer">
                             <div className="cpu-card-price-wrap"><span className="cpu-card-price">{formatPrice(price)}</span></div>
                             <div className="cpu-card-actions">
-                              <button className="btn-add-cart" title="Thêm vào giỏ">
+                              <button 
+                                className="btn-add-cart" 
+                                title={isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ'}
+                                disabled={isOutOfStock}
+                                onClick={(e) => { e.preventDefault(); handleQuickAddToCart(product); }}
+                                style={isOutOfStock ? { background: '#222', cursor: 'not-allowed', borderColor: '#333', opacity: 0.5 } : {}}
+                              >
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff">
                                   <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
                                 </svg>

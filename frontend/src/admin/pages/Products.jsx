@@ -242,7 +242,7 @@ const Products = () => {
 
       <ProductFormModal isOpen={isFormModalOpen} onClose={() => setIsFormModalOpen(false)}
         product={editingProduct} categories={categories} onSuccess={() => { setIsFormModalOpen(false); loadData(); }} />
-      <VariantManagementModal isOpen={isVariantModalOpen} onClose={() => setIsVariantModalOpen(false)} product={editingProduct} />
+      <VariantManagementModal isOpen={isVariantModalOpen} onClose={() => setIsVariantModalOpen(false)} product={editingProduct} onSuccess={loadData} />
       <ConfirmDeleteDialog isOpen={deleteDialog.open} productName={deleteDialog.product?.name}
         onConfirm={handleDeleteConfirm} onCancel={() => setDeleteDialog({ open: false, product: null })} isLoading={isDeleting} />
     </div>

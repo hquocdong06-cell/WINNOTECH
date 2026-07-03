@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
+import { toast } from 'react-toastify'
 import { setCart, clearCart } from '../redux/cartSlice'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/cart.css'
@@ -82,6 +83,15 @@ export default function Cart() {
   // ── Cập nhật số lượng ──────────────────────────────────────────────────
   const handleQuantityChange = async (cartItemId, newQty) => {
     if (newQty < 1) return
+
+    const item = cartItems.find(i => i.cartItem?._id === cartItemId)
+    if (item && item.variant && item.variant.stock_quantity !== undefined) {
+      if (newQty > item.variant.stock_quantity) {
+        toast.error(`Không thể cập nhật! Chỉ còn ${item.variant.stock_quantity} sản phẩm trong kho.`, { position: 'bottom-right' })
+        return
+      }
+    }
+
     setUpdatingId(cartItemId)
     try {
       const res = await fetch(`${API_URL}/cart/${cartItemId}`, {
@@ -110,9 +120,11 @@ export default function Cart() {
             image:      getProductImage(d),
           }))
         ))
+      } else {
+        toast.error(data.message || 'Lỗi khi cập nhật số lượng!', { position: 'bottom-right' })
       }
     } catch {
-      // ignore
+      toast.error('Lỗi kết nối tới máy chủ!', { position: 'bottom-right' })
     } finally {
       setUpdatingId(null)
     }
