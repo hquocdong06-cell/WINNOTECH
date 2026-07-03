@@ -11,6 +11,7 @@ const Sidebar = () => {
     { title: 'Đánh giá', path: '/admin/reviews', icon: '⭐' },
     { title: 'Khuyến mãi', path: '/admin/promotions', icon: '🏷️' },
     { title: 'Báo cáo', path: '/admin/reports', icon: '📊' },
+    { title: 'Bài viết', path: '/admin/posts', icon: '📝' },
     { title: 'Cài đặt', path: '/admin/settings', icon: '⚙️' },
   ];
 

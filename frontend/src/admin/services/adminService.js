@@ -114,3 +114,43 @@ export async function toggleProductStatus(id, newStatus) {
     body: JSON.stringify({ status: newStatus }),
   });
 }
+
+// ============================================================
+// POSTS (BLOG)
+// ============================================================
+
+/** Lấy toàn bộ bài viết */
+export async function fetchPosts(status) {
+  const query = status ? `?status=${status}` : '';
+  const data = await apiFetch(`/posts${query}`);
+  return data.data || [];
+}
+
+/** Lấy toàn bộ danh mục bài viết */
+export async function fetchPostCategories() {
+  const data = await apiFetch('/post-categories');
+  return data.data || [];
+}
+
+/** Tạo bài viết mới */
+export async function createPost(payload) {
+  return apiFetch('/admin/posts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Cập nhật bài viết */
+export async function updatePost(id, payload) {
+  return apiFetch(`/admin/posts/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Xóa bài viết */
+export async function deletePost(id) {
+  return apiFetch(`/admin/posts/${id}`, { method: 'DELETE' });
+}

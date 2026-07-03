@@ -27,6 +27,9 @@ import Reviews from './admin/pages/Reviews'
 import Promotions from './admin/pages/Promotions'
 import Reports from './admin/pages/Reports'
 import Settings from './admin/pages/Settings'
+import Blog from './pages/Blog'
+import BlogPostDetail from './pages/BlogPostDetail'
+import AdminPosts from './admin/pages/Posts'
 
 function App() {
   return (
@@ -47,6 +50,8 @@ function App() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/:slug" element={<BlogPostDetail />} />
 
         {/* Auth routes */}
         <Route path="/auth" element={<Navigate to="/login" replace />} />
@@ -64,6 +69,7 @@ function App() {
           <Route path="reviews" element={<Reviews />} />
           <Route path="promotions" element={<Promotions />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="posts" element={<AdminPosts />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

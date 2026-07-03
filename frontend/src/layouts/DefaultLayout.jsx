@@ -65,7 +65,7 @@ export default function DefaultLayout({ children }) {
           </div>
           <div className="topbar-right">
             <a href="#">Hỗ trợ</a>
-            <a href="#">Blog</a>
+            <Link to="/blog">Blog</Link>
             <a href="#">FAQ</a>
           </div>
         </div>

@@ -370,12 +370,19 @@ export default function Home() {
       .finally(() => setLoadingCategories(false))
   }, [])
 
-  // Blog & FAQ (static)
-  const blogs = [
-    { id: 1, tag: 'HƯỚNG DẪN', title: 'Hướng dẫn chọn cấu hình PC gaming 2024 phù hợp với bạn', date: '20/05/2024', image: new URL('../assets/images/blog1.png', import.meta.url).href },
-    { id: 2, tag: 'KIẾN THỨC', title: 'CPU có nhân và luồng là gì? Hiểu đúng để chọn CPU tốt', date: '18/05/2024', image: new URL('../assets/images/blog2.png', import.meta.url).href },
-    { id: 3, tag: 'BUILD PC',  title: 'Build PC trắng đẹp 2024 — Stealth design & hiệu năng cao',  date: '15/05/2024', image: new URL('../assets/images/blog3.png', import.meta.url).href },
-  ]
+  // Blog & FAQ (dynamic with static fallback)
+  const [blogs, setBlogs] = useState([
+    { _id: '1', categories_post_id: { name: 'HƯỚNG DẪN' }, tittle: 'Hướng dẫn chọn cấu hình PC gaming 2024 phù hợp với bạn', createdAt: '2024-05-20T00:00:00.000Z', slug: 'huong-dan-chon-cau-hinh-pc-gaming-2024', image: new URL('../assets/images/blog1.png', import.meta.url).href },
+    { _id: '2', categories_post_id: { name: 'KIẾN THỨC' }, tittle: 'CPU có nhân và luồng là gì? Hiểu đúng để chọn CPU tốt', createdAt: '2024-05-18T00:00:00.000Z', slug: 'cpu-nhan-va-luong-la-gi', image: new URL('../assets/images/blog2.png', import.meta.url).href },
+    { _id: '3', categories_post_id: { name: 'BUILD PC' }, tittle: 'Build PC trắng đẹp 2024 — Stealth design & hiệu năng cao', createdAt: '2024-05-15T00:00:00.000Z', slug: 'build-pc-trang-dep-2024', image: new URL('../assets/images/blog3.png', import.meta.url).href }
+  ])
+
+  useEffect(() => {
+    fetch(`${API_URL}/posts?status=published`)
+      .then(r => r.json())
+      .then(d => { if (d.success && Array.isArray(d.data) && d.data.length > 0) setBlogs(d.data.slice(0, 3)) })
+      .catch(() => {})
+  }, [])
 
   // Search filter
   const searchQuery = (new URLSearchParams(window.location.search).get('search') || '').toLowerCase()
@@ -548,26 +555,45 @@ export default function Home() {
               <div className="section-label">KIẾN THỨC & HƯỚNG DẪN</div>
               <h2 className="section-title" style={{ marginBottom: 0 }}>NÂNG TẦM TRẢI NGHIỆM</h2>
             </div>
-            <a href="#" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Link to="/blog" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}>
               XEM TẤT CẢ BÀI VIẾT →
-            </a>
+            </Link>
           </div>
           <div className="blog-grid">
-            {blogs.map(blog => (
-              <div key={blog.id} className="blog-card">
-                <div className="blog-img">
-                  <img src={blog.image} alt={blog.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-                <div className="blog-body">
-                  <div className="blog-tag">{blog.tag}</div>
-                  <div className="blog-title">{blog.title}</div>
-                  <div className="blog-footer">
-                    <div className="blog-date">{blog.date}</div>
-                    <a href="#" className="blog-read">Đọc thêm →</a>
+            {blogs.map((blog, index) => {
+              const fallbackImages = [
+                '/src/assets/images/blog1.png',
+                '/src/assets/images/blog2.png',
+                '/src/assets/images/blog3.png'
+              ];
+              const imgUrl = blog.image || blog.thumnail || fallbackImages[index % 3];
+              const resolvedImg = imgUrl.startsWith('http') || imgUrl.startsWith('/src/') 
+                ? imgUrl 
+                : `${API_URL}${imgUrl}`;
+              const tag = blog.categories_post_id?.name || blog.tag || 'TIN TỨC';
+              const title = blog.tittle || blog.title;
+              const date = blog.createdAt ? new Date(blog.createdAt).toLocaleDateString('vi-VN') : (blog.date || '');
+
+              return (
+                <div key={blog._id || blog.id} className="blog-card">
+                  <Link to={`/blog/${blog.slug}`} className="blog-img" style={{ display: 'block', overflow: 'hidden' }}>
+                    <img src={resolvedImg} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </Link>
+                  <div className="blog-body">
+                    <div className="blog-tag">{tag}</div>
+                    <div className="blog-title">
+                      <Link to={`/blog/${blog.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                        {title}
+                      </Link>
+                    </div>
+                    <div className="blog-footer">
+                      <div className="blog-date">{date}</div>
+                      <Link to={`/blog/${blog.slug}`} className="blog-read">Đọc thêm →</Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

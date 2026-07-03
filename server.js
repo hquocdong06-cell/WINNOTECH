@@ -30,6 +30,7 @@ const DeliveryAddressModel = require("./models/DeliveryAddress");
 const { Voucher, UserVoucher } = require("./models/Voucher");
 const { BuildPC, BuildItem } = require("./models/BuildPc");
 const checklogin = require("./middleware/AuthMiddleware");
+const { Post: PostModel, PostCategory: PostCategoryModel } = require("./models/Post");
 const path = require("path");
 const multer = require("multer");
 
@@ -1841,6 +1842,157 @@ app.delete("/favorites/:productId", checklogin, async (req, res) => {
     return res.json({ success: true, message: "Đã xóa khỏi danh sách yêu thích" });
   } catch (error) {
     console.error("Lỗi DELETE favorite:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ============================================================
+// POSTS & BLOG APIs
+// ============================================================
+
+// Middleware kiểm tra quyền Admin
+const checkAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    return res.status(403).json({ success: false, message: "Quyền truy cập bị từ chối. Chỉ dành cho Admin." });
+  }
+};
+
+// GET /post-categories — Lấy danh mục bài viết
+app.get("/post-categories", async (req, res) => {
+  try {
+    const cats = await PostCategoryModel.find({}).lean();
+    return res.json({ success: true, data: cats });
+  } catch (error) {
+    console.error("Lỗi GET post-categories:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// GET /posts — Lấy tất cả bài viết (hỗ trợ lọc theo category_id và status)
+app.get("/posts", async (req, res) => {
+  try {
+    const { categoryId, status } = req.query;
+    const query = {};
+    if (categoryId) query.categories_post_id = categoryId;
+    if (status) {
+      query.status = status;
+    }
+
+    const posts = await PostModel.find(query)
+      .populate("categories_post_id", "name slug")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({ success: true, data: posts });
+  } catch (error) {
+    console.error("Lỗi GET posts:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// GET /posts/:slug — Lấy chi tiết bài viết theo slug
+app.get("/posts/:slug", async (req, res) => {
+  try {
+    const post = await PostModel.findOne({ slug: req.params.slug })
+      .populate("categories_post_id", "name slug")
+      .lean();
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
+    }
+
+    return res.json({ success: true, data: post });
+  } catch (error) {
+    console.error("Lỗi GET post by slug:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// POST /admin/posts — Tạo mới bài viết (Yêu cầu Admin)
+app.post("/admin/posts", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { tittle, slug, content, status, image, thumnail, categories_post_id } = req.body;
+
+    if (!tittle || !slug || !content) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ tiêu đề, slug và nội dung" });
+    }
+
+    // Kiểm tra trùng slug
+    const duplicate = await PostModel.findOne({ slug });
+    if (duplicate) {
+      return res.status(400).json({ success: false, message: "Slug này đã được sử dụng ở bài viết khác" });
+    }
+
+    const newPost = await PostModel.create({
+      tittle,
+      slug,
+      content,
+      status: status || 'draft',
+      image,
+      thumnail: thumnail || image,
+      categories_post_id
+    });
+
+    return res.status(201).json({ success: true, data: newPost });
+  } catch (error) {
+    console.error("Lỗi POST admin posts:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// PUT /admin/posts/:id — Cập nhật bài viết (Yêu cầu Admin)
+app.put("/admin/posts/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { tittle, slug, content, status, image, thumnail, categories_post_id } = req.body;
+    const postId = req.params.id;
+
+    if (!tittle || !slug || !content) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ tiêu đề, slug và nội dung" });
+    }
+
+    // Kiểm tra trùng slug của bài khác
+    const duplicate = await PostModel.findOne({ slug, _id: { $ne: postId } });
+    if (duplicate) {
+      return res.status(400).json({ success: false, message: "Slug này đã được sử dụng ở bài viết khác" });
+    }
+
+    const updated = await PostModel.findByIdAndUpdate(
+      postId,
+      {
+        tittle,
+        slug,
+        content,
+        status,
+        image,
+        thumnail: thumnail || image,
+        categories_post_id
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy bài viết để cập nhật" });
+    }
+
+    return res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error("Lỗi PUT admin posts:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// DELETE /admin/posts/:id — Xóa bài viết (Yêu cầu Admin)
+app.delete("/admin/posts/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const deleted = await PostModel.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
+    }
+    return res.json({ success: true, message: "Đã xóa bài viết thành công" });
+  } catch (error) {
+    console.error("Lỗi DELETE admin posts:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });
