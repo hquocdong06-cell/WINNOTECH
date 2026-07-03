@@ -572,8 +572,18 @@ export default function Profile() {
                   </div>
                   <div className="profile-wishlist-grid">
                     {wishlistProducts.slice(0, 4).map(p => (
-                      <div key={p._id} className="profile-wishlist-card">
-                        <button className="wishlist-heart" onClick={() => handleRemoveFavorite(p._id)}>
+                      <div 
+                        key={p._id} 
+                        className="profile-wishlist-card"
+                        onClick={() => navigate(`/product/${p.slug}`)}
+                      >
+                        <button 
+                          className="wishlist-heart" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveFavorite(p._id);
+                          }}
+                        >
                           <svg viewBox="0 0 24 24" strokeWidth="2" fill="currentColor" stroke="currentColor">
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                           </svg>
@@ -585,7 +595,13 @@ export default function Profile() {
                           <div className="wishlist-name">{p.name}</div>
                           <div className="wishlist-footer">
                             <span className="wishlist-price">{formatPrice(p.price)}</span>
-                            <button className="wishlist-cart-btn" onClick={() => handleAddToCart(p)}>
+                            <button 
+                              className="wishlist-cart-btn" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddToCart(p);
+                              }}
+                            >
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
                               </svg>
@@ -805,23 +821,40 @@ export default function Profile() {
                     ) : (
                       <div className="profile-wishlist-full-grid">
                         {wishlistProducts.map(p => (
-                          <div key={p._id} className="profile-wishlist-full-card">
+                          <div 
+                            key={p._id} 
+                            className="profile-wishlist-full-card"
+                            onClick={() => navigate(`/product/${p.slug}`)}
+                            style={{ cursor: 'pointer' }}
+                          >
                             <div className="profile-wishlist-full-img"><img src={p.image || 'https://via.placeholder.com/150'} alt={p.name} onError={e=>{e.target.style.display='none'}}/></div>
                             <div className="profile-wishlist-full-info">
                               <div className="profile-wishlist-full-name">{p.name}</div>
                               <div className="profile-wishlist-full-price">{formatPrice(p.price)}</div>
                               <div className="profile-wishlist-full-actions">
-                                <button className="profile-wishlist-btn-cart" onClick={() => handleAddToCart(p)}>
+                                <button 
+                                  className="profile-wishlist-btn-cart" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAddToCart(p);
+                                  }}
+                                >
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>Thêm vào giỏ
                                 </button>
-                                <button className="profile-wishlist-btn-remove" onClick={() => handleRemoveFavorite(p._id)}>
+                                <button 
+                                  className="profile-wishlist-btn-remove" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveFavorite(p._id);
+                                  }}
+                                >
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>Xóa
                                 </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
                   )}
                 </div>
               )}

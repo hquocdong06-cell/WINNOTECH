@@ -24,6 +24,11 @@ const getProductImage = (product) => {
   return null
 }
 
+const getCategoryImageUrl = (image) => {
+  if (!image) return null
+  return image.startsWith('http') ? image : `${API_URL}${image}`
+}
+
 const getProductPriceInfo = (product) => {
   let originalPrice = product.price || 0
   let currentPrice = product.price || 0
@@ -286,6 +291,34 @@ export default function Home() {
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [loadingCategories, setLoadingCategories] = useState(true)
 
+  const [currentBanner, setCurrentBanner] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentBanner((prev) => (prev + 1) % 4)
+    }, 7000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const [catPage, setCatPage] = useState(0)
+  const CAT_PAGE_SIZE = 4
+  const activeCategories = categories.filter(c => c.status === 'active')
+  const totalCatPages = Math.ceil(activeCategories.length / CAT_PAGE_SIZE)
+  const currentCategories = activeCategories.slice(catPage * CAT_PAGE_SIZE, (catPage + 1) * CAT_PAGE_SIZE)
+
+  const handleNextCat = () => {
+    if (catPage < totalCatPages - 1) {
+      setCatPage(prev => prev + 1)
+    }
+  }
+
+  const handlePrevCat = () => {
+    if (catPage > 0) {
+      setCatPage(prev => prev - 1)
+    }
+  }
+
+
   // ─── Fetch 1 lần, chia thành 3 nhóm + dedup ─────────────
   useEffect(() => {
     const run = async () => {
@@ -354,7 +387,19 @@ export default function Home() {
       <div className="hero-wrapper">
         <section className="hero">
           <div className="hero-bg">
-            <img src="/src/assets/images/banner11.jpg" alt="Banner" />
+            {[
+              '/src/assets/images/banner11.jpg',
+              '/src/assets/images/banner22.png',
+              '/src/assets/images/banner33.png',
+              '/src/assets/images/banner44.png'
+            ].map((banner, index) => (
+              <img 
+                key={index}
+                src={banner} 
+                alt={`Banner ${index + 1}`} 
+                className={currentBanner === index ? 'active' : ''}
+              />
+            ))}
           </div>
           <div className="hero-inner">
             <div className="hero-text">
@@ -365,14 +410,18 @@ export default function Home() {
             </div>
           </div>
           <div className="hero-pagination">
-            <span className="active">01</span>
-            <div className="hero-pagination-accent"></div>
-            <div className="hero-pagination-line"></div>
-            <span>02</span>
-            <div className="hero-pagination-line"></div>
-            <span>03</span>
-            <div className="hero-pagination-line"></div>
-            <span>04</span>
+            {[0, 1, 2, 3].map((index) => (
+              <React.Fragment key={index}>
+                <span 
+                  className={currentBanner === index ? 'active' : ''}
+                  onClick={() => setCurrentBanner(index)}
+                >
+                  {`0${index + 1}`}
+                </span>
+                {currentBanner === index && <div className="hero-pagination-accent"></div>}
+                {index < 3 && <div className="hero-pagination-line"></div>}
+              </React.Fragment>
+            ))}
           </div>
         </section>
       </div>
@@ -403,8 +452,20 @@ export default function Home() {
       <section className="category-section">
         <div className="section-inner">
           <div className="cat-nav">
-            <button>←</button>
-            <button>→</button>
+            <button 
+              onClick={handlePrevCat} 
+              disabled={catPage === 0 || loadingCategories}
+              style={{ opacity: catPage === 0 ? 0.3 : 1, cursor: catPage === 0 ? 'not-allowed' : 'pointer' }}
+            >
+              ←
+            </button>
+            <button 
+              onClick={handleNextCat} 
+              disabled={catPage >= totalCatPages - 1 || loadingCategories}
+              style={{ opacity: catPage >= totalCatPages - 1 ? 0.3 : 1, cursor: catPage >= totalCatPages - 1 ? 'not-allowed' : 'pointer' }}
+            >
+              →
+            </button>
           </div>
           <div className="cat-layout">
             <div className="cat-left">
@@ -414,24 +475,25 @@ export default function Home() {
             <div className="cat-grid">
               {loadingCategories ? (
                 <div style={{ color: 'var(--text-muted)', padding: '20px' }}>Đang tải danh mục...</div>
-              ) : categories.length === 0 ? (
+              ) : activeCategories.length === 0 ? (
                 <div style={{ color: 'var(--text-muted)', padding: '20px' }}>Chưa có danh mục nào</div>
-              ) : categories.slice(0, 4).map(cat => (
-                <div key={cat._id} className="cat-card">
+              ) : currentCategories.map(cat => (
+                <Link key={cat._id} to={`/${cat.slug}`} className="cat-card" style={{ textDecoration: 'none', display: 'block' }}>
                   <div className="cat-card-name">{cat.name}</div>
                   <div className="cat-card-count">{cat.slug}</div>
                   <div className="cat-card-img">
                     {cat.image
-                      ? <img src={cat.image} alt={cat.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      ? <img src={getCategoryImageUrl(cat.image)} alt={cat.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                       : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '12px' }}>{cat.name}</div>
                     }
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
         </div>
       </section>
+
 
       {/* ── 🔥 BÁN CHẠY NHẤT ── */}
       <ProductSection

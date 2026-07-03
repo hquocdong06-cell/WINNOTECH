@@ -365,11 +365,18 @@ nav {
 }
 
 .hero-bg img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
-  display: block
+  opacity: 0;
+  transition: opacity 0.8s ease-in-out;
+}
+
+.hero-bg img.active {
+  opacity: 1;
 }
 
 .hero-inner {
