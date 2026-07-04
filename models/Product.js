@@ -6,6 +6,7 @@ const ProductSchema = new mongoose.Schema(
     sale: { type: Number, default: 0 },
     thumnail: { type: String }, // Giữ nguyên chính tả từ ERD
     slug: { type: String, required: true, unique: true },
+    stock: { type: Number, default: 0 },
     description: { type: String },
     short_desc: { type: String },
     status: { type: String, default: "active" },

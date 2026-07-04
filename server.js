@@ -1653,14 +1653,38 @@ app.get("/api/cart/:u_id", async (req, res) => {
 app.post("/api/cart", async (req, res) => {
   try {
     const { u_id, variant_id, quantity, price } = req.body;
+
+    const productVariant = await VariantModel.findById(variant_id); 
+
+    if (!productVariant) {
+      return res.status(404).json({ success: false, message: "Sản phẩm không tồn tại" });
+    }
+
+    if (productVariant.stock === 0) {
+      return res.status(400).json({ success: false, message: "Sản phẩm đã hết hàng" });
+    }
+
+    if (quantity > productVariant.stock) {
+      return res.status(400).json({ success: false, message: "Số lượng tồn kho không đủ" });
+    }
+
     let item = await CartItemModel.findOne({ u_id, variant_id });
+    
     if (item) {
+      if (item.quantity + quantity > productVariant.stock) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Chỉ còn ${productVariant.stock} sản phẩm trong kho` 
+        });
+      }
+      
       item.quantity += quantity;
       await item.save();
     } else {
       item = new CartItemModel({ u_id, variant_id, quantity, price });
       await item.save();
     }
+    
     return res.json({ success: true, data: item });
   } catch (error) {
     console.error("Lỗi add cart:", error);
@@ -1704,6 +1728,29 @@ app.delete("/api/cart/:id", async (req, res) => {
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });
+// API Xóa toàn bộ giỏ hàng của 1 user
+app.delete("/api/cart/clear/:u_id", async (req, res) => {
+  try {
+    const { u_id } = req.params;
+
+    const result = await CartItemModel.deleteMany({ u_id: u_id });
+
+    if (result.deletedCount === 0) {
+      return res.json({ success: true, message: "Giỏ hàng đã trống sẵn" });
+    }
+
+    return res.json({
+      success: true,
+      message: "Đã xóa giỏ hàng",
+      deletedCount: result.deletedCount
+    });
+
+  } catch (error) {
+    console.error("Lỗi clear cart:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
 
 // ============================================================
 // POST /upload — upload ảnh dùng chung cho sản phẩm & danh mục
