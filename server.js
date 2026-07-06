@@ -30,7 +30,10 @@ const DeliveryAddressModel = require("./models/DeliveryAddress");
 const { Voucher, UserVoucher } = require("./models/Voucher");
 const { BuildPC, BuildItem } = require("./models/BuildPc");
 const checklogin = require("./middleware/AuthMiddleware");
-const { Post: PostModel, PostCategory: PostCategoryModel } = require("./models/Post");
+const {
+  Post: PostModel,
+  PostCategory: PostCategoryModel,
+} = require("./models/Post");
 const path = require("path");
 const multer = require("multer");
 
@@ -49,12 +52,23 @@ const storage = multer.diskStorage({
     cb(null, uniqueName);
   },
 });
+
 const fileFilter = (req, file, cb) => {
-  const allowed = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+  const allowed = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+  ];
   if (allowed.includes(file.mimetype)) cb(null, true);
   else cb(new Error("Chỉ chấp nhận file ảnh (jpg, png, gif, webp)"), false);
 };
-const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 var cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
@@ -67,19 +81,20 @@ var privatekey = fs.readFileSync("./key/privatekey.pem");
 connectDB();
 
 // CORS — cho phép FE (localhost:5173, 5174, 5175...) gọi API & ảnh
-app.use(cors({
-  origin: function(origin, callback) {
-    // Cho phép requests không có origin (ví dụ từ Postman, mobile)
-    // và mọi cổng localhost 5173–5179 (Vite dev server)
-    if (!origin || /^http:\/\/localhost:(517[0-9])$/.test(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true  // bắt buộc để cookie hoạt động
-}));
-
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Cho phép requests không có origin (ví dụ từ Postman, mobile)
+      // và mọi cổng localhost 5173–5179 (Vite dev server)
+      if (!origin || /^http:\/\/localhost:(517[0-9])$/.test(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true, // bắt buộc để cookie hoạt động
+  }),
+);
 
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -157,23 +172,34 @@ app.post("/register", async (req, res) => {
     const { phone, email, password, confirmPassword } = req.body;
 
     if (!phone || !email || !password || !confirmPassword) {
-      return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ thông tin" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Vui lòng điền đầy đủ thông tin" });
     }
 
     if (password !== confirmPassword) {
-      return res.status(400).json({ success: false, message: "Mật khẩu xác nhận không khớp" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Mật khẩu xác nhận không khớp" });
     }
 
     const existingUser = await UserModel.findOne({
-      $or: [{ email: email }, { phone: phone }]
+      $or: [{ email: email }, { phone: phone }],
     });
 
     if (existingUser) {
       if (existingUser.email === email) {
-        return res.status(409).json({ success: false, message: "Email này đã được sử dụng" });
+        return res
+          .status(409)
+          .json({ success: false, message: "Email này đã được sử dụng" });
       }
       if (existingUser.phone === phone) {
-        return res.status(409).json({ success: false, message: "Số điện thoại này đã được sử dụng" });
+        return res
+          .status(409)
+          .json({
+            success: false,
+            message: "Số điện thoại này đã được sử dụng",
+          });
       }
     }
 
@@ -181,7 +207,7 @@ app.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = new UserModel({
-      name: email.split('@')[0] || 'User',
+      name: email.split("@")[0] || "User",
       phone: phone,
       email: email,
       password: hashedPassword,
@@ -190,7 +216,10 @@ app.post("/register", async (req, res) => {
     const savedUser = await newUser.save();
 
     const payload = { _id: savedUser._id };
-    const token = jwt.sign(payload, privatekey, { algorithm: "RS256", expiresIn: '1y' });
+    const token = jwt.sign(payload, privatekey, {
+      algorithm: "RS256",
+      expiresIn: "1y",
+    });
 
     res.cookie("token", token, {
       httpOnly: true,
@@ -202,85 +231,105 @@ app.post("/register", async (req, res) => {
       success: true,
       message: "Đăng ký thành công",
     });
-
   } catch (error) {
     console.error("Lỗi đăng ký:", error);
-    return res.status(500).json({ success: false, message: "Lỗi server trong quá trình đăng ký" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Lỗi server trong quá trình đăng ký" });
   }
 });
 
 // ============================================================
 // POST /login
 // ============================================================
-passport.use(new LocalStrategy(
-  {
-    usernameField: 'email',   // Khai báo web mình dùng 'email' làm tài khoản
-    passwordField: 'password' // Khai báo trường chứa mật khẩu
-  },
-  async function (email, password, done) {
-    try {
-      // 1. Chui vào DB tìm xem có user nào khớp email không
-      const user = await UserModel.findOne({ email: email });
+passport.use(
+  new LocalStrategy(
+    {
+      usernameField: "email", // Khai báo web mình dùng 'email' làm tài khoản
+      passwordField: "password", // Khai báo trường chứa mật khẩu
+    },
+    async function (email, password, done) {
+      try {
+        // 1. Chui vào DB tìm xem có user nào khớp email không
+        const user = await UserModel.findOne({ email: email });
 
-      // Nếu không tìm thấy
-      if (!user) {
-        return done(null, false, { message: 'Tài khoản không tồn tại!' });
+        // Nếu không tìm thấy
+        if (!user) {
+          return done(null, false, { message: "Tài khoản không tồn tại!" });
+        }
+
+        // 2. So sánh mật khẩu bằng bcrypt (vì đăng ký đã hash password)
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+          return done(null, false, { message: "Mật khẩu không chính xác!" });
+        }
+
+        // 3. Kiểm tra xem tài khoản có bị khóa không (Dựa theo ERD)
+        if (user.status !== "active") {
+          return done(null, false, { message: "Tài khoản đã bị khóa!" });
+        }
+
+        // 4. Nếu mọi thứ xanh chín, ném user vào hàm done để đi tiếp sang API /login
+        return done(null, user);
+      } catch (err) {
+        return done(err);
       }
-
-      // 2. So sánh mật khẩu bằng bcrypt (vì đăng ký đã hash password)
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return done(null, false, { message: 'Mật khẩu không chính xác!' });
-      }
-
-      // 3. Kiểm tra xem tài khoản có bị khóa không (Dựa theo ERD)
-      if (user.status !== 'active') {
-        return done(null, false, { message: 'Tài khoản đã bị khóa!' });
-      }
-
-      // 4. Nếu mọi thứ xanh chín, ném user vào hàm done để đi tiếp sang API /login
-      return done(null, user);
-
-    } catch (err) {
-      return done(err);
-    }
-  }
-));
+    },
+  ),
+);
 
 app.post("/login", function (req, res, next) {
-  passport.authenticate("local", { session: false }, function (err, user, info) {
-    if (err) return res.status(500).json({ success: false, message: "Lỗi server" });
-    if (!user) return res.status(401).json({ success: false, message: info?.message || "Tài khoản hoặc mật khẩu không hợp lệ" });
+  passport.authenticate(
+    "local",
+    { session: false },
+    function (err, user, info) {
+      if (err)
+        return res.status(500).json({ success: false, message: "Lỗi server" });
+      if (!user)
+        return res
+          .status(401)
+          .json({
+            success: false,
+            message: info?.message || "Tài khoản hoặc mật khẩu không hợp lệ",
+          });
 
-    if (req.cookies && req.cookies.token) {
-      return res.status(400).json({
-        success: false,
-        message: "đã đăng nhập rồi, nếu muốn đăng nhập lại thì hãy đăng xuất trước",
-        already_logged_in: true
-      });
-    }
+      if (req.cookies && req.cookies.token) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "đã đăng nhập rồi, nếu muốn đăng nhập lại thì hãy đăng xuất trước",
+          already_logged_in: true,
+        });
+      }
 
-    req.user = user;
-    const payload = { _id: user._id };
+      req.user = user;
+      const payload = { _id: user._id };
 
-    try {
-      const token = jwt.sign(payload, privatekey, { algorithm: "RS256", expiresIn: '1y' });
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: false, // Nếu web chạy HTTPS thì đổi thành true
-        maxAge: 365 * 12 * 30 * 24 * 60 * 60 * 1000, // 1 năm
-      });
-      return res.status(200).json({ success: true, message: "Đăng nhập thành công" });
-    }
-    catch (jwtErr) {
-      return res.status(500).json("Lỗi quá trình ký token");
-    }
-  })(req, res, next);
+      try {
+        const token = jwt.sign(payload, privatekey, {
+          algorithm: "RS256",
+          expiresIn: "1y",
+        });
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: false, // Nếu web chạy HTTPS thì đổi thành true
+          maxAge: 365 * 12 * 30 * 24 * 60 * 60 * 1000, // 1 năm
+        });
+        return res
+          .status(200)
+          .json({ success: true, message: "Đăng nhập thành công" });
+      } catch (jwtErr) {
+        return res.status(500).json("Lỗi quá trình ký token");
+      }
+    },
+  )(req, res, next);
 });
 
 app.get("/logout", function (req, res) {
   res.clearCookie("token");
-  return res.status(200).json({ success: true, message: "Đăng xuất thành công" });
+  return res
+    .status(200)
+    .json({ success: true, message: "Đăng xuất thành công" });
 });
 
 // ============================================================
@@ -292,14 +341,13 @@ app.get("/profile", checklogin, async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Lấy thông tin profile thành công",
-      user: req.user 
+      user: req.user,
     });
-
   } catch (error) {
     console.log("Lỗi API Profile:", error);
     return res.status(500).json({
       success: false,
-      message: "Lỗi Server"
+      message: "Lỗi Server",
     });
   }
 });
@@ -314,7 +362,7 @@ app.get("/auth/me", checklogin, async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Đã đăng nhập",
-      user: req.user
+      user: req.user,
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Lỗi Server" });
@@ -475,14 +523,14 @@ app.get("/products/home/featured", async (req, res) => {
 });
 
 app.get("/products/home/Newest", async (req, res) => {
-  try { 
+  try {
     const newestProducts = await ProductModel.find({})
       .sort({ createdAt: -1 })
       .lean();
 
     // 2. Gom mảng ID sản phẩm để truy vấn hàng loạt (Tối ưu N+1 query)
     const productIds = newestProducts.map((p) => p._id);
-    
+
     // 3. Lấy hình ảnh và biến thể tương ứng
     const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
     const variants = await ProductVariantModel.find({
@@ -490,7 +538,7 @@ app.get("/products/home/Newest", async (req, res) => {
     }).lean();
 
     const variantAttrMap = await getVariantAttributeMap(
-      variants.map((v) => v._id)
+      variants.map((v) => v._id),
     );
 
     const variantsWithAttributes = variants.map((v) => ({
@@ -501,15 +549,14 @@ app.get("/products/home/Newest", async (req, res) => {
     const finalProducts = newestProducts.map((product) => ({
       ...product,
       AnhSP: images.filter(
-        (img) => img.p_id.toString() === product._id.toString()
+        (img) => img.p_id.toString() === product._id.toString(),
       ),
       Variants: variantsWithAttributes.filter(
-        (v) => v.p_id.toString() === product._id.toString()
+        (v) => v.p_id.toString() === product._id.toString(),
       ),
     }));
 
     return res.status(200).json({ success: true, data: finalProducts });
-
   } catch (error) {
     console.error("Lỗi API get newest products:", error);
     return res.status(500).json({
@@ -524,22 +571,27 @@ app.get("/products/home/Sale", async (req, res) => {
     const products = await ProductModel.find({}).lean();
     const productIds = products.map((p) => p._id);
 
-    const variants = await ProductVariantModel.find({ p_id: { $in: productIds } }).lean();
+    const variants = await ProductVariantModel.find({
+      p_id: { $in: productIds },
+    }).lean();
 
     products.forEach((product) => {
-      const myVariants = variants.filter((v) => v.p_id.toString() === product._id.toString());
-      
+      const myVariants = variants.filter(
+        (v) => v.p_id.toString() === product._id.toString(),
+      );
+
       const allPrices = myVariants.map((v) => v.sale_price > 0);
-      product.GiaSaleCaoNhat = allPrices.length > 0 ? Math.max(...allPrices) : 0;
+      product.GiaSaleCaoNhat =
+        allPrices.length > 0 ? Math.max(...allPrices) : 0;
     });
 
     products.sort((a, b) => b.GiaSaleCaoNhat - a.GiaSaleCaoNhat);
-    
-
 
     const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
-    
-    const variantAttrMap = await getVariantAttributeMap(variants.map((v) => v._id));
+
+    const variantAttrMap = await getVariantAttributeMap(
+      variants.map((v) => v._id),
+    );
 
     const variantsWithAttributes = variants.map((v) => ({
       ...v,
@@ -548,18 +600,19 @@ app.get("/products/home/Sale", async (req, res) => {
 
     const finalData = products.map((product) => {
       const productIdStr = product._id.toString();
-      
+
       delete product.GiaSaleCaoNhat;
 
       return {
         ...product,
         AnhSP: images.filter((img) => img.p_id.toString() === productIdStr),
-        Variants: variantsWithAttributes.filter((v) => v.p_id.toString() === productIdStr),
+        Variants: variantsWithAttributes.filter(
+          (v) => v.p_id.toString() === productIdStr,
+        ),
       };
     });
 
     return res.status(200).json({ success: true, data: finalData });
-
   } catch (error) {
     console.error("Lỗi API get sale products:", error);
     return res.status(500).json({
@@ -671,9 +724,22 @@ app.get("/brands", async (req, res) => {
 // ============================================================
 app.post("/products", async (req, res) => {
   try {
-    const { name, cat_id, brand_id, price, sale, thumnail, description, short_desc, stock, status } = req.body;
+    const {
+      name,
+      cat_id,
+      brand_id,
+      price,
+      sale,
+      thumnail,
+      description,
+      short_desc,
+      stock,
+      status,
+    } = req.body;
     if (!name) {
-      return res.status(400).json({ success: false, message: "Vui lòng nhập tên sản phẩm" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Vui lòng nhập tên sản phẩm" });
     }
 
     let slug = slugify(name);
@@ -693,7 +759,7 @@ app.post("/products", async (req, res) => {
       short_desc: short_desc || "",
       status: status || "active",
       cat_id: cat_id || null,
-      brand_id: brand_id || null
+      brand_id: brand_id || null,
     });
 
     if (thumnail) {
@@ -701,7 +767,7 @@ app.post("/products", async (req, res) => {
         p_id: newProduct._id,
         url: thumnail,
         alt: name,
-        is_main: true
+        is_main: true,
       });
     }
 
@@ -716,7 +782,7 @@ app.post("/products", async (req, res) => {
       sale_price: salePrice,
       status: "active",
       stock_quantity: Number(stock) || 0,
-      p_id: newProduct._id
+      p_id: newProduct._id,
     });
 
     return res.status(201).json({
@@ -724,12 +790,14 @@ app.post("/products", async (req, res) => {
       message: "Thêm sản phẩm thành công",
       data: {
         product: newProduct,
-        variant: defaultVariant
-      }
+        variant: defaultVariant,
+      },
     });
   } catch (error) {
     console.error("Lỗi API tạo sản phẩm:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server khi tạo sản phẩm" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Lỗi Server khi tạo sản phẩm" });
   }
 });
 
@@ -739,11 +807,24 @@ app.post("/products", async (req, res) => {
 app.put("/products/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, cat_id, brand_id, price, sale, thumnail, description, short_desc, stock, status } = req.body;
-    
+    const {
+      name,
+      cat_id,
+      brand_id,
+      price,
+      sale,
+      thumnail,
+      description,
+      short_desc,
+      stock,
+      status,
+    } = req.body;
+
     const product = await ProductModel.findById(id);
     if (!product) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy sản phẩm" });
     }
 
     if (name) product.name = name;
@@ -759,7 +840,9 @@ app.put("/products/:id", async (req, res) => {
       let slug = slugify(name);
       let uniqueSlug = slug;
       let count = 1;
-      while (await ProductModel.findOne({ slug: uniqueSlug, _id: { $ne: id } })) {
+      while (
+        await ProductModel.findOne({ slug: uniqueSlug, _id: { $ne: id } })
+      ) {
         uniqueSlug = `${slug}-${count}`;
         count++;
       }
@@ -772,7 +855,7 @@ app.put("/products/:id", async (req, res) => {
       await ImageModel.findOneAndUpdate(
         { p_id: id, is_main: true },
         { url: thumnail, alt: product.name },
-        { upsert: true }
+        { upsert: true },
       );
     }
 
@@ -780,7 +863,10 @@ app.put("/products/:id", async (req, res) => {
     const saleNum = product.sale || 0;
     const salePrice = saleNum > 0 ? priceNum * (1 - saleNum / 100) : 0;
 
-    let variant = await ProductVariantModel.findOne({ p_id: id, variant_name: "Mặc định" });
+    let variant = await ProductVariantModel.findOne({
+      p_id: id,
+      variant_name: "Mặc định",
+    });
     if (variant) {
       if (price !== undefined) variant.price = priceNum;
       variant.sale_price = salePrice;
@@ -795,18 +881,20 @@ app.put("/products/:id", async (req, res) => {
         sale_price: salePrice,
         status: product.status,
         stock_quantity: stock !== undefined ? Number(stock) : 0,
-        p_id: product._id
+        p_id: product._id,
       });
     }
 
     return res.json({
       success: true,
       message: "Cập nhật sản phẩm thành công",
-      data: { product, variant }
+      data: { product, variant },
     });
   } catch (error) {
     console.error("Lỗi API cập nhật sản phẩm:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server khi cập nhật sản phẩm" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Lỗi Server khi cập nhật sản phẩm" });
   }
 });
 
@@ -818,7 +906,9 @@ app.delete("/products/:id", async (req, res) => {
     const { id } = req.params;
     const product = await ProductModel.findById(id);
     if (!product) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy sản phẩm" });
     }
 
     // Xóa ảnh file vật lý nếu có trên server
@@ -838,7 +928,9 @@ app.delete("/products/:id", async (req, res) => {
     return res.json({ success: true, message: "Xóa sản phẩm thành công" });
   } catch (error) {
     console.error("Lỗi API xóa sản phẩm:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server khi xóa sản phẩm" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Lỗi Server khi xóa sản phẩm" });
   }
 });
 
@@ -850,23 +942,30 @@ app.patch("/products/:id/status", async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     if (!status || !["active", "hidden", "draft"].includes(status)) {
-      return res.status(400).json({ success: false, message: "Trạng thái không hợp lệ" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Trạng thái không hợp lệ" });
     }
     const product = await ProductModel.findByIdAndUpdate(
       id,
       { status },
-      { new: true }
+      { new: true },
     );
     if (!product) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy sản phẩm" });
     }
-    return res.json({ success: true, message: "Cập nhật trạng thái thành công", data: product });
+    return res.json({
+      success: true,
+      message: "Cập nhật trạng thái thành công",
+      data: product,
+    });
   } catch (error) {
     console.error("Lỗi API cập nhật trạng thái:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });
-
 
 // ============================================================
 // GET /categories/:slug — sản phẩm theo danh mục
@@ -917,7 +1016,10 @@ app.get("/categories/:slug", async (req, res, next) => {
       ),
     }));
 
-    return res.json({ success: true, data: { category, products: finalProducts } });
+    return res.json({
+      success: true,
+      data: { category, products: finalProducts },
+    });
   } catch (error) {
     console.log("Lỗi API get products by category:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
@@ -988,25 +1090,33 @@ app.post("/cart/add", async (req, res) => {
 
       const reqQty = parseInt(quantity) || 1;
       if (variant.stock_quantity !== undefined && variant.stock_quantity <= 0) {
-        return res.status(400).json({ success: false, message: "Sản phẩm này đã hết hàng!" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Sản phẩm này đã hết hàng!" });
       }
 
       if (existingCart) {
         const totalQty = existingCart.quantity + reqQty;
-        if (variant.stock_quantity !== undefined && totalQty > variant.stock_quantity) {
+        if (
+          variant.stock_quantity !== undefined &&
+          totalQty > variant.stock_quantity
+        ) {
           return res.status(400).json({
             success: false,
-            message: `Không thể thêm! Số lượng trong giỏ (${existingCart.quantity}) + thêm mới (${reqQty}) vượt quá tồn kho (${variant.stock_quantity} sản phẩm).`
+            message: `Không thể thêm! Số lượng trong giỏ (${existingCart.quantity}) + thêm mới (${reqQty}) vượt quá tồn kho (${variant.stock_quantity} sản phẩm).`,
           });
         }
         existingCart.quantity = totalQty;
         existingCart.price = currentPrice;
         await existingCart.save();
       } else {
-        if (variant.stock_quantity !== undefined && reqQty > variant.stock_quantity) {
+        if (
+          variant.stock_quantity !== undefined &&
+          reqQty > variant.stock_quantity
+        ) {
           return res.status(400).json({
             success: false,
-            message: `Không thể thêm! Số lượng yêu cầu (${reqQty}) vượt quá tồn kho (${variant.stock_quantity} sản phẩm).`
+            message: `Không thể thêm! Số lượng yêu cầu (${reqQty}) vượt quá tồn kho (${variant.stock_quantity} sản phẩm).`,
           });
         }
         await CartItemModel.create({
@@ -1027,12 +1137,17 @@ app.post("/cart/add", async (req, res) => {
       // Chưa login — trả về để FE lưu LocalStorage
       const reqQty = parseInt(quantity) || 1;
       if (variant.stock_quantity !== undefined && variant.stock_quantity <= 0) {
-        return res.status(400).json({ success: false, message: "Sản phẩm này đã hết hàng!" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Sản phẩm này đã hết hàng!" });
       }
-      if (variant.stock_quantity !== undefined && reqQty > variant.stock_quantity) {
+      if (
+        variant.stock_quantity !== undefined &&
+        reqQty > variant.stock_quantity
+      ) {
         return res.status(400).json({
           success: false,
-          message: `Không thể thêm! Số lượng yêu cầu (${reqQty}) vượt quá tồn kho (${variant.stock_quantity} sản phẩm).`
+          message: `Không thể thêm! Số lượng yêu cầu (${reqQty}) vượt quá tồn kho (${variant.stock_quantity} sản phẩm).`,
         });
       }
 
@@ -1092,15 +1207,15 @@ app.get("/cart", checklogin, async (req, res) => {
         cartItem: ci,
         variant: variant
           ? {
-            ...variant,
-            Attributes: variantAttrMap[variant._id.toString()] || [],
-          }
+              ...variant,
+              Attributes: variantAttrMap[variant._id.toString()] || [],
+            }
           : null,
         product: product || null,
         AnhSP: product
           ? images.filter(
-            (img) => img.p_id.toString() === product._id.toString(),
-          )
+              (img) => img.p_id.toString() === product._id.toString(),
+            )
           : [],
       };
     });
@@ -1127,7 +1242,10 @@ app.put("/cart/:cartItemId", checklogin, async (req, res) => {
         .json({ success: false, message: "Số lượng không hợp lệ" });
     }
 
-    const cartItem = await CartItemModel.findOne({ _id: cartItemId, u_id: req.user._id });
+    const cartItem = await CartItemModel.findOne({
+      _id: cartItemId,
+      u_id: req.user._id,
+    });
     if (!cartItem) {
       return res.status(404).json({
         success: false,
@@ -1136,10 +1254,14 @@ app.put("/cart/:cartItemId", checklogin, async (req, res) => {
     }
 
     const variant = await ProductVariantModel.findById(cartItem.variant_id);
-    if (variant && variant.stock_quantity !== undefined && parseInt(quantity) > variant.stock_quantity) {
+    if (
+      variant &&
+      variant.stock_quantity !== undefined &&
+      parseInt(quantity) > variant.stock_quantity
+    ) {
       return res.status(400).json({
         success: false,
-        message: `Số lượng yêu cầu (${quantity}) vượt quá tồn kho hiện tại (${variant.stock_quantity} sản phẩm).`
+        message: `Số lượng yêu cầu (${quantity}) vượt quá tồn kho hiện tại (${variant.stock_quantity} sản phẩm).`,
       });
     }
 
@@ -1397,15 +1519,15 @@ app.get("/orders/:orderId", checklogin, async (req, res) => {
         ...oi,
         variant: variant
           ? {
-            ...variant,
-            Attributes: variantAttrMap[variant._id.toString()] || [],
-          }
+              ...variant,
+              Attributes: variantAttrMap[variant._id.toString()] || [],
+            }
           : null,
         product: product || null,
         AnhSP: product
           ? images.filter(
-            (img) => img.p_id.toString() === product._id.toString(),
-          )
+              (img) => img.p_id.toString() === product._id.toString(),
+            )
           : [],
       };
     });
@@ -1638,7 +1760,9 @@ app.get("/vouchers/check/:code", checklogin, async (req, res) => {
 app.get("/api/cart/:u_id", async (req, res) => {
   try {
     const { u_id } = req.params;
-    const cartItems = await CartItemModel.find({ u_id }).populate("variant_id").lean();
+    const cartItems = await CartItemModel.find({ u_id })
+      .populate("variant_id")
+      .lean();
     return res.json({ success: true, data: cartItems });
   } catch (error) {
     console.error("Lỗi get cart:", error);
@@ -1651,37 +1775,43 @@ app.post("/api/cart", async (req, res) => {
   try {
     const { u_id, variant_id, quantity, price } = req.body;
 
-    const productVariant = await VariantModel.findById(variant_id); 
+    const productVariant = await VariantModel.findById(variant_id);
 
     if (!productVariant) {
-      return res.status(404).json({ success: false, message: "Sản phẩm không tồn tại" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Sản phẩm không tồn tại" });
     }
 
     if (productVariant.stock === 0) {
-      return res.status(400).json({ success: false, message: "Sản phẩm đã hết hàng" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Sản phẩm đã hết hàng" });
     }
 
     if (quantity > productVariant.stock) {
-      return res.status(400).json({ success: false, message: "Số lượng tồn kho không đủ" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Số lượng tồn kho không đủ" });
     }
 
     let item = await CartItemModel.findOne({ u_id, variant_id });
-    
+
     if (item) {
       if (item.quantity + quantity > productVariant.stock) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Chỉ còn ${productVariant.stock} sản phẩm trong kho` 
+        return res.status(400).json({
+          success: false,
+          message: `Chỉ còn ${productVariant.stock} sản phẩm trong kho`,
         });
       }
-      
+
       item.quantity += quantity;
       await item.save();
     } else {
       item = new CartItemModel({ u_id, variant_id, quantity, price });
       await item.save();
     }
-    
+
     return res.json({ success: true, data: item });
   } catch (error) {
     console.error("Lỗi add cart:", error);
@@ -1695,14 +1825,20 @@ app.put("/api/cart/:id", async (req, res) => {
     const { quantity } = req.body;
     const cartItem = await CartItemModel.findById(req.params.id);
     if (!cartItem) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy item trong giỏ" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy item trong giỏ" });
     }
 
     const variant = await ProductVariantModel.findById(cartItem.variant_id);
-    if (variant && variant.stock_quantity !== undefined && parseInt(quantity) > variant.stock_quantity) {
+    if (
+      variant &&
+      variant.stock_quantity !== undefined &&
+      parseInt(quantity) > variant.stock_quantity
+    ) {
       return res.status(400).json({
         success: false,
-        message: `Số lượng yêu cầu (${quantity}) vượt quá tồn kho hiện tại (${variant.stock_quantity} sản phẩm).`
+        message: `Số lượng yêu cầu (${quantity}) vượt quá tồn kho hiện tại (${variant.stock_quantity} sản phẩm).`,
       });
     }
 
@@ -1739,15 +1875,13 @@ app.delete("/api/cart/clear/:u_id", async (req, res) => {
     return res.json({
       success: true,
       message: "Đã xóa giỏ hàng",
-      deletedCount: result.deletedCount
+      deletedCount: result.deletedCount,
     });
-
   } catch (error) {
     console.error("Lỗi clear cart:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });
-
 
 // ============================================================
 // POST /upload — upload ảnh dùng chung cho sản phẩm & danh mục
@@ -1755,13 +1889,17 @@ app.delete("/api/cart/clear/:u_id", async (req, res) => {
 app.post("/upload", upload.single("image"), (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "Không có file nào được upload" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Không có file nào được upload" });
     }
     const url = `/public/images/uploads/${req.file.filename}`;
     return res.json({ success: true, url, message: "Upload ảnh thành công" });
   } catch (error) {
     console.error("Lỗi upload ảnh:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server khi upload ảnh" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Lỗi Server khi upload ảnh" });
   }
 });
 
@@ -1772,7 +1910,9 @@ app.post("/categories", async (req, res) => {
   try {
     const { name, image } = req.body;
     if (!name) {
-      return res.status(400).json({ success: false, message: "Vui lòng nhập tên danh mục" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Vui lòng nhập tên danh mục" });
     }
     let slug = slugify(name);
     let uniqueSlug = slug;
@@ -1787,10 +1927,18 @@ app.post("/categories", async (req, res) => {
       image: image || "",
       status: "active",
     });
-    return res.status(201).json({ success: true, message: "Tạo danh mục thành công", data: newCat });
+    return res
+      .status(201)
+      .json({
+        success: true,
+        message: "Tạo danh mục thành công",
+        data: newCat,
+      });
   } catch (error) {
     console.error("Lỗi tạo danh mục:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server khi tạo danh mục" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Lỗi Server khi tạo danh mục" });
   }
 });
 
@@ -1803,14 +1951,18 @@ app.put("/categories/:id", async (req, res) => {
     const { name, image } = req.body;
     const cat = await CategoryModel.findById(id);
     if (!cat) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy danh mục" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy danh mục" });
     }
     if (name) {
       cat.name = name;
       let slug = slugify(name);
       let uniqueSlug = slug;
       let count = 1;
-      while (await CategoryModel.findOne({ slug: uniqueSlug, _id: { $ne: id } })) {
+      while (
+        await CategoryModel.findOne({ slug: uniqueSlug, _id: { $ne: id } })
+      ) {
         uniqueSlug = `${slug}-${count}`;
         count++;
       }
@@ -1818,10 +1970,16 @@ app.put("/categories/:id", async (req, res) => {
     }
     if (image !== undefined) cat.image = image;
     await cat.save();
-    return res.json({ success: true, message: "Cập nhật danh mục thành công", data: cat });
+    return res.json({
+      success: true,
+      message: "Cập nhật danh mục thành công",
+      data: cat,
+    });
   } catch (error) {
     console.error("Lỗi cập nhật danh mục:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server khi cập nhật danh mục" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Lỗi Server khi cập nhật danh mục" });
   }
 });
 
@@ -1833,7 +1991,9 @@ app.delete("/categories/:id", async (req, res) => {
     const { id } = req.params;
     const cat = await CategoryModel.findById(id);
     if (!cat) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy danh mục" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy danh mục" });
     }
     // Kiểm tra còn sản phẩm thuộc danh mục không
     const productCount = await ProductModel.countDocuments({ cat_id: id });
@@ -1852,10 +2012,11 @@ app.delete("/categories/:id", async (req, res) => {
     return res.json({ success: true, message: "Xóa danh mục thành công" });
   } catch (error) {
     console.error("Lỗi xóa danh mục:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server khi xóa danh mục" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Lỗi Server khi xóa danh mục" });
   }
 });
-
 
 // ============================================================
 // FAVORITES (YÊU THÍCH) ROUTES
@@ -1865,7 +2026,7 @@ app.delete("/categories/:id", async (req, res) => {
 app.get("/favorites/ids", checklogin, async (req, res) => {
   try {
     const favs = await Favorite.find({ user_id: req.user._id }).lean();
-    const ids = favs.map(f => f.product_id.toString());
+    const ids = favs.map((f) => f.product_id.toString());
     return res.json({ success: true, data: ids });
   } catch (error) {
     console.error("Lỗi GET favorites/ids:", error);
@@ -1879,18 +2040,27 @@ app.get("/favorites", checklogin, async (req, res) => {
     const favs = await Favorite.find({ user_id: req.user._id }).lean();
     if (favs.length === 0) return res.json({ success: true, data: [] });
 
-    const productIds = favs.map(f => f.product_id);
+    const productIds = favs.map((f) => f.product_id);
     const products = await ProductModel.find({ _id: { $in: productIds } })
       .populate("cat_id brand_id")
       .lean();
     const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
-    const variants = await ProductVariantModel.find({ p_id: { $in: productIds } }).lean();
+    const variants = await ProductVariantModel.find({
+      p_id: { $in: productIds },
+    }).lean();
 
-    const data = products.map(p => {
-      const pImages = images.filter(img => img.p_id.toString() === p._id.toString());
-      const pVariants = variants.filter(v => v.p_id.toString() === p._id.toString());
+    const data = products.map((p) => {
+      const pImages = images.filter(
+        (img) => img.p_id.toString() === p._id.toString(),
+      );
+      const pVariants = variants.filter(
+        (v) => v.p_id.toString() === p._id.toString(),
+      );
       const firstVariant = pVariants[0];
-      const price = firstVariant?.sale_price > 0 ? firstVariant.sale_price : (firstVariant?.price || 0);
+      const price =
+        firstVariant?.sale_price > 0
+          ? firstVariant.sale_price
+          : firstVariant?.price || 0;
       const thumb = pImages[0]?.url || p.thumnail || "";
       return {
         _id: p._id,
@@ -1899,7 +2069,11 @@ app.get("/favorites", checklogin, async (req, res) => {
         price,
         originalPrice: firstVariant?.price || 0,
         hasSale: firstVariant?.sale_price > 0,
-        image: thumb.startsWith("http") ? thumb : thumb ? `http://localhost:3000${thumb}` : "",
+        image: thumb.startsWith("http")
+          ? thumb
+          : thumb
+            ? `http://localhost:3000${thumb}`
+            : "",
         cat_id: p.cat_id,
       };
     });
@@ -1918,15 +2092,26 @@ app.post("/favorites/:productId", checklogin, async (req, res) => {
     const user_id = req.user._id;
 
     const product = await ProductModel.findById(productId).lean();
-    if (!product) return res.status(404).json({ success: false, message: "Sản phẩm không tồn tại" });
+    if (!product)
+      return res
+        .status(404)
+        .json({ success: false, message: "Sản phẩm không tồn tại" });
 
     const existing = await Favorite.findOne({ user_id, product_id: productId });
     if (existing) {
       await Favorite.findByIdAndDelete(existing._id);
-      return res.json({ success: true, action: "removed", message: "Đã xóa khỏi danh sách yêu thích" });
+      return res.json({
+        success: true,
+        action: "removed",
+        message: "Đã xóa khỏi danh sách yêu thích",
+      });
     } else {
       await Favorite.create({ user_id, product_id: productId });
-      return res.json({ success: true, action: "added", message: "Đã thêm vào danh sách yêu thích" });
+      return res.json({
+        success: true,
+        action: "added",
+        message: "Đã thêm vào danh sách yêu thích",
+      });
     }
   } catch (error) {
     console.error("Lỗi toggle favorite:", error);
@@ -1938,8 +2123,14 @@ app.post("/favorites/:productId", checklogin, async (req, res) => {
 app.delete("/favorites/:productId", checklogin, async (req, res) => {
   try {
     const { productId } = req.params;
-    await Favorite.findOneAndDelete({ user_id: req.user._id, product_id: productId });
-    return res.json({ success: true, message: "Đã xóa khỏi danh sách yêu thích" });
+    await Favorite.findOneAndDelete({
+      user_id: req.user._id,
+      product_id: productId,
+    });
+    return res.json({
+      success: true,
+      message: "Đã xóa khỏi danh sách yêu thích",
+    });
   } catch (error) {
     console.error("Lỗi DELETE favorite:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
@@ -1952,10 +2143,15 @@ app.delete("/favorites/:productId", checklogin, async (req, res) => {
 
 // Middleware kiểm tra quyền Admin
 const checkAdmin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  if (req.user && req.user.role === "admin") {
     next();
   } else {
-    return res.status(403).json({ success: false, message: "Quyền truy cập bị từ chối. Chỉ dành cho Admin." });
+    return res
+      .status(403)
+      .json({
+        success: false,
+        message: "Quyền truy cập bị từ chối. Chỉ dành cho Admin.",
+      });
   }
 };
 
@@ -2000,7 +2196,9 @@ app.get("/posts/:slug", async (req, res) => {
       .lean();
 
     if (!post) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy bài viết" });
     }
 
     return res.json({ success: true, data: post });
@@ -2013,26 +2211,44 @@ app.get("/posts/:slug", async (req, res) => {
 // POST /admin/posts — Tạo mới bài viết (Yêu cầu Admin)
 app.post("/admin/posts", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { tittle, slug, content, status, image, thumnail, categories_post_id } = req.body;
+    const {
+      tittle,
+      slug,
+      content,
+      status,
+      image,
+      thumnail,
+      categories_post_id,
+    } = req.body;
 
     if (!tittle || !slug || !content) {
-      return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ tiêu đề, slug và nội dung" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Vui lòng nhập đầy đủ tiêu đề, slug và nội dung",
+        });
     }
 
     // Kiểm tra trùng slug
     const duplicate = await PostModel.findOne({ slug });
     if (duplicate) {
-      return res.status(400).json({ success: false, message: "Slug này đã được sử dụng ở bài viết khác" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Slug này đã được sử dụng ở bài viết khác",
+        });
     }
 
     const newPost = await PostModel.create({
       tittle,
       slug,
       content,
-      status: status || 'draft',
+      status: status || "draft",
       image,
       thumnail: thumnail || image,
-      categories_post_id
+      categories_post_id,
     });
 
     return res.status(201).json({ success: true, data: newPost });
@@ -2045,17 +2261,35 @@ app.post("/admin/posts", checklogin, checkAdmin, async (req, res) => {
 // PUT /admin/posts/:id — Cập nhật bài viết (Yêu cầu Admin)
 app.put("/admin/posts/:id", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { tittle, slug, content, status, image, thumnail, categories_post_id } = req.body;
+    const {
+      tittle,
+      slug,
+      content,
+      status,
+      image,
+      thumnail,
+      categories_post_id,
+    } = req.body;
     const postId = req.params.id;
 
     if (!tittle || !slug || !content) {
-      return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ tiêu đề, slug và nội dung" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Vui lòng nhập đầy đủ tiêu đề, slug và nội dung",
+        });
     }
 
     // Kiểm tra trùng slug của bài khác
     const duplicate = await PostModel.findOne({ slug, _id: { $ne: postId } });
     if (duplicate) {
-      return res.status(400).json({ success: false, message: "Slug này đã được sử dụng ở bài viết khác" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Slug này đã được sử dụng ở bài viết khác",
+        });
     }
 
     const updated = await PostModel.findByIdAndUpdate(
@@ -2067,13 +2301,18 @@ app.put("/admin/posts/:id", checklogin, checkAdmin, async (req, res) => {
         status,
         image,
         thumnail: thumnail || image,
-        categories_post_id
+        categories_post_id,
       },
-      { new: true }
+      { new: true },
     );
 
     if (!updated) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy bài viết để cập nhật" });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Không tìm thấy bài viết để cập nhật",
+        });
     }
 
     return res.json({ success: true, data: updated });
@@ -2088,7 +2327,9 @@ app.delete("/admin/posts/:id", checklogin, checkAdmin, async (req, res) => {
   try {
     const deleted = await PostModel.findByIdAndDelete(req.params.id);
     if (!deleted) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy bài viết" });
     }
     return res.json({ success: true, message: "Đã xóa bài viết thành công" });
   } catch (error) {
@@ -2102,85 +2343,125 @@ app.delete("/admin/posts/:id", checklogin, checkAdmin, async (req, res) => {
 // ============================================================
 
 // GET /admin/products/:productId/variants — Lấy danh sách biến thể
-app.get("/admin/products/:productId/variants", checklogin, checkAdmin, async (req, res) => {
-  try {
-    const variants = await ProductVariantModel.find({ p_id: req.params.productId }).lean();
-    return res.json({ success: true, data: variants });
-  } catch (error) {
-    console.error("Lỗi GET admin variants:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
-  }
-});
+app.get(
+  "/admin/products/:productId/variants",
+  checklogin,
+  checkAdmin,
+  async (req, res) => {
+    try {
+      const variants = await ProductVariantModel.find({
+        p_id: req.params.productId,
+      }).lean();
+      return res.json({ success: true, data: variants });
+    } catch (error) {
+      console.error("Lỗi GET admin variants:", error);
+      return res.status(500).json({ success: false, message: "Lỗi Server" });
+    }
+  },
+);
 
 // POST /admin/products/:productId/variants — Thêm biến thể mới
-app.post("/admin/products/:productId/variants", checklogin, checkAdmin, async (req, res) => {
-  try {
-    const { productId } = req.params;
-    const { variant_name, price, sku, sale_price, stock_quantity, status } = req.body;
-    if (!variant_name || !price || !sku) {
-      return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ tên, SKU và giá của biến thể" });
+app.post(
+  "/admin/products/:productId/variants",
+  checklogin,
+  checkAdmin,
+  async (req, res) => {
+    try {
+      const { productId } = req.params;
+      const { variant_name, price, sku, sale_price, stock_quantity, status } =
+        req.body;
+      if (!variant_name || !price || !sku) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "Vui lòng nhập đầy đủ tên, SKU và giá của biến thể",
+          });
+      }
+      const v = await ProductVariantModel.create({
+        variant_name,
+        price: Number(price) || 0,
+        sku,
+        sale_price: Number(sale_price) || 0,
+        stock_quantity: Number(stock_quantity) || 0,
+        status: status || "active",
+        p_id: productId,
+      });
+      return res.status(201).json({ success: true, data: v });
+    } catch (error) {
+      console.error("Lỗi POST admin variants:", error);
+      return res.status(500).json({ success: false, message: "Lỗi Server" });
     }
-    const v = await ProductVariantModel.create({
-      variant_name,
-      price: Number(price) || 0,
-      sku,
-      sale_price: Number(sale_price) || 0,
-      stock_quantity: Number(stock_quantity) || 0,
-      status: status || "active",
-      p_id: productId
-    });
-    return res.status(201).json({ success: true, data: v });
-  } catch (error) {
-    console.error("Lỗi POST admin variants:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
-  }
-});
+  },
+);
 
 // PUT /admin/variants/:variantId — Cập nhật biến thể
-app.put("/admin/variants/:variantId", checklogin, checkAdmin, async (req, res) => {
-  try {
-    const { variantId } = req.params;
-    const { variant_name, price, sku, sale_price, stock_quantity, status } = req.body;
-    const v = await ProductVariantModel.findByIdAndUpdate(
-      variantId,
-      { variant_name, price: Number(price) || 0, sku, sale_price: Number(sale_price) || 0, stock_quantity: Number(stock_quantity) || 0, status },
-      { new: true }
-    );
-    if (!v) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy biến thể" });
+app.put(
+  "/admin/variants/:variantId",
+  checklogin,
+  checkAdmin,
+  async (req, res) => {
+    try {
+      const { variantId } = req.params;
+      const { variant_name, price, sku, sale_price, stock_quantity, status } =
+        req.body;
+      const v = await ProductVariantModel.findByIdAndUpdate(
+        variantId,
+        {
+          variant_name,
+          price: Number(price) || 0,
+          sku,
+          sale_price: Number(sale_price) || 0,
+          stock_quantity: Number(stock_quantity) || 0,
+          status,
+        },
+        { new: true },
+      );
+      if (!v) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Không tìm thấy biến thể" });
+      }
+      return res.json({ success: true, data: v });
+    } catch (error) {
+      console.error("Lỗi PUT admin variants:", error);
+      return res.status(500).json({ success: false, message: "Lỗi Server" });
     }
-    return res.json({ success: true, data: v });
-  } catch (error) {
-    console.error("Lỗi PUT admin variants:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
-  }
-});
+  },
+);
 
 // DELETE /admin/variants/:variantId — Xóa biến thể
-app.delete("/admin/variants/:variantId", checklogin, checkAdmin, async (req, res) => {
-  try {
-    const { variantId } = req.params;
-    const deleted = await ProductVariantModel.findByIdAndDelete(variantId);
-    if (!deleted) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy biến thể" });
+app.delete(
+  "/admin/variants/:variantId",
+  checklogin,
+  checkAdmin,
+  async (req, res) => {
+    try {
+      const { variantId } = req.params;
+      const deleted = await ProductVariantModel.findByIdAndDelete(variantId);
+      if (!deleted) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Không tìm thấy biến thể" });
+      }
+      return res.json({ success: true, message: "Xóa biến thể thành công" });
+    } catch (error) {
+      console.error("Lỗi DELETE admin variants:", error);
+      return res.status(500).json({ success: false, message: "Lỗi Server" });
     }
-    return res.json({ success: true, message: "Xóa biến thể thành công" });
-  } catch (error) {
-    console.error("Lỗi DELETE admin variants:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
-  }
-});
+  },
+);
 
-//Deliver 
+//Deliver
 // ==========================================
 // 1. API: HIỂN THỊ ĐỊA CHỈ CỦA NGƯỜI DÙNG (GET)
 // ==========================================
 app.get("/profile/deliver", checklogin, async (req, res) => {
   try {
-    const userId = req.user._id; 
+    const userId = req.user._id;
 
     const addresses = await DeliveryAddressModel.find({ id_user: userId })
-      .sort({ set_default: -1 }) 
+      .sort({ set_default: -1 })
       .lean();
 
     return res.status(200).json({ success: true, data: addresses });
@@ -2196,24 +2477,34 @@ app.get("/profile/deliver", checklogin, async (req, res) => {
 app.post("/profile/deliver", checklogin, async (req, res) => {
   try {
     const userId = req.user._id;
-    let { Name, Phone, address, set_default } = req.body; 
+    let { Name, Phone, address, set_default } = req.body;
 
+    const addressCount = await DeliveryAddressModel.countDocuments({
+      id_user: userId,
+    });
 
-    const addressCount = await DeliveryAddressModel.countDocuments({ id_user: userId });
-    
     if (addressCount === 0) {
       set_default = true;
     }
 
     if (set_default) {
-      await DeliveryAddressModel.updateMany({ id_user: userId }, { set_default: false });
+      await DeliveryAddressModel.updateMany(
+        { id_user: userId },
+        { set_default: false },
+      );
     }
 
     const newAddress = await DeliveryAddressModel.create({
-      id_user: userId, Name, Phone, address, set_default: set_default || false
+      id_user: userId,
+      Name,
+      Phone,
+      address,
+      set_default: set_default || false,
     });
 
-    return res.status(200).json({ success: true, message: "Thêm thành công", data: newAddress });
+    return res
+      .status(200)
+      .json({ success: true, message: "Thêm thành công", data: newAddress });
   } catch (error) {
     console.error("Lỗi thêm địa chỉ:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
@@ -2229,57 +2520,46 @@ app.put("/profile/deliver/:id", checklogin, async (req, res) => {
     const addressId = req.params.id;
     const { Name, Phone, address, set_default } = req.body;
 
-
     const updateData = {};
-    
+
     if (Name) updateData.Name = Name;
     if (Phone) updateData.Phone = Phone;
     if (address) updateData.address = address;
 
-
-    if (set_default !== undefined) { 
+    if (set_default !== undefined) {
       updateData.set_default = set_default;
 
       if (set_default === true) {
         await DeliveryAddressModel.updateMany(
           { id_user: userId, _id: { $ne: addressId } },
-          { $set: { set_default: false } }
+          { $set: { set_default: false } },
         );
       }
     }
 
-
     const updatedAddress = await DeliveryAddressModel.findOneAndUpdate(
-      { _id: addressId, id_user: userId }, 
-      { $set: updateData }, 
-      { new: true }
+      { _id: addressId, id_user: userId },
+      { $set: updateData },
+      { new: true },
     );
 
     if (!updatedAddress) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy địa chỉ hợp lệ" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy địa chỉ hợp lệ" });
     }
 
-    return res.status(200).json({ 
-      success: true, 
-      message: "Cập nhật địa chỉ thành công", 
-      data: updatedAddress 
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật địa chỉ thành công",
+      data: updatedAddress,
     });
-
   } catch (error) {
     console.error("Lỗi cập nhật địa chỉ:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });
 
-
-
-
-
-
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
-
-
-
-
