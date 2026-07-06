@@ -289,12 +289,10 @@ app.get("/logout", function (req, res) {
 
 app.get("/profile", checklogin, async (req, res) => {
   try {
-
-
     return res.status(200).json({
       success: true,
       message: "Lấy thông tin profile thành công",
-      user: req.user // Quăng thẳng cục data xịn (đã giấu pass) về cho FE
+      user: req.user 
     });
 
   } catch (error) {
@@ -304,8 +302,7 @@ app.get("/profile", checklogin, async (req, res) => {
       message: "Lỗi Server"
     });
   }
-}); // Nãy bác copy thiếu cái dấu đóng ngoặc này nhé =)))
-
+});
 // ============================================================
 // GET /auth/me — kiểm tra user đang đăng nhập không
 // FE gọi API này trước khi hiển thị trang Login
@@ -2174,6 +2171,115 @@ app.delete("/admin/variants/:variantId", checklogin, checkAdmin, async (req, res
   }
 });
 
+//Deliver 
+// ==========================================
+// 1. API: HIỂN THỊ ĐỊA CHỈ CỦA NGƯỜI DÙNG (GET)
+// ==========================================
+app.get("/profile/deliver", checklogin, async (req, res) => {
+  try {
+    const userId = req.user._id; 
+
+    const addresses = await DeliveryAddressModel.find({ id_user: userId })
+      .sort({ set_default: -1 }) 
+      .lean();
+
+    return res.status(200).json({ success: true, data: addresses });
+  } catch (error) {
+    console.error("Lỗi lấy địa chỉ:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ==========================================
+// 2. API: THÊM MỚI ĐỊA CHỈ (POST)
+// ==========================================
+app.post("/profile/deliver", checklogin, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    let { Name, Phone, address, set_default } = req.body; 
+
+
+    const addressCount = await DeliveryAddressModel.countDocuments({ id_user: userId });
+    
+    if (addressCount === 0) {
+      set_default = true;
+    }
+
+    if (set_default) {
+      await DeliveryAddressModel.updateMany({ id_user: userId }, { set_default: false });
+    }
+
+    const newAddress = await DeliveryAddressModel.create({
+      id_user: userId, Name, Phone, address, set_default: set_default || false
+    });
+
+    return res.status(200).json({ success: true, message: "Thêm thành công", data: newAddress });
+  } catch (error) {
+    console.error("Lỗi thêm địa chỉ:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ==========================================
+// 3. API: CHỈNH SỬA ĐỊA CHỈ (PUT)
+// ==========================================
+app.put("/profile/deliver/:id", checklogin, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const addressId = req.params.id;
+    const { Name, Phone, address, set_default } = req.body;
+
+
+    const updateData = {};
+    
+    if (Name) updateData.Name = Name;
+    if (Phone) updateData.Phone = Phone;
+    if (address) updateData.address = address;
+
+
+    if (set_default !== undefined) { 
+      updateData.set_default = set_default;
+
+      if (set_default === true) {
+        await DeliveryAddressModel.updateMany(
+          { id_user: userId, _id: { $ne: addressId } },
+          { $set: { set_default: false } }
+        );
+      }
+    }
+
+
+    const updatedAddress = await DeliveryAddressModel.findOneAndUpdate(
+      { _id: addressId, id_user: userId }, 
+      { $set: updateData }, 
+      { new: true }
+    );
+
+    if (!updatedAddress) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy địa chỉ hợp lệ" });
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Cập nhật địa chỉ thành công", 
+      data: updatedAddress 
+    });
+
+  } catch (error) {
+    console.error("Lỗi cập nhật địa chỉ:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+
+
+
+
+
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
+
+
+
+
