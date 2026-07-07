@@ -7,11 +7,13 @@ import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/product-detail.css'
 import { findMockProductBySlug, mockProducts } from '../data/mockProducts'
 import useFavorite from '../hooks/useFavorite'
+import { useAuth } from '../hooks/useAuth'
 
 const API_URL = 'http://localhost:3000'
 
 export default function ProductDetail() {
   const dispatch = useDispatch()
+  const { isLoggedIn } = useAuth()
   const { slug } = useParams()
   const [selectedVariantId, setSelectedVariantId] = useState('')
   const [quantity, setQuantity] = useState(1)
@@ -203,6 +205,23 @@ export default function ProductDetail() {
       return
     }
 
+    const cartPayload = {
+      product_id: product._id,
+      variant_id: activeVariant._id,
+      name: product.name + (activeVariant.attributes && activeVariant.attributes.length > 0 ? ` - ${activeVariant.attributes.map(a => a.value).join(', ')}` : ''),
+      price: currentPrice,
+      quantity,
+      image: images[0]
+    }
+
+    // Chưa đăng nhập → lưu localStorage qua Redux
+    if (!isLoggedIn) {
+      dispatch(addToCart(cartPayload))
+      toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`, { position: 'bottom-right', autoClose: 3000 })
+      return
+    }
+
+    // Đã đăng nhập → đồng bộ lên DB
     try {
       const res = await fetch(`${API_URL}/cart/add`, {
         method: 'POST',
@@ -214,28 +233,18 @@ export default function ProductDetail() {
         })
       })
       const data = await res.json()
-      
-      if (res.status === 401 || !data.success) {
-        toast.error(data.message || 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!', {
-          position: "bottom-right",
-          autoClose: 3000,
-        })
+
+      if (res.status === 401) {
+        toast.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!', { position: 'bottom-right', autoClose: 3000 })
+        return
+      }
+      if (!data.success) {
+        toast.error(data.message || 'Lỗi khi thêm sản phẩm vào giỏ hàng!', { position: 'bottom-right', autoClose: 3000 })
         return
       }
 
-      dispatch(addToCart({
-        product_id: product._id,
-        variant_id: activeVariant._id,
-        name: product.name + (activeVariant.attributes && activeVariant.attributes.length > 0 ? ` - ${activeVariant.attributes.map(a => a.value).join(', ')}` : ''),
-        price: currentPrice,
-        quantity,
-        image: images[0]
-      }))
-
-      toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`, {
-        position: "bottom-right",
-        autoClose: 3000,
-      })
+      dispatch(addToCart(cartPayload))
+      toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`, { position: 'bottom-right', autoClose: 3000 })
     } catch (err) {
       toast.error('Không thể kết nối tới server!', { position: 'bottom-right' })
     }

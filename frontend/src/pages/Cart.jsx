@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
-import { setCart, clearCart } from '../redux/cartSlice'
+import { setCart, clearCart, removeFromCart, selectCartItems } from '../redux/cartSlice'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/cart.css'
 
@@ -29,6 +29,9 @@ export default function Cart() {
   const [updatingId, setUpdatingId]     = useState(null)   // cartItemId đang update
   const [deletingId, setDeletingId]     = useState(null)   // cartItemId đang xóa
   const [error, setError]               = useState(null)
+
+  // Cart từ localStorage (dùng khi chưa login)
+  const localCartItems = useSelector(selectCartItems)
 
   const [discountCode, setDiscountCode]     = useState('')
   const [appliedDiscount, setAppliedDiscount] = useState(0)
@@ -210,8 +213,11 @@ export default function Cart() {
     )
   }
 
-  // Chưa đăng nhập
+  // Chưa đăng nhập → hiện giỏ hàng từ localStorage (chế độ xem)
   if (!isLoggedIn) {
+    const localTotal = localCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    const localShipping = localTotal >= 1000000 ? 0 : 50000
+
     return (
       <DefaultLayout>
         <div className="breadcrumb-section">
@@ -222,23 +228,85 @@ export default function Cart() {
         </div>
         <div className="cart-section">
           <div className="section-inner">
-            <div className="empty-cart" style={{ textAlign: 'center', padding: '80px 24px' }}>
-              <div style={{ fontSize: '56px', marginBottom: '16px' }}>🔒</div>
-              <h2 style={{ color: '#fff', fontSize: '20px', marginBottom: '8px' }}>Vui lòng đăng nhập</h2>
-              <p style={{ color: '#aaa', marginBottom: '24px' }}>Bạn cần đăng nhập để xem giỏ hàng của mình</p>
-              <Link to="/auth" className="btn-continue-shopping" style={{
-                display: 'inline-block',
-                background: '#c8e600',
-                color: '#000',
-                padding: '12px 32px',
-                borderRadius: '4px',
-                fontWeight: 700,
-                textDecoration: 'none',
-                fontSize: '14px'
-              }}>
-                ĐĂNG NHẬP NGAY
-              </Link>
+            <h1 className="cart-title">GIỂ HÀNG CỦA BẠN</h1>
+
+            {/* Banner gợi ý đăng nhập */}
+            <div style={{
+              background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+              border: '1px solid #c8e600',
+              borderRadius: '8px',
+              padding: '12px 20px',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <span style={{ color: '#c8e600', fontSize: '14px' }}>
+                🔐 Bạn đang xem giỏ hàng tạm thời. Đăng nhập để lưu và thanh toán!
+              </span>
+              <Link to="/login" style={{
+                background: '#c8e600', color: '#000',
+                padding: '8px 20px', borderRadius: '4px',
+                fontWeight: 700, fontSize: '13px', textDecoration: 'none'
+              }}>ĐĂNG NHẬP NGAY</Link>
             </div>
+
+            {localCartItems.length === 0 ? (
+              <div className="empty-cart">
+                <div className="empty-icon">🛒</div>
+                <p>Giỏ hàng của bạn đang trống</p>
+                <Link to="/" className="btn-continue-shopping">TIẾP TỤC MUA SẮM</Link>
+              </div>
+            ) : (
+              <div className="cart-grid">
+                <div className="cart-items">
+                  {localCartItems.map((item, idx) => (
+                    <div key={`${item.product_id}-${item.variant_id}-${idx}`} className="cart-item">
+                      <div className="item-image" style={{ background: '#1a1a1a', borderRadius: '6px', overflow: 'hidden' }}>
+                        {item.image
+                          ? <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: '28px' }}>📦</div>
+                        }
+                      </div>
+                      <div className="item-info">
+                        <div className="item-name">{item.name}</div>
+                      </div>
+                      <div className="item-price">{formatPrice(item.price)}</div>
+                      <div className="item-quantity">
+                        <span style={{ color: '#aaa', fontSize: '13px' }}>Số lượng: {item.quantity}</span>
+                      </div>
+                      <div className="item-subtotal" style={{ minWidth: '110px', textAlign: 'right', fontWeight: 700, color: '#c8e600', fontSize: '14px' }}>
+                        {formatPrice(item.price * item.quantity)}
+                      </div>
+                    </div>
+                  ))}
+                  <Link to="/" className="btn-continue-shopping-link">← TIẾP TỤC MUA SẮM</Link>
+                </div>
+
+                <aside className="order-summary">
+                  <h2>TÓM TẮT ĐƠN HÀNG</h2>
+                  <div className="summary-item">
+                    <span>Tạm tính ({localCartItems.length} sản phẩm)</span>
+                    <span>{formatPrice(localTotal)}</span>
+                  </div>
+                  <div className="summary-item">
+                    <span>Phí vận chuyển</span>
+                    <span style={{ color: localShipping === 0 ? '#22c55e' : 'inherit' }}>
+                      {localShipping === 0 ? 'Miễn phí' : formatPrice(localShipping)}
+                    </span>
+                  </div>
+                  <div className="summary-total">
+                    <span>Tổng cộng</span>
+                    <span className="total-price">{formatPrice(localTotal + localShipping)}</span>
+                  </div>
+                  <Link to="/login" className="btn-checkout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none' }}>
+                    ĐĂNG NHẬP ĐỂ THANH TOÁN
+                  </Link>
+                </aside>
+              </div>
+            )}
           </div>
         </div>
       </DefaultLayout>

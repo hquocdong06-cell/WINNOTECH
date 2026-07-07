@@ -6,6 +6,7 @@ import { toast } from 'react-toastify'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/home.css'
 import useFavorite from '../hooks/useFavorite'
+import { useAuth } from '../hooks/useAuth'
 
 const API_URL = 'http://localhost:3000'
 const PAGE_SIZE = 10
@@ -305,7 +306,9 @@ const hasTrueDiscount = (product) =>
 // ============================================================
 export default function Home() {
   const dispatch = useDispatch()
+  const { isLoggedIn } = useAuth()
   const { favoriteIds, toggleFavorite } = useFavorite()
+
   const [featuredProducts, setFeaturedProducts] = useState([])  // Bán chạy
   const [newProducts, setNewProducts]           = useState([])  // Hàng mới
   const [saleProducts, setSaleProducts]         = useState([])  // Giảm giá
@@ -326,41 +329,45 @@ export default function Home() {
       toast.error('Sản phẩm này đã hết hàng!', { position: 'bottom-right' })
       return
     }
-    
+
+    const currentPrice = defaultVariant.sale_price > 0 ? defaultVariant.sale_price : defaultVariant.price
+    const imgUrl = getProductImage(product)
+    const cartPayload = {
+      product_id: product._id,
+      variant_id: defaultVariant._id,
+      name: product.name,
+      price: currentPrice,
+      quantity: 1,
+      image: imgUrl
+    }
+
+    // Chưa đăng nhập → lưu localStorage qua Redux, không cần gọi API
+    if (!isLoggedIn) {
+      dispatch(addToCart(cartPayload))
+      toast.success('Đã thêm vào giỏ hàng!', { position: 'bottom-right' })
+      return
+    }
+
+    // Đã đăng nhập → đồng bộ lên DB
     try {
       const res = await fetch(`${API_URL}/cart/add`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          variant_id: defaultVariant._id,
-          quantity: 1
-        })
+        body: JSON.stringify({ variant_id: defaultVariant._id, quantity: 1 })
       })
       const data = await res.json()
-      
-      if (res.status === 400 || !data.success) {
+
+      if (res.status === 401) {
+        toast.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!', { position: 'bottom-right' })
+        return
+      }
+      if (!data.success) {
         toast.error(data.message || 'Lỗi khi thêm sản phẩm vào giỏ hàng!', { position: 'bottom-right' })
         return
       }
 
-      if (res.status === 401) {
-        toast.error('Vui lòng đăng nhập để mua hàng!', { position: 'bottom-right' })
-        return
-      }
-
-      const currentPrice = defaultVariant.sale_price > 0 ? defaultVariant.sale_price : defaultVariant.price
-      const imgUrl = getProductImage(product)
-
-      dispatch(addToCart({
-        product_id: product._id,
-        variant_id: defaultVariant._id,
-        name: product.name,
-        price: currentPrice,
-        quantity: 1,
-        image: imgUrl
-      }))
-
+      dispatch(addToCart(cartPayload))
       toast.success('Đã thêm sản phẩm vào giỏ hàng!', { position: 'bottom-right' })
     } catch (err) {
       toast.error('Lỗi khi thêm vào giỏ hàng!', { position: 'bottom-right' })
