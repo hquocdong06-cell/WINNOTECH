@@ -2,8 +2,10 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const connectDB = require("./config/db");
 const cors = require("cors");
+require('dotenv').config();
 
 var app = express();
+const nodemailer = require('nodemailer');
 var port = 3000;
 const passport = require("passport");
 var LocalStrategy = require("passport-local").Strategy;
@@ -2559,6 +2561,68 @@ app.put("/profile/deliver/:id", checklogin, async (req, res) => {
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });
+
+// ==========================================
+// CẤU HÌNH BỘ GỬI MAIL
+// ==========================================
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_APP_PASSWORD
+  }
+});
+
+app.post("/contact", async (req, res) => {
+  try {
+    const { name, email, content } = req.body;
+
+    // 2. Kiểm tra xem FE có truyền thiếu trường nào không (Validation cơ bản)
+    if (!name || !email || !content) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Vui lòng nhập đầy đủ Tên, Email và Nội dung liên hệ!" 
+      });
+    }
+
+    // 3. Thiết kế nội dung Email (Bọc HTML cho đẹp mắt)
+    const mailOptions = {
+      from: `"Form Liên Hệ Web" <email_gui_cua_bac@gmail.com>`, 
+      to: 'contact.winnotech@gmail.com', // EMAIL CỦA WINNOTech (Nơi nhận thông báo)
+      subject: `[WINNOTech] Khách hàng ${name} gửi liên hệ mới!`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
+          <h2 style="color: #2c3e50;">📩 YÊU CẦU LIÊN HỆ MỚI</h2>
+          <p><strong>Họ và tên:</strong> ${name}</p>
+          <p><strong>Email khách hàng:</strong> <a href="mailto:${email}">${email}</a></p>
+          <hr style="border: 0; border-top: 1px solid #eee;" />
+          <p><strong>Nội dung tin nhắn:</strong></p>
+          <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #3498db; font-style: italic;">
+            "${content}"
+          </div>
+          <hr style="border: 0; border-top: 1px solid #eee;" />
+          <p style="font-size: 12px; color: #7f8c8d;">Hệ thống thông báo tự động từ Website WINNOTech.</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Gửi liên hệ thành công! WINNOTech sẽ phản hồi bác sớm nhất." 
+    });
+
+  } catch (error) {
+    console.error("Lỗi gửi mail liên hệ:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Lỗi Server, không thể gửi mail liên hệ lúc này." 
+    });
+  }
+});
+
+
 
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
