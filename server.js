@@ -11,6 +11,7 @@ const passport = require("passport");
 var LocalStrategy = require("passport-local").Strategy;
 
 const bcrypt = require("bcrypt");
+const crypto = require('crypto');
 const UserModel = require("./models/User");
 const CategoryModel = require("./models/Category");
 const ProductModel = require("./models/Product");
@@ -2622,7 +2623,201 @@ app.post("/contact", async (req, res) => {
   }
 });
 
+//API quên mật khẩu (chưa login)
+// ========================================================
+// API gửi mail (quên mật khẩu)
+// ========================================================
+app.post("/api/auth/forgot-password", async (req, res) => {
+  try {
+    const { identifier } = req.body;
+    
+    if (!identifier) return res.status(400).json({ success: false, message: "Thiếu thông tin!" });
 
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+    const query = isEmail ? { email: identifier } : { phone: identifier };
+
+    const user = await UserModel.findOne(query).select('_id name email').lean();
+    
+    if (!user) return res.status(404).json({ success: false, message: "Tài khoản không tồn tại." });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = Date.now() + 5 * 60 * 1000;
+
+    await UserModel.updateOne(
+      { _id: user._id },
+      { $set: { resetPasswordOTP: otp, resetPasswordExpires: expires } }
+    );
+
+    const mailOptions = {
+      from: `"WINNOTech Support" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: "[WINNOTech] Mã xác nhận khôi phục",
+      html: `<h3>Chào ${user.name},</h3><p>Mã OTP của bạn là: <b style="font-size: 24px; color: blue;">${otp}</b> (Hết hạn sau 5 phút).</p>`
+    };
+    await transporter.sendMail(mailOptions);
+
+    return res.status(200).json({ success: true, message: "Đã gửi OTP qua Email!" });
+  } catch (error) {
+    console.error("Lỗi:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ========================================================
+// API đổi mật khẩu (sau khi có OTP)
+// ========================================================
+app.post("/api/auth/reset-password", async (req, res) => {
+  try {
+    const { identifier, otp, newPassword, confirmPassword } = req.body;
+
+    if (!identifier || !otp || !newPassword || !confirmPassword) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin!" });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, message: "Mật khẩu không khớp!" });
+    }
+
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+    const query = isEmail ? { email: identifier } : { phone: identifier };
+
+    const user = await UserModel.findOne(query).select('_id resetPasswordOTP resetPasswordExpires').lean();
+
+    if (!user) return res.status(404).json({ success: false, message: "Không tìm thấy user." });
+    if (user.resetPasswordOTP !== otp) return res.status(400).json({ success: false, message: "Mã OTP sai!" });
+    if (user.resetPasswordExpires < Date.now()) return res.status(400).json({ success: false, message: "OTP hết hạn!" });
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await UserModel.updateOne(
+      { _id: user._id },
+      { 
+        $set: { password: hashedPassword },
+        $unset: { resetPasswordOTP: "", resetPasswordExpires: "" } 
+      }
+    );
+
+    return res.status(200).json({ success: true, message: "Đổi mật khẩu thành công!" });
+  } catch (error) {
+    console.error("Lỗi:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// API quên mật khẩu (đã login) 
+// ========================================================
+// [PRIVATE] 3. YÊU CẦU OTP (KHI ĐÃ LOGIN)
+// ========================================================
+app.post("/profile/change-password/request-otp", checklogin, async (req, res) => {
+  try {
+
+    const { _id, email, name } = req.user; 
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = Date.now() + 5 * 60 * 1000;
+
+    await UserModel.updateOne(
+      { _id: _id },
+      { $set: { resetPasswordOTP: otp, resetPasswordExpires: expires } }
+    );
+
+    const mailOptions = {
+      from: `"WINNOTech Security" <${process.env.EMAIL_USER}>`,
+      to: email, 
+      subject: "[WINNOTech] Mã Đổi Mật Khẩu",
+      html: `<h3>Chào ${name},</h3><p>Mã OTP đổi pass của bạn là: <b style="font-size: 24px; color: red;">${otp}</b></p>`
+    };
+    await transporter.sendMail(mailOptions);
+
+    return res.status(200).json({ success: true, message: "Đã gửi OTP!" });
+  } catch (error) {
+    console.error("Lỗi:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ========================================================
+// [PRIVATE] 4. NHẬP OTP & ĐỔI PASS (KHI ĐÃ LOGIN)
+// ========================================================
+app.post("/profile/change-password/verify", checklogin, async (req, res) => {
+  try {
+    const { otp, newPassword, confirmPassword } = req.body;
+    const userId = req.user._id;
+
+    if (!otp || !newPassword || !confirmPassword) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin!" });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, message: "Mật khẩu không khớp!" });
+    }
+
+    // TỐI ƯU: Đâm thẳng bằng findById, lấy đúng 2 cột cần thiết
+    const user = await UserModel.findById(userId).select('resetPasswordOTP resetPasswordExpires').lean();
+
+    if (user.resetPasswordOTP !== otp) return res.status(400).json({ success: false, message: "Mã OTP sai!" });
+    if (user.resetPasswordExpires < Date.now()) return res.status(400).json({ success: false, message: "OTP hết hạn!" });
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // TỐI ƯU: Dùng $unset để dọn dẹp DB
+    await UserModel.updateOne(
+      { _id: userId },
+      { 
+        $set: { password: hashedPassword },
+        $unset: { resetPasswordOTP: "", resetPasswordExpires: "" } 
+      }
+    );
+
+    return res.status(200).json({ success: true, message: "Bảo mật tài khoản thành công!" });
+  } catch (error) {
+    console.error("Lỗi:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+app.put("/profile/change-password", checklogin, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ các trường mật khẩu!" });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, message: "Mật khẩu xác nhận không khớp!" });
+    }
+    if (oldPassword === newPassword) {
+      return res.status(400).json({ success: false, message: "Mật khẩu mới không được trùng với mật khẩu cũ!" });
+    }
+
+
+    const user = await UserModel.findById(userId).select('password').lean();
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy tài khoản!" });
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: "Mật khẩu cũ không chính xác!" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await UserModel.updateOne(
+      { _id: userId },
+      { $set: { password: hashedPassword } }
+    );
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Cập nhật mật khẩu mới thành công!" 
+    });
+
+  } catch (error) {
+    console.error("Lỗi đổi mật khẩu trực tiếp:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server, không thể đổi mật khẩu lúc này." });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);

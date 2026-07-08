@@ -6,6 +6,8 @@ const UserSchema = new mongoose.Schema({
     password: { type: String, required: true },
     role: { type: String, default: 'user' },
     status: { type: String, default: 'active' },
+    resetPasswordOTP: { type: String, default: null },
+    resetPasswordExpires: { type: Date, default: null },
     avatar: { type: String }
 }, { timestamps: true, 
     collection: 'User'
