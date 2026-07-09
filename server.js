@@ -39,6 +39,9 @@ const {
 } = require("./models/Post");
 const path = require("path");
 const multer = require("multer");
+const {VNPay, ignoreLogger, ProductCode, VnpLocate, dataFormat} = require("vnpay");
+const QRCode = require('qrcode');
+const moment = require('moment');
 
 // ============================================================
 // MULTER — cấu hình upload file ảnh
@@ -2819,6 +2822,122 @@ app.put("/profile/change-password", checklogin, async (req, res) => {
   }
 });
 
+// ==========================================
+// KHỞI TẠO VNPAY
+// ==========================================
+const vnpay = new VNPay({
+  tmnCode: '6HB2Z3XJ', 
+  secureSecret: '17H264J1LFK5JZGCF08DBXTAUMC4WIO3', 
+  vnpayHost: 'https://sandbox.vnpayment.vn',
+  testMode: true, 
+});
+
+// ==========================================
+// API TẠO ĐƠN & XUẤT MÃ QR VNPAY (CẬP NHẬT THEO PRODUCT VARIANT)
+// ==========================================
+app.post("/api/create-qr", checklogin, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { items, Name, Phone, Adress, payment_method, voucher_code, voucher_value } = req.body;
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({ success: false, message: "Giỏ hàng trống!" });
+    }
+
+    // ==========================================
+    // 1. KIỂM TRA TỒN KHO TRÊN BẢNG PRODUCT VARIANT
+    // ==========================================
+    let subTotal = 0;
+    const orderItemsData = []; 
+
+    for (let item of items) {
+      // Tìm biến thể trong bảng ProductVariant (Bác nhớ import Model ProductVariant vào nhé)
+      const variant = await ProductVariant.findById(item.variant_id).lean();
+
+      if (!variant || variant.stock < item.Quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Sản phẩm ${variant ? variant.name : ''} đã hết hàng hoặc không đủ số lượng trong kho!`
+        });
+      }
+
+      // Tính tiền dựa trên giá của Biến thể (thường biến thể sẽ có giá riêng hoặc lấy giá gốc)
+      const currentPrice = variant.price || 0;
+      subTotal += currentPrice * item.Quantity;
+
+      // Đẩy vào mảng tạm để chờ Insert vào OrderItem
+      orderItemsData.push({
+        variant_id: variant._id, 
+        Quantity: item.Quantity,
+        price: currentPrice
+      });
+    }
+
+    // Tính toán Voucher
+    const discount = voucher_value ? Number(voucher_value) : 0;
+    const totalAmount = subTotal - discount > 0 ? subTotal - discount : 0;
+
+    // ==========================================
+    // 2. TẠO HÓA ĐƠN GỐC (BẢNG ORDER)
+    // ==========================================
+    const orderCode = `WN${moment().format('DDHHmmss')}`;
+
+    const newOrder = await Order.create({
+      user_id: userId,
+      code: orderCode,
+      status: 'pending',
+      Name: Name,
+      Phone: Phone,
+      Adress: Adress, 
+      total_amount: totalAmount,
+      payment_method: payment_method,
+      voucher_code: voucher_code,
+      voucher_value: discount,
+      payment_status: 'unpaid'
+    });
+
+    // ==========================================
+    // 3. TẠO CHI TIẾT HÓA ĐƠN (BẢNG ORDER ITEM)
+    // ==========================================
+    const finalOrderItems = orderItemsData.map(item => ({
+      ...item,
+      order_id: newOrder._id
+    }));
+
+    await OrderItem.insertMany(finalOrderItems);
+
+    // ==========================================
+    // 4. TẠO LINK VÀ MÃ QR VNPAY BẰNG THƯ VIỆN
+    // ==========================================
+    const ipAddr = req.headers['x-forwarded-for'] || req.connection.remoteAddress || '127.0.0.1';
+
+    const paymentUrl = vnpay.buildPaymentUrl({
+      vnp_Amount: totalAmount, 
+      vnp_IpAddr: ipAddr,
+      vnp_TxnRef: orderCode,
+      vnp_OrderInfo: `Thanh toan don hang ${orderCode}`,
+      vnp_OrderType: 'other',
+      vnp_ReturnUrl: 'http://localhost:5173/payment-result', // Link FE nhận kết quả
+    });
+
+    // Tạo QR Code dạng Base64 từ Link VNPay
+    const qrImageBase64 = await QRCode.toDataURL(paymentUrl);
+
+    // ==========================================
+    // 5. TRẢ DỮ LIỆU VỀ FRONTEND
+    // ==========================================
+    return res.status(200).json({
+      success: true,
+      message: "Tạo đơn và mã QR thành công!",
+      qrCode: qrImageBase64,
+      paymentUrl: paymentUrl
+    });
+
+  } catch (error) {
+    console.error("Lỗi tạo QR VNPay:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server, không thể tạo mã QR lúc này" });
+  }
+});
 
 
 app.listen(port, () => {
