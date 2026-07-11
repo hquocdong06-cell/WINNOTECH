@@ -9,6 +9,7 @@ const nodemailer = require('nodemailer');
 var port = 3000;
 const passport = require("passport");
 var LocalStrategy = require("passport-local").Strategy;
+const Fuse = require('fuse.js');
 
 const bcrypt = require("bcrypt");
 const crypto = require('crypto');
@@ -2939,6 +2940,59 @@ app.post("/api/create-qr", checklogin, async (req, res) => {
   }
 });
 
+//api tìm kiếm sản phẩm
+
+app.get("/products/search", async (req, res) => {
+  try {
+    // 1. Hứng từ khóa từ query url (VD: /products/search?q=figre)
+    const { q } = req.query;
+
+    if (!q) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập từ khóa tìm kiếm!" });
+    }
+
+    // 2. Lấy dữ liệu sản phẩm từ DB lên
+    // Tối ưu: Bác chỉ select tên, giá, ảnh... để Fuse.js xử lý cho nhanh, không lấy data thừa
+    const products = await ProductModel.find({ status: 'active' })
+                                     .select('_id name price images')
+                                     .lean();
+
+    if (!products || products.length === 0) {
+      return res.status(200).json({ success: true, data: [], message: "Không có sản phẩm nào phù hợp!" });
+    }
+
+    // 3. Cấu hình bộ lọc tìm kiếm thông minh Fuse.js
+    const fuseOptions = {
+      keys: [
+        "name", // Trường ưu tiên tìm kiếm là tên sản phẩm
+        // "description", // Bác có thể mở comment dòng này nếu muốn tìm cả trong mô tả
+      ],
+      isCaseSensitive: false, // Phân biệt hoa thường: Không
+      includeScore: true,     // Bật cái này để xem độ chính xác
+      threshold: 0.4,         // Mức độ cho phép sai số (Từ 0.0 đến 1.0). 
+                              // 0.0 là phải giống hệt 100%. 0.3 - 0.4 là mức hoàn hảo cho việc gõ sai/thiếu dấu.
+    };
+
+    const fuse = new Fuse(products, fuseOptions);
+
+    // 4. Thực hiện tìm kiếm với từ khóa
+    const result = fuse.search(q);
+
+    // Fuse.js sẽ trả về một mảng có dạng: [{ item: { _id, name... }, refIndex, score }]
+    // Nên mình cần map lại để chỉ lấy cái ruột (item) trả về cho Frontend dễ dùng
+    const finalProducts = result.map(match => match.item);
+
+    return res.status(200).json({
+      success: true,
+      message: `Tìm thấy ${finalProducts.length} kết quả`,
+      data: finalProducts
+    });
+
+  } catch (error) {
+    console.error("Lỗi tìm kiếm sản phẩm:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
