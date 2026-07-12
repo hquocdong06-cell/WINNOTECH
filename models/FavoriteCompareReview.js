@@ -15,7 +15,7 @@ const CompareSchema = new mongoose.Schema({
 //-----------------------------------
 // models/Review.js
 const ReviewSchema = new mongoose.Schema({
-    id_oderitems: { type: mongoose.Schema.Types.ObjectId, ref: 'OrderItem' }, // Giữ nguyên chính tả
+    id_oderitems: { type: mongoose.Schema.Types.ObjectId, ref: 'OrderItem' },
     content: { type: String, required: true },
     star_number: { type: Number, required: true, min: 1, max: 5 }
 });

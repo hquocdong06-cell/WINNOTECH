@@ -3004,28 +3004,25 @@ app.post("/favorites/add", checklogin, async (req, res) => {
       return res.status(400).json({ success: false, message: "ID sản phẩm không hợp lệ!" });
     }
 
-    // 2. Truy xuất DB xem sản phẩm đó có thực sự tồn tại không
-    // Dùng .lean() ở đây cho nhẹ vì ta chỉ cần check tồn tại, không cần lưu lại
     const productExists = await Product.findById(product_id).lean();
     if (!productExists) {
       return res.status(404).json({ success: false, message: "Sản phẩm không tồn tại trên hệ thống!" });
     }
 
-    // 3. Kiểm tra xem user này đã yêu thích sản phẩm này trước đó chưa
     const existingFavorite = await Favorite.findOne({ user_id: user_id, product_id: product_id });
 
     if (existingFavorite) {
-      // 4a. NẾU ĐÃ YÊU THÍCH RỒI: Thực hiện thao tác HỦY (Unlike)
+
       await Favorite.deleteOne({ _id: existingFavorite._id });
       
       return res.status(200).json({ 
         success: true, 
         message: "Đã bỏ yêu thích sản phẩm",
-        isFavorited: false // Báo cho FE biết trạng thái hiện tại để đổi màu nút trái tim
+        isFavorited: false 
       });
       
     } else {
-      // 4b. NẾU CHƯA YÊU THÍCH: Thêm mới vào bảng Favorite
+
       await Favorite.create({ 
         user_id: user_id, 
         product_id: product_id 
@@ -3034,7 +3031,7 @@ app.post("/favorites/add", checklogin, async (req, res) => {
       return res.status(200).json({ 
         success: true, 
         message: "Đã thêm sản phẩm vào danh sách yêu thích",
-        isFavorited: true // Báo cho FE biết để tô đỏ nút trái tim
+        isFavorited: true 
       });
     }
 
@@ -3044,17 +3041,15 @@ app.post("/favorites/add", checklogin, async (req, res) => {
   }
 });
 
-
 app.get("/favorites/list", checklogin, async (req, res) => {
   try {
     const user_id = req.user._id;
 
     const favoriteProducts = await Favorite.find({ user_id: user_id }).populate('product_id', 'name price images');
 
-    // 2. Trả về kết quả cho FE
     return res.status(200).json({
       success: true,
-      message: "Danh sách sản phẩm yêu thích",
+      message: "Danh sách sản phẩm yêu thích ",
       data: favoriteProducts.map(fav => fav.product_id)
     });
 
