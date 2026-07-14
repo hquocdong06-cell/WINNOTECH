@@ -106,6 +106,7 @@ app.use(
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 app.use("/public", express.static(path.join(__dirname, "/public")));
 app.use(
