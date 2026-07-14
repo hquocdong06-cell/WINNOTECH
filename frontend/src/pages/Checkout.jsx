@@ -303,6 +303,13 @@ export default function Checkout() {
   // ── Payment ──
   const [paymentMethod, setPaymentMethod] = useState('cod')
 
+  // Map payment method slug -> MongoDB ObjectId (lấy từ collection PaymentMethod)
+  const PAYMENT_METHOD_IDS = {
+    cod:     '6a3ea04fd27f601bd29ea067', // Thanh toán khi nhận hàng (COD)
+    bank:    '6a3ea04fd27f601bd29ea068', // Chuyển khoản ngân hàng
+    ewallet: '6a3ea04fd27f601bd29ea069', // Ví MoMo
+  }
+
   // ── Cart ──
   const [cartItems, setCartItems] = useState([])
   const [cartLoading, setCartLoading] = useState(true)
@@ -422,11 +429,12 @@ export default function Checkout() {
 
     setSubmitting(true)
     try {
+      const payment_method_id = PAYMENT_METHOD_IDS[paymentMethod] || PAYMENT_METHOD_IDS.cod
       const body = {
         Name,
         Phone,
         Adress,
-        payment_method: paymentMethod,
+        payment_method: payment_method_id,
         items,
       }
       if (voucherCode.trim()) body.voucher_code = voucherCode.trim()

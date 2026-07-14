@@ -312,6 +312,7 @@ export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState([])  // Bán chạy
   const [newProducts, setNewProducts]           = useState([])  // Hàng mới
   const [saleProducts, setSaleProducts]         = useState([])  // Giảm giá
+  const [allProducts, setAllProducts]           = useState([])  // Toàn bộ sản phẩm phục vụ tìm kiếm
   const [categories, setCategories]             = useState([])
 
   const [loadingProducts, setLoadingProducts] = useState(true)
@@ -406,9 +407,8 @@ export default function Home() {
       try {
         const res = await fetch(`${API_URL}/products`)
         const data = await res.json()
-        if (!data.success) return
-
         const all = data.data
+        setAllProducts(all)
 
         // 1. SẢN PHẨM GIẢM GIÁ — có sale_price thực sự
         const saleList = [...all]
@@ -465,14 +465,47 @@ export default function Home() {
       .catch(() => {})
   }, [])
 
-  // Search filter
-  const searchQuery = (new URLSearchParams(window.location.search).get('search') || '').toLowerCase()
-  const filterBySearch = (list) => searchQuery ? list.filter(p => p.name.toLowerCase().includes(searchQuery)) : list
+  // Search filter bằng javascript trên Frontend
+  const searchQuery = new URLSearchParams(window.location.search).get('search') || ''
+  
+  const removeDiacritics = (str) => {
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D');
+  }
+
+  const searchResults = searchQuery ? allProducts.filter(p => {
+    const cleanName = removeDiacritics((p.name || '').toLowerCase())
+    const cleanQuery = removeDiacritics(searchQuery.toLowerCase().trim())
+    return cleanName.includes(cleanQuery)
+  }) : []
+
+  const loadingSearch = loadingProducts
+  const filterBySearch = (list) => list
 
   return (
     <DefaultLayout>
-      {/* ── HERO ── */}
-      <div className="hero-wrapper">
+      {searchQuery ? (
+        <ProductSection
+          products={searchResults}
+          loading={loadingSearch}
+          emptyMsg={`Không tìm thấy sản phẩm nào khớp với từ khóa "${searchQuery}"`}
+          sectionLabel="KẾT QUẢ TÌM KIẾM"
+          sectionLabelStyle={{ color: 'var(--yellow)' }}
+          titleLine1="KẾT QUẢ TÌM KIẾM"
+          titleLine2={`Từ khóa: "${searchQuery}"`}
+          viewAllText="TẤT CẢ SẢN PHẨM →"
+          viewAllHref="#"
+          favoriteIds={favoriteIds}
+          onToggleFavorite={toggleFavorite}
+          onAddToCart={handleQuickAddToCart}
+        />
+      ) : (
+        <>
+          {/* ── HERO ── */}
+          <div className="hero-wrapper">
         <section className="hero">
           <div className="hero-bg">
             {[
@@ -630,6 +663,8 @@ export default function Home() {
         onToggleFavorite={toggleFavorite}
         onAddToCart={handleQuickAddToCart}
       />
+        </>
+      )}
 
       {/* ── BLOG ── */}
       <section className="blog-section">
