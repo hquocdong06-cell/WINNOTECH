@@ -320,6 +320,7 @@ export default function Checkout() {
   // ── Submit state ──
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [showConfirmModal, setShowConfirmModal] = useState(false) // State xác nhận đặt hàng
 
   // ── Computed totals ──
   const subtotal = cartItems.reduce((s, item) => {
@@ -354,6 +355,72 @@ export default function Checkout() {
       .catch(() => setCartItems([]))
       .finally(() => setCartLoading(false))
   }, [])
+
+  // ── Trực tiếp gọi API khi người dùng đã xác nhận trên modal ──
+  const executeOrderSubmission = async () => {
+    setSubmitting(true)
+    setSubmitError('')
+    setShowConfirmModal(false)
+    
+    const { Name, Phone, Adress } = getShippingInfo()
+    const items = getOrderItems()
+
+    try {
+      const payment_method_id = PAYMENT_METHOD_IDS[paymentMethod] || PAYMENT_METHOD_IDS.cod
+      const body = {
+        Name,
+        Phone,
+        Adress,
+        payment_method: payment_method_id,
+        items,
+      }
+      if (voucherCode.trim()) body.voucher_code = voucherCode.trim()
+
+      const res = await fetch(API_URL + '/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        navigate('/profile?tab=orders&success=1')
+      } else {
+        setSubmitError(data.message || 'Đặt hàng thất bại, vui lòng thử lại!')
+      }
+    } catch {
+      setSubmitError('Lỗi kết nối server, vui lòng thử lại!')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // ── Click ĐẶT HÀNG: Chỉ validate thông tin và mở Modal xác nhận ──
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    setSubmitError('')
+
+    if (cartItems.length === 0) {
+      setSubmitError('Giỏ hàng trống, không thể đặt hàng!')
+      return
+    }
+
+    const { Name, Phone, Adress } = getShippingInfo()
+    if (!Name || !Phone || !Adress) {
+      setSubmitError('Vui lòng điền đầy đủ thông tin giao hàng!')
+      return
+    }
+
+    const items = getOrderItems()
+    if (items.length === 0) {
+      setSubmitError('Không tìm thấy sản phẩm để đặt hàng!')
+      return
+    }
+
+    // Hiển thị Modal xác nhận
+    setShowConfirmModal(true)
+  }
 
   // ── Fetch địa chỉ giao hàng khi đã đăng nhập ──
   const fetchAddresses = useCallback(() => {
@@ -405,60 +472,7 @@ export default function Checkout() {
     }))
   }
 
-  // ── Submit ──
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setSubmitError('')
 
-    if (cartItems.length === 0) {
-      setSubmitError('Giỏ hàng trống, không thể đặt hàng!')
-      return
-    }
-
-    const { Name, Phone, Adress } = getShippingInfo()
-    if (!Name || !Phone || !Adress) {
-      setSubmitError('Vui lòng điền đầy đủ thông tin giao hàng!')
-      return
-    }
-
-    const items = getOrderItems()
-    if (items.length === 0) {
-      setSubmitError('Không tìm thấy sản phẩm để đặt hàng!')
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      const payment_method_id = PAYMENT_METHOD_IDS[paymentMethod] || PAYMENT_METHOD_IDS.cod
-      const body = {
-        Name,
-        Phone,
-        Adress,
-        payment_method: payment_method_id,
-        items,
-      }
-      if (voucherCode.trim()) body.voucher_code = voucherCode.trim()
-
-      const res = await fetch(API_URL + '/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body),
-      })
-      const data = await res.json()
-
-      if (data.success) {
-        // Redirect sang trang xác nhận hoặc profile orders
-        navigate('/profile?tab=orders&success=1')
-      } else {
-        setSubmitError(data.message || 'Đặt hàng thất bại, vui lòng thử lại!')
-      }
-    } catch {
-      setSubmitError('Lỗi kết nối server, vui lòng thử lại!')
-    } finally {
-      setSubmitting(false)
-    }
-  }
 
   // ── Shipping section rendering ──
   const renderShippingSection = () => {
@@ -773,6 +787,92 @@ export default function Checkout() {
         </div>
 
       </form>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: '20px'
+        }}>
+          <div style={{
+            background: '#111', border: '1px solid #222', borderRadius: '12px',
+            width: '100%', maxWidth: '480px', padding: '28px', color: '#fff',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+          }}>
+            <h3 style={{
+              margin: '0 0 16px', fontSize: '18px', fontWeight: 800,
+              color: '#c8e600', textTransform: 'uppercase', letterSpacing: '1px'
+            }}>
+              Xác Nhận Đặt Hàng
+            </h3>
+            
+            <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#aaa', lineHeight: 1.5 }}>
+              Bạn có chắc chắn muốn đặt đơn hàng này với các thông tin giao nhận dưới đây?
+            </p>
+
+            <div style={{
+              background: '#181818', border: '1px solid #222', borderRadius: '8px',
+              padding: '16px', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '10px',
+              fontSize: '13px'
+            }}>
+              <div>
+                <span style={{ color: '#666', fontWeight: 600 }}>Người nhận:</span>{' '}
+                <span style={{ color: '#fff', fontWeight: 700 }}>{getShippingInfo().Name}</span>
+              </div>
+              <div>
+                <span style={{ color: '#666', fontWeight: 600 }}>Số điện thoại:</span>{' '}
+                <span style={{ color: '#fff' }}>{getShippingInfo().Phone}</span>
+              </div>
+              <div>
+                <span style={{ color: '#666', fontWeight: 600 }}>Địa chỉ nhận:</span>{' '}
+                <span style={{ color: '#fff', lineHeight: 1.4 }}>{getShippingInfo().Adress}</span>
+              </div>
+              <div>
+                <span style={{ color: '#666', fontWeight: 600 }}>Thanh toán qua:</span>{' '}
+                <span style={{ color: '#c8e600', fontWeight: 700 }}>
+                  {paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng (COD)' : 
+                   paymentMethod === 'bank' ? 'Chuyển khoản ngân hàng' : 'Ví điện tử'}
+                </span>
+              </div>
+              <div style={{ marginTop: '4px', paddingTop: '10px', borderTop: '1px solid #222' }}>
+                <span style={{ color: '#666', fontWeight: 600, fontSize: '14px' }}>Tổng thanh toán:</span>{' '}
+                <span style={{ color: '#c8e600', fontWeight: 800, fontSize: '16px' }}>{fmt(total)}</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                style={{
+                  flex: 1, padding: '12px', background: '#1c1c1c', border: '1px solid #2d2d2d',
+                  color: '#ccc', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#252525'}
+                onMouseOut={(e) => e.target.style.background = '#1c1c1c'}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={executeOrderSubmission}
+                style={{
+                  flex: 1, padding: '12px', background: '#c8e600', border: 'none',
+                  color: '#000', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 700,
+                  transition: 'opacity 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.opacity = 0.9}
+                onMouseOut={(e) => e.target.style.opacity = 1}
+              >
+                Xác nhận mua
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DefaultLayout>
   )
 }

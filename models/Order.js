@@ -22,7 +22,7 @@ const OrderSchema = new mongoose.Schema({
 
 const OrderItemSchema = new mongoose.Schema({
     order_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
-    variant_id: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant' }, // Đổi ở đây
+    variants_id: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant' }, // Đổi ở đây
     Quantity: { type: Number, required: true },
     price: { type: Number, required: true }
 });

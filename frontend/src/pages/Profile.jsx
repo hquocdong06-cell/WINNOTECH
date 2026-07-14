@@ -108,7 +108,7 @@ export default function Profile() {
       id: order.code || order._id,
       date: formatDate(order.createdAt),
       status: order.status,
-      payMethod: order.payment_method || 'COD',
+      payMethod: (order.payment_method && typeof order.payment_method === 'object') ? order.payment_method.name : (order.payment_method || 'COD'),
       trackingCode: order.tracking_code || '—',
       estimatedDelivery: '—',
       receiver: { name: order.Name || '—', phone: order.Phone || '—', address: order.Adress || '—', note: '' },
