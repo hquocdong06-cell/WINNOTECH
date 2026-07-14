@@ -1,72 +1,11 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/checkout.css'
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const API_URL = 'http://localhost:3000'
-
-const fmt = (n) => n.toLocaleString('vi-VN') + 'đ'
-
-// ─── Mock cart (sẽ thay bằng context/cart state thực sau) ───────────────────
-const INITIAL_CART = [
-  {
-    id: 1,
-    name: 'Intel Core i9-14900K',
-    specs: '24 Nhân / 32 Luồng • 3.2GHz • LGA 1700',
-    price: 18490000,
-    quantity: 1,
-    image: '/src/assets/images/cpu1.png'
-  },
-  {
-    id: 2,
-    name: 'ASUS TUF Gaming GeForce RTX 4070 Ti SUPER 16GB GDDR6X',
-    specs: '16GB GDDR6X • 2640 MHz • PCIe 4.0',
-    price: 18490000,
-    quantity: 1,
-    image: '/src/assets/images/ASUS ROG Strix GeForce RTX 4070 Ti Super.png'
-  },
-  {
-    id: 3,
-    name: 'MSI MAG B760 Tomahawk WiFi',
-    specs: 'Intel • LGA 1700 • ATX',
-    price: 6450000,
-    quantity: 1,
-    image: '/src/assets/images/mainboard1.png'
-  },
-  {
-    id: 4,
-    name: 'G.Skill Trident Z5 RGB 32GB (2x16GB) DDR5 6000MHz',
-    specs: '32GB DDR5 • DDR5 • 6000MHz',
-    price: 3990000,
-    quantity: 2,
-    image: '/src/assets/images/ram1.png'
-  }
-]
-
-// ─── Mock shipping addresses (swap bằng API thật khi DeliveryAddress model sẵn sàng) ──
-const MOCK_SHIPPING_ADDRESSES = [
-  {
-    id: 1,
-    fullName: 'Hồ Quốc Đông',
-    phone: '0909 123 123',
-    address: '123 Nguyễn Huệ',
-    district: 'Quận 1',
-    city: 'TP. Hồ Chí Minh',
-    isDefault: false,
-    is_default: 0
-  },
-  {
-    id: 2,
-    fullName: 'Hồ Quốc Đông',
-    phone: '0911 222 333',
-    address: '456 Lê Lợi',
-    district: 'Quận 3',
-    city: 'TP. Hồ Chí Minh',
-    isDefault: true,
-    is_default: 1
-  }
-]
+const fmt = (n) => Number(n).toLocaleString('vi-VN') + 'đ'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SUB-COMPONENT: ShippingForm — hiển thị khi chưa đăng nhập
@@ -105,38 +44,11 @@ function ShippingForm({ form, onChange }) {
           <input
             type="text"
             name="address"
-            placeholder="Nhập số nhà, tên đường, phường/xã"
+            placeholder="Nhập số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
             value={form.address}
             onChange={onChange}
             required
           />
-        </div>
-        <div className="co-row-2">
-          <div className="co-field">
-            <label>Tỉnh / Thành phố <span className="req">*</span></label>
-            <select name="province" value={form.province} onChange={onChange} required>
-              <option value="">Chọn tỉnh / thành phố</option>
-              <option>Hà Nội</option>
-              <option>TP. Hồ Chí Minh</option>
-              <option>Đà Nẵng</option>
-              <option>Cần Thơ</option>
-              <option>Hải Phòng</option>
-              <option>Bình Dương</option>
-              <option>Đồng Nai</option>
-            </select>
-          </div>
-          <div className="co-field">
-            <label>Quận / Huyện <span className="req">*</span></label>
-            <select name="district" value={form.district} onChange={onChange} required>
-              <option value="">Chọn quận / huyện</option>
-              <option>Quận 1</option>
-              <option>Quận 3</option>
-              <option>Quận 7</option>
-              <option>Quận Bình Thạnh</option>
-              <option>Quận Gò Vấp</option>
-              <option>Quận Tân Bình</option>
-            </select>
-          </div>
         </div>
         <div className="co-field">
           <label>Ghi chú đơn hàng</label>
@@ -188,11 +100,9 @@ function ShippingInfoCard({ address, onChangeClick }) {
         </div>
 
         <div className="co-shipping-card-body">
-          <div className="co-shipping-name">{address.fullName}</div>
-          <div className="co-shipping-phone">{address.phone}</div>
-          <div className="co-shipping-addr">
-            {address.address}, {address.district}, {address.city}
-          </div>
+          <div className="co-shipping-name">{address.Name}</div>
+          <div className="co-shipping-phone">{address.Phone}</div>
+          <div className="co-shipping-addr">{address.address}</div>
         </div>
 
         <button type="button" className="co-btn-change-addr" onClick={onChangeClick}>
@@ -210,17 +120,42 @@ function ShippingInfoCard({ address, onChangeClick }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // SUB-COMPONENT: AddressSelectorModal — chọn / thêm địa chỉ
 // ═══════════════════════════════════════════════════════════════════════════
-function AddressSelectorModal({ addresses, selectedId, onSelect, onClose }) {
+function AddressSelectorModal({ addresses, selectedId, onSelect, onClose, onAddNew }) {
   const [showNewForm, setShowNewForm] = useState(false)
-  const [newAddr, setNewAddr] = useState({ fullName: '', phone: '', address: '', district: '', city: '' })
+  const [newAddr, setNewAddr] = useState({ Name: '', Phone: '', address: '', set_default: false })
+  const [saving, setSaving] = useState(false)
 
-  // Đóng khi nhấn Escape
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handler)
     document.body.style.overflow = 'hidden'
     return () => { document.removeEventListener('keydown', handler); document.body.style.overflow = '' }
   }, [onClose])
+
+  const handleSaveNew = async () => {
+    if (!newAddr.Name || !newAddr.Phone || !newAddr.address) return
+    setSaving(true)
+    try {
+      const res = await fetch(API_URL + '/profile/deliver', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(newAddr)
+      })
+      const data = await res.json()
+      if (data.success) {
+        onAddNew(data.data)
+        onSelect(data.data)
+        onClose()
+      } else {
+        alert(data.message || 'Lỗi khi thêm địa chỉ')
+      }
+    } catch {
+      alert('Lỗi kết nối server')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="asm-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
@@ -246,11 +181,11 @@ function AddressSelectorModal({ addresses, selectedId, onSelect, onClose }) {
             <>
               <div className="asm-list">
                 {addresses.map((addr) => {
-                  const isSelected = addr.id === selectedId
-                  const isDefault = addr.isDefault || addr.is_default === 1
+                  const isSelected = addr._id === selectedId
+                  const isDefault = addr.set_default
                   return (
                     <div
-                      key={addr.id}
+                      key={addr._id}
                       className={`asm-addr-item ${isSelected ? 'selected' : ''}`}
                       onClick={() => onSelect(addr)}
                     >
@@ -259,13 +194,11 @@ function AddressSelectorModal({ addresses, selectedId, onSelect, onClose }) {
                       </div>
                       <div className="asm-addr-info">
                         <div className="asm-addr-top">
-                          <span className="asm-addr-name">{addr.fullName}</span>
-                          <span className="asm-addr-phone">{addr.phone}</span>
+                          <span className="asm-addr-name">{addr.Name}</span>
+                          <span className="asm-addr-phone">{addr.Phone}</span>
                           {isDefault && <span className="asm-default-badge">Mặc định</span>}
                         </div>
-                        <div className="asm-addr-detail">
-                          {addr.address}, {addr.district}, {addr.city}
-                        </div>
+                        <div className="asm-addr-detail">{addr.address}</div>
                       </div>
                     </div>
                   )
@@ -285,7 +218,6 @@ function AddressSelectorModal({ addresses, selectedId, onSelect, onClose }) {
               </button>
             </>
           ) : (
-            /* ── Form thêm địa chỉ mới (inline) ── */
             <div className="asm-new-form">
               <div className="asm-new-form-title">Địa chỉ mới</div>
               <div className="co-form">
@@ -294,44 +226,36 @@ function AddressSelectorModal({ addresses, selectedId, onSelect, onClose }) {
                     <label>Họ và tên <span className="req">*</span></label>
                     <input
                       type="text" placeholder="Nhập họ và tên"
-                      value={newAddr.fullName}
-                      onChange={(e) => setNewAddr({ ...newAddr, fullName: e.target.value })}
+                      value={newAddr.Name}
+                      onChange={(e) => setNewAddr({ ...newAddr, Name: e.target.value })}
                     />
                   </div>
                   <div className="co-field">
                     <label>Số điện thoại <span className="req">*</span></label>
                     <input
                       type="tel" placeholder="Nhập số điện thoại"
-                      value={newAddr.phone}
-                      onChange={(e) => setNewAddr({ ...newAddr, phone: e.target.value })}
+                      value={newAddr.Phone}
+                      onChange={(e) => setNewAddr({ ...newAddr, Phone: e.target.value })}
                     />
                   </div>
                 </div>
                 <div className="co-field">
-                  <label>Địa chỉ <span className="req">*</span></label>
+                  <label>Địa chỉ đầy đủ <span className="req">*</span></label>
                   <input
-                    type="text" placeholder="Số nhà, tên đường, phường/xã"
+                    type="text" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
                     value={newAddr.address}
                     onChange={(e) => setNewAddr({ ...newAddr, address: e.target.value })}
                   />
                 </div>
-                <div className="co-row-2">
-                  <div className="co-field">
-                    <label>Quận / Huyện <span className="req">*</span></label>
+                <div className="co-field">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                     <input
-                      type="text" placeholder="Nhập quận / huyện"
-                      value={newAddr.district}
-                      onChange={(e) => setNewAddr({ ...newAddr, district: e.target.value })}
+                      type="checkbox"
+                      checked={newAddr.set_default}
+                      onChange={(e) => setNewAddr({ ...newAddr, set_default: e.target.checked })}
                     />
-                  </div>
-                  <div className="co-field">
-                    <label>Tỉnh / Thành phố <span className="req">*</span></label>
-                    <input
-                      type="text" placeholder="Nhập tỉnh / thành phố"
-                      value={newAddr.city}
-                      onChange={(e) => setNewAddr({ ...newAddr, city: e.target.value })}
-                    />
-                  </div>
+                    Đặt làm địa chỉ mặc định
+                  </label>
                 </div>
               </div>
               <div className="asm-new-form-actions">
@@ -341,15 +265,10 @@ function AddressSelectorModal({ addresses, selectedId, onSelect, onClose }) {
                 <button
                   type="button"
                   className="asm-btn-save-new"
-                  onClick={() => {
-                    if (!newAddr.fullName || !newAddr.phone || !newAddr.address) return
-                    // TODO: POST /api/addresses khi có API thật
-                    const fakeNew = { ...newAddr, id: Date.now(), isDefault: false, is_default: 0 }
-                    onSelect(fakeNew)
-                    onClose()
-                  }}
+                  disabled={saving}
+                  onClick={handleSaveNew}
                 >
-                  Lưu & sử dụng địa chỉ này
+                  {saving ? 'Đang lưu...' : 'Lưu & sử dụng địa chỉ này'}
                 </button>
               </div>
             </div>
@@ -364,35 +283,49 @@ function AddressSelectorModal({ addresses, selectedId, onSelect, onClose }) {
 // MAIN COMPONENT: Checkout
 // ═══════════════════════════════════════════════════════════════════════════
 export default function Checkout() {
+  const navigate = useNavigate()
+
   // ── Auth state ──
   const [user, setUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
 
   // ── Shipping addresses ──
-  const [shippingAddresses] = useState(MOCK_SHIPPING_ADDRESSES)
-  const defaultAddress = shippingAddresses.find((a) => a.isDefault || a.is_default === 1) || shippingAddresses[0] || null
-  const [selectedAddress, setSelectedAddress] = useState(defaultAddress)
+  const [shippingAddresses, setShippingAddresses] = useState([])
+  const [selectedAddress, setSelectedAddress] = useState(null)
   const [showAddressModal, setShowAddressModal] = useState(false)
+  const [addressLoading, setAddressLoading] = useState(false)
 
   // ── Guest form ──
   const [form, setForm] = useState({
-    fullname: '', phone: '', address: '', province: '', district: '', note: ''
+    fullname: '', phone: '', address: '', note: ''
   })
 
   // ── Payment ──
   const [paymentMethod, setPaymentMethod] = useState('cod')
 
   // ── Cart ──
-  const [cartItems] = useState(INITIAL_CART)
+  const [cartItems, setCartItems] = useState([])
+  const [cartLoading, setCartLoading] = useState(true)
 
-  const subtotal = cartItems.reduce((s, i) => s + i.price * i.quantity, 0)
+  // ── Voucher ──
+  const [voucherCode, setVoucherCode] = useState('')
+
+  // ── Submit state ──
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+
+  // ── Computed totals ──
+  const subtotal = cartItems.reduce((s, item) => {
+    const price = item.variant?.sale_price > 0 ? item.variant.sale_price : (item.variant?.price || item.cartItem?.price || 0)
+    return s + price * (item.cartItem?.quantity || 1)
+  }, 0)
   const discount = 0
   const shipping = subtotal >= 1000000 ? 0 : 30000
   const total = subtotal - discount + shipping
 
   // ── Fetch current user ──
   useEffect(() => {
-    fetch(API_URL + '/profile', { credentials: 'include' })
+    fetch(API_URL + '/auth/me', { credentials: 'include' })
       .then((r) => r.json())
       .then((data) => {
         if (data.success) setUser(data.user)
@@ -402,20 +335,126 @@ export default function Checkout() {
       .finally(() => setAuthLoading(false))
   }, [])
 
+  // ── Fetch cart từ API thật ──
+  useEffect(() => {
+    setCartLoading(true)
+    fetch(API_URL + '/cart', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setCartItems(data.data || [])
+        else setCartItems([])
+      })
+      .catch(() => setCartItems([]))
+      .finally(() => setCartLoading(false))
+  }, [])
+
+  // ── Fetch địa chỉ giao hàng khi đã đăng nhập ──
+  const fetchAddresses = useCallback(() => {
+    if (!user) return
+    setAddressLoading(true)
+    fetch(API_URL + '/profile/deliver', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) {
+          const addrs = data.data || []
+          setShippingAddresses(addrs)
+          // Chọn mặc định
+          const def = addrs.find((a) => a.set_default) || addrs[0] || null
+          setSelectedAddress(def)
+        }
+      })
+      .catch(() => {})
+      .finally(() => setAddressLoading(false))
+  }, [user])
+
+  useEffect(() => {
+    fetchAddresses()
+  }, [fetchAddresses])
+
   const handleGuestChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
-  const handleSubmit = (e) => {
+  // ── Lấy thông tin giao hàng để POST ──
+  const getShippingInfo = () => {
+    if (user && selectedAddress) {
+      return {
+        Name: selectedAddress.Name,
+        Phone: selectedAddress.Phone,
+        Adress: selectedAddress.address,
+      }
+    }
+    return {
+      Name: form.fullname,
+      Phone: form.phone,
+      Adress: form.address,
+    }
+  }
+
+  // ── Lấy items để POST ──
+  const getOrderItems = () => {
+    return cartItems.map((item) => ({
+      variant_id: item.cartItem?.variant_id || item.variant?._id,
+      quantity: item.cartItem?.quantity || 1,
+      price: item.variant?.sale_price > 0 ? item.variant.sale_price : (item.variant?.price || item.cartItem?.price || 0),
+    }))
+  }
+
+  // ── Submit ──
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (user && !selectedAddress) {
-      alert('Vui lòng chọn địa chỉ giao hàng!')
+    setSubmitError('')
+
+    if (cartItems.length === 0) {
+      setSubmitError('Giỏ hàng trống, không thể đặt hàng!')
       return
     }
-    alert('Đặt hàng thành công! Cảm ơn bạn đã mua sắm tại WINNOTECH.')
+
+    const { Name, Phone, Adress } = getShippingInfo()
+    if (!Name || !Phone || !Adress) {
+      setSubmitError('Vui lòng điền đầy đủ thông tin giao hàng!')
+      return
+    }
+
+    const items = getOrderItems()
+    if (items.length === 0) {
+      setSubmitError('Không tìm thấy sản phẩm để đặt hàng!')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const body = {
+        Name,
+        Phone,
+        Adress,
+        payment_method: paymentMethod,
+        items,
+      }
+      if (voucherCode.trim()) body.voucher_code = voucherCode.trim()
+
+      const res = await fetch(API_URL + '/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        // Redirect sang trang xác nhận hoặc profile orders
+        navigate('/profile?tab=orders&success=1')
+      } else {
+        setSubmitError(data.message || 'Đặt hàng thất bại, vui lòng thử lại!')
+      }
+    } catch {
+      setSubmitError('Lỗi kết nối server, vui lòng thử lại!')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   // ── Shipping section rendering ──
   const renderShippingSection = () => {
-    if (authLoading) {
+    if (authLoading || addressLoading) {
       return (
         <div className="co-card">
           <div className="co-section-title">Thông tin giao hàng</div>
@@ -440,15 +479,48 @@ export default function Checkout() {
     return <ShippingForm form={form} onChange={handleGuestChange} />
   }
 
+  // ── Render item trong giỏ ──
+  const renderCartItem = (item, idx) => {
+    const product = item.product
+    const variant = item.variant
+    const cartItem = item.cartItem
+    const mainImg = item.AnhSP?.find((img) => img.is_main) || item.AnhSP?.[0]
+    const imgUrl = mainImg?.url || product?.thumnail || ''
+    const price = variant?.sale_price > 0 ? variant.sale_price : (variant?.price || cartItem?.price || 0)
+    const qty = cartItem?.quantity || 1
+    const name = product?.name || variant?.variant_name || 'Sản phẩm'
+    const specs = variant?.variant_name !== 'Mặc định' ? variant?.variant_name : ''
+
+    return (
+      <div key={cartItem?._id || idx} className="co-item">
+        <div className="co-item-img">
+          {imgUrl
+            ? <img src={API_URL + imgUrl} alt={name} onError={(e) => { e.target.style.display = 'none' }} />
+            : <div style={{ width: '100%', height: '100%', background: '#333', borderRadius: '6px' }} />
+          }
+        </div>
+        <div className="co-item-info">
+          <div className="co-item-name">{name}</div>
+          {specs && <div className="co-item-specs">{specs}</div>}
+        </div>
+        <div className="co-item-right">
+          <div className="co-item-price">{fmt(price * qty)}</div>
+          <div className="co-item-qty">x{qty}</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <DefaultLayout>
       {/* Address selector modal */}
       {showAddressModal && (
         <AddressSelectorModal
           addresses={shippingAddresses}
-          selectedId={selectedAddress?.id}
+          selectedId={selectedAddress?._id}
           onSelect={(addr) => { setSelectedAddress(addr); setShowAddressModal(false) }}
           onClose={() => setShowAddressModal(false)}
+          onAddNew={(newAddr) => setShippingAddresses((prev) => [...prev, newAddr])}
         />
       )}
 
@@ -560,21 +632,36 @@ export default function Checkout() {
 
             {/* Items */}
             <div className="co-items-list">
-              {cartItems.map((item) => (
-                <div key={item.id} className="co-item">
-                  <div className="co-item-img">
-                    <img src={item.image} alt={item.name} />
-                  </div>
-                  <div className="co-item-info">
-                    <div className="co-item-name">{item.name}</div>
-                    <div className="co-item-specs">{item.specs}</div>
-                  </div>
-                  <div className="co-item-right">
-                    <div className="co-item-price">{fmt(item.price * item.quantity)}</div>
-                    <div className="co-item-qty">x{item.quantity}</div>
-                  </div>
+              {cartLoading ? (
+                <div style={{ padding: '20px', color: 'var(--text-muted)', textAlign: 'center', fontSize: '13px' }}>
+                  Đang tải giỏ hàng...
                 </div>
-              ))}
+              ) : cartItems.length === 0 ? (
+                <div style={{ padding: '20px', color: 'var(--text-muted)', textAlign: 'center', fontSize: '13px' }}>
+                  Giỏ hàng trống
+                </div>
+              ) : (
+                cartItems.map((item, idx) => renderCartItem(item, idx))
+              )}
+            </div>
+
+            {/* Voucher */}
+            <div className="co-voucher" style={{ padding: '12px 16px', borderTop: '1px solid #222' }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>
+                MÃ GIẢM GIÁ
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  placeholder="Nhập mã giảm giá"
+                  value={voucherCode}
+                  onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                  style={{
+                    flex: 1, background: '#1a1a1a', border: '1px solid #333', borderRadius: '6px',
+                    color: '#fff', padding: '8px 12px', fontSize: '13px'
+                  }}
+                />
+              </div>
             </div>
 
             {/* Totals */}
@@ -646,15 +733,32 @@ export default function Checkout() {
               </div>
             </div>
 
+            {/* Error */}
+            {submitError && (
+              <div style={{
+                margin: '0 16px 12px', padding: '10px 14px', background: 'rgba(248,113,113,0.1)',
+                border: '1px solid rgba(248,113,113,0.3)', borderRadius: '6px',
+                color: '#f87171', fontSize: '13px'
+              }}>
+                {submitError}
+              </div>
+            )}
+
             {/* Submit */}
             <div className="co-submit-wrap">
-              <button type="submit" className="co-btn-submit">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5">
-                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <path d="M16 10a4 4 0 0 1-8 0" />
-                </svg>
-                ĐẶT HÀNG
+              <button type="submit" className="co-btn-submit" disabled={submitting || cartLoading}>
+                {submitting ? (
+                  'Đang đặt hàng...'
+                ) : (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5">
+                      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                      <line x1="3" y1="6" x2="21" y2="6" />
+                      <path d="M16 10a4 4 0 0 1-8 0" />
+                    </svg>
+                    ĐẶT HÀNG
+                  </>
+                )}
               </button>
             </div>
           </div>

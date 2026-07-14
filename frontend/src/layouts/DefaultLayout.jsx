@@ -194,6 +194,8 @@ export default function DefaultLayout({ children }) {
               <Link to="/psu">Nguồn</Link>
               <Link to="/cooling">Tản nhiệt PC</Link>
               <Link to="/case">Case</Link>
+              <Link to="/blog">Blog</Link>
+              <Link to="/contact" style={{ color: 'var(--yellow)', fontWeight: 600 }}>Hỗ trợ</Link>
             </div>
           </div>
         </div>
@@ -240,18 +242,11 @@ export default function DefaultLayout({ children }) {
             <div className="footer-col">
               <h4>HỖ TRỢ</h4>
               <ul>
-                <li>
-                  <a href="#">Hướng dẫn mua hàng</a>
-                </li>
-                <li>
-                  <a href="#">Chính sách bảo hành</a>
-                </li>
-                <li>
-                  <a href="#">Chính sách đổi trả</a>
-                </li>
-                <li>
-                  <a href="#">Thanh toán & vận chuyển</a>
-                </li>
+                <li><Link to="/contact">Liên hệ hỗ trợ</Link></li>
+                <li><a href="#">Hướng dẫn mua hàng</a></li>
+                <li><a href="#">Chính sách bảo hành</a></li>
+                <li><a href="#">Chính sách đổi trả</a></li>
+                <li><a href="#">Thanh toán & vận chuyển</a></li>
               </ul>
             </div>
             <div className="footer-col">
@@ -260,15 +255,9 @@ export default function DefaultLayout({ children }) {
                 <li>
                   <a href="#">Giới thiệu</a>
                 </li>
-                <li>
-                  <a href="#">Blog</a>
-                </li>
-                <li>
-                  <a href="#">FAQ</a>
-                </li>
-                <li>
-                  <a href="#">Liên hệ</a>
-                </li>
+                <li><Link to="/blog">Blog</Link></li>
+                <li><Link to="/contact">Liên hệ</Link></li>
+                <li><a href="#">FAQ</a></li>
               </ul>
             </div>
             <div className="footer-col">

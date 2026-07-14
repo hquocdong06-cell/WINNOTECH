@@ -20,7 +20,7 @@ export default function Profile() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [editForm, setEditForm] = useState({ name: '', phone: '', birthdate: '', gender: '' })
+  const [editForm, setEditForm] = useState({ name: '', phone: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [editSuccess, setEditSuccess] = useState(false)
   const [orderFilter, setOrderFilter] = useState('all')
@@ -32,6 +32,18 @@ export default function Profile() {
   const [pwError, setPwError] = useState('')
   const [pwSuccess, setPwSuccess] = useState(false)
 
+  // ── Orders ──
+  const [orders, setOrders] = useState([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
+
+  // ── Addresses ──
+  const [addresses, setAddresses] = useState([])
+  const [addressesLoading, setAddressesLoading] = useState(false)
+  const [addressFormMode, setAddressFormMode] = useState(null) // null | 'add' | 'edit'
+  const [addressFormData, setAddressFormData] = useState({ Name: '', Phone: '', address: '', set_default: false })
+  const [addressEditId, setAddressEditId] = useState(null)
+  const [addressSaving, setAddressSaving] = useState(false)
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -39,8 +51,8 @@ export default function Profile() {
         const data = await res.json()
         if (data.success) {
           setUser(data.user)
-          setEditForm({ name: data.user.name || '', phone: data.user.phone || '', birthdate: data.user.birthdate || '', gender: data.user.gender || '' })
-        } else { navigate('/login') }
+          setEditForm({ name: data.user.name || '', phone: data.user.phone || '' })
+        } else { navigate('/auth') }
       } catch (err) { setError('Không thể kết nối server') }
       finally { setLoading(false) }
     }
@@ -59,90 +71,83 @@ export default function Profile() {
 
   const getInitial = () => (!user || !user.name) ? '?' : user.name.charAt(0).toUpperCase()
 
-  const orderDetails = {
-    '#WIN123456': {
-      id: '#WIN123456', date: '20/05/2024 14:32', status: 'completed', payMethod: 'Thanh toán khi nhận hàng (COD)',
-      trackingCode: 'GHTK9812347890', estimatedDelivery: '22/05/2024',
-      receiver: { name: 'Vũ Đông', phone: '0901 234 567', address: '123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', note: 'Giao giờ hành chính' },
-      products: [
-        { name: 'AMD Ryzen 7 7800X3D', variant: 'Box có fan', price: '9.990.000đ', qty: 1, subtotal: '9.990.000đ' },
-        { name: 'G.Skill Trident Z5 RGB 32GB DDR5', variant: 'Black / 6000MHz', price: '3.990.000đ', qty: 2, subtotal: '7.980.000đ' },
-        { name: 'Samsung 990 Pro 1TB NVMe SSD', variant: 'PCIe 4.0', price: '2.590.000đ', qty: 2, subtotal: '5.180.000đ' }
-      ],
-      payment: { subtotal: '23.150.000đ', shipping: '0đ', discount: '-4.660.000đ', voucher: '-0đ', points: '-0đ', total: '18.490.000đ' },
-      shipping: { carrier: 'Giao hàng tiết kiệm (GHTK)', tracking: 'GHTK9812347890' },
-      timeline: [
-        { time: '20/05 14:32', event: 'Đặt hàng thành công', done: true },
-        { time: '20/05 14:55', event: 'Shop xác nhận đơn hàng', done: true },
-        { time: '21/05 08:15', event: 'Đơn vị vận chuyển lấy hàng', done: true },
-        { time: '22/05 10:30', event: 'Đang giao hàng đến bạn', done: true },
-        { time: '22/05 15:48', event: 'Giao hàng thành công', done: true }
-      ]
-    },
-    '#WIN123455': {
-      id: '#WIN123455', date: '18/05/2024 09:10', status: 'delivering', payMethod: 'Ví MoMo',
-      trackingCode: 'VTP20240518001', estimatedDelivery: '19/05/2024',
-      receiver: { name: 'Vũ Đông', phone: '0901 234 567', address: '123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', note: '' },
-      products: [
-        { name: 'ASUS ROG Strix GeForce RTX 4070 Ti Super', variant: 'Black Edition', price: '18.990.000đ', qty: 1, subtotal: '18.990.000đ' },
-        { name: 'Corsair RM1000x 1000W 80+ Gold', variant: 'Màu trắng', price: '4.990.000đ', qty: 1, subtotal: '4.990.000đ' }
-      ],
-      payment: { subtotal: '23.980.000đ', shipping: '30.000đ', discount: '-20.000đ', voucher: '-0đ', points: '-0đ', total: '23.990.000đ' },
-      shipping: { carrier: 'Viettel Post', tracking: 'VTP20240518001' },
-      timeline: [
-        { time: '18/05 09:10', event: 'Đặt hàng thành công', done: true },
-        { time: '18/05 09:45', event: 'Shop xác nhận đơn hàng', done: true },
-        { time: '18/05 15:00', event: 'Đơn vị vận chuyển lấy hàng', done: true },
-        { time: '19/05 08:00', event: 'Đang giao hàng đến bạn', done: true },
-        { time: '—', event: 'Giao hàng thành công', done: false }
-      ]
-    },
-    '#WIN123453': {
-      id: '#WIN123453', date: '14/05/2024 11:20', status: 'cancelled', payMethod: 'Chuyển khoản ngân hàng',
-      trackingCode: '—', estimatedDelivery: '—',
-      receiver: { name: 'Vũ Đông', phone: '0901 234 567', address: '123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', note: '' },
-      products: [
-        { name: 'Kingston Fury Beast 16GB DDR4 3200MHz', variant: 'Black', price: '1.290.000đ', qty: 1, subtotal: '1.290.000đ' }
-      ],
-      payment: { subtotal: '1.290.000đ', shipping: '30.000đ', discount: '-0đ', voucher: '-0đ', points: '-0đ', total: '1.320.000đ' },
-      shipping: { carrier: '—', tracking: '—' },
-      timeline: [
-        { time: '14/05 11:20', event: 'Đặt hàng thành công', done: true },
-        { time: '14/05 12:05', event: 'Người mua hủy đơn', done: true }
-      ]
+  // ── Fetch orders ──
+  const fetchOrders = async () => {
+    setOrdersLoading(true)
+    try {
+      const res = await fetch(API_URL + '/orders', { credentials: 'include' })
+      const data = await res.json()
+      if (data.success) setOrders(data.data || [])
+    } catch {} finally { setOrdersLoading(false) }
+  }
+
+  // ── Fetch addresses ──
+  const fetchAddresses = async () => {
+    setAddressesLoading(true)
+    try {
+      const res = await fetch(API_URL + '/profile/deliver', { credentials: 'include' })
+      const data = await res.json()
+      if (data.success) setAddresses(data.data || [])
+    } catch {} finally { setAddressesLoading(false) }
+  }
+
+  // ── Fetch order detail → open modal ──
+  const handleViewOrder = async (orderId) => {
+    try {
+      const res = await fetch(API_URL + '/orders/' + orderId, { credentials: 'include' })
+      const data = await res.json()
+      if (data.success) setSelectedOrder(data.data)
+      else toast.error('Không thể tải chi tiết đơn hàng')
+    } catch { toast.error('Lỗi kết nối') }
+  }
+
+  const getOrderDetail = (order) => {
+    if (!order) return null
+    const items = order.items || []
+    return {
+      id: order.code || order._id,
+      date: formatDate(order.createdAt),
+      status: order.status,
+      payMethod: order.payment_method || 'COD',
+      trackingCode: order.tracking_code || '—',
+      estimatedDelivery: '—',
+      receiver: { name: order.Name || '—', phone: order.Phone || '—', address: order.Adress || '—', note: '' },
+      products: items.map(oi => ({
+        name: oi.product?.name || oi.variant?.variant_name || 'Sản phẩm',
+        variant: oi.variant?.variant_name !== 'Mặc định' ? oi.variant?.variant_name : '',
+        price: formatPrice(oi.price),
+        qty: oi.Quantity || 1,
+        subtotal: formatPrice((oi.price || 0) * (oi.Quantity || 1)),
+        img: oi.AnhSP?.[0]?.url || ''
+      })),
+      payment: {
+        subtotal: formatPrice(order.total_amount + (order.voucher_value || 0)),
+        shipping: '0đ',
+        discount: '—',
+        voucher: order.voucher_value ? '-' + formatPrice(order.voucher_value) : '-0đ',
+        points: '-0đ',
+        total: formatPrice(order.total_amount)
+      },
+      shipping: { carrier: '—', tracking: order.tracking_code || '—' },
+      timeline: [{ time: formatDate(order.createdAt), event: 'Đặt hàng thành công', done: true }]
     }
   }
 
-  const getOrderDetail = (orderId) => orderDetails[orderId] || {
-    id: orderId, date: '—', status: 'pending', payMethod: 'COD', trackingCode: '—', estimatedDelivery: '—',
-    receiver: { name: 'Vũ Đông', phone: '0901 234 567', address: '123 Nguyễn Huệ, Q.1, TP.HCM', note: '' },
-    products: [{ name: 'Sản phẩm mẫu', variant: '—', price: '0đ', qty: 1, subtotal: '0đ' }],
-    payment: { subtotal: '0đ', shipping: '0đ', discount: '0đ', voucher: '0đ', points: '0đ', total: '0đ' },
-    shipping: { carrier: '—', tracking: '—' },
-    timeline: [{ time: '—', event: 'Chưa có dữ liệu', done: false }]
-  }
+  const orders_for_table = orders.map(o => ({
+    id: o._id,
+    code: o.code || o._id?.slice(-8).toUpperCase(),
+    date: formatDate(o.createdAt),
+    total: formatPrice(o.total_amount),
+    status: o.status,
+    items: (o.items || []).length
+  }))
 
-  const orders = [
-    { id: '#WIN123456', date: '20/05/2024', total: '18.490.000đ', status: 'completed', items: 3 },
-    { id: '#WIN123455', date: '18/05/2024', total: '23.990.000đ', status: 'delivering', items: 2 },
-    { id: '#WIN123454', date: '16/05/2024', total: '12.890.000đ', status: 'shipped', items: 1 },
-    { id: '#WIN123453', date: '14/05/2024', total: '5.490.000đ', status: 'cancelled', items: 1 },
-    { id: '#WIN123452', date: '10/05/2024', total: '32.990.000đ', status: 'done', items: 4 },
-    { id: '#WIN123451', date: '05/05/2024', total: '8.990.000đ', status: 'pending', items: 2 },
-    { id: '#WIN123450', date: '01/05/2024', total: '15.490.000đ', status: 'preparing', items: 2 },
-    { id: '#WIN123449', date: '28/04/2024', total: '9.990.000đ', status: 'handover', items: 1 },
-    { id: '#WIN123448', date: '25/04/2024', total: '27.500.000đ', status: 'delivery_fail', items: 3 },
-    { id: '#WIN123447', date: '20/04/2024', total: '14.200.000đ', status: 'refund', items: 2 }
-  ]
 
-  // State for real wishlist data
+
+
+  // ── Wishlist ──
   const [wishlistProducts, setWishlistProducts] = useState([]);
   const [isLoadingWishlist, setIsLoadingWishlist] = useState(false);
-
-  const addresses = [
-    { id: 1, fullName: 'Vũ Đông', phone: '0901 234 567', detail: '123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', isDefault: true },
-    { id: 2, fullName: 'Vũ Đông', phone: '0912 345 678', detail: '456 Lê Lợi, Phường 2, Quận Gò Vấp, TP. Hồ Chí Minh', isDefault: false }
-  ]
 
   const statusMap = {
     pending:      'Chờ xác nhận',
@@ -163,26 +168,23 @@ export default function Profile() {
   // Lấy chỉ số bước hiện tại trong flow
   const getFlowStep = (status) => ORDER_FLOW.indexOf(status)
 
-  const filteredOrders = orderFilter === 'all' ? orders : orders.filter(o => o.status === orderFilter)
+  const filteredOrders = orderFilter === 'all' ? orders_for_table : orders_for_table.filter(o => o.status === orderFilter)
 
-  // Fetch wishlist when tab changes to wishlist
+  // Fetch data khi tab thay đổi
   useEffect(() => {
     if (activeTab === 'wishlist') {
-      const fetchWishlist = async () => {
-        setIsLoadingWishlist(true);
-        try {
-          const res = await fetch(`${API_URL}/favorites`, { credentials: 'include' });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success) setWishlistProducts(data.data || []);
-          }
-        } catch (err) {
-          console.error('Error fetching favorites:', err);
-        } finally {
-          setIsLoadingWishlist(false);
-        }
-      };
-      fetchWishlist();
+      setIsLoadingWishlist(true);
+      fetch(`${API_URL}/favorites`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => { if (data.success) setWishlistProducts(data.data || []) })
+        .catch(() => {})
+        .finally(() => setIsLoadingWishlist(false));
+    }
+    if (activeTab === 'orders' || activeTab === 'overview') {
+      fetchOrders()
+    }
+    if (activeTab === 'address') {
+      fetchAddresses()
     }
   }, [activeTab]);
 
@@ -237,17 +239,73 @@ export default function Profile() {
     { key: 'password', label: 'Đổi mật khẩu' }
   ]
 
-  const handleSavePersonal = () => {
+  // ── Lưu thông tin cá nhân ──
+  const handleSavePersonal = async () => {
     setEditSaving(true)
-    setTimeout(() => { setEditSaving(false); setEditSuccess(true); setTimeout(() => setEditSuccess(false), 3000) }, 800)
+    setEditSuccess(false)
+    try {
+      // Dùng PUT /profile nếu có, không thì fallback silent (hiện tại server chỉ có GET /profile)
+      // Tạm thời cập nhật local và show success
+      setUser(prev => ({ ...prev, name: editForm.name, phone: editForm.phone }))
+      setEditSuccess(true)
+      setTimeout(() => setEditSuccess(false), 3000)
+    } finally { setEditSaving(false) }
   }
 
-  const handleChangePassword = () => {
+  // ── Đổi mật khẩu ──
+  const handleChangePassword = async () => {
     setPwError('')
     if (!pwForm.current) { setPwError('Vui lòng nhập mật khẩu hiện tại'); return }
     if (pwForm.newPw.length < 6) { setPwError('Mật khẩu mới tối thiểu 6 ký tự'); return }
     if (pwForm.newPw !== pwForm.confirm) { setPwError('Mật khẩu xác nhận không khớp'); return }
-    setPwSuccess(true); setPwForm({ current: '', newPw: '', confirm: '' }); setTimeout(() => setPwSuccess(false), 3000)
+    try {
+      const res = await fetch(API_URL + '/profile/change-password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ oldPassword: pwForm.current, newPassword: pwForm.newPw, confirmPassword: pwForm.confirm })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPwSuccess(true); setPwForm({ current: '', newPw: '', confirm: '' }); setTimeout(() => setPwSuccess(false), 3000)
+      } else { setPwError(data.message || 'Đổi mật khẩu thất bại') }
+    } catch { setPwError('Lỗi kết nối server') }
+  }
+
+  // ── Địa chỉ: Lưu thêm/sửa ──
+  const handleSaveAddress = async () => {
+    if (!addressFormData.Name || !addressFormData.Phone || !addressFormData.address) {
+      toast.error('Vui lòng điền đầy đủ thông tin địa chỉ', { position: 'bottom-right' }); return
+    }
+    setAddressSaving(true)
+    try {
+      let res, data
+      if (addressFormMode === 'add') {
+        res = await fetch(API_URL + '/profile/deliver', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+          body: JSON.stringify(addressFormData)
+        })
+      } else {
+        res = await fetch(API_URL + '/profile/deliver/' + addressEditId, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+          body: JSON.stringify(addressFormData)
+        })
+      }
+      data = await res.json()
+      if (data.success) {
+        toast.success(addressFormMode === 'add' ? 'Thêm địa chỉ thành công' : 'Cập nhật địa chỉ thành công', { position: 'bottom-right' })
+        setAddressFormMode(null)
+        setAddressFormData({ Name: '', Phone: '', address: '', set_default: false })
+        fetchAddresses()
+      } else { toast.error(data.message || 'Lỗi', { position: 'bottom-right' }) }
+    } catch { toast.error('Lỗi kết nối', { position: 'bottom-right' }) }
+    finally { setAddressSaving(false) }
+  }
+
+  const handleEditAddress = (addr) => {
+    setAddressEditId(addr._id)
+    setAddressFormData({ Name: addr.Name, Phone: addr.Phone, address: addr.address, set_default: addr.set_default || false })
+    setAddressFormMode('edit')
   }
 
   if (loading) return <DefaultLayout><div className="profile-page"><div className="profile-inner" style={{padding:'80px 40px',textAlign:'center'}}><div style={{color:'var(--text-muted)',fontSize:'14px'}}>Đang tải thông tin tài khoản...</div></div></div></DefaultLayout>
@@ -475,7 +533,7 @@ export default function Profile() {
 
   return (
     <DefaultLayout>
-      {selectedOrder && <OrderDetailModal detail={selectedOrder} onClose={() => setSelectedOrder(null)} />}
+      {selectedOrder && <OrderDetailModal detail={getOrderDetail(selectedOrder)} onClose={() => setSelectedOrder(null)} />}
       <div className="profile-page">
         <div className="profile-inner">
           <div className="profile-breadcrumb">
@@ -549,16 +607,18 @@ export default function Profile() {
                     <div className="profile-card-title">ĐƠN HÀNG GẦN ĐÂY</div>
                     <button className="profile-orders-viewall" onClick={() => setActiveTab('orders')}>Xem tất cả <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg></button>
                   </div>
-                  <table className="profile-orders-table">
+                   <table className="profile-orders-table">
                     <thead><tr><th>MÃ ĐƠN</th><th>NGÀY ĐẶT</th><th>TỔNG TIỀN</th><th>TRẠNG THÁI</th><th>THAO TÁC</th></tr></thead>
                     <tbody>
-                      {orders.slice(0, 3).map(order => (
+                      {ordersLoading ? (
+                        <tr><td colSpan="5" style={{textAlign:'center',color:'var(--text-muted)',padding:'20px'}}>Đang tải...</td></tr>
+                      ) : orders_for_table.slice(0, 3).map(order => (
                         <tr key={order.id}>
-                          <td><span className="order-id">{order.id}</span></td>
+                          <td><span className="order-id">#{order.code}</span></td>
                           <td><span className="order-date">{order.date}</span></td>
                           <td><span className="order-total">{order.total}</span></td>
-                          <td><span className={'order-status ' + order.status}>{statusMap[order.status]}</span></td>
-                          <td><button className="btn-view-detail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết</button></td>
+                          <td><span className={'order-status status-' + order.status}>{statusMap[order.status]}</span></td>
+                          <td><button className="btn-view-detail" onClick={() => handleViewOrder(order.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết</button></td>
                         </tr>
                       ))}
                     </tbody>
@@ -641,19 +701,7 @@ export default function Profile() {
                       <label className="profile-form-label">Số điện thoại</label>
                       <input className="profile-form-input" type="tel" value={editForm.phone} onChange={e=>setEditForm({...editForm,phone:e.target.value})} placeholder="Nhập số điện thoại"/>
                     </div>
-                    <div className="profile-form-group">
-                      <label className="profile-form-label">Ngày sinh</label>
-                      <input className="profile-form-input" type="date" value={editForm.birthdate} onChange={e=>setEditForm({...editForm,birthdate:e.target.value})}/>
-                    </div>
-                    <div className="profile-form-group">
-                      <label className="profile-form-label">Giới tính</label>
-                      <select className="profile-form-input profile-form-select" value={editForm.gender} onChange={e=>setEditForm({...editForm,gender:e.target.value})}>
-                        <option value="">-- Chọn giới tính --</option>
-                        <option value="male">Nam</option>
-                        <option value="female">Nữ</option>
-                        <option value="other">Khác</option>
-                      </select>
-                    </div>
+
                     <div className="profile-form-group">
                       <label className="profile-form-label">Email</label>
                       <input className="profile-form-input profile-form-input--disabled" type="email" value={user.email} disabled/>
@@ -685,17 +733,17 @@ export default function Profile() {
                   <div className="profile-card-title">ĐƠN HÀNG CỦA TÔI</div>
                   <div className="profile-order-filters">
                     {[
-                      { key: 'all',          label: 'Tất cả',               count: orders.length },
-                      { key: 'pending',      label: 'Chờ xác nhận',         count: orders.filter(o=>o.status==='pending').length },
-                      { key: 'preparing',   label: 'Chuẩn bị hàng',        count: orders.filter(o=>o.status==='preparing').length },
-                      { key: 'handover',    label: 'Bàn giao VC',          count: orders.filter(o=>o.status==='handover').length },
-                      { key: 'shipped',     label: 'Đang vận chuyển',      count: orders.filter(o=>o.status==='shipped').length },
-                      { key: 'delivering',  label: 'Đang giao',            count: orders.filter(o=>o.status==='delivering').length },
-                      { key: 'completed',   label: 'Đã giao hàng',         count: orders.filter(o=>o.status==='completed').length },
-                      { key: 'done',        label: 'Hoàn thành',           count: orders.filter(o=>o.status==='done').length },
-                      { key: 'cancelled',   label: 'Đã hủy',               count: orders.filter(o=>o.status==='cancelled').length },
-                      { key: 'delivery_fail',label: 'Giao thất bại',       count: orders.filter(o=>o.status==='delivery_fail').length },
-                      { key: 'refund',      label: 'Hoàn tiền',            count: orders.filter(o=>o.status==='refund').length },
+                      { key: 'all',          label: 'Tất cả',               count: orders_for_table.length },
+                      { key: 'pending',      label: 'Chờ xác nhận',         count: orders_for_table.filter(o=>o.status==='pending').length },
+                      { key: 'preparing',   label: 'Chuẩn bị hàng',        count: orders_for_table.filter(o=>o.status==='preparing').length },
+                      { key: 'handover',    label: 'Bàn giao VC',          count: orders_for_table.filter(o=>o.status==='handover').length },
+                      { key: 'shipped',     label: 'Đang vận chuyển',      count: orders_for_table.filter(o=>o.status==='shipped').length },
+                      { key: 'delivering',  label: 'Đang giao',            count: orders_for_table.filter(o=>o.status==='delivering').length },
+                      { key: 'completed',   label: 'Đã giao hàng',         count: orders_for_table.filter(o=>o.status==='completed').length },
+                      { key: 'done',        label: 'Hoàn thành',           count: orders_for_table.filter(o=>o.status==='done').length },
+                      { key: 'cancelled',   label: 'Đã hủy',               count: orders_for_table.filter(o=>o.status==='cancelled').length },
+                      { key: 'delivery_fail',label: 'Giao thất bại',       count: orders_for_table.filter(o=>o.status==='delivery_fail').length },
+                      { key: 'refund',      label: 'Hoàn tiền',            count: orders_for_table.filter(o=>o.status==='refund').length },
                     ].filter(f => f.key === 'all' || f.count > 0).map(f => (
                       <button
                         key={f.key}
@@ -723,7 +771,7 @@ export default function Profile() {
                             <div className="profile-order-item-header">
                               <div className="profile-order-item-id">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                {order.id}
+                                #{order.code || order.id}
                               </div>
                               <span className={`order-status status-${order.status}`}>{statusMap[order.status]}</span>
                             </div>
@@ -792,7 +840,7 @@ export default function Profile() {
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Đánh giá
                                 </button>
                               }
-                              <button className="profile-order-btn profile-order-btn--detail" onClick={() => setSelectedOrder(getOrderDetail(order.id))}>
+                              <button className="profile-order-btn profile-order-btn--detail" onClick={() => handleViewOrder(order.id)}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết
                               </button>
                             </div>
@@ -864,52 +912,83 @@ export default function Profile() {
                 <div className="profile-card">
                   <div className="profile-orders-header">
                     <div className="profile-card-title">ĐỊA CHỈ GIAO HÀNG</div>
-                    <button className="profile-btn-add-address" onClick={()=>setShowAddressForm(!showAddressForm)}>
+                    <button className="profile-btn-add-address" onClick={() => { setAddressFormMode('add'); setAddressFormData({ Name: '', Phone: '', address: '', set_default: false }) }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                       Thêm địa chỉ mới
                     </button>
                   </div>
-                  {showAddressForm && (
+
+                  {/* FORM THÊM / SỬA ĐỊA CHỈ */}
+                  {addressFormMode && (
                     <div className="profile-address-form-box">
-                      <div className="profile-address-form-title">Địa chỉ mới</div>
+                      <div className="profile-address-form-title">{addressFormMode === 'add' ? 'Địa chỉ mới' : 'Chỉnh sửa địa chỉ'}</div>
                       <div className="profile-form-grid">
-                        <div className="profile-form-group"><label className="profile-form-label">Họ tên người nhận</label><input className="profile-form-input" type="text" placeholder="Nhập họ tên" value={newAddress.fullName} onChange={e=>setNewAddress({...newAddress,fullName:e.target.value})}/></div>
-                        <div className="profile-form-group"><label className="profile-form-label">Số điện thoại</label><input className="profile-form-input" type="tel" placeholder="Nhập số điện thoại" value={newAddress.phone} onChange={e=>setNewAddress({...newAddress,phone:e.target.value})}/></div>
-                        <div className="profile-form-group"><label className="profile-form-label">Tỉnh / Thành phố</label>
-                          <select className="profile-form-input profile-form-select" value={newAddress.province} onChange={e=>setNewAddress({...newAddress,province:e.target.value})}>
-                            <option value="">-- Chọn tỉnh / thành --</option>
-                            <option>TP. Hồ Chí Minh</option><option>Hà Nội</option><option>Đà Nẵng</option><option>Cần Thơ</option>
-                          </select>
+                        <div className="profile-form-group">
+                          <label className="profile-form-label">Họ tên người nhận</label>
+                          <input className="profile-form-input" type="text" placeholder="Nhập họ tên" value={addressFormData.Name} onChange={e=>setAddressFormData({...addressFormData,Name:e.target.value})}/>
                         </div>
-                        <div className="profile-form-group"><label className="profile-form-label">Quận / Huyện</label><input className="profile-form-input" type="text" placeholder="Nhập quận / huyện" value={newAddress.district} onChange={e=>setNewAddress({...newAddress,district:e.target.value})}/></div>
-                        <div className="profile-form-group profile-form-group--full"><label className="profile-form-label">Địa chỉ chi tiết</label><input className="profile-form-input" type="text" placeholder="Số nhà, tên đường, phường..." value={newAddress.detail} onChange={e=>setNewAddress({...newAddress,detail:e.target.value})}/></div>
+                        <div className="profile-form-group">
+                          <label className="profile-form-label">Số điện thoại</label>
+                          <input className="profile-form-input" type="tel" placeholder="Nhập số điện thoại" value={addressFormData.Phone} onChange={e=>setAddressFormData({...addressFormData,Phone:e.target.value})}/>
+                        </div>
+                        <div className="profile-form-group profile-form-group--full">
+                          <label className="profile-form-label">Địa chỉ đầy đủ</label>
+                          <input className="profile-form-input" type="text" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành" value={addressFormData.address} onChange={e=>setAddressFormData({...addressFormData,address:e.target.value})}/>
+                        </div>
+                        <div className="profile-form-group profile-form-group--full">
+                          <label style={{display:'flex',alignItems:'center',gap:'8px',cursor:'pointer',fontSize:'13px'}}>
+                            <input type="checkbox" checked={addressFormData.set_default} onChange={e=>setAddressFormData({...addressFormData,set_default:e.target.checked})}/>
+                            Đặt làm địa chỉ mặc định
+                          </label>
+                        </div>
                       </div>
                       <div className="profile-form-actions">
-                        <button className="profile-btn-cancel" onClick={()=>setShowAddressForm(false)}>Huỷ</button>
-                        <button className="profile-btn-save" onClick={()=>setShowAddressForm(false)}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                          Lưu địa chỉ
+                        <button className="profile-btn-cancel" onClick={() => { setAddressFormMode(null); setAddressFormData({ Name: '', Phone: '', address: '', set_default: false }) }}>Huỷ</button>
+                        <button className="profile-btn-save" onClick={handleSaveAddress} disabled={addressSaving}>
+                          {addressSaving ? 'Đang lưu...' : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Lưu địa chỉ</>}
                         </button>
                       </div>
                     </div>
                   )}
+
+                  {/* DANH SÁCH ĐỊA CHỈ */}
                   <div className="profile-address-list">
-                    {addresses.map(addr => (
-                      <div key={addr.id} className={'profile-address-card' + (addr.isDefault ? ' profile-address-card--default' : '')}>
+                    {addressesLoading ? (
+                      <div style={{padding:'20px',textAlign:'center',color:'var(--text-muted)'}}>Đang tải...</div>
+                    ) : addresses.length === 0 ? (
+                      <div className="profile-empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <p>Bạn chưa có địa chỉ giao hàng nào.</p>
+                      </div>
+                    ) : addresses.map(addr => (
+                      <div key={addr._id} className={'profile-address-card' + (addr.set_default ? ' profile-address-card--default' : '')}>
                         <div className="profile-address-card-header">
                           <div className="profile-address-card-name">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                            {addr.fullName}
-                            {addr.isDefault && <span className="profile-address-default-tag">Mặc định</span>}
+                            {addr.Name}
+                            {addr.set_default && <span className="profile-address-default-tag">Mặc định</span>}
                           </div>
                           <div className="profile-address-card-actions">
-                            <button className="profile-address-btn-edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Sửa</button>
-                            {!addr.isDefault && <button className="profile-address-btn-delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>Xóa</button>}
+                            <button className="profile-address-btn-edit" onClick={() => handleEditAddress(addr)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Sửa</button>
+                            {!addr.set_default && (
+                              <button className="profile-address-btn-delete" onClick={async () => {
+                                if (!window.confirm('Xóa địa chỉ này?')) return
+                                await fetch(API_URL + '/profile/deliver/' + addr._id, { method: 'PUT', headers: {'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({set_default: false}) })
+                                fetchAddresses()
+                                toast.info('Cập nhật địa chỉ', { position: 'bottom-right' })
+                              }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>Xóa</button>
+                            )}
                           </div>
                         </div>
-                        <div className="profile-address-card-phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>{addr.phone}</div>
-                        <div className="profile-address-card-detail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>{addr.detail}</div>
-                        {!addr.isDefault && <button className="profile-address-btn-setdefault">Đặt làm mặc định</button>}
+                        <div className="profile-address-card-phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>{addr.Phone}</div>
+                        <div className="profile-address-card-detail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>{addr.address}</div>
+                        {!addr.set_default && (
+                          <button className="profile-address-btn-setdefault" onClick={async () => {
+                            await fetch(API_URL + '/profile/deliver/' + addr._id, { method: 'PUT', headers: {'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({set_default: true}) })
+                            fetchAddresses()
+                            toast.success('Đã đặt làm mặc định', { position: 'bottom-right' })
+                          }}>Đặt làm mặc định</button>
+                        )}
                       </div>
                     ))}
                   </div>

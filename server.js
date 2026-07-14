@@ -2592,8 +2592,8 @@ app.post("/contact", async (req, res) => {
 
     // 3. Thiết kế nội dung Email (Bọc HTML cho đẹp mắt)
     const mailOptions = {
-      from: `"Form Liên Hệ Web" <email_gui_cua_bac@gmail.com>`, 
-      to: 'contact.winnotech@gmail.com', // EMAIL CỦA WINNOTech (Nơi nhận thông báo)
+      from: `"Form Liên Hệ WINNOTech" <${process.env.EMAIL_USER}>`,
+      to: process.env.EMAIL_RECEIVE,
       subject: `[WINNOTech] Khách hàng ${name} gửi liên hệ mới!`,
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
