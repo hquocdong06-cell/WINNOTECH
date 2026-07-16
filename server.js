@@ -1451,18 +1451,15 @@ app.post("/orders", checklogin, async (req, res) => {
 app.get("/orders", checklogin, async (req, res) => {
   try {
     const userId = req.user._id;
-    const { status } = req.query; // Hứng trạng thái từ FE truyền lên (VD: ?status=Chờ xác nhận)
+    const { status } = req.query;
 
-    // ==========================================
-    // 1. TÍNH TOÁN SỐ LƯỢNG CHO CÁC TAB (UI BADGE COUNTS)
-    // Dùng Aggregation để đếm số đơn của từng trạng thái cực kỳ nhẹ và nhanh
-    // ==========================================
+
     const statusCounts = await Order.aggregate([
-      { $match: { user_id: userId } }, // Chỉ đếm đơn của user này
-      { $group: { _id: "$status", count: { $sum: 1 } } } // Nhóm theo status và đếm
+      { $match: { user_id: userId } }, 
+      { $group: { _id: "$status", count: { $sum: 1 } } } 
     ]);
 
-    // Format lại dữ liệu đếm cho FE dễ dùng
+
     let totalOrders = 0;
     const countMap = {
       "Tất cả": 0,
@@ -1486,12 +1483,9 @@ app.get("/orders", checklogin, async (req, res) => {
     });
     countMap["Tất cả"] = totalOrders;
 
-    // ==========================================
-    // 2. LỌC DANH SÁCH ĐƠN HÀNG THEO TAB
-    // ==========================================
+
     let query = { user_id: userId };
     
-    // Nếu có truyền status và không phải tab "Tất cả", thì đưa vào điều kiện lọc
     if (status && status !== "Tất cả") {
       query.status = status;
     }
@@ -1501,18 +1495,15 @@ app.get("/orders", checklogin, async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    // FAIL-FAST: Nếu không có đơn nào ở tab này thì trả về luôn mảng rỗng + bộ số đếm
     if (!orders || orders.length === 0) {
       return res.json({ 
         success: true, 
-        counts: countMap, // FE dùng cái này để in số lên tab
+        counts: countMap, 
         data: [] 
       });
     }
 
-    // ==========================================
-    // 3. RÁP ĐỒ CHƠI (Tái sử dụng code tối ưu cũ)
-    // ==========================================
+
     const orderIds = orders.map((o) => o._id);
     const orderItems = await OrderItem.find({ order_id: { $in: orderIds } }).lean();
 
