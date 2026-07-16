@@ -3106,9 +3106,8 @@ app.get("/favorites/list", checklogin, async (req, res) => {
 
 //chức năng so sánh sản phẩm
 
-const CompareModel = require('../models/Compare');
 
-app.post("/api/compare/toggle", checklogin, async (req, res) => {
+app.post("/compare/toggle", checklogin, async (req, res) => {
   try {
     const userId = req.user._id;
     const { product_id } = req.body;
@@ -3172,6 +3171,43 @@ app.post("/api/compare/toggle", checklogin, async (req, res) => {
   }
 });
 
+//lấy danh sách sản phẩm so sánh của user
+app.get("/compare/my-list", checklogin, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // 1. Lấy danh sách từ DB
+    const compareItems = await CompareModel.find({ user_id: userId }).lean();
+
+    if (!compareItems || compareItems.length === 0) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    // 2. Lấy Data Chi tiết của các sản phẩm đó (Tương tự như API Guest)
+    const productIds = compareItems.map(item => item.product_id);
+
+    const [products, variants, images] = await Promise.all([
+      ProductModel.find({ _id: { $in: productIds } }).lean(),
+      ProductVariantModel.find({ p_id: { $in: productIds } }).lean(),
+      ImageModel.find({ p_id: { $in: productIds } }).lean()
+    ]);
+
+    // 3. Ghép Data lại để Frontend dễ dàng vẽ bảng
+    const data = products.map(product => {
+      return {
+        ...product,
+        variants: variants.filter(v => v.p_id?.toString() === product._id.toString()),
+        images: images.filter(img => img.p_id?.toString() === product._id.toString())
+      };
+    });
+
+    return res.status(200).json({ success: true, data: data });
+
+  } catch (error) {
+    console.error("Lỗi get compare list:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
