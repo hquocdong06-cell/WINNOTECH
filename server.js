@@ -38,6 +38,8 @@ const {
   Post: PostModel,
   PostCategory: PostCategoryModel,
 } = require("./models/Post");
+const CompareModel = require('../models/Compare');
+
 const path = require("path");
 const multer = require("multer");
 const {VNPay, ignoreLogger, ProductCode, VnpLocate, dataFormat} = require("vnpay");
@@ -1323,100 +1325,122 @@ app.delete("/cart/:cartItemId", checklogin, async (req, res) => {
 // ============================================================
 app.post("/orders", checklogin, async (req, res) => {
   try {
-    const { Name, Phone, Adress, payment_method, voucher_code, items } =
-      req.body;
-    // items: [ { variant_id, quantity, price } ]
+    const { Name, Phone, Adress, payment_method, voucher_code, items } = req.body;
 
-    if (
-      !Name ||
-      !Phone ||
-      !Adress ||
-      !payment_method ||
-      !items ||
-      items.length === 0
-    ) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Thiếu thông tin đặt hàng" });
+    if (!Name || !Phone || !Adress || !payment_method || !items || items.length === 0) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin đặt hàng" });
     }
 
-    // Tính tổng tiền
-    let total_amount = items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0,
-    );
+    // ==========================================
+    // 1. LẤY GIÁ THẬT VÀ CHECK TỒN KHO TỪ DB
+    // ==========================================
+    const variantIds = items.map((i) => i.variant_id);
+    const dbVariants = await ProductVariantModel.find({ _id: { $in: variantIds } }).lean();
 
-    // Xử lý voucher nếu có
-    let voucher_value = 0;
-    if (voucher_code) {
-      const voucher = await Voucher.findOne({ code: voucher_code });
-      if (
-        voucher &&
-        voucher.end_day >= new Date() &&
-        voucher.used_count < voucher.usage_limit
-      ) {
-        voucher_value =
-          voucher.discount_type === "percent"
-            ? (total_amount * voucher.discount_value) / 100
-            : voucher.discount_value;
+    let total_amount = 0;
+    const orderItemDocs = [];
+    const bulkStockOps = [];
 
-        // Cập nhật used_count
-        await Voucher.findByIdAndUpdate(voucher._id, {
-          $inc: { used_count: 1 },
+    for (const item of items) {
+      const dbVariant = dbVariants.find(v => v._id.toString() === item.variant_id.toString());
+
+      if (!dbVariant) {
+        return res.status(404).json({ success: false, message: `Sản phẩm không tồn tại.` });
+      }
+
+      if (dbVariant.stock_quantity < item.quantity) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Sản phẩm đã hết hàng hoặc không đủ số lượng!` 
         });
-        // Đánh dấu UserVoucher là đã dùng
-        await UserVoucher.findOneAndUpdate(
-          { user_id: req.user._id, voucher_id: voucher._id },
-          { is_used: true },
-        );
+      }
+
+      // Tính tiền bằng giá trong Database
+      const realPrice = dbVariant.price; 
+      total_amount += realPrice * item.quantity;
+
+      orderItemDocs.push({
+        variants_id: item.variant_id, 
+        Quantity: item.quantity,
+        price: realPrice, 
+      });
+
+      bulkStockOps.push({
+        updateOne: {
+          filter: { _id: item.variant_id, stock_quantity: { $gte: item.quantity } },
+          update: { $inc: { stock_quantity: -item.quantity } }
+        }
+      });
+    }
+
+    // ==========================================
+    // 2. XỬ LÝ VOUCHER
+    // ==========================================
+    let voucher_value = 0;
+    let validVoucher = null;
+
+    if (voucher_code) {
+      validVoucher = await Voucher.findOne({ code: voucher_code });
+      if (
+        validVoucher &&
+        validVoucher.end_day >= new Date() &&
+        validVoucher.used_count < validVoucher.usage_limit
+      ) {
+        voucher_value = validVoucher.discount_type === "percent"
+            ? (total_amount * validVoucher.discount_value) / 100
+            : validVoucher.discount_value;
+      } else {
+        return res.status(400).json({ success: false, message: "Voucher không hợp lệ hoặc đã hết hạn!" });
       }
     }
 
-    // Tạo mã đơn hàng
+    const final_amount = Math.max(0, total_amount - voucher_value); 
+
+    // ==========================================
+    // 3. TẠO ĐƠN HÀNG VỚI STATUS MỚI
+    // ==========================================
     const code = "ORD-" + Date.now();
 
     const newOrder = await Order.create({
       user_id: req.user._id,
       code,
-      Name,
-      Phone,
-      Adress,
-      total_amount: total_amount - voucher_value,
+      Name, Phone, Adress,
+      total_amount: final_amount,
       payment_method,
-      voucher_code: voucher_code || null,
+      voucher_code: validVoucher ? voucher_code : null,
       voucher_value,
       payment_status: "unpaid",
-      status: "pending",
+      // CẬP NHẬT TRẠNG THÁI MẶC ĐỊNH THEO ẢNH CỦA FRONTEND
+      status: "Chờ xác nhận", 
     });
 
-    // Tạo OrderItems — FIX: dùng variants_id (đúng ERD), không dùng attribute_value_id
-    const orderItemDocs = items.map((item) => ({
-      order_id: newOrder._id,
-      variants_id: item.variant_id, // FIX: đổi từ attribute_value_id
-      Quantity: item.quantity,
-      price: item.price,
-    }));
-    await OrderItem.insertMany(orderItemDocs);
+    const finalOrderItems = orderItemDocs.map(doc => ({ ...doc, order_id: newOrder._id }));
+    await OrderItem.insertMany(finalOrderItems);
 
-    // Trừ tồn kho
-    for (const item of items) {
-      await ProductVariantModel.findByIdAndUpdate(item.variant_id, {
-        $inc: { stock_quantity: -item.quantity },
-      });
+    // ==========================================
+    // 4. TRỪ KHO, XÓA GIỎ HÀNG & CHỐT VOUCHER
+    // ==========================================
+    if (bulkStockOps.length > 0) {
+      await ProductVariantModel.bulkWrite(bulkStockOps);
     }
 
-    // Xóa CartItem sau khi đặt hàng thành công
-    const variantIds = items.map((i) => i.variant_id);
+    if (validVoucher) {
+      await Voucher.findByIdAndUpdate(validVoucher._id, { $inc: { used_count: 1 } });
+      await UserVoucher.findOneAndUpdate(
+        { user_id: req.user._id, voucher_id: validVoucher._id },
+        { is_used: true }
+      );
+    }
+
     await CartItemModel.deleteMany({
       u_id: req.user._id,
       variant_id: { $in: variantIds },
     });
 
-    return res
-      .status(201)
-      .json({ success: true, message: "Đặt hàng thành công", data: newOrder });
+    return res.status(201).json({ success: true, message: "Đặt hàng thành công", data: newOrder });
+
   } catch (error) {
-    console.log("Lỗi API create order:", error);
+    console.error("Lỗi API create order:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });
@@ -1431,48 +1455,63 @@ app.get("/orders", checklogin, async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    // Lấy OrderItems cho tất cả đơn hàng
+    // 1. TỐI ƯU FAIL-FAST: Khách chưa mua gì thì trả về luôn, không chọc xuống DB nữa
+    if (!orders || orders.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
     const orderIds = orders.map((o) => o._id);
     const orderItems = await OrderItem.find({
       order_id: { $in: orderIds },
     }).lean();
 
-    // FIX: lấy variant qua variants_id (đúng ERD)
+    // 2. FIX BUG CRASH SERVER: Dùng dấu hỏi chấm (?.) để né lỗi undefined
     const variantIds = [
-      ...new Set(orderItems.map((oi) => oi.variants_id.toString())),
+      ...new Set(
+        orderItems
+          .map((oi) => oi.variants_id?.toString())
+          .filter(Boolean) // Lọc bỏ các giá trị null/undefined
+      ),
     ];
+    
     const variants = await ProductVariantModel.find({
       _id: { $in: variantIds },
     }).lean();
-    const productIds = [...new Set(variants.map((v) => v.p_id.toString()))];
+
+    // Fix tương tự cho p_id
+    const productIds = [
+      ...new Set(
+        variants
+          .map((v) => v.p_id?.toString())
+          .filter(Boolean)
+      ),
+    ];
+    
     const products = await ProductModel.find({
       _id: { $in: productIds },
     }).lean();
 
-    const variantMap = {};
-    variants.forEach((v) => {
-      variantMap[v._id.toString()] = v;
-    });
-
-    const productMap = {};
-    products.forEach((p) => {
-      productMap[p._id.toString()] = p;
-    });
+    // 3. TỐI ƯU TỐC ĐỘ: Chuyển sang dùng Map thay vì Object {}
+    const variantMap = new Map(variants.map(v => [v._id.toString(), v]));
+    const productMap = new Map(products.map(p => [p._id.toString(), p]));
 
     const data = orders.map((order) => {
       const items = orderItems
-        .filter((oi) => oi.order_id.toString() === order._id.toString())
+        .filter((oi) => oi.order_id?.toString() === order._id.toString())
         .map((oi) => {
-          const variant = variantMap[oi.variants_id.toString()];
-          const product = variant ? productMap[variant.p_id.toString()] : null;
+          // Tra cứu bằng .get() cực nhanh
+          const variant = variantMap.get(oi.variants_id?.toString());
+          const product = variant ? productMap.get(variant.p_id?.toString()) : null;
+          
           return { ...oi, variant: variant || null, product: product || null };
         });
+        
       return { ...order, items };
     });
 
     return res.json({ success: true, data });
   } catch (error) {
-    console.log("Lỗi API get orders:", error);
+    console.error("Lỗi API get orders:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });
@@ -1482,6 +1521,7 @@ app.get("/orders", checklogin, async (req, res) => {
 // ============================================================
 app.get("/orders/:orderId", checklogin, async (req, res) => {
   try {
+    // 1. Lấy thông tin đơn hàng
     const order = await Order.findOne({
       _id: req.params.orderId,
       user_id: req.user._id,
@@ -1490,39 +1530,49 @@ app.get("/orders/:orderId", checklogin, async (req, res) => {
       .lean();
 
     if (!order) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Đơn hàng không tồn tại" });
+      return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
     }
 
-    // FIX: OrderItem dùng variants_id (đúng ERD)
-    const orderItems = await OrderItem.find({ order_id: order._id }).lean();
-    const variantIds = orderItems.map((oi) => oi.variants_id);
-    const variants = await ProductVariantModel.find({
-      _id: { $in: variantIds },
-    }).lean();
-    const productIds = variants.map((v) => v.p_id);
-    const products = await ProductModel.find({
-      _id: { $in: productIds },
-    }).lean();
-    const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
+    // 2. LẤY ORDER ITEMS & POPULATE LUÔN BIẾN THỂ (Tận dụng ref trong Schema)
+    const orderItems = await OrderItem.find({ order_id: order._id })
+      .populate("variants_id") // Ma thuật ở đây: variants_id giờ sẽ là 1 Object chứa toàn bộ thông tin biến thể
+      .lean();
 
-    // FIX: dùng helper
-    const variantAttrMap = await getVariantAttributeMap(variantIds);
+    if (!orderItems || orderItems.length === 0) {
+      return res.json({ success: true, data: { ...order, items: [] } });
+    }
 
-    const variantMap = {};
-    variants.forEach((v) => {
-      variantMap[v._id.toString()] = v;
+    // 3. Gom ID Sản phẩm (p_id) và ID Biến thể để lấy Ảnh + Thuộc tính
+    const productIds = [];
+    const variantIds = [];
+
+    orderItems.forEach((oi) => {
+      if (oi.variants_id) {
+        variantIds.push(oi.variants_id._id.toString());
+        if (oi.variants_id.p_id) {
+          productIds.push(oi.variants_id.p_id.toString());
+        }
+      }
     });
 
-    const productMap = {};
-    products.forEach((p) => {
-      productMap[p._id.toString()] = p;
-    });
+    const uniqueProductIds = [...new Set(productIds)];
+    const uniqueVariantIds = [...new Set(variantIds)];
 
+    // 4. CHẠY SONG SONG CÁC TRUY VẤN CÒN LẠI (Ép xung tốc độ)
+    const [products, images, variantAttrMap] = await Promise.all([
+      ProductModel.find({ _id: { $in: uniqueProductIds } }).lean(),
+      ImageModel.find({ p_id: { $in: uniqueProductIds } }).lean(),
+      getVariantAttributeMap(uniqueVariantIds) // Helper của bác
+    ]);
+
+    // Dùng Map để tra cứu sản phẩm nhanh
+    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+    // 5. Ráp nốt Đồ chơi lại với nhau
     const items = orderItems.map((oi) => {
-      const variant = variantMap[oi.variants_id.toString()];
-      const product = variant ? productMap[variant.p_id.toString()] : null;
+      const variant = oi.variants_id; // Đã có sẵn data từ populate
+      const product = variant ? productMap.get(variant.p_id?.toString()) : null;
+
       return {
         ...oi,
         variant: variant
@@ -1533,23 +1583,20 @@ app.get("/orders/:orderId", checklogin, async (req, res) => {
           : null,
         product: product || null,
         AnhSP: product
-          ? images.filter(
-              (img) => img.p_id.toString() === product._id.toString(),
-            )
+          ? images.filter((img) => img.p_id?.toString() === product._id.toString())
           : [],
       };
     });
 
     return res.json({ success: true, data: { ...order, items } });
   } catch (error) {
-    console.log("Lỗi API get order detail:", error);
+    console.error("Lỗi API get order detail:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });
 
 // ============================================================
 // POST /reviews — đăng review cho order item
-// FIX: Review.id_oderitems ref OrderItem (đúng ERD)
 // ============================================================
 app.post("/reviews", checklogin, async (req, res) => {
   try {
@@ -2846,9 +2893,6 @@ app.post("/api/create-qr", checklogin, async (req, res) => {
       return res.status(400).json({ success: false, message: "Giỏ hàng trống!" });
     }
 
-    // ==========================================
-    // 1. KIỂM TRA TỒN KHO TRÊN BẢNG PRODUCT VARIANT
-    // ==========================================
     let subTotal = 0;
     const orderItemsData = []; 
 
@@ -3059,6 +3103,74 @@ app.get("/favorites/list", checklogin, async (req, res) => {
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });
+
+//chức năng so sánh sản phẩm
+const CompareModel = require('../models/Compare');
+
+app.post("/api/compare/toggle", checklogin, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { product_id } = req.body;
+
+    if (!product_id) {
+      return res.status(400).json({ success: false, message: "Thiếu ID sản phẩm!" });
+    }
+
+    // 1. Kiểm tra sản phẩm muốn thêm có tồn tại không
+    const targetProduct = await ProductModel.findById(product_id).lean();
+    if (!targetProduct) {
+      return res.status(404).json({ success: false, message: "Sản phẩm không tồn tại!" });
+    }
+
+    // 2. Kiểm tra xem sản phẩm này đã có trong danh sách so sánh chưa
+    const existingItem = await CompareModel.findOne({ user_id: userId, product_id: product_id });
+
+    if (existingItem) {
+      // 3a. NẾU ĐÃ CÓ RỒI -> XÓA KHỎI DANH SÁCH SO SÁNH (Toggle Off)
+      await CompareModel.deleteOne({ _id: existingItem._id });
+      return res.status(200).json({ success: true, message: "Đã xóa khỏi danh sách so sánh." });
+    }
+
+    // 3b. NẾU CHƯA CÓ -> TIẾN HÀNH KIỂM TRA ĐIỀU KIỆN ĐỂ THÊM VÀO
+    // Lấy danh sách các sản phẩm đang có trong bảng Compare của User này
+    // Dùng populate để lấy được thông tin category_id của các sản phẩm đang có
+    const currentCompareList = await CompareModel.find({ user_id: userId }).populate('product_id').lean();
+
+    // Luật 1: Chỉ cho phép so sánh tối đa 2 sản phẩm
+    if (currentCompareList.length >= 2) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Danh sách so sánh đã đầy! Vui lòng xóa bớt 1 sản phẩm trước khi thêm mới." 
+      });
+    }
+
+    // Luật 2: Bắt buộc phải cùng Category (Nếu danh sách đã có 1 sản phẩm)
+    if (currentCompareList.length === 1) {
+      const existingProduct = currentCompareList[0].product_id;
+      
+      // So sánh category_id của sản phẩm cũ và sản phẩm mới
+      if (existingProduct.category_id?.toString() !== targetProduct.category_id?.toString()) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Lỗi! Bạn chỉ có thể so sánh 2 sản phẩm thuộc cùng một danh mục." 
+        });
+      }
+    }
+
+    // Vượt qua mọi điều kiện -> Thêm vào Database
+    await CompareModel.create({
+      user_id: userId,
+      product_id: product_id
+    });
+
+    return res.status(200).json({ success: true, message: "Đã thêm vào danh sách so sánh!" });
+
+  } catch (error) {
+    console.error("Lỗi Toggle Compare:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
