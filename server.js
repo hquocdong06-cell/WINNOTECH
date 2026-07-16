@@ -3105,6 +3105,7 @@ app.get("/favorites/list", checklogin, async (req, res) => {
 });
 
 //chức năng so sánh sản phẩm
+
 const CompareModel = require('../models/Compare');
 
 app.post("/api/compare/toggle", checklogin, async (req, res) => {
