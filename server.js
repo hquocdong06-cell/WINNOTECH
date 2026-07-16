@@ -1451,43 +1451,44 @@ app.post("/orders", checklogin, async (req, res) => {
 app.get("/orders", checklogin, async (req, res) => {
   try {
     const userId = req.user._id;
-    const { status } = req.query;
 
+    const { status } = req.query; 
 
     const statusCounts = await Order.aggregate([
       { $match: { user_id: userId } }, 
       { $group: { _id: "$status", count: { $sum: 1 } } } 
     ]);
 
-
+   
     let totalOrders = 0;
     const countMap = {
-      "Tất cả": 0,
-      "Chờ xác nhận": 0,
-      "Chuẩn bị hàng": 0,
-      "Bàn giao VC": 0,
-      "Đang vận chuyển": 0,
-      "Đang giao": 0,
-      "Đã giao hàng": 0,
-      "Hoàn thành": 0,
-      "Đã hủy": 0,
-      "Giao thất bại": 0,
-      "Hoàn tiền": 0
+      "all": 0,           // Cho tab "Tất cả"
+      "pending": 0,       // Chờ xác nhận
+      "preparing": 0,     // Chuẩn bị hàng
+      "handed_over": 0,   // Bàn giao VC
+      "shipping": 0,      // Đang vận chuyển
+      "delivering": 0,    // Đang giao
+      "completed": 0,     // Hoàn thành
+      "canceled": 0       // Đã hủy
     };
 
     statusCounts.forEach(item => {
+      // item._id lúc này sẽ là 'pending', 'shipping'... từ DB chui ra
       if (countMap[item._id] !== undefined) {
         countMap[item._id] = item.count;
       }
       totalOrders += item.count;
     });
-    countMap["Tất cả"] = totalOrders;
+    countMap["all"] = totalOrders;
 
-
+    // ==========================================
+    // 2. LỌC DANH SÁCH ĐƠN HÀNG THEO KEY TIẾNG ANH
+    // ==========================================
     let query = { user_id: userId };
     
-    if (status && status !== "Tất cả") {
-      query.status = status;
+    // Nếu có truyền status và không phải tab "all"
+    if (status && status !== "all") {
+      query.status = status; // Lọc thẳng bằng key tiếng Anh, DB sẽ hiểu
     }
 
     const orders = await Order.find(query)
@@ -1502,7 +1503,6 @@ app.get("/orders", checklogin, async (req, res) => {
         data: [] 
       });
     }
-
 
     const orderIds = orders.map((o) => o._id);
     const orderItems = await OrderItem.find({ order_id: { $in: orderIds } }).lean();
@@ -1527,7 +1527,6 @@ app.get("/orders", checklogin, async (req, res) => {
       return { ...order, items };
     });
 
-    // Trả về cả bộ số đếm (counts) và danh sách đơn (data)
     return res.json({ 
       success: true, 
       counts: countMap, 
