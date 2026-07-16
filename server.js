@@ -3209,6 +3209,76 @@ app.get("/compare/my-list", checklogin, async (req, res) => {
   }
 });
 
+
+// API Lấy dữ liệu so sánh cho Khách Vãng Lai (Guest)
+// FE gọi GET: /api/compare/guest?id1=...&id2=...
+app.get("/api/compare/guest", async (req, res) => {
+  try {
+    const { id1, id2 } = req.query;
+
+    if (!id1 || !id2) {
+      return res.status(400).json({ success: false, message: "Vui lòng chọn đủ 2 sản phẩm để so sánh!" });
+    }
+
+    if (id1 === id2) {
+      return res.status(400).json({ success: false, message: "Bạn đang chọn 2 sản phẩm giống hệt nhau!" });
+    }
+
+    // 1. Lấy thông tin gốc của 2 sản phẩm chạy song song
+    const [product1, product2] = await Promise.all([
+      ProductModel.findById(id1).lean(), 
+      ProductModel.findById(id2).lean()
+    ]);
+
+    if (!product1 || !product2) {
+      return res.status(404).json({ success: false, message: "Sản phẩm không tồn tại!" });
+    }
+
+    // 2. CHECK LUẬT: Bắt buộc cùng Danh mục (Category)
+    // Lưu ý: Đổi "category_id" thành đúng tên cột trong DB của bác
+    if (product1.category_id?.toString() !== product2.category_id?.toString()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Chỉ có thể so sánh 2 sản phẩm cùng một danh mục!" 
+      });
+    }
+
+    // 3. Gom Data chi tiết (Biến thể, Hình ảnh) bằng Promise.all cực nhanh
+    const [variants1, variants2, images1, images2] = await Promise.all([
+      ProductVariantModel.find({ p_id: product1._id }).lean(),
+      ProductVariantModel.find({ p_id: product2._id }).lean(),
+      ImageModel.find({ p_id: product1._id }).lean(),
+      ImageModel.find({ p_id: product2._id }).lean()
+    ]);
+
+    // Lấy thêm thuộc tính (Màu sắc, Phiên bản) qua Helper nếu bác cần
+    // const variantIds1 = variants1.map(v => v._id.toString());
+    // ... gọi getVariantAttributeMap(variantIds1)
+
+    // 4. Trả kết quả về cho Frontend kẻ bảng trái/phải
+    return res.status(200).json({
+      success: true,
+      data: {
+        product1: {
+          ...product1,
+          variants: variants1,
+          images: images1
+        },
+        product2: {
+          ...product2,
+          variants: variants2,
+          images: images2
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error("Lỗi API compare guest:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server, không thể so sánh lúc này." });
+  }
+});
+
+
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
