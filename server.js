@@ -1450,48 +1450,78 @@ app.post("/orders", checklogin, async (req, res) => {
 // ============================================================
 app.get("/orders", checklogin, async (req, res) => {
   try {
-    const orders = await Order.find({ user_id: req.user._id })
+    const userId = req.user._id;
+    const { status } = req.query; // Hứng trạng thái từ FE truyền lên (VD: ?status=Chờ xác nhận)
+
+    // ==========================================
+    // 1. TÍNH TOÁN SỐ LƯỢNG CHO CÁC TAB (UI BADGE COUNTS)
+    // Dùng Aggregation để đếm số đơn của từng trạng thái cực kỳ nhẹ và nhanh
+    // ==========================================
+    const statusCounts = await Order.aggregate([
+      { $match: { user_id: userId } }, // Chỉ đếm đơn của user này
+      { $group: { _id: "$status", count: { $sum: 1 } } } // Nhóm theo status và đếm
+    ]);
+
+    // Format lại dữ liệu đếm cho FE dễ dùng
+    let totalOrders = 0;
+    const countMap = {
+      "Tất cả": 0,
+      "Chờ xác nhận": 0,
+      "Chuẩn bị hàng": 0,
+      "Bàn giao VC": 0,
+      "Đang vận chuyển": 0,
+      "Đang giao": 0,
+      "Đã giao hàng": 0,
+      "Hoàn thành": 0,
+      "Đã hủy": 0,
+      "Giao thất bại": 0,
+      "Hoàn tiền": 0
+    };
+
+    statusCounts.forEach(item => {
+      if (countMap[item._id] !== undefined) {
+        countMap[item._id] = item.count;
+      }
+      totalOrders += item.count;
+    });
+    countMap["Tất cả"] = totalOrders;
+
+    // ==========================================
+    // 2. LỌC DANH SÁCH ĐƠN HÀNG THEO TAB
+    // ==========================================
+    let query = { user_id: userId };
+    
+    // Nếu có truyền status và không phải tab "Tất cả", thì đưa vào điều kiện lọc
+    if (status && status !== "Tất cả") {
+      query.status = status;
+    }
+
+    const orders = await Order.find(query)
       .populate("payment_method")
       .sort({ createdAt: -1 })
       .lean();
 
-    // 1. TỐI ƯU FAIL-FAST: Khách chưa mua gì thì trả về luôn, không chọc xuống DB nữa
+    // FAIL-FAST: Nếu không có đơn nào ở tab này thì trả về luôn mảng rỗng + bộ số đếm
     if (!orders || orders.length === 0) {
-      return res.json({ success: true, data: [] });
+      return res.json({ 
+        success: true, 
+        counts: countMap, // FE dùng cái này để in số lên tab
+        data: [] 
+      });
     }
 
+    // ==========================================
+    // 3. RÁP ĐỒ CHƠI (Tái sử dụng code tối ưu cũ)
+    // ==========================================
     const orderIds = orders.map((o) => o._id);
-    const orderItems = await OrderItem.find({
-      order_id: { $in: orderIds },
-    }).lean();
+    const orderItems = await OrderItem.find({ order_id: { $in: orderIds } }).lean();
 
-    // 2. FIX BUG CRASH SERVER: Dùng dấu hỏi chấm (?.) để né lỗi undefined
-    const variantIds = [
-      ...new Set(
-        orderItems
-          .map((oi) => oi.variants_id?.toString())
-          .filter(Boolean) // Lọc bỏ các giá trị null/undefined
-      ),
-    ];
-    
-    const variants = await ProductVariantModel.find({
-      _id: { $in: variantIds },
-    }).lean();
+    const variantIds = [...new Set(orderItems.map((oi) => oi.variants_id?.toString()).filter(Boolean))];
+    const variants = await ProductVariantModel.find({ _id: { $in: variantIds } }).lean();
 
-    // Fix tương tự cho p_id
-    const productIds = [
-      ...new Set(
-        variants
-          .map((v) => v.p_id?.toString())
-          .filter(Boolean)
-      ),
-    ];
-    
-    const products = await ProductModel.find({
-      _id: { $in: productIds },
-    }).lean();
+    const productIds = [...new Set(variants.map((v) => v.p_id?.toString()).filter(Boolean))];
+    const products = await ProductModel.find({ _id: { $in: productIds } }).lean();
 
-    // 3. TỐI ƯU TỐC ĐỘ: Chuyển sang dùng Map thay vì Object {}
     const variantMap = new Map(variants.map(v => [v._id.toString(), v]));
     const productMap = new Map(products.map(p => [p._id.toString(), p]));
 
@@ -1499,19 +1529,22 @@ app.get("/orders", checklogin, async (req, res) => {
       const items = orderItems
         .filter((oi) => oi.order_id?.toString() === order._id.toString())
         .map((oi) => {
-          // Tra cứu bằng .get() cực nhanh
           const variant = variantMap.get(oi.variants_id?.toString());
           const product = variant ? productMap.get(variant.p_id?.toString()) : null;
-          
           return { ...oi, variant: variant || null, product: product || null };
         });
-        
       return { ...order, items };
     });
 
-    return res.json({ success: true, data });
+    // Trả về cả bộ số đếm (counts) và danh sách đơn (data)
+    return res.json({ 
+      success: true, 
+      counts: countMap, 
+      data 
+    });
+
   } catch (error) {
-    console.error("Lỗi API get orders:", error);
+    console.error("Lỗi API get orders filter:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });
