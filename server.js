@@ -38,7 +38,7 @@ const {
   Post: PostModel,
   PostCategory: PostCategoryModel,
 } = require("./models/Post");
-const CompareModel = require('../models/Compare');
+const { Compare: CompareModel } = require('./models/FavoriteCompareReview');
 
 const path = require("path");
 const multer = require("multer");
