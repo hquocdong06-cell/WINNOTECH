@@ -320,7 +320,12 @@ export default function Checkout() {
   // ── Submit state ──
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
-  const [showConfirmModal, setShowConfirmModal] = useState(false) // State xác nhận đặt hàng
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+
+  // ── VNPay QR state ──
+  const [vnpayQR, setVnpayQR] = useState(null)       // base64 QR image
+  const [vnpayUrl, setVnpayUrl] = useState('')        // payment URL
+  const [showVnpayModal, setShowVnpayModal] = useState(false)
 
   // ── Computed totals ──
   const subtotal = cartItems.reduce((s, item) => {
@@ -361,10 +366,44 @@ export default function Checkout() {
     setSubmitting(true)
     setSubmitError('')
     setShowConfirmModal(false)
-    
+
     const { Name, Phone, Adress } = getShippingInfo()
     const items = getOrderItems()
 
+    // ── LUỒNG VNPay (Ví điện tử) ──
+    if (paymentMethod === 'ewallet') {
+      try {
+        const body = {
+          Name, Phone, Adress,
+          payment_method: PAYMENT_METHOD_IDS.ewallet,
+          items,
+        }
+        if (voucherCode.trim()) body.voucher_code = voucherCode.trim()
+
+        const res = await fetch(API_URL + '/api/create-qr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(body),
+        })
+        const data = await res.json()
+
+        if (data.success) {
+          setVnpayQR(data.qrCode)      // base64 QR image
+          setVnpayUrl(data.paymentUrl) // direct payment URL
+          setShowVnpayModal(true)
+        } else {
+          setSubmitError(data.message || 'Không thể tạo thanh toán VNPay, vui lòng thử lại!')
+        }
+      } catch {
+        setSubmitError('Lỗi kết nối server, vui lòng thử lại!')
+      } finally {
+        setSubmitting(false)
+      }
+      return
+    }
+
+    // ── LUỒNG COD / Chuyển khoản ──
     try {
       const payment_method_id = PAYMENT_METHOD_IDS[paymentMethod] || PAYMENT_METHOD_IDS.cod
       const body = {
@@ -385,7 +424,7 @@ export default function Checkout() {
       const data = await res.json()
 
       if (data.success) {
-        navigate('/profile?tab=orders&success=1')
+        navigate(`/order-success?code=${data.order?.code || ''}`)
       } else {
         setSubmitError(data.message || 'Đặt hàng thất bại, vui lòng thử lại!')
       }
@@ -623,20 +662,20 @@ export default function Checkout() {
                 </div>
               </div>
 
-              {/* E-Wallet */}
+              {/* VNPay */}
               <div
                 className={`co-payment-option ${paymentMethod === 'ewallet' ? 'selected' : ''}`}
                 onClick={() => setPaymentMethod('ewallet')}
               >
                 <div className="co-radio"><div className="co-radio-dot" /></div>
                 <div className="co-payment-info">
-                  <div className="co-payment-name">Ví điện tử</div>
-                  <div className="co-payment-desc">Thanh toán qua ví điện tử tiện lợi</div>
+                  <div className="co-payment-name">Ví điện tử / VNPay</div>
+                  <div className="co-payment-desc">Quét mã QR hoặc thanh toán qua cổng VNPay</div>
                 </div>
                 <div className="co-payment-icon">
                   <div className="co-wallet-badges">
-                    <span className="co-badge-momo">MO</span>
-                    <span className="co-badge-zalo">Zalo<b>Pay</b></span>
+                    <span className="co-badge-momo" style={{ background: '#005BAA', color: '#fff', borderRadius: '4px', padding: '2px 7px', fontWeight: 700, fontSize: '12px', letterSpacing: '0.5px' }}>VN</span>
+                    <span className="co-badge-zalo" style={{ background: '#e5001a', color: '#fff', borderRadius: '4px', padding: '2px 7px', fontWeight: 700, fontSize: '12px' }}>Pay</span>
                   </div>
                 </div>
               </div>
@@ -832,8 +871,8 @@ export default function Checkout() {
               <div>
                 <span style={{ color: '#666', fontWeight: 600 }}>Thanh toán qua:</span>{' '}
                 <span style={{ color: '#c8e600', fontWeight: 700 }}>
-                  {paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng (COD)' : 
-                   paymentMethod === 'bank' ? 'Chuyển khoản ngân hàng' : 'Ví điện tử'}
+                  {paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng (COD)' :
+                   paymentMethod === 'bank' ? 'Chuyển khoản ngân hàng' : '🔵 VNPay (Ví điện tử)'}
                 </span>
               </div>
               <div style={{ marginTop: '4px', paddingTop: '10px', borderTop: '1px solid #222' }}>
@@ -868,6 +907,103 @@ export default function Checkout() {
                 onMouseOut={(e) => e.target.style.opacity = 1}
               >
                 Xác nhận mua
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── VNPay QR Modal ── */}
+      {showVnpayModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: '20px',
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '16px',
+            width: '100%', maxWidth: '380px', padding: '28px 24px',
+            textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          }}>
+            {/* Header */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                background: '#005BAA', borderRadius: '8px', padding: '6px 16px', marginBottom: '12px',
+              }}>
+                <span style={{ color: '#fff', fontWeight: 800, fontSize: '18px', letterSpacing: '2px' }}>VNPAY</span>
+              </div>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#111' }}>Quét mã để thanh toán</h3>
+              <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#666' }}>
+                Dùng app ngân hàng hoặc ví điện tử hỗ trợ VNPay để quét
+              </p>
+            </div>
+
+            {/* QR Code */}
+            {vnpayQR ? (
+              <div style={{
+                border: '3px solid #005BAA', borderRadius: '12px',
+                padding: '10px', display: 'inline-block', marginBottom: '16px',
+              }}>
+                <img src={vnpayQR} alt="VNPay QR" style={{ width: '220px', height: '220px', display: 'block' }} />
+              </div>
+            ) : (
+              <div style={{ width: '220px', height: '220px', background: '#f0f0f0', borderRadius: '12px', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999', fontSize: '13px' }}>
+                Đang tải mã QR...
+              </div>
+            )}
+
+            {/* Total */}
+            <div style={{
+              background: '#f8f8f8', borderRadius: '8px', padding: '10px 16px',
+              marginBottom: '16px', fontSize: '14px', color: '#333',
+            }}>
+              Tổng thanh toán: <strong style={{ color: '#e5001a', fontSize: '16px' }}>{fmt(total)}</strong>
+            </div>
+
+            {/* Notice */}
+            <p style={{ fontSize: '12px', color: '#888', marginBottom: '16px', lineHeight: 1.5 }}>
+              ⚠️ Mã QR có hiệu lực trong <strong>15 phút</strong>. Sau khi thanh toán, bạn sẽ được chuyển đến trang xác nhận đơn hàng.
+            </p>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {vnpayUrl && (
+                <a
+                  href={vnpayUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'block', padding: '12px',
+                    background: '#005BAA', color: '#fff',
+                    borderRadius: '8px', fontWeight: 700, fontSize: '14px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  Mở trang thanh toán VNPay →
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => { setShowVnpayModal(false); navigate('/profile?tab=orders') }}
+                style={{
+                  padding: '11px', background: '#f5f5f5', border: '1px solid #ddd',
+                  borderRadius: '8px', color: '#333', fontWeight: 600, fontSize: '13px',
+                  cursor: 'pointer',
+                }}
+              >
+                Đã thanh toán xong → Xem đơn hàng
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowVnpayModal(false)}
+                style={{
+                  padding: '9px', background: 'transparent', border: 'none',
+                  color: '#999', fontSize: '12px', cursor: 'pointer',
+                }}
+              >
+                Hủy thanh toán
               </button>
             </div>
           </div>

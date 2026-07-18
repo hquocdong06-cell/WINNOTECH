@@ -1410,8 +1410,8 @@ app.post("/orders", checklogin, async (req, res) => {
       voucher_code: validVoucher ? voucher_code : null,
       voucher_value,
       payment_status: "unpaid",
-      // CẬP NHẬT TRẠNG THÁI MẶC ĐỊNH THEO ẢNH CỦA FRONTEND
-      status: "Chờ xác nhận", 
+      // Trạng thái mặc định khi tạo đơn hàng mới
+      status: "pending", 
     });
 
     const finalOrderItems = orderItemDocs.map(doc => ({ ...doc, order_id: newOrder._id }));
@@ -2920,24 +2920,22 @@ app.post("/api/create-qr", checklogin, async (req, res) => {
     const orderItemsData = []; 
 
     for (let item of items) {
-      // Tìm biến thể trong bảng ProductVariant (Bác nhớ import Model ProductVariant vào nhé)
-      const variant = await ProductVariant.findById(item.variant_id).lean();
+      const variant = await ProductVariantModel.findById(item.variant_id).lean();
 
-      if (!variant || variant.stock < item.Quantity) {
+      if (!variant || variant.stock_quantity < (item.quantity || item.Quantity)) {
         return res.status(400).json({
           success: false,
-          message: `Sản phẩm ${variant ? variant.name : ''} đã hết hàng hoặc không đủ số lượng trong kho!`
+          message: `Sản phẩm ${variant ? variant.variant_name : ''} đã hết hàng hoặc không đủ số lượng trong kho!`
         });
       }
 
-      // Tính tiền dựa trên giá của Biến thể (thường biến thể sẽ có giá riêng hoặc lấy giá gốc)
-      const currentPrice = variant.price || 0;
-      subTotal += currentPrice * item.Quantity;
+      const currentPrice = variant.sale_price > 0 ? variant.sale_price : (variant.price || 0);
+      const qty = item.quantity || item.Quantity || 1;
+      subTotal += currentPrice * qty;
 
-      // Đẩy vào mảng tạm để chờ Insert vào OrderItem
       orderItemsData.push({
-        variant_id: variant._id, 
-        Quantity: item.Quantity,
+        variant_id: variant._id,
+        Quantity: qty,
         price: currentPrice
       });
     }

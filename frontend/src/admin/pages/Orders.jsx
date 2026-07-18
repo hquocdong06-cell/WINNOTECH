@@ -1,53 +1,59 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Eye, Edit } from 'lucide-react';
 
+// Map enum tiếng Anh → nhãn tiếng Việt (đồng bộ với Order model)
+const STATUS_LABELS = {
+  pending:      'Chờ xác nhận',
+  preparing:    'Đang chuẩn bị hàng',
+  handed_over:  'Đã bàn giao vận chuyển',
+  shipping:     'Đang vận chuyển',
+  delivering:   'Đang giao hàng',
+  completed:    'Hoàn thành',
+  canceled:     'Đã hủy',
+};
+
 const mockOrders = [
-  { id: 'WIN123456', customer: 'Nguyễn Văn A', total: 18490000, status: 'Đang vận chuyển', date: '20/05/2024' },
-  { id: 'WIN123455', customer: 'Trần Thị B', total: 23990000, status: 'Chờ xác nhận', date: '20/05/2024' },
-  { id: 'WIN123454', customer: 'Lê Văn C', total: 12890000, status: 'Đang thanh toán', date: '20/05/2024' },
-  { id: 'WIN123453', customer: 'Phạm Thị D', total: 5490000, status: 'Giao không thành công', date: '19/05/2024' },
+  { id: 'WIN123456', customer: 'Nguyễn Văn A', total: 18490000, status: 'shipping',  date: '20/05/2024' },
+  { id: 'WIN123455', customer: 'Trần Thị B',   total: 23990000, status: 'pending',   date: '20/05/2024' },
+  { id: 'WIN123454', customer: 'Lê Văn C',     total: 12890000, status: 'preparing', date: '20/05/2024' },
+  { id: 'WIN123453', customer: 'Phạm Thị D',   total: 5490000,  status: 'canceled',  date: '19/05/2024' },
 ];
 
 const Orders = () => {
   const [orders] = useState(mockOrders);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('Tất cả');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   // Lọc đơn hàng theo tìm kiếm và trạng thái
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
-      const matchSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      const matchSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           order.customer.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchStatus = filterStatus === 'Tất cả' || order.status === filterStatus;
+      const matchStatus = filterStatus === 'all' || order.status === filterStatus;
       return matchSearch && matchStatus;
     });
   }, [orders, searchQuery, filterStatus]);
 
   // Hàm lấy màu sắc cho badge trạng thái
   const getStatusBadge = (status) => {
+    const label = STATUS_LABELS[status] || status;
     switch (status) {
-      case 'Đang thanh toán': 
-        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-500/10 text-orange-500 border border-orange-500/20">Đang thanh toán</span>;
-      case 'Chờ xử lý':
-      case 'Chờ xác nhận': 
-        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-500 border border-blue-500/20">{status}</span>;
-      case 'Đang chuẩn bị hàng':
-        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">{status}</span>;
-      case 'Đã bàn giao cho đơn vị vận chuyển':
-      case 'Đang vận chuyển':
-      case 'Đang giao hàng': 
-        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">{status}</span>;
-      case 'Đã giao hàng': 
-        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-teal-500/10 text-teal-400 border border-teal-500/20">{status}</span>;
-      case 'Hoàn thành': 
-        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-500 border border-green-500/20">Hoàn thành</span>;
-      case 'Đã hủy':
-      case 'Giao không thành công': 
-        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-500 border border-red-500/20">{status}</span>;
-      case 'Trả hàng/Hoàn tiền':
-        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-pink-500/10 text-pink-500 border border-pink-500/20">{status}</span>;
-      default: 
-        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">{status}</span>;
+      case 'pending':
+        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-500 border border-blue-500/20">{label}</span>;
+      case 'preparing':
+        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">{label}</span>;
+      case 'handed_over':
+        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">{label}</span>;
+      case 'shipping':
+        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">{label}</span>;
+      case 'delivering':
+        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-teal-500/10 text-teal-400 border border-teal-500/20">{label}</span>;
+      case 'completed':
+        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-500 border border-green-500/20">{label}</span>;
+      case 'canceled':
+        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-500 border border-red-500/20">{label}</span>;
+      default:
+        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">{label}</span>;
     }
   };
 
@@ -68,32 +74,27 @@ const Orders = () => {
       <div className="bg-[#141414] border border-[#333] rounded-xl p-5 mb-6 flex flex-wrap gap-4 items-center justify-between">
         <div className="relative flex-1 min-w-[250px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Tìm mã đơn, tên khách hàng..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-[#1e1e1e] border border-[#333] rounded-lg text-sm focus:border-[#d4ff00] outline-none transition-colors"
           />
         </div>
-        <select 
+        <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
           className="bg-[#1e1e1e] border border-[#333] rounded-lg px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none min-w-[200px]"
         >
-          <option value="Tất cả">Tất cả trạng thái</option>
-          <option value="Đang thanh toán">Đang thanh toán</option>
-          <option value="Chờ xử lý">Chờ xử lý</option>
-          <option value="Chờ xác nhận">Chờ xác nhận</option>
-          <option value="Đang chuẩn bị hàng">Đang chuẩn bị hàng</option>
-          <option value="Đã bàn giao cho đơn vị vận chuyển">Đã bàn giao cho đơn vị vận chuyển</option>
-          <option value="Đang vận chuyển">Đang vận chuyển</option>
-          <option value="Đang giao hàng">Đang giao hàng</option>
-          <option value="Đã giao hàng">Đã giao hàng</option>
-          <option value="Hoàn thành">Hoàn thành</option>
-          <option value="Đã hủy">Đã hủy</option>
-          <option value="Giao không thành công">Giao không thành công</option>
-          <option value="Trả hàng/Hoàn tiền">Trả hàng/Hoàn tiền</option>
+          <option value="all">Tất cả trạng thái</option>
+          <option value="pending">Chờ xác nhận</option>
+          <option value="preparing">Đang chuẩn bị hàng</option>
+          <option value="handed_over">Đã bàn giao vận chuyển</option>
+          <option value="shipping">Đang vận chuyển</option>
+          <option value="delivering">Đang giao hàng</option>
+          <option value="completed">Hoàn thành</option>
+          <option value="canceled">Đã hủy</option>
         </select>
       </div>
 

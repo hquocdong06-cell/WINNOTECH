@@ -13,6 +13,8 @@ import CategoryPage from './pages/CategoryPage'
 import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
+import OrderSuccess from './pages/OrderSuccess'
+import PaymentResult from './pages/PaymentResult'
 import Auth from './pages/Auth'
 import Profile from './pages/Profile'
 import BuildPC from './pages/BuildPC'
@@ -50,6 +52,8 @@ function App() {
         <Route path="/product/:slug" element={<ProductDetail />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/order-success" element={<OrderSuccess />} />
+        <Route path="/payment-result" element={<PaymentResult />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPostDetail />} />
