@@ -3299,6 +3299,76 @@ app.get("/api/compare/guest", async (req, res) => {
   }
 });
 
+// Lấy danh sách linh kiện theo danh mục (có hỗ trợ tìm kiếm theo tên)
+app.get("/api/buildpc/components", async (req, res) => {
+  try {
+    const { category, search } = req.query;
+    if (!category) return res.status(400).json({ success: false, message: "Thiếu category slug" });
+
+    const cat = await CategoryModel.findOne({ slug: category });
+    if (!cat) return res.status(404).json({ success: false, message: "Không tìm thấy danh mục" });
+
+    let filter = { cat_id: cat._id };
+    // Bỏ qua lọc status theo data hiện tại hoặc nếu cần: filter.status = 'active';
+    if (search) {
+      filter.name = { $regex: search, $options: "i" };
+    }
+
+    const products = await ProductModel.find(filter).populate("cat_id brand_id").lean();
+    if (products.length === 0) return res.json({ success: true, data: [] });
+
+    const productIds = products.map((p) => p._id);
+    const variants = await ProductVariantModel.find({ p_id: { $in: productIds } }).lean();
+    const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
+
+    const variantIds = variants.map((v) => v._id);
+    const variantAttrMap = await getVariantAttributeMap(variantIds);
+
+    const variantsWithAttributes = variants.map((variant) => ({
+      ...variant,
+      Attributes: variantAttrMap[variant._id.toString()] || [],
+    }));
+
+    const finalProducts = products.map((product) => ({
+      ...product,
+      AnhSP: images.filter((img) => img.p_id.toString() === product._id.toString()),
+      Variants: variantsWithAttributes.filter((v) => v.p_id.toString() === product._id.toString()),
+    }));
+
+    return res.json({ success: true, data: finalProducts });
+  } catch (error) {
+    console.error("Lỗi api buildpc get components:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// Lưu cấu hình Build PC vào DB
+app.post("/api/buildpc/save", async (req, res) => {
+  try {
+    const { total_price, items } = req.body;
+    if (!items || items.length === 0) {
+      return res.status(400).json({ success: false, message: "Cấu hình trống" });
+    }
+
+    // 1. Tạo BuildPC
+    const newBuild = await BuildPC.create({
+      summary_price: total_price
+    });
+
+    // 2. Tạo BuildItem
+    const buildItems = items.map(item => ({
+      build_id: newBuild._id,
+      name: item.name
+    }));
+
+    await BuildItem.insertMany(buildItems);
+
+    return res.json({ success: true, message: "Lưu cấu hình thành công!", build_id: newBuild._id });
+  } catch (error) {
+    console.error("Lỗi lưu build pc:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
