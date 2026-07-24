@@ -12,6 +12,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "ajax": "^0.0.4",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.2",
