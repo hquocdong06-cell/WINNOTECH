@@ -3370,6 +3370,492 @@ app.post("/api/buildpc/save", async (req, res) => {
   }
 });
 
+// ============================================================
+// API VOUCHER & USER VOUCHER
+// ============================================================
+
+// ------------------------------------------------------------
+// 1. API VOUCHER CHUNG
+// ------------------------------------------------------------
+
+// Lấy danh sách tất cả voucher
+app.get("/api/vouchers", async (req, res) => {
+  try {
+    const vouchers = await Voucher.find().sort({ createdAt: -1 });
+    return res.json({ success: true, count: vouchers.length, data: vouchers });
+  } catch (error) {
+    console.error("Lỗi lấy danh sách voucher:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// Lấy danh sách voucher còn hiệu lực
+app.get("/api/vouchers/valid", async (req, res) => {
+  try {
+    const now = new Date();
+    const vouchers = await Voucher.find({
+      start_day: { $lte: now },
+      end_day: { $gte: now },
+      $expr: { $lt: ["$used_count", "$usage_limit"] },
+    }).sort({ createdAt: -1 });
+    return res.json({ success: true, count: vouchers.length, data: vouchers });
+  } catch (error) {
+    console.error("Lỗi lấy danh sách voucher hợp lệ:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// Lấy chi tiết 1 voucher theo ID hoặc mã code
+app.get("/api/vouchers/:idOrCode", async (req, res) => {
+  try {
+    const { idOrCode } = req.params;
+    let voucher = null;
+    if (idOrCode.match(/^[0-9a-fA-F]{24}$/)) {
+      voucher = await Voucher.findById(idOrCode);
+    }
+    if (!voucher) {
+      voucher = await Voucher.findOne({ code: idOrCode.toUpperCase() });
+    }
+    if (!voucher) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy voucher" });
+    }
+    return res.json({ success: true, data: voucher });
+  } catch (error) {
+    console.error("Lỗi lấy chi tiết voucher:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// Tạo voucher mới (Admin)
+app.post("/api/vouchers", async (req, res) => {
+  try {
+    const { code, discount_type, discount_value, start_day, end_day, usage_limit, min_order } = req.body;
+
+    if (!code || !discount_type || discount_value === undefined || !start_day || !end_day || usage_limit === undefined) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin bắt buộc" });
+    }
+
+    if (!["percent", "fixed"].includes(discount_type)) {
+      return res.status(400).json({ success: false, message: "discount_type phải là 'percent' hoặc 'fixed'" });
+    }
+
+    const existingVoucher = await Voucher.findOne({ code: code.trim().toUpperCase() });
+    if (existingVoucher) {
+      return res.status(400).json({ success: false, message: "Mã voucher đã tồn tại" });
+    }
+
+    const newVoucher = await Voucher.create({
+      code: code.trim().toUpperCase(),
+      discount_type,
+      discount_value: Number(discount_value),
+      start_day: new Date(start_day),
+      end_day: new Date(end_day),
+      usage_limit: Number(usage_limit),
+      used_count: 0,
+      min_order: Number(min_order || 0),
+    });
+
+    return res.status(201).json({ success: true, message: "Tạo voucher thành công", data: newVoucher });
+  } catch (error) {
+    console.error("Lỗi tạo voucher:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// Cập nhật voucher
+app.put("/api/vouchers/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = { ...req.body };
+    if (updateData.code) updateData.code = updateData.code.trim().toUpperCase();
+
+    const updatedVoucher = await Voucher.findByIdAndUpdate(id, updateData, { new: true });
+    if (!updatedVoucher) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy voucher" });
+    }
+    return res.json({ success: true, message: "Cập nhật voucher thành công", data: updatedVoucher });
+  } catch (error) {
+    console.error("Lỗi cập nhật voucher:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// Xóa voucher
+app.delete("/api/vouchers/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedVoucher = await Voucher.findByIdAndDelete(id);
+    if (!deletedVoucher) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy voucher" });
+    }
+    return res.json({ success: true, message: "Xóa voucher thành công" });
+  } catch (error) {
+    console.error("Lỗi xóa voucher:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// Áp dụng voucher chung lên biến thể sản phẩm (biến thể sp)
+// POST /api/vouchers/apply
+// Body: { code, variant_id, quantity }
+app.post("/api/vouchers/apply", async (req, res) => {
+  try {
+    const { code, variant_id, quantity = 1 } = req.body;
+
+    if (!code || !variant_id) {
+      return res.status(400).json({ success: false, message: "Thiếu mã code hoặc variant_id" });
+    }
+
+    // 1. Kiểm tra tồn tại voucher
+    const voucher = await Voucher.findOne({ code: code.trim().toUpperCase() });
+    if (!voucher) {
+      return res.status(404).json({ success: false, message: "Mã voucher không tồn tại" });
+    }
+
+    // 2. Kiểm tra thời gian hiệu lực
+    const now = new Date();
+    if (now < new Date(voucher.start_day) || now > new Date(voucher.end_day)) {
+      return res.status(400).json({ success: false, message: "Mã voucher chưa có hiệu lực hoặc đã hết hạn" });
+    }
+
+    // 3. Kiểm tra số lần sử dụng
+    if (voucher.used_count >= voucher.usage_limit) {
+      return res.status(400).json({ success: false, message: "Mã voucher đã hết lượt sử dụng" });
+    }
+
+    // 4. Kiểm tra biến thể sản phẩm
+    const variant = await ProductVariantModel.findById(variant_id);
+    if (!variant) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy biến thể sản phẩm" });
+    }
+
+    // 5. Tính giá sản phẩm biến thể (ưu tiên sale_price nếu > 0)
+    const unitPrice = variant.sale_price && variant.sale_price > 0 ? variant.sale_price : variant.price;
+    const totalVariantPrice = unitPrice * Number(quantity);
+
+    // 6. Kiểm tra giá trị tối thiểu của đơn hàng / biến thể sản phẩm
+    if (totalVariantPrice < voucher.min_order) {
+      return res.status(400).json({
+        success: false,
+        message: `Giá trị sản phẩm (${totalVariantPrice.toLocaleString("vi-VN")} đ) chưa đạt mức tối thiểu áp dụng mã (${voucher.min_order.toLocaleString("vi-VN")} đ)`,
+      });
+    }
+
+    // 7. Xử lý giảm giá theo loại voucher (% hoặc fixed tiền)
+    let discountAmount = 0;
+    if (voucher.discount_type === "percent") {
+      discountAmount = (totalVariantPrice * voucher.discount_value) / 100;
+    } else if (voucher.discount_type === "fixed") {
+      discountAmount = voucher.discount_value;
+    }
+
+    // Đảm bảo số tiền giảm không vượt quá tổng giá tiền sản phẩm
+    discountAmount = Math.min(discountAmount, totalVariantPrice);
+    const finalPrice = Math.max(0, totalVariantPrice - discountAmount);
+
+    return res.json({
+      success: true,
+      message: "Áp dụng mã voucher thành công!",
+      data: {
+        voucher: {
+          _id: voucher._id,
+          code: voucher.code,
+          discount_type: voucher.discount_type,
+          discount_value: voucher.discount_value,
+          min_order: voucher.min_order,
+        },
+        variant: {
+          _id: variant._id,
+          variant_name: variant.variant_name,
+          sku: variant.sku,
+          unit_price: unitPrice,
+          quantity: Number(quantity),
+          total_variant_price: totalVariantPrice,
+        },
+        original_price: totalVariantPrice,
+        discount_amount: discountAmount,
+        final_price: finalPrice,
+      },
+    });
+  } catch (error) {
+    console.error("Lỗi áp dụng voucher:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// ------------------------------------------------------------
+// 2. API USER VOUCHER
+// ------------------------------------------------------------
+
+// Lưu / Nhận voucher vào ví cá nhân của User
+// POST /api/user-vouchers/save
+app.post("/api/user-vouchers/save", async (req, res) => {
+  try {
+    const userId = req.user ? req.user._id : req.body.user_id;
+    const { voucher_id, code } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "Thiếu user_id" });
+    }
+
+    let voucher = null;
+    if (voucher_id) {
+      voucher = await Voucher.findById(voucher_id);
+    } else if (code) {
+      voucher = await Voucher.findOne({ code: code.trim().toUpperCase() });
+    }
+
+    if (!voucher) {
+      return res.status(404).json({ success: false, message: "Voucher không tồn tại trên hệ thống" });
+    }
+
+    // Kiểm tra xem user đã lưu voucher này chưa
+    const existingUserVoucher = await UserVoucher.findOne({
+      user_id: userId,
+      voucher_id: voucher._id,
+    });
+
+    if (existingUserVoucher) {
+      return res.status(400).json({ success: false, message: "Bạn đã lưu voucher này vào ví rồi" });
+    }
+
+    const newUserVoucher = await UserVoucher.create({
+      user_id: userId,
+      voucher_id: voucher._id,
+      is_used: false,
+      save_at: new Date(),
+    });
+
+    const populated = await UserVoucher.findById(newUserVoucher._id).populate("voucher_id");
+
+    return res.status(201).json({
+      success: true,
+      message: "Lưu voucher vào ví thành công!",
+      data: populated,
+    });
+  } catch (error) {
+    console.error("Lỗi lưu user voucher:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// Lấy danh sách voucher đã lưu của User
+// GET /api/user-vouchers/my-vouchers
+app.get("/api/user-vouchers/my-vouchers", async (req, res) => {
+  try {
+    const userId = req.user ? req.user._id : req.query.user_id;
+    const { is_used } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "Thiếu user_id" });
+    }
+
+    const filter = { user_id: userId };
+    if (is_used !== undefined) {
+      filter.is_used = is_used === "true";
+    }
+
+    const userVouchers = await UserVoucher.find(filter)
+      .populate("voucher_id")
+      .sort({ save_at: -1 });
+
+    return res.json({
+      success: true,
+      count: userVouchers.length,
+      data: userVouchers,
+    });
+  } catch (error) {
+    console.error("Lỗi lấy ví voucher của user:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// Áp dụng User Voucher lên biến thể sản phẩm (BƯỚC KIỂM TRA CHÍNH CHỦ USER)
+// POST /api/user-vouchers/apply
+app.post("/api/user-vouchers/apply", async (req, res) => {
+  try {
+    const userId = req.user ? req.user._id : req.body.user_id;
+    const { code, user_voucher_id, voucher_id, variant_id, quantity = 1 } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin người dùng (user_id)" });
+    }
+    if (!variant_id) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin biến thể sản phẩm (variant_id)" });
+    }
+    if (!code && !user_voucher_id && !voucher_id) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin mã voucher" });
+    }
+
+    // BƯỚC 1: KIỂM TRA QUYỀN SỞ HỮU (BƯỚC KIỂM TRA CHÍNH CHỦ USER)
+    let targetVoucherId = voucher_id;
+
+    if (code && !targetVoucherId) {
+      const vDoc = await Voucher.findOne({ code: code.trim().toUpperCase() });
+      if (!vDoc) {
+        return res.status(404).json({ success: false, message: "Mã voucher không tồn tại trên hệ thống" });
+      }
+      targetVoucherId = vDoc._id;
+    }
+
+    let userVoucherDoc = null;
+    if (user_voucher_id) {
+      userVoucherDoc = await UserVoucher.findById(user_voucher_id).populate("voucher_id");
+    } else if (targetVoucherId) {
+      userVoucherDoc = await UserVoucher.findOne({
+        user_id: userId,
+        voucher_id: targetVoucherId,
+      }).populate("voucher_id");
+    }
+
+    // Kiểm tra tồn tại trong ví và có phải đúng user đó hay không
+    if (!userVoucherDoc || userVoucherDoc.user_id.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Voucher này không thuộc ví của bạn hoặc bạn chưa lưu mã này!",
+      });
+    }
+
+    // Kiểm tra xem user đã sử dụng voucher này chưa
+    if (userVoucherDoc.is_used) {
+      return res.status(400).json({
+        success: false,
+        message: "Voucher này đã được bạn sử dụng rồi!",
+      });
+    }
+
+    const voucher = userVoucherDoc.voucher_id;
+    if (!voucher) {
+      return res.status(404).json({ success: false, message: "Dữ liệu voucher không tồn tại" });
+    }
+
+    // BƯỚC 2: KIỂM TRA HẠN SỬ DỤNG VÀ GIỚI HẠN DÙNG CỦA VOUCHER
+    const now = new Date();
+    if (now < new Date(voucher.start_day) || now > new Date(voucher.end_day)) {
+      return res.status(400).json({ success: false, message: "Voucher đã hết hạn hoặc chưa đến thời gian sử dụng" });
+    }
+
+    if (voucher.used_count >= voucher.usage_limit) {
+      return res.status(400).json({ success: false, message: "Voucher đã hết lượt sử dụng trên hệ thống" });
+    }
+
+    // BƯỚC 3: KIỂM TRA GIÁ BIẾN THỂ SẢN PHẨM & TÍNH TOÁN GIÁ
+    const variant = await ProductVariantModel.findById(variant_id);
+    if (!variant) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy biến thể sản phẩm" });
+    }
+
+    const unitPrice = variant.sale_price && variant.sale_price > 0 ? variant.sale_price : variant.price;
+    const totalVariantPrice = unitPrice * Number(quantity);
+
+    if (totalVariantPrice < voucher.min_order) {
+      return res.status(400).json({
+        success: false,
+        message: `Mức giá sản phẩm (${totalVariantPrice.toLocaleString("vi-VN")} đ) không đủ điều kiện tối thiểu áp dụng mã (${voucher.min_order.toLocaleString("vi-VN")} đ)`,
+      });
+    }
+
+    // Tính giá giảm (percent hoặc fixed)
+    let discountAmount = 0;
+    if (voucher.discount_type === "percent") {
+      discountAmount = (totalVariantPrice * voucher.discount_value) / 100;
+    } else if (voucher.discount_type === "fixed") {
+      discountAmount = voucher.discount_value;
+    }
+
+    discountAmount = Math.min(discountAmount, totalVariantPrice);
+    const finalPrice = Math.max(0, totalVariantPrice - discountAmount);
+
+    return res.json({
+      success: true,
+      message: "Áp dụng user voucher thành công!",
+      data: {
+        user_voucher: {
+          user_voucher_id: userVoucherDoc._id,
+          is_used: userVoucherDoc.is_used,
+          user_id: userVoucherDoc.user_id,
+        },
+        voucher: {
+          _id: voucher._id,
+          code: voucher.code,
+          discount_type: voucher.discount_type,
+          discount_value: voucher.discount_value,
+          min_order: voucher.min_order,
+        },
+        variant: {
+          _id: variant._id,
+          variant_name: variant.variant_name,
+          sku: variant.sku,
+          unit_price: unitPrice,
+          quantity: Number(quantity),
+          total_variant_price: totalVariantPrice,
+        },
+        original_price: totalVariantPrice,
+        discount_amount: discountAmount,
+        final_price: finalPrice,
+      },
+    });
+  } catch (error) {
+    console.error("Lỗi áp dụng user voucher:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// Đánh dấu User Voucher đã được sử dụng
+// POST /api/user-vouchers/use
+app.post("/api/user-vouchers/use", async (req, res) => {
+  try {
+    const userId = req.user ? req.user._id : req.body.user_id;
+    const { code, user_voucher_id, voucher_id } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "Thiếu user_id" });
+    }
+
+    let targetVoucherId = voucher_id;
+    if (code && !targetVoucherId) {
+      const vDoc = await Voucher.findOne({ code: code.trim().toUpperCase() });
+      if (!vDoc) {
+        return res.status(404).json({ success: false, message: "Mã voucher không tồn tại" });
+      }
+      targetVoucherId = vDoc._id;
+    }
+
+    let userVoucherDoc = null;
+    if (user_voucher_id) {
+      userVoucherDoc = await UserVoucher.findById(user_voucher_id);
+    } else if (targetVoucherId) {
+      userVoucherDoc = await UserVoucher.findOne({
+        user_id: userId,
+        voucher_id: targetVoucherId,
+      });
+    }
+
+    if (!userVoucherDoc || userVoucherDoc.user_id.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, message: "Voucher này không thuộc ví của bạn" });
+    }
+
+    if (userVoucherDoc.is_used) {
+      return res.status(400).json({ success: false, message: "Voucher đã được sử dụng trước đó" });
+    }
+
+    userVoucherDoc.is_used = true;
+    await userVoucherDoc.save();
+
+    // Tăng used_count của Voucher tương ứng
+    await Voucher.findByIdAndUpdate(userVoucherDoc.voucher_id, { $inc: { used_count: 1 } });
+
+    return res.json({
+      success: true,
+      message: "Đã sử dụng voucher thành công!",
+      data: userVoucherDoc,
+    });
+  } catch (error) {
+    console.error("Lỗi đánh dấu sử dụng user voucher:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
