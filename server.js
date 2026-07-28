@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const connectDB = require("./config/db");
 const cors = require("cors");
@@ -62,6 +63,21 @@ const storage = multer.diskStorage({
   },
 });
 
+// Cấu hình upload riêng cho Category: lưu vào frontend/public/image/category & đổi tên thành 'cate' + 10 số ngẫu nhiên
+const categoryStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const categoryUploadDir = path.join(__dirname, "frontend", "public", "image", "category");
+    fs.mkdirSync(categoryUploadDir, { recursive: true });
+    cb(null, categoryUploadDir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    // Dãy số ngẫu nhiên 10 chữ số
+    const random10Digits = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    cb(null, `cate${random10Digits}${ext}`);
+  },
+});
+
 const fileFilter = (req, file, cb) => {
   const allowed = [
     "image/jpeg",
@@ -73,8 +89,15 @@ const fileFilter = (req, file, cb) => {
   if (allowed.includes(file.mimetype)) cb(null, true);
   else cb(new Error("Chỉ chấp nhận file ảnh (jpg, png, gif, webp)"), false);
 };
+
 const upload = multer({
   storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+const uploadCategory = multer({
+  storage: categoryStorage,
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 },
 });
@@ -111,6 +134,7 @@ app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 app.use("/public", express.static(path.join(__dirname, "/public")));
+app.use("/image", express.static(path.join(__dirname, "frontend", "public", "image")));
 app.use(
   session({
     secret: "keyboard cat",
@@ -695,6 +719,232 @@ app.get("/categories", async (req, res, next) => {
       message: "Lỗi Server, không thể lấy danh sách danh mục",
     });
   }
+});
+
+// ============================================================
+// POST /categories/upload — Upload ảnh danh mục vào frontend/public/image/category
+// Đổi tên file thành cate + 10 số ngẫu nhiên
+// ============================================================
+app.post("/categories/upload", uploadCategory.single("image"), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Vui lòng chọn file ảnh để upload" });
+    }
+    const imageUrl = `/image/category/${req.file.filename}`;
+    return res.status(200).json({
+      success: true,
+      message: "Upload ảnh danh mục thành công",
+      url: imageUrl,
+      filename: req.file.filename,
+    });
+  } catch (error) {
+    console.error("Lỗi upload ảnh danh mục:", error);
+    return res.status(500).json({ success: false, message: "Lỗi upload ảnh danh mục" });
+  }
+});
+
+// ============================================================
+// GET /categories/:id — Lấy chi tiết danh mục theo ID
+// ============================================================
+app.get("/categories/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "ID danh mục không hợp lệ" });
+    }
+    const category = await CategoryModel.findById(id);
+    if (!category) {
+      return res.status(404).json({ success: false, message: "Danh mục không tồn tại" });
+    }
+    return res.json({ success: true, data: category });
+  } catch (error) {
+    console.error("Lỗi API get category detail:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ============================================================
+// POST /categories — Thêm danh mục mới
+// FE truyền ID/data danh mục lên để xử lý
+// Kiểm tra nếu danh mục đã tồn tại thì KHÔNG cho thêm
+// ============================================================
+app.post("/categories", async (req, res) => {
+  try {
+    const { id, _id, name, image, status } = req.body;
+    const categoryId = _id || id;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập tên danh mục" });
+    }
+
+    const generatedSlug = slugify(name);
+    const existingConditions = [{ name: name.trim() }, { slug: generatedSlug }];
+
+    if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
+      existingConditions.push({ _id: categoryId });
+    }
+
+    // Kiểm tra danh mục đã tồn tại hay chưa
+    const existingCategory = await CategoryModel.findOne({
+      $or: existingConditions,
+    });
+
+    if (existingCategory) {
+      return res.status(409).json({
+        success: false,
+        message: "Danh mục này đã tồn tại trong hệ thống (trùng ID, tên hoặc slug), không thể thêm!",
+      });
+    }
+
+    // Chưa tồn tại -> tạo mới danh mục
+    const categoryData = {
+      name: name.trim(),
+      slug: generatedSlug,
+      image: image || "",
+      status: status || "active",
+    };
+
+    if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
+      categoryData._id = categoryId;
+    }
+
+    const newCategory = await CategoryModel.create(categoryData);
+
+    return res.status(201).json({
+      success: true,
+      message: "Thêm danh mục mới thành công",
+      data: newCategory,
+    });
+  } catch (error) {
+    console.error("Lỗi thêm danh mục:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server, không thể thêm danh mục",
+    });
+  }
+});
+
+// ============================================================
+// PUT /categories/:id — Sửa danh mục
+// Cho phép sửa ảnh, nếu ảnh bị thay thế thì LẬP TỨC XÓA ẢNH CŨ khỏi đĩa
+// ============================================================
+app.put("/categories/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, image, status } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "ID danh mục không hợp lệ" });
+    }
+
+    const category = await CategoryModel.findById(id);
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Danh mục không tồn tại",
+      });
+    }
+
+    // Kiểm tra nếu đổi tên làm trùng slug/tên với danh mục khác
+    if (name && name.trim() !== category.name) {
+      const newSlug = slugify(name);
+      const duplicate = await CategoryModel.findOne({
+        _id: { $ne: id },
+        $or: [{ name: name.trim() }, { slug: newSlug }],
+      });
+      if (duplicate) {
+        return res.status(409).json({
+          success: false,
+          message: "Tên danh mục hoặc slug bị trùng với danh mục khác!",
+        });
+      }
+      category.name = name.trim();
+      category.slug = newSlug;
+    }
+
+    // Nếu ảnh bị thay thế (ảnh mới khác ảnh cũ trong DB) -> LẬP TỨC XÓA ẢNH CŨ
+    if (image !== undefined && image !== category.image) {
+      if (category.image && (category.image.includes("/image/category/") || category.image.includes("cate"))) {
+        try {
+          const oldFileName = path.basename(category.image);
+          const oldFilePath = path.join(__dirname, "frontend", "public", "image", "category", oldFileName);
+          if (fs.existsSync(oldFilePath)) {
+            fs.unlinkSync(oldFilePath);
+            console.log(`✅ Lập tức xóa ảnh cũ bị thay thế: ${oldFilePath}`);
+          }
+        } catch (unlinkErr) {
+          console.error("Lỗi xóa file ảnh cũ:", unlinkErr);
+        }
+      }
+      category.image = image;
+    }
+
+    if (status !== undefined) {
+      category.status = status;
+    }
+
+    const updatedCategory = await category.save();
+
+    return res.json({
+      success: true,
+      message: "Cập nhật danh mục thành công",
+      data: updatedCategory,
+    });
+  } catch (error) {
+    console.error("Lỗi cập nhật danh mục:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server, không thể cập nhật danh mục",
+    });
+  }
+});
+
+// ============================================================
+// PATCH /categories/:id/status — Thay đổi trạng thái danh mục
+// ============================================================
+app.patch("/categories/:id/status", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "ID danh mục không hợp lệ" });
+    }
+
+    if (!status || !["active", "inactive"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Trạng thái không hợp lệ (chấp nhận 'active' hoặc 'inactive')",
+      });
+    }
+
+    const category = await CategoryModel.findById(id);
+    if (!category) {
+      return res.status(404).json({ success: false, message: "Danh mục không tồn tại" });
+    }
+
+    category.status = status;
+    await category.save();
+
+    return res.json({
+      success: true,
+      message: `Đã thay đổi trạng thái danh mục thành ${status}`,
+      data: category,
+    });
+  } catch (error) {
+    console.error("Lỗi đổi trạng thái danh mục:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ============================================================
+// DELETE /categories/:id — Không được xóa danh mục, chỉ được thay đổi trạng thái
+// ============================================================
+app.delete("/categories/:id", async (req, res) => {
+  return res.status(400).json({
+    success: false,
+    message: "Không được phép xóa danh mục! Chỉ được thay đổi trạng thái của danh mục.",
+  });
 });
 
 function slugify(text) {
