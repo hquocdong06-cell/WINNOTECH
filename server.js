@@ -102,6 +102,26 @@ const uploadCategory = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
+// Cấu hình upload riêng cho Avatar User: lưu vào frontend/public/image/avatar_user & đổi tên thành 'avt_' + 10 số ngẫu nhiên
+const avatarStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const avatarUploadDir = path.join(__dirname, "frontend", "public", "image", "avatar_user");
+    fs.mkdirSync(avatarUploadDir, { recursive: true });
+    cb(null, avatarUploadDir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    const random10Digits = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    cb(null, `avt_${random10Digits}${ext}`);
+  },
+});
+
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
 var cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 var session = require("express-session");
@@ -385,6 +405,103 @@ app.get("/profile", checklogin, async (req, res) => {
     });
   }
 });
+
+// ============================================================
+// PUT /profile & POST /profile/update — Cập nhật thông tin cá nhân (Profile)
+// - Hứng thông tin người dùng gửi lên
+// - So sánh với DB: nếu trùng thì không thay thế, nếu ô nào để trống thì giữ nguyên DB
+// - Xử lý ảnh đại diện Avatar: lưu vào frontend/public/image/avatar_user với tên avt_mã số ngẫu nhiên
+// - Xóa ảnh avatar cũ trong thư mục nếu người dùng tải lên ảnh mới
+// - Chỉ lưu tên ảnh avatar trong DB
+// ============================================================
+const handleUpdateProfile = async (req, res) => {
+  try {
+    const userId = req.user ? req.user._id : req.body.user_id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Bạn chưa đăng nhập" });
+    }
+
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+    }
+
+    // 1. Duyệt danh sách các trường thông tin chữ từ req.body
+    const allowedFields = ["name", "email", "phone"];
+
+    for (const key of Object.keys(req.body)) {
+      if (allowedFields.includes(key)) {
+        const val = req.body[key];
+        // "nếu ô nào để trống thì để trống" -> Nếu giá trị để trống (undefined/null/rỗng), giữ nguyên DB
+        if (val !== undefined && val !== null && val.toString().trim() !== "") {
+          const newVal = val.toString().trim();
+          const currentVal = user[key] ? user[key].toString().trim() : "";
+
+          // "nếu thông tin trùng thì ko thay thế thông tin đó" -> Chỉ cập nhật nếu thông tin khác với DB
+          if (newVal !== currentVal) {
+            // Kiểm tra trùng email nếu người dùng đổi email mới
+            if (key === "email") {
+              const existingEmail = await UserModel.findOne({ email: newVal, _id: { $ne: user._id } });
+              if (existingEmail) {
+                return res.status(409).json({ success: false, message: "Email này đã được sử dụng bởi tài khoản khác" });
+              }
+            }
+            // Kiểm tra trùng số điện thoại nếu người dùng đổi số điện thoại mới
+            if (key === "phone") {
+              const existingPhone = await UserModel.findOne({ phone: newVal, _id: { $ne: user._id } });
+              if (existingPhone) {
+                return res.status(409).json({ success: false, message: "Số điện thoại này đã được sử dụng bởi tài khoản khác" });
+              }
+            }
+            user[key] = newVal;
+          }
+        }
+      }
+    }
+
+    // 2. Xử lý tải lên file Avatar mới
+    if (req.file) {
+      const newAvatarFilename = req.file.filename; // Tên dạng avt_mã số ngẫu nhiên.ext
+
+      // Nếu trong DB đã có tên avatar cũ, xóa ảnh cũ trong folder frontend/public/image/avatar_user
+      if (user.avatar) {
+        const oldAvatarName = path.basename(user.avatar);
+        const oldAvatarPath = path.join(__dirname, "frontend", "public", "image", "avatar_user", oldAvatarName);
+        if (fs.existsSync(oldAvatarPath)) {
+          try {
+            fs.unlinkSync(oldAvatarPath);
+          } catch (unlinkErr) {
+            console.error("Lỗi khi xóa ảnh avatar cũ trong folder:", unlinkErr);
+          }
+        }
+      }
+
+      // "sau đó trên db chỉ lưu tên của ảnh avt đó"
+      user.avatar = newAvatarFilename;
+    }
+
+    await user.save();
+
+    // Ẩn mật khẩu khi trả dữ liệu cho FE
+    const updatedUserData = user.toObject();
+    delete updatedUserData.password;
+
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật thông tin cá nhân thành công",
+      user: updatedUserData,
+    });
+  } catch (error) {
+    console.error("Lỗi API Cập nhật Profile:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server trong quá trình cập nhật profile: " + error.message,
+    });
+  }
+};
+
+app.put("/profile", checklogin, uploadAvatar.single("avatar"), handleUpdateProfile);
+app.post("/profile/update", checklogin, uploadAvatar.single("avatar"), handleUpdateProfile);
 // ============================================================
 // GET /auth/me — kiểm tra user đang đăng nhập không
 // FE gọi API này trước khi hiển thị trang Login
@@ -4103,6 +4220,173 @@ app.post("/api/user-vouchers/use", async (req, res) => {
   } catch (error) {
     console.error("Lỗi đánh dấu sử dụng user voucher:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// ============================================================
+// API REVIEW (ĐÁNH GIÁ SẢN PHẨM)
+// ============================================================
+
+// Helper function xử lý lấy danh sách / lọc review theo order_item_id và/hoặc user_id
+async function handleGetReviews(req, res) {
+  try {
+    // 1. Hứng id_oderitems (order_item_id) và user_id từ FE gửi lên (hỗ trợ nhiều định dạng field name)
+    const order_item_id =
+      req.body.order_item_id ||
+      req.body.orderItemId ||
+      req.body.id_oderitems ||
+      req.body.id_orderitem;
+    const user_id =
+      req.body.user_id ||
+      req.body.userId ||
+      (req.user ? req.user._id : null);
+
+    let query = {};
+
+    // Nếu FE gửi ID OrderItem lên
+    if (order_item_id) {
+      if (!mongoose.Types.ObjectId.isValid(order_item_id)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "ID OrderItem không hợp lệ" });
+      }
+      query.id_oderitems = order_item_id;
+    }
+
+    // Lọc theo user_id nếu được truyền lên
+    if (user_id) {
+      if (!mongoose.Types.ObjectId.isValid(user_id)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "ID User không hợp lệ" });
+      }
+
+      // Lấy danh sách các đơn hàng (Order) của user này
+      const userOrders = await Order.find({ user_id: user_id }).select("_id");
+      const orderIds = userOrders.map((o) => o._id);
+
+      // Lấy danh sách các OrderItem thuộc các đơn hàng đó
+      const userOrderItems = await OrderItem.find({
+        order_id: { $in: orderIds },
+      }).select("_id");
+      const userOrderItemIds = userOrderItems.map((item) => item._id);
+
+      if (query.id_oderitems) {
+        // Kiểm tra OrderItem có thuộc về user_id này hay không
+        const isBelong = userOrderItemIds.some(
+          (id) => id.toString() === query.id_oderitems.toString()
+        );
+        if (!isBelong) {
+          return res.status(200).json({
+            success: true,
+            data: [],
+            message: "OrderItem không thuộc về người dùng này",
+          });
+        }
+      } else {
+        // Lọc tất cả review của các OrderItem thuộc User
+        query.id_oderitems = { $in: userOrderItemIds };
+      }
+    }
+
+    // 2. Truy suất trong DB lấy ra review của đơn hàng / order item
+    const reviews = await Review.find(query)
+      .populate({
+        path: "id_oderitems",
+        populate: [
+          {
+            path: "order_id",
+            populate: { path: "user_id", select: "name email phone avatar" },
+          },
+          {
+            path: "variants_id",
+            populate: { path: "p_id", select: "name slug price thumbnail" },
+          },
+        ],
+      })
+      .sort({ _id: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "Lấy danh sách đánh giá thành công",
+      count: reviews.length,
+      data: reviews,
+    });
+  } catch (error) {
+    console.error("Lỗi lấy danh sách review:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+}
+
+// POST /reviews/by-order-item — API chính FE gửi ID OrderItem lên hứng và truy xuất review
+app.post("/reviews/by-order-item", handleGetReviews);
+
+// POST /reviews/filter — API lọc review theo OrderItem ID và/hoặc User ID
+app.post("/reviews/filter", handleGetReviews);
+
+// POST /reviews — API vừa hỗ trợ tạo mới review, vừa hỗ trợ lấy/lọc review nếu FE gọi POST /reviews
+app.post("/reviews", async (req, res, next) => {
+  const { content, star_number } = req.body;
+  // Nếu không truyền content hoặc star_number => FE dùng POST /reviews để lấy danh sách review
+  if (!content || star_number === undefined) {
+    return handleGetReviews(req, res);
+  }
+
+  // Nếu truyền content & star_number => tạo mới review
+  try {
+    const order_item_id =
+      req.body.order_item_id ||
+      req.body.orderItemId ||
+      req.body.id_oderitems ||
+      req.body.id_orderitem;
+
+    if (!order_item_id || !mongoose.Types.ObjectId.isValid(order_item_id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Thiếu hoặc ID OrderItem không hợp lệ" });
+    }
+
+    if (star_number < 1 || star_number > 5) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Số sao đánh giá phải từ 1 đến 5" });
+    }
+
+    // Kiểm tra OrderItem có tồn tại không
+    const orderItem = await OrderItem.findById(order_item_id);
+    if (!orderItem) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy chi tiết đơn hàng (OrderItem)" });
+    }
+
+    // Kiểm tra nếu đã review order item này rồi
+    const existingReview = await Review.findOne({ id_oderitems: order_item_id });
+    if (existingReview) {
+      return res
+        .status(409)
+        .json({ success: false, message: "Sản phẩm trong đơn hàng này đã được đánh giá rồi!" });
+    }
+
+    const newReview = new Review({
+      id_oderitems: order_item_id,
+      content,
+      star_number: Number(star_number),
+    });
+
+    const savedReview = await newReview.save();
+    return res.status(201).json({
+      success: true,
+      message: "Tạo đánh giá thành công",
+      data: savedReview,
+    });
+  } catch (error) {
+    console.error("Lỗi tạo review:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Lỗi Server: " + error.message });
   }
 });
 
