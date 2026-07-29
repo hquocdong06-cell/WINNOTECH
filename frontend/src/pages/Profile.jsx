@@ -5,6 +5,7 @@ import '../assets/styles/profile.css'
 import { useDispatch } from 'react-redux'
 import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
+import { userVoucherAPI } from '../services/apiService'
 
 const formatPrice = (price) => {
   if (!price && price !== 0) return 'Liên hệ'
@@ -43,6 +44,10 @@ export default function Profile() {
   const [addressFormData, setAddressFormData] = useState({ Name: '', Phone: '', address: '', set_default: false })
   const [addressEditId, setAddressEditId] = useState(null)
   const [addressSaving, setAddressSaving] = useState(false)
+
+  // ── Voucher cá nhân ──
+  const [myVouchers, setMyVouchers] = useState([])
+  const [vouchersLoading, setVouchersLoading] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -186,6 +191,13 @@ export default function Profile() {
     if (activeTab === 'address') {
       fetchAddresses()
     }
+    if (activeTab === 'voucher') {
+      setVouchersLoading(true)
+      userVoucherAPI.getMyVouchers()
+        .then(data => { if (data.success) setMyVouchers(data.data || []) })
+        .catch(() => {})
+        .finally(() => setVouchersLoading(false))
+    }
   }, [activeTab]);
 
   const handleRemoveFavorite = async (productId) => {
@@ -235,6 +247,7 @@ export default function Profile() {
     { key: 'personal', label: 'Thông tin cá nhân' },
     { key: 'orders', label: 'Đơn hàng của tôi' },
     { key: 'wishlist', label: 'Danh sách yêu thích' },
+    { key: 'voucher', label: 'Ví Voucher' },
     { key: 'address', label: 'Địa chỉ giao hàng' },
     { key: 'password', label: 'Đổi mật khẩu' }
   ]
@@ -528,6 +541,7 @@ export default function Profile() {
     orders: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>,
     wishlist: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
     address: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+    voucher: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
     password: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
   }
 
@@ -1036,6 +1050,62 @@ export default function Profile() {
                       Đổi mật khẩu
                     </button>
                   </div>
+                </div>
+              )}
+
+              {/* VÍ VOUCHER */}
+              {activeTab === 'voucher' && (
+                <div className="profile-card">
+                  <div className="profile-card-title">VÍ VOUCHER CỦA TÔI</div>
+                  {vouchersLoading ? (
+                    <div style={{ color: '#888', padding: '20px 0', textAlign: 'center' }}>Đang tải...</div>
+                  ) : myVouchers.length === 0 ? (
+                    <div style={{ color: '#666', padding: '20px 0', textAlign: 'center' }}>
+                      <div style={{ fontSize: '32px', marginBottom: '8px' }}>🎟️</div>
+                      <div>Chưa có voucher nào trong ví</div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+                      {myVouchers.map((uv, i) => {
+                        const v = uv.voucher_id || uv
+                        const now = new Date()
+                        const end = v.end_day ? new Date(v.end_day) : null
+                        const isExpired = end && now > end
+                        const isUsed = uv.is_used
+                        return (
+                          <div key={uv._id || i} style={{
+                            border: '1px solid', borderColor: isUsed || isExpired ? '#333' : '#d4ff00',
+                            borderRadius: '10px', padding: '16px 20px', display: 'flex',
+                            justifyContent: 'space-between', alignItems: 'center', gap: '16px',
+                            background: isUsed || isExpired ? '#111' : 'rgba(212,255,0,0.03)',
+                            opacity: isUsed || isExpired ? 0.6 : 1
+                          }}>
+                            <div>
+                              <div style={{ fontFamily: 'monospace', fontSize: '16px', fontWeight: 700, color: isUsed || isExpired ? '#666' : '#d4ff00' }}>
+                                {v.code || 'N/A'}
+                              </div>
+                              <div style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>
+                                {v.discount_type === 'percent' ? `Giảm ${v.discount_value}%` : `Giảm ${(v.discount_value || 0).toLocaleString('vi-VN')}đ`}
+                                {v.min_order > 0 && ` · Đơn tối thiểu ${v.min_order.toLocaleString('vi-VN')}đ`}
+                              </div>
+                              {end && (
+                                <div style={{ fontSize: '11px', color: isExpired ? '#ef4444' : '#666', marginTop: '2px' }}>
+                                  Hạn: {end.toLocaleDateString('vi-VN')}
+                                </div>
+                              )}
+                            </div>
+                            <span style={{
+                              fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '20px',
+                              background: isUsed ? 'rgba(100,100,100,0.2)' : isExpired ? 'rgba(239,68,68,0.1)' : 'rgba(212,255,0,0.1)',
+                              color: isUsed ? '#666' : isExpired ? '#ef4444' : '#d4ff00'
+                            }}>
+                              {isUsed ? 'Đã dùng' : isExpired ? 'Hết hạn' : 'Có thể dùng'}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 

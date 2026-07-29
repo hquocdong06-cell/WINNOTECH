@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/checkout.css'
+import { voucherAPI } from '../services/apiService'
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const API_URL = 'http://localhost:3000'
@@ -316,6 +317,9 @@ export default function Checkout() {
 
   // ── Voucher ──
   const [voucherCode, setVoucherCode] = useState('')
+  const [voucherInfo, setVoucherInfo] = useState(null)   // { discount: number, code: string, msg: string }
+  const [voucherError, setVoucherError] = useState('')
+  const [voucherChecking, setVoucherChecking] = useState(false)
 
   // ── Submit state ──
   const [submitting, setSubmitting] = useState(false)
@@ -332,9 +336,42 @@ export default function Checkout() {
     const price = item.variant?.sale_price > 0 ? item.variant.sale_price : (item.variant?.price || item.cartItem?.price || 0)
     return s + price * (item.cartItem?.quantity || 1)
   }, 0)
-  const discount = 0
+  const discount = voucherInfo?.discount || 0
   const shipping = subtotal >= 1000000 ? 0 : 30000
   const total = subtotal - discount + shipping
+
+  // ── Áp dụng voucher ──
+  const handleApplyVoucher = async () => {
+    if (!voucherCode.trim()) { setVoucherError('Vui lòng nhập mã giảm giá'); return }
+    setVoucherChecking(true)
+    setVoucherError('')
+    setVoucherInfo(null)
+    try {
+      const data = await voucherAPI.check(voucherCode.trim())
+      if (data.success && data.data) {
+        const v = data.data
+        // Tính giảm giá thực tế
+        let discountAmt = 0
+        if (v.discount_type === 'percent') {
+          discountAmt = Math.round(subtotal * v.discount_value / 100)
+        } else {
+          discountAmt = v.discount_value || 0
+        }
+        if (v.min_order > 0 && subtotal < v.min_order) {
+          setVoucherError(`Đơn hàng tối thiểu ${v.min_order.toLocaleString('vi-VN')}đ để dùng mã này`)
+          setVoucherInfo(null)
+        } else {
+          setVoucherInfo({ discount: discountAmt, code: v.code, msg: `Áp dụng thành công — Giảm ${discountAmt.toLocaleString('vi-VN')}đ` })
+        }
+      } else {
+        setVoucherError(data.message || 'Mã không hợp lệ')
+      }
+    } catch (err) {
+      setVoucherError(err.message || 'Không thể kiểm tra mã giảm giá')
+    } finally {
+      setVoucherChecking(false)
+    }
+  }
 
   // ── Fetch current user ──
   useEffect(() => {
@@ -716,13 +753,26 @@ export default function Checkout() {
                   type="text"
                   placeholder="Nhập mã giảm giá"
                   value={voucherCode}
-                  onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                  onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherInfo(null); setVoucherError('') }}
                   style={{
-                    flex: 1, background: '#1a1a1a', border: '1px solid #333', borderRadius: '6px',
+                    flex: 1, background: '#1a1a1a', border: `1px solid ${voucherInfo ? '#d4ff00' : voucherError ? '#ef4444' : '#333'}`, borderRadius: '6px',
                     color: '#fff', padding: '8px 12px', fontSize: '13px'
                   }}
                 />
+                <button
+                  onClick={handleApplyVoucher}
+                  disabled={voucherChecking}
+                  style={{ background: '#d4ff00', color: '#000', border: 'none', borderRadius: '6px', padding: '8px 14px', fontWeight: 700, fontSize: '12px', cursor: voucherChecking ? 'not-allowed' : 'pointer', opacity: voucherChecking ? 0.7 : 1, whiteSpace: 'nowrap' }}
+                >
+                  {voucherChecking ? '...' : 'Áp dụng'}
+                </button>
               </div>
+              {voucherInfo && (
+                <div style={{ fontSize: '12px', color: '#d4ff00', marginTop: '6px' }}>✓ {voucherInfo.msg}</div>
+              )}
+              {voucherError && (
+                <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '6px' }}>⚠ {voucherError}</div>
+              )}
             </div>
 
             {/* Totals */}
@@ -732,7 +782,7 @@ export default function Checkout() {
                 <span className="value">{fmt(subtotal)}</span>
               </div>
               <div className="co-total-row">
-                <span className="label">Giảm giá</span>
+                <span className="label">Giảm giá {voucherInfo && <span style={{ fontSize: '10px', color: '#d4ff00', fontFamily: 'monospace' }}>({voucherInfo.code})</span>}</span>
                 <span className="value discount">-{fmt(discount)}</span>
               </div>
               <div className="co-total-row">

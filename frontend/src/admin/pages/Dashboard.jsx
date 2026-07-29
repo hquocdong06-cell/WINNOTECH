@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DollarSign, ShoppingCart, Users, Package, TrendingUp, Calendar, Clock, Activity } from 'lucide-react';
+import { orderAPI, productAPI } from '../../services/apiService';
 
-const mockRecentOrders = [
-  { id: 'WIN123456', customer: 'Nguyễn Văn A', total: 18490000, status: 'Hoàn thành', date: '20/05/2024 14:30' },
-  { id: 'WIN123455', customer: 'Trần Thị B', total: 23990000, status: 'Chờ xử lý', date: '20/05/2024 13:15' },
-  { id: 'WIN123454', customer: 'Lê Văn C', total: 12890000, status: 'Hoàn thành', date: '20/05/2024 11:22' },
-];
+const STATUS_LABELS = {
+  pending: 'Chờ xác nhận',
+  preparing: 'Chuẩn bị hàng',
+  handed_over: 'Bàn giao VC',
+  shipping: 'Đang vận chuyển',
+  delivering: 'Đang giao',
+  completed: 'Hoàn thành',
+  canceled: 'Đã hủy',
+};
 
 const mockBestSellers = [
   { id: 1, name: 'RTX 4090 24GB', sold: 156, revenue: 166890000, image: 'https://images.unsplash.com/photo-1591485121907-26859ff93e37?q=80&w=150&auto=format&fit=crop' },
@@ -14,6 +19,28 @@ const mockBestSellers = [
 
 const Dashboard = () => {
   const [revenueTab, setRevenueTab] = useState('day');
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [orderCounts, setOrderCounts] = useState({});
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+
+  useEffect(() => {
+    // Lấy đơn hàng thật từ API
+    orderAPI.getOrders('all')
+      .then(data => {
+        if (data.success) {
+          setRecentOrders((data.data || []).slice(0, 5));
+          setOrderCounts(data.counts || {});
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingOrders(false));
+
+    // Lấy tổng số sản phẩm
+    productAPI.getAll()
+      .then(data => { if (data.success) setTotalProducts(data.SoLuongSP || 0); })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="p-8 text-white min-h-screen">
@@ -38,8 +65,8 @@ const Dashboard = () => {
         <div className="bg-[#141414] border border-[#333] p-6 rounded-xl relative overflow-hidden">
           <div className="relative z-10">
             <div className="text-gray-400 text-sm font-medium mb-1">TỔNG ĐƠN HÀNG</div>
-            <div className="text-2xl font-bold text-white mb-2">1,256</div>
-            <div className="text-xs text-green-400 font-medium">↑ 8.3% so với tháng trước</div>
+            <div className="text-2xl font-bold text-white mb-2">{orderCounts.all || '—'}</div>
+            <div className="text-xs text-green-400 font-medium">Từ database thực tế</div>
           </div>
           <ShoppingCart className="absolute -right-4 -bottom-4 w-24 h-24 text-gray-800/50" />
         </div>
@@ -56,8 +83,8 @@ const Dashboard = () => {
         <div className="bg-[#141414] border border-[#333] p-6 rounded-xl relative overflow-hidden">
           <div className="relative z-10">
             <div className="text-gray-400 text-sm font-medium mb-1">SẢN PHẨM</div>
-            <div className="text-2xl font-bold text-white mb-2">245</div>
-            <div className="text-xs text-green-400 font-medium">↑ 5.2% so với tháng trước</div>
+            <div className="text-2xl font-bold text-white mb-2">{totalProducts || '—'}</div>
+            <div className="text-xs text-green-400 font-medium">Từ database thực tế</div>
           </div>
           <Package className="absolute -right-4 -bottom-4 w-24 h-24 text-gray-800/50" />
         </div>
@@ -159,18 +186,28 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#333]">
-                {mockRecentOrders.map((order, i) => (
-                  <tr key={i} className="hover:bg-[#1e1e1e] transition-colors">
-                    <td className="px-5 py-3 font-semibold text-gray-300">#{order.id}</td>
-                    <td className="px-5 py-3 text-white">{order.customer}</td>
-                    <td className="px-5 py-3 text-[#d4ff00] font-medium">{order.total.toLocaleString('vi-VN')}₫</td>
-                    <td className="px-5 py-3">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${order.status === 'Hoàn thành' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
-                        {order.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {loadingOrders ? (
+                  <tr><td colSpan="4" className="px-5 py-4 text-center text-gray-500 text-xs">Đang tải...</td></tr>
+                ) : recentOrders.length === 0 ? (
+                  <tr><td colSpan="4" className="px-5 py-4 text-center text-gray-500 text-xs">Chưa có đơn hàng</td></tr>
+                ) : (
+                  recentOrders.map((order, i) => (
+                    <tr key={i} className="hover:bg-[#1e1e1e] transition-colors">
+                      <td className="px-5 py-3 font-semibold text-gray-300 font-mono text-xs">{order.code || order._id?.slice(-8).toUpperCase()}</td>
+                      <td className="px-5 py-3 text-white">{order.Name || '—'}</td>
+                      <td className="px-5 py-3 text-[#d4ff00] font-medium">{(order.total_amount || 0).toLocaleString('vi-VN')}₫</td>
+                      <td className="px-5 py-3">
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${
+                          order.status === 'completed' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                          order.status === 'canceled' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                          'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                        }`}>
+                          {STATUS_LABELS[order.status] || order.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

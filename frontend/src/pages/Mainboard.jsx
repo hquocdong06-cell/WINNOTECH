@@ -579,19 +579,15 @@ export default function Mainboard() {
     const fetchMainboardProducts = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`${API_URL}/categories/mainboard`)
+        const res = await fetch(`${API_URL}/api/buildpc/components?category=mainboard`)
         const data = await res.json()
-        if (data.success && data.data && data.data.products) {
-          const apiProducts = data.data.products
-          // Merge real products + mock products (loại trùng theo tên)
-          const apiNames = apiProducts.map(p => p.name.toLowerCase())
-          const uniqueMocks = mockMainboardProducts.filter(m => !apiNames.includes(m.name.toLowerCase()))
-          setProducts([...apiProducts, ...uniqueMocks])
+        if (data.success && data.data && data.data.length > 0) {
+          setProducts(data.data)
         } else {
           setProducts(mockMainboardProducts)
         }
       } catch (err) {
-        console.error('Lỗi fetch sản phẩm Mainboard, sử dụng dữ liệu mẫu:', err)
+        console.error('Lỗi fetch sản phẩm Mainboard:', err)
         setProducts(mockMainboardProducts)
       } finally {
         setLoading(false)

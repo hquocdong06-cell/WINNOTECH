@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/build-pc.css'
+import { buildPCAPI } from '../services/apiService'
 
 const API_URL = 'http://localhost:3000'
 
@@ -348,6 +349,35 @@ export default function BuildPC() {
   const [productsCache, setProductsCache] = useState({})  // stepId → normalized[]
   const [loading, setLoading]             = useState(false)
   const [fetchError, setFetchError]       = useState(null)
+  const [saveStatus, setSaveStatus]       = useState(null) // null | 'saving' | 'success' | 'error'
+
+  // Lưu cấu hình Build PC qua API
+  const handleSaveBuildPC = async () => {
+    const selectedItems = Object.entries(selected)
+      .filter(([, p]) => !!p)
+      .map(([stepId, p]) => ({ step: stepId, variant_id: p.variantId || p._id, product_id: p.productId || p._id, name: p.name, price: p.price }))
+    if (selectedItems.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 linh kiện trước khi lưu cấu hình!')
+      return
+    }
+    const total_price = Object.values(selected).reduce((s, p) => s + (p?.price || 0), 0)
+    setSaveStatus('saving')
+    try {
+      const data = await buildPCAPI.save(total_price, selectedItems)
+      if (data.success) {
+        setSaveStatus('success')
+        setTimeout(() => setSaveStatus(null), 3000)
+      } else {
+        setSaveStatus('error')
+        alert(data.message || 'Lưu cấu hình thất bại')
+        setTimeout(() => setSaveStatus(null), 2000)
+      }
+    } catch (err) {
+      setSaveStatus('error')
+      alert(err.message || 'Lỗi kết nối server khi lưu cấu hình')
+      setTimeout(() => setSaveStatus(null), 2000)
+    }
+  }
 
   // Fetch products khi đổi step (chỉ fetch nếu chưa có trong cache)
   useEffect(() => {
@@ -358,14 +388,13 @@ export default function BuildPC() {
     setLoading(true)
     setFetchError(null)
 
-    fetch(`${API_URL}/categories/${slug}`)
+    fetch(`${API_URL}/api/buildpc/components?category=${slug}`)
       .then(r => r.json())
       .then(data => {
-        if (data.success && data.data?.products?.length > 0) {
-          const normalized = data.data.products.map(p => normalizeProduct(p, activeStep))
+        if (data.success && data.data?.length > 0) {
+          const normalized = data.data.map(p => normalizeProduct(p, activeStep))
           setProductsCache(prev => ({ ...prev, [activeStep]: normalized }))
         } else {
-          // Nếu API 404 hoặc chưa có sản phẩm, set mảng rỗng
           setProductsCache(prev => ({ ...prev, [activeStep]: [] }))
           setFetchError(`Chưa có sản phẩm ${BUILD_STEPS.find(s => s.id === activeStep)?.label} trong hệ thống`)
         }
@@ -539,7 +568,7 @@ export default function BuildPC() {
               {/* Load / Save */}
               <div className="bp-sidebar-actions">
                 <button className="bp-sa-btn"><span>⬆</span> Tải cấu hình</button>
-                <button className="bp-sa-btn"><span>💾</span> Lưu cấu hình</button>
+                <button className="bp-sa-btn" onClick={handleSaveBuildPC} disabled={saveStatus === 'saving'}><span>💾</span> {saveStatus === 'saving' ? 'Đang lưu...' : saveStatus === 'success' ? 'Đã lưu! ✓' : 'Lưu cấu hình'}</button>
               </div>
             </aside>
 
@@ -768,11 +797,12 @@ export default function BuildPC() {
 
               {/* Share / Save actions */}
               <div className="bp-summary-actions">
-                <button className="bp-sa2-btn">
+                <button className="bp-sa2-btn" onClick={handleSaveBuildPC} disabled={saveStatus === 'saving'}
+                  style={{ opacity: saveStatus === 'saving' ? 0.7 : 1, background: saveStatus === 'success' ? 'rgba(34,197,94,0.2)' : '' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                   </svg>
-                  Lưu cấu hình
+                  {saveStatus === 'saving' ? 'Đang lưu...' : saveStatus === 'success' ? 'Đã lưu! ✓' : 'Lưu cấu hình'}
                 </button>
                 <button className="bp-sa2-btn">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

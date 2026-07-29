@@ -585,19 +585,15 @@ export default function SSD() {
     const fetchStorageProducts = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`${API_URL}/categories/storage`)
+        const res = await fetch(`${API_URL}/api/buildpc/components?category=storage`)
         const data = await res.json()
-        if (data.success && data.data && data.data.products) {
-          const apiProducts = data.data.products
-          // Merge real products + mock products (loại trùng theo tên)
-          const apiNames = apiProducts.map(p => p.name.toLowerCase())
-          const uniqueMocks = mockStorageProducts.filter(m => !apiNames.includes(m.name.toLowerCase()))
-          setProducts([...apiProducts, ...uniqueMocks])
+        if (data.success && data.data && data.data.length > 0) {
+          setProducts(data.data)
         } else {
           setProducts(mockStorageProducts)
         }
       } catch (err) {
-        console.error('Lỗi fetch sản phẩm SSD, sử dụng dữ liệu mẫu:', err)
+        console.error('Lỗi fetch sản phẩm SSD:', err)
         setProducts(mockStorageProducts)
       } finally {
         setLoading(false)

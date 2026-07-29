@@ -7,6 +7,7 @@ import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/home.css'
 import useFavorite from '../hooks/useFavorite'
 import { useAuth } from '../hooks/useAuth'
+import { productAPI } from '../services/apiService'
 
 const API_URL = 'http://localhost:3000'
 const PAGE_SIZE = 10
@@ -465,24 +466,37 @@ export default function Home() {
       .catch(() => {})
   }, [])
 
-  // Search filter bằng javascript trên Frontend
+  // ── Search: gọi API BE thay vì filter client-side ──
   const searchQuery = new URLSearchParams(window.location.search).get('search') || ''
-  
-  const removeDiacritics = (str) => {
-    return str
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'D');
-  }
+  const [searchResults, setSearchResults] = useState([])
+  const [loadingSearch, setLoadingSearch] = useState(false)
 
-  const searchResults = searchQuery ? allProducts.filter(p => {
-    const cleanName = removeDiacritics((p.name || '').toLowerCase())
-    const cleanQuery = removeDiacritics(searchQuery.toLowerCase().trim())
-    return cleanName.includes(cleanQuery)
-  }) : []
+  useEffect(() => {
+    if (!searchQuery) {
+      setSearchResults([])
+      return
+    }
+    setLoadingSearch(true)
+    productAPI.search(searchQuery)
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) {
+          setSearchResults(data.data)
+        } else {
+          // Fallback: filter client-side nếu API không trả về kết quả
+          const removeDiacritics = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\u0111/g, 'd').replace(/\u0110/g, 'D')
+          const cleanQuery = removeDiacritics(searchQuery.toLowerCase().trim())
+          setSearchResults(allProducts.filter(p => removeDiacritics((p.name || '').toLowerCase()).includes(cleanQuery)))
+        }
+      })
+      .catch(() => {
+        // Fallback client-side nếu lỗi mạng
+        const removeDiacritics = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\u0111/g, 'd').replace(/\u0110/g, 'D')
+        const cleanQuery = removeDiacritics(searchQuery.toLowerCase().trim())
+        setSearchResults(allProducts.filter(p => removeDiacritics((p.name || '').toLowerCase()).includes(cleanQuery)))
+      })
+      .finally(() => setLoadingSearch(false))
+  }, [searchQuery, allProducts])
 
-  const loadingSearch = loadingProducts
   const filterBySearch = (list) => list
 
   return (

@@ -64,9 +64,9 @@ export default function DefaultLayout({ children }) {
             </span>
           </div>
           <div className="topbar-right">
-            <a href="#">Hỗ trợ</a>
+            <Link to="/contact">Hỗ trợ</Link>
             <Link to="/blog">Blog</Link>
-            <a href="#">FAQ</a>
+            <Link to="/contact">FAQ</Link>
           </div>
         </div>
       </div>
@@ -194,8 +194,6 @@ export default function DefaultLayout({ children }) {
               <Link to="/psu">Nguồn</Link>
               <Link to="/cooling">Tản nhiệt PC</Link>
               <Link to="/case">Case</Link>
-              <Link to="/blog">Blog</Link>
-              <Link to="/contact" style={{ color: 'var(--yellow)', fontWeight: 600 }}>Hỗ trợ</Link>
             </div>
           </div>
         </div>

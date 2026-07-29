@@ -8,6 +8,7 @@ import '../assets/styles/product-detail.css'
 import { findMockProductBySlug, mockProducts } from '../data/mockProducts'
 import useFavorite from '../hooks/useFavorite'
 import { useAuth } from '../hooks/useAuth'
+import { reviewAPI } from '../services/apiService'
 
 const API_URL = 'http://localhost:3000'
 
@@ -250,6 +251,80 @@ export default function ProductDetail() {
     }
   }
 
+  // ── ReviewForm component (inline) ──
+  const ReviewForm = () => {
+    const [rOrderItemId, setROrderItemId] = React.useState('')
+    const [rStars, setRStars] = React.useState(5)
+    const [rContent, setRContent] = React.useState('')
+    const [rLoading, setRLoading] = React.useState(false)
+    const [rMsg, setRMsg] = React.useState(null)
+
+    const handleSubmitReview = async (e) => {
+      e.preventDefault()
+      setRMsg(null)
+      if (!rOrderItemId.trim()) { setRMsg({ type: 'error', text: 'Vui lòng nhập ID sản phẩm trong đơn hàng' }); return }
+      if (!rContent.trim()) { setRMsg({ type: 'error', text: 'Vui lòng nhập nội dung đánh giá' }); return }
+      setRLoading(true)
+      try {
+        const data = await reviewAPI.createReview(rOrderItemId.trim(), rContent.trim(), rStars)
+        if (data.success) {
+          setRMsg({ type: 'success', text: 'Gửi đánh giá thành công! Cảm ơn bạn.' })
+          setRContent(''); setROrderItemId(''); setRStars(5)
+        } else {
+          setRMsg({ type: 'error', text: data.message || 'Gửi đánh giá thất bại' })
+        }
+      } catch (err) {
+        setRMsg({ type: 'error', text: err.message || 'Lỗi kết nối server' })
+      } finally {
+        setRLoading(false)
+      }
+    }
+
+    return (
+      <div style={{ color: 'var(--text-muted)', maxWidth: '600px' }}>
+        <p style={{ marginBottom: '16px', fontSize: '14px' }}>
+          Bạn đã mua sản phẩm này? Chia sẻ cảm nhận để giúp người mua khác!
+        </p>
+        <form onSubmit={handleSubmitReview} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div>
+            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '4px' }}>ID sản phẩm trong đơn hàng (order_item_id)</label>
+            <input type="text" value={rOrderItemId} onChange={e => setROrderItemId(e.target.value)}
+              placeholder="Lấy từ trang Đơn hàng của tôi"
+              style={{ width: '100%', background: '#1a1a1a', border: '1px solid #333', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '13px' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '6px' }}>Số sao</label>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {[1, 2, 3, 4, 5].map(s => (
+                <button key={s} type="button" onClick={() => setRStars(s)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: s <= rStars ? '#fbbf24' : '#444' }}>★</button>
+              ))}
+              <span style={{ fontSize: '13px', color: '#888', alignSelf: 'center', marginLeft: '4px' }}>{rStars}/5</span>
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '4px' }}>Nội dung đánh giá *</label>
+            <textarea value={rContent} onChange={e => setRContent(e.target.value)} rows={4}
+              placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
+              style={{ width: '100%', background: '#1a1a1a', border: '1px solid #333', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '13px', resize: 'vertical' }} />
+          </div>
+          {rMsg && (
+            <div style={{ padding: '10px 14px', borderRadius: '6px', fontSize: '13px',
+              background: rMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+              color: rMsg.type === 'success' ? '#22c55e' : '#ef4444',
+              border: `1px solid ${rMsg.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
+              {rMsg.text}
+            </div>
+          )}
+          <button type="submit" disabled={rLoading}
+            style={{ alignSelf: 'flex-start', background: 'var(--accent-color, #d4ff00)', color: '#000', border: 'none', padding: '10px 24px', borderRadius: '6px', fontWeight: 700, fontSize: '13px', cursor: rLoading ? 'not-allowed' : 'pointer', opacity: rLoading ? 0.7 : 1 }}>
+            {rLoading ? 'Đang gửi...' : 'GỬI ĐÁNH GIÁ'}
+          </button>
+        </form>
+      </div>
+    )
+  }
+
   return (
     <DefaultLayout>
       {/* BREADCRUMB */}
@@ -447,10 +522,7 @@ export default function ProductDetail() {
 
                 {activeTab === 'reviews' && (
                   <div className="tab-pane">
-                    <div className="reviews-section" style={{ color: 'var(--text-muted)' }}>
-                      <p>Hiện chưa có đánh giá. Hãy là người đầu tiên đánh giá sản phẩm này!</p>
-                      <button className="btn-review" style={{ background: '#1e1e1e', color: '#fff', border: '1px solid #333', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', marginTop: '10px' }}>VIẾT ĐÁNH GIÁ</button>
-                    </div>
+                    <ReviewForm />
                   </div>
                 )}
               </div>

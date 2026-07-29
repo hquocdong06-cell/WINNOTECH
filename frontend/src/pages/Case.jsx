@@ -599,19 +599,15 @@ export default function Case() {
     const fetchCaseProducts = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`${API_URL}/categories/case`)
+        const res = await fetch(`${API_URL}/api/buildpc/components?category=case`)
         const data = await res.json()
-        if (data.success && data.data && data.data.products) {
-          const apiProducts = data.data.products
-          // Merge real products + mock products (loại trùng theo tên)
-          const apiNames = apiProducts.map(p => p.name.toLowerCase())
-          const uniqueMocks = mockCaseProducts.filter(m => !apiNames.includes(m.name.toLowerCase()))
-          setProducts([...apiProducts, ...uniqueMocks])
+        if (data.success && data.data && data.data.length > 0) {
+          setProducts(data.data)
         } else {
           setProducts(mockCaseProducts)
         }
       } catch (err) {
-        console.error('Lỗi fetch sản phẩm Case, sử dụng dữ liệu mẫu:', err)
+        console.error('Lỗi fetch sản phẩm Case:', err)
         setProducts(mockCaseProducts)
       } finally {
         setLoading(false)

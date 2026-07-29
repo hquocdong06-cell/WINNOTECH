@@ -681,19 +681,15 @@ export default function GPU() {
     const fetchGPUProducts = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`${API_URL}/categories/gpu`)
+        const res = await fetch(`${API_URL}/api/buildpc/components?category=gpu`)
         const data = await res.json()
-        if (data.success && data.data && data.data.products) {
-          const apiProducts = data.data.products
-          // Merge real products + mock products (loại trùng theo tên)
-          const apiNames = apiProducts.map(p => p.name.toLowerCase())
-          const uniqueMocks = mockGpuProducts.filter(m => !apiNames.includes(m.name.toLowerCase()))
-          setProducts([...apiProducts, ...uniqueMocks])
+        if (data.success && data.data && data.data.length > 0) {
+          setProducts(data.data)
         } else {
           setProducts(mockGpuProducts)
         }
       } catch (err) {
-        console.error('Lỗi fetch sản phẩm GPU, sử dụng dữ liệu mẫu:', err)
+        console.error('Lỗi fetch sản phẩm GPU:', err)
         setProducts(mockGpuProducts)
       } finally {
         setLoading(false)

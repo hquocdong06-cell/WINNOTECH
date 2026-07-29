@@ -569,19 +569,15 @@ export default function PSU() {
     const fetchPSUProducts = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`${API_URL}/categories/psu`)
+        const res = await fetch(`${API_URL}/api/buildpc/components?category=psu`)
         const data = await res.json()
-        if (data.success && data.data && data.data.products) {
-          const apiProducts = data.data.products
-          // Merge real products + mock products (loại trùng theo tên)
-          const apiNames = apiProducts.map(p => p.name.toLowerCase())
-          const uniqueMocks = mockPsuProducts.filter(m => !apiNames.includes(m.name.toLowerCase()))
-          setProducts([...apiProducts, ...uniqueMocks])
+        if (data.success && data.data && data.data.length > 0) {
+          setProducts(data.data)
         } else {
           setProducts(mockPsuProducts)
         }
       } catch (err) {
-        console.error('Lỗi fetch sản phẩm PSU, sử dụng dữ liệu mẫu:', err)
+        console.error('Lỗi fetch sản phẩm PSU:', err)
         setProducts(mockPsuProducts)
       } finally {
         setLoading(false)
