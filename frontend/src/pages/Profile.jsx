@@ -257,12 +257,25 @@ export default function Profile() {
     setEditSaving(true)
     setEditSuccess(false)
     try {
-      // Dùng PUT /profile nếu có, không thì fallback silent (hiện tại server chỉ có GET /profile)
-      // Tạm thời cập nhật local và show success
-      setUser(prev => ({ ...prev, name: editForm.name, phone: editForm.phone }))
-      setEditSuccess(true)
-      setTimeout(() => setEditSuccess(false), 3000)
-    } finally { setEditSaving(false) }
+      const res = await fetch(API_URL + '/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: editForm.name, phone: editForm.phone }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setUser(prev => ({ ...prev, ...data.user }))
+        setEditSuccess(true)
+        setTimeout(() => setEditSuccess(false), 3000)
+      } else {
+        toast.error(data.message || 'Cập nhật thất bại', { position: 'bottom-right' })
+      }
+    } catch {
+      toast.error('Lỗi kết nối server', { position: 'bottom-right' })
+    } finally {
+      setEditSaving(false)
+    }
   }
 
   // ── Đổi mật khẩu ──
