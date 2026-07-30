@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import DefaultLayout from '../layouts/DefaultLayout'
+import { clearCart } from '../redux/cartSlice'
 
 /**
  * Trang nhận kết quả callback từ VNPay
@@ -13,6 +15,7 @@ import DefaultLayout from '../layouts/DefaultLayout'
 export default function PaymentResult() {
   const [searchParams] = useSearchParams()
   const [show, setShow] = useState(false)
+  const dispatch = useDispatch()
 
   const responseCode = searchParams.get('vnp_ResponseCode')
   const txnRef       = searchParams.get('vnp_TxnRef')       // mã đơn hàng
@@ -26,6 +29,8 @@ export default function PaymentResult() {
 
   useEffect(() => {
     const t = setTimeout(() => setShow(true), 50)
+    // Nếu thanh toán thành công → xóa giỏ hàng trong Redux & localStorage
+    if (isSuccess) dispatch(clearCart())
     return () => clearTimeout(t)
   }, [])
 

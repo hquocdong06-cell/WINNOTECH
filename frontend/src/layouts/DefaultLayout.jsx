@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { selectCartTotalQuantity, setCart } from '../redux/cartSlice'
 import CartDrawer from '../components/CartDrawer'
+import { compareAPI } from '../services/apiService'
 
 const API_URL = 'http://localhost:3000'
 
 export default function DefaultLayout({ children }) {
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const [compareCount, setCompareCount] = useState(0)
   const dispatch = useDispatch()
   const cartTotalQuantity = useSelector(selectCartTotalQuantity)
 
@@ -37,6 +39,17 @@ export default function DefaultLayout({ children }) {
     }
     syncCartFromDB()
   }, [dispatch])
+
+  // Sync só luưƣng so sánh tù API
+  useEffect(() => {
+    const syncCompare = async () => {
+      try {
+        const data = await compareAPI.getMyList()
+        if (data.success) setCompareCount((data.data || []).length)
+      } catch { /* chúa login */ }
+    }
+    syncCompare()
+  }, [])
 
   return (
     <>
@@ -105,12 +118,30 @@ export default function DefaultLayout({ children }) {
             </form>
 
             <div className="nav-actions">
-              <button className="nav-action-btn">
+              <Link
+                to="/compare"
+                className="nav-action-btn"
+                style={{ textDecoration: 'none', position: 'relative' }}
+                title="So sánh sản phẩm"
+              >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
                 </svg>
                 <span>So sánh</span>
-              </button>
+                {compareCount > 0 && (
+                  <span style={{
+                    position: 'absolute', top: '-6px', right: '-8px',
+                    minWidth: '18px', height: '18px',
+                    background: '#d4ff00', color: '#000',
+                    fontSize: '10px', fontWeight: '800',
+                    borderRadius: '999px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 4px',
+                  }}>
+                    {compareCount}
+                  </span>
+                )}
+              </Link>
               <Link to="/profile" className="nav-action-btn" style={{ textDecoration: 'none' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />

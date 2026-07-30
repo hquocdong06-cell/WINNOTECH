@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/checkout.css'
 import { voucherAPI } from '../services/apiService'
+import { clearCart } from '../redux/cartSlice'
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const API_URL = 'http://localhost:3000'
@@ -285,6 +287,7 @@ function AddressSelectorModal({ addresses, selectedId, onSelect, onClose, onAddN
 // ═══════════════════════════════════════════════════════════════════════════
 export default function Checkout() {
   const navigate = useNavigate()
+  const dispatch = useDispatch()
 
   // ── Auth state ──
   const [user, setUser] = useState(null)
@@ -461,6 +464,7 @@ export default function Checkout() {
       const data = await res.json()
 
       if (data.success) {
+        dispatch(clearCart())
         navigate(`/order-success?code=${data.order?.code || ''}`)
       } else {
         setSubmitError(data.message || 'Đặt hàng thất bại, vui lòng thử lại!')

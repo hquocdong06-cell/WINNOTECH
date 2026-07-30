@@ -33,6 +33,7 @@ import Blog from './pages/Blog'
 import BlogPostDetail from './pages/BlogPostDetail'
 import AdminPosts from './admin/pages/Posts'
 import Contact from './pages/Contact'
+import Compare from './pages/Compare'
 
 function App() {
   return (
@@ -58,6 +59,7 @@ function App() {
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPostDetail />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/compare" element={<Compare />} />
 
         {/* Auth routes */}
         <Route path="/auth" element={<Navigate to="/login" replace />} />
