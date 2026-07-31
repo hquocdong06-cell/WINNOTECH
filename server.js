@@ -46,6 +46,10 @@ const multer = require("multer");
 const {VNPay, ignoreLogger, ProductCode, VnpLocate, dataFormat} = require("vnpay");
 const QRCode = require('qrcode');
 const moment = require('moment');
+const PDFDocument = require('pdfkit');
+const ExcelJS = require('exceljs');
+
+
 
 // ============================================================
 // MULTER — cấu hình upload file ảnh
@@ -218,7 +222,22 @@ async function getVariantAttributeMap(variantIds) {
   return result;
 }
 
+// Helper slugify hỗ trợ tạo slug chuẩn tiếng Việt
+function slugify(text) {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .replace(/([^0-9a-z-\s])/g, "")
+    .replace(/(\s+)/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 // ============================================================
+
 // POST /register
 // ============================================================
 app.post("/register", async (req, res) => {
@@ -1986,6 +2005,267 @@ app.get("/orders/:orderId", checklogin, async (req, res) => {
 });
 
 // ============================================================
+// API XUẤT HÓA ĐƠN (BILL) ĐÃ THANH TOÁN RA FILE PDF
+// GET /orders/export-pdf/:id
+// GET /orders/:orderId/export-pdf
+// POST /orders/export-pdf
+// ============================================================
+const exportOrderPdfHandler = async (req, res) => {
+  try {
+    const billId =
+      req.params.id ||
+      req.params.orderId ||
+      req.body.id ||
+      req.body.billId ||
+      req.body.order_id ||
+      req.query.id ||
+      req.query.billId ||
+      req.query.order_id;
+
+    if (!billId) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu ID hóa đơn / đơn hàng",
+      });
+    }
+
+    // 1. Tìm thông tin đơn hàng trong DB
+    let query = {};
+    if (mongoose.Types.ObjectId.isValid(billId)) {
+      query = { _id: billId };
+    } else {
+      query = { code: billId };
+    }
+
+    const order = await Order.findOne(query)
+      .populate("payment_method")
+      .populate("user_id")
+      .lean();
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đơn hàng / hóa đơn",
+      });
+    }
+
+    // 2. Kiểm tra quyền sở hữu đơn hàng (đúng user hoặc admin)
+    const orderUserId = order.user_id
+      ? (order.user_id._id || order.user_id).toString()
+      : null;
+    const currentUserId = req.user._id.toString();
+
+    if (orderUserId && orderUserId !== currentUserId && req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Bạn không có quyền xuất hóa đơn này",
+      });
+    }
+
+    // 3. Kiểm tra trạng thái thanh toán (chỉ xuất hóa đơn đã thanh toán)
+    const statusStr = (order.payment_status || "").toString().toLowerCase();
+    const orderStatusStr = (order.status || "").toString().toLowerCase();
+    const isPaid =
+      statusStr === "paid" ||
+      statusStr === "đã thanh toán" ||
+      statusStr === "da thanh toan" ||
+      orderStatusStr === "completed";
+
+    if (!isPaid && statusStr === "unpaid") {
+      return res.status(400).json({
+        success: false,
+        message: "Hóa đơn này chưa được thanh toán, không thể xuất PDF!",
+      });
+    }
+
+    // 4. Lấy danh sách sản phẩm (OrderItem) của đơn hàng
+    const orderItems = await OrderItem.find({ order_id: order._id })
+      .populate("variants_id")
+      .lean();
+
+    const productIds = [];
+    const variantIds = [];
+    orderItems.forEach((oi) => {
+      if (oi.variants_id) {
+        variantIds.push(oi.variants_id._id.toString());
+        if (oi.variants_id.p_id) {
+          productIds.push(oi.variants_id.p_id.toString());
+        }
+      }
+    });
+
+    const [products, variantAttrMap] = await Promise.all([
+      ProductModel.find({ _id: { $in: [...new Set(productIds)] } }).lean(),
+      getVariantAttributeMap([...new Set(variantIds)]),
+    ]);
+
+    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+    const items = orderItems.map((oi) => {
+      const variant = oi.variants_id;
+      const product = variant ? productMap.get(variant.p_id?.toString()) : null;
+      return {
+        ...oi,
+        variant: variant
+          ? {
+              ...variant,
+              Attributes: variantAttrMap[variant._id.toString()] || [],
+            }
+          : null,
+        product: product || null,
+      };
+    });
+
+    // 5. Cấu hình PDF & Response headers
+    const filename = `HoaDon_${order.code || order._id}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+
+    const doc = new PDFDocument({ margin: 40, size: "A4" });
+    doc.pipe(res);
+
+    // Font hỗ trợ tiếng Việt
+    const fontRegular = fs.existsSync("C:/Windows/Fonts/arial.ttf")
+      ? "C:/Windows/Fonts/arial.ttf"
+      : "Helvetica";
+    const fontBold = fs.existsSync("C:/Windows/Fonts/arialbd.ttf")
+      ? "C:/Windows/Fonts/arialbd.ttf"
+      : "Helvetica-Bold";
+
+    doc.registerFont("Regular", fontRegular);
+    doc.registerFont("Bold", fontBold);
+
+    // Header Banner
+    doc.rect(40, 40, 515, 65).fill("#0F172A");
+    doc.fillColor("#FFFFFF").font("Bold").fontSize(20).text("WINNOTECH STORE", 55, 52);
+    doc.fillColor("#94A3B8").font("Regular").fontSize(9).text("Hệ thống bán lẻ thiết bị máy tính & công nghệ", 55, 78);
+
+    doc.fillColor("#38BDF8").font("Bold").fontSize(14).text("HÓA ĐƠN BÁN HÀNG", 360, 52, { align: "right" });
+    doc.fillColor("#22C55E").font("Bold").fontSize(10).text("✔ ĐÃ THANH TOÁN", 360, 75, { align: "right" });
+
+    doc.fillColor("#000000");
+
+    // Thông tin Đơn hàng & Khách hàng
+    let y = 120;
+    doc.rect(40, y, 515, 95).fillAndStroke("#F8FAFC", "#CBD5E1");
+
+    doc.fillColor("#1E293B").font("Bold").fontSize(10).text("THÔNG TIN ĐƠN HÀNG", 55, y + 10);
+    doc.font("Regular").fontSize(9).fillColor("#334155");
+    doc.text(`Mã hóa đơn: `, 55, y + 28, { continued: true }).font("Bold").text(`${order.code || order._id}`);
+    doc.font("Regular").text(`Ngày tạo: ${moment(order.createdAt || order.date).format("DD/MM/YYYY HH:mm")}`, 55, y + 43);
+    const paymentMethodName = order.payment_method?.name || (typeof order.payment_method === 'string' ? order.payment_method : "Chuyển khoản / VNPay / COD");
+    doc.text(`Phương thức TT: ${paymentMethodName}`, 55, y + 58);
+    doc.text(`Trạng thái TT: `, 55, y + 73, { continued: true }).font("Bold").fillColor("#16A34A").text("Đã thanh toán");
+
+    doc.fillColor("#1E293B").font("Bold").fontSize(10).text("THÔNG TIN KHÁCH HÀNG", 300, y + 10);
+    doc.font("Regular").fontSize(9).fillColor("#334155");
+    doc.text(`Họ và tên: `, 300, y + 28, { continued: true }).font("Bold").text(`${order.Name || "Khách hàng"}`);
+    doc.font("Regular").text(`Số điện thoại: ${order.Phone || "N/A"}`, 300, y + 43);
+    doc.text(`Địa chỉ giao hàng: ${order.Adress || "N/A"}`, 300, y + 58, { width: 245 });
+
+    // Bảng sản phẩm
+    y += 110;
+    const tableTop = y;
+
+    doc.rect(40, tableTop, 515, 22).fill("#1E293B");
+    doc.fillColor("#FFFFFF").font("Bold").fontSize(9);
+    doc.text("STT", 45, tableTop + 6, { width: 25, align: "center" });
+    doc.text("Tên sản phẩm & Biến thể", 75, tableTop + 6, { width: 240, align: "left" });
+    doc.text("Đơn giá", 320, tableTop + 6, { width: 75, align: "right" });
+    doc.text("SL", 400, tableTop + 6, { width: 35, align: "center" });
+    doc.text("Thành tiền", 440, tableTop + 6, { width: 105, align: "right" });
+
+    y = tableTop + 22;
+    doc.fillColor("#000000");
+
+    let subtotalCalc = 0;
+    items.forEach((item, index) => {
+      const bg = index % 2 === 0 ? "#FFFFFF" : "#F8FAFC";
+      const prodName = item.product?.name || item.variant?.variant_name || "Sản phẩm";
+
+      let attrStr = "";
+      if (item.variant?.Attributes && item.variant.Attributes.length > 0) {
+        attrStr = item.variant.Attributes.map((a) => `${a.attribute_name}: ${a.value_name}`).join(", ");
+      }
+
+      const unitPrice = item.price || 0;
+      const qty = item.Quantity || 1;
+      const lineTotal = unitPrice * qty;
+      subtotalCalc += lineTotal;
+
+      const rowHeight = attrStr ? 32 : 24;
+
+      if (y + rowHeight > 750) {
+        doc.addPage({ margin: 40, size: "A4" });
+        y = 40;
+      }
+
+      doc.rect(40, y, 515, rowHeight).fillAndStroke(bg, "#E2E8F0");
+      doc.fillColor("#334155").font("Regular").fontSize(9);
+
+      doc.text((index + 1).toString(), 45, y + 6, { width: 25, align: "center" });
+
+      if (attrStr) {
+        doc.font("Bold").text(prodName, 75, y + 4, { width: 240, lineBreak: false });
+        doc.font("Regular").fontSize(8).fillColor("#64748B").text(attrStr, 75, y + 17, { width: 240, lineBreak: false });
+      } else {
+        doc.font("Regular").text(prodName, 75, y + 6, { width: 240, lineBreak: false });
+      }
+
+      doc.fillColor("#334155").font("Regular").fontSize(9);
+      doc.text(`${unitPrice.toLocaleString("vi-VN")} đ`, 320, y + 6, { width: 75, align: "right" });
+      doc.text(qty.toString(), 400, y + 6, { width: 35, align: "center" });
+      doc.font("Bold").text(`${lineTotal.toLocaleString("vi-VN")} đ`, 440, y + 6, { width: 105, align: "right" });
+
+      y += rowHeight;
+    });
+
+    // Phần tổng tiền
+    y += 10;
+    doc.rect(40, y, 515, 65).fillAndStroke("#F1F5F9", "#CBD5E1");
+
+    doc.fillColor("#334155").font("Regular").fontSize(9);
+    doc.text("Tổng tiền hàng:", 300, y + 10, { width: 120, align: "right" });
+    doc.font("Bold").text(`${subtotalCalc.toLocaleString("vi-VN")} đ`, 425, y + 10, { width: 120, align: "right" });
+
+    if (order.voucher_value && order.voucher_value > 0) {
+      doc.font("Regular").text(`Giảm giá (${order.voucher_code || "Voucher"}):`, 280, y + 25, { width: 140, align: "right" });
+      doc.font("Bold").fillColor("#DC2626").text(`- ${order.voucher_value.toLocaleString("vi-VN")} đ`, 425, y + 25, { width: 120, align: "right" });
+    }
+
+    const finalTotal = order.total_amount || (subtotalCalc - (order.voucher_value || 0));
+    doc.font("Bold").fontSize(11).fillColor("#0F172A").text("TỔNG CỘNG THANH TOÁN:", 250, y + 42, { width: 170, align: "right" });
+    doc.font("Bold").fontSize(12).fillColor("#1D4ED8").text(`${finalTotal.toLocaleString("vi-VN")} đ`, 425, y + 41, { width: 120, align: "right" });
+
+    // Chữ ký & Chân trang
+    y += 85;
+    doc.font("Bold").fontSize(9).fillColor("#1E293B");
+    doc.text("KHÁCH HÀNG", 90, y, { align: "center" });
+    doc.font("Regular").fontSize(8).fillColor("#64748B").text("(Ký và ghi rõ họ tên)", 90, y + 13, { align: "center" });
+
+    doc.font("Bold").fontSize(9).fillColor("#1E293B");
+    doc.text("ĐƠN VỊ BÁN HÀNG", 420, y, { align: "center" });
+    doc.font("Regular").fontSize(8).fillColor("#64748B").text("(Ký, đóng dấu và ghi rõ họ tên)", 420, y + 13, { align: "center" });
+
+    y += 65;
+    doc.font("Italic").fontSize(8).fillColor("#94A3B8").text("Cảm ơn quý khách đã tin tưởng và mua hàng tại WINNOTECH!", 40, y, { width: 515, align: "center" });
+
+    doc.end();
+  } catch (error) {
+    console.error("Lỗi xuất hóa đơn PDF:", error);
+    if (!res.headersSent) {
+      return res.status(500).json({ success: false, message: "Lỗi Server khi xuất hóa đơn PDF: " + error.message });
+    }
+  }
+};
+
+app.get("/orders/export-pdf/:id", checklogin, exportOrderPdfHandler);
+app.get("/orders/:orderId/export-pdf", checklogin, exportOrderPdfHandler);
+app.post("/orders/export-pdf", checklogin, exportOrderPdfHandler);
+app.get("/api/orders/export-pdf/:id", checklogin, exportOrderPdfHandler);
+app.post("/api/orders/export-pdf", checklogin, exportOrderPdfHandler);
+
+
+// ============================================================
 // POST /reviews — đăng review cho order item
 // ============================================================
 app.post("/reviews", checklogin, async (req, res) => {
@@ -2349,16 +2629,26 @@ app.post("/upload", upload.single("image"), (req, res) => {
 });
 
 // ============================================================
-// POST /categories — tạo danh mục mới
+// POST /categories — tạo danh mục mới (Kiểm tra trùng tên)
 // ============================================================
 app.post("/categories", async (req, res) => {
   try {
     const { name, image } = req.body;
-    if (!name) {
+    if (!name || !name.trim()) {
       return res
         .status(400)
         .json({ success: false, message: "Vui lòng nhập tên danh mục" });
     }
+
+    // KIỂM TRA TỒN TẠI (Trùng tên danh mục)
+    const existingCat = await CategoryModel.findOne({ name: name.trim() });
+    if (existingCat) {
+      return res.status(400).json({
+        success: false,
+        message: "Danh mục sản phẩm này đã tồn tại trên hệ thống!",
+      });
+    }
+
     let slug = slugify(name);
     let uniqueSlug = slug;
     let count = 1;
@@ -2366,19 +2656,19 @@ app.post("/categories", async (req, res) => {
       uniqueSlug = `${slug}-${count}`;
       count++;
     }
+
     const newCat = await CategoryModel.create({
-      name,
+      name: name.trim(),
       slug: uniqueSlug,
       image: image || "",
       status: "active",
     });
-    return res
-      .status(201)
-      .json({
-        success: true,
-        message: "Tạo danh mục thành công",
-        data: newCat,
-      });
+
+    return res.status(201).json({
+      success: true,
+      message: "Tạo danh mục thành công",
+      data: newCat,
+    });
   } catch (error) {
     console.error("Lỗi tạo danh mục:", error);
     return res
@@ -2388,20 +2678,34 @@ app.post("/categories", async (req, res) => {
 });
 
 // ============================================================
-// PUT /categories/:id — cập nhật danh mục
+// PUT /categories/:id — cập nhật danh mục (Kiểm tra trùng tên)
 // ============================================================
 app.put("/categories/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, image } = req.body;
+    const { name, image, status } = req.body;
+
     const cat = await CategoryModel.findById(id);
     if (!cat) {
       return res
         .status(404)
         .json({ success: false, message: "Không tìm thấy danh mục" });
     }
-    if (name) {
-      cat.name = name;
+
+    if (name && name.trim()) {
+      // KIỂM TRA TỒN TẠI ở danh mục khác
+      const duplicate = await CategoryModel.findOne({
+        name: name.trim(),
+        _id: { $ne: id },
+      });
+      if (duplicate) {
+        return res.status(400).json({
+          success: false,
+          message: "Tên danh mục này đã bị trùng với danh mục khác!",
+        });
+      }
+
+      cat.name = name.trim();
       let slug = slugify(name);
       let uniqueSlug = slug;
       let count = 1;
@@ -2413,7 +2717,10 @@ app.put("/categories/:id", async (req, res) => {
       }
       cat.slug = uniqueSlug;
     }
+
     if (image !== undefined) cat.image = image;
+    if (status !== undefined) cat.status = status;
+
     await cat.save();
     return res.json({
       success: true,
@@ -2429,7 +2736,7 @@ app.put("/categories/:id", async (req, res) => {
 });
 
 // ============================================================
-// DELETE /categories/:id — xóa danh mục
+// DELETE /categories/:id — SOFT DELETE danh mục (Chỉ chuyển trạng thái)
 // ============================================================
 app.delete("/categories/:id", async (req, res) => {
   try {
@@ -2440,26 +2747,21 @@ app.delete("/categories/:id", async (req, res) => {
         .status(404)
         .json({ success: false, message: "Không tìm thấy danh mục" });
     }
-    // Kiểm tra còn sản phẩm thuộc danh mục không
-    const productCount = await ProductModel.countDocuments({ cat_id: id });
-    if (productCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Không thể xóa! Danh mục này đang chứa ${productCount} sản phẩm. Hãy chuyển hoặc xóa sản phẩm trước.`,
-      });
-    }
-    // Xóa ảnh vật lý nếu là ảnh upload
-    if (cat.image && cat.image.startsWith("/public/images/uploads/")) {
-      const filePath = path.join(__dirname, cat.image);
-      fs.unlink(filePath, () => {});
-    }
-    await CategoryModel.findByIdAndDelete(id);
-    return res.json({ success: true, message: "Xóa danh mục thành công" });
+
+    // SOFT DELETE: Chỉ cập nhật trạng thái thành 'inactive', tuyệt đối KHÔNG XÓA DB
+    cat.status = "inactive";
+    await cat.save();
+
+    return res.json({
+      success: true,
+      message: "Đã ngưng hoạt động danh mục (Soft delete thành công)",
+      data: cat,
+    });
   } catch (error) {
     console.error("Lỗi xóa danh mục:", error);
     return res
       .status(500)
-      .json({ success: false, message: "Lỗi Server khi xóa danh mục" });
+      .json({ success: false, message: "Lỗi Server khi ẩn danh mục" });
   }
 });
 
@@ -2599,6 +2901,539 @@ const checkAdmin = (req, res, next) => {
       });
   }
 };
+
+// ============================================================
+// BỘ API QUẢN LÝ ADMIN (SẢN PHẨM, THƯƠNG HIỆU, NGƯỜI DÙNG, ĐƠN HÀNG, THỐNG KÊ DOANH THU & XUẤT EXCEL)
+// QUY TẮC: CHỈ ĐỔI STATUS (SOFT DELETE), KHÔNG XÓA CỨNG DB, KIỂM TRA TRÙNG TRƯỚC KHI THÊM/SỬA
+// ============================================================
+
+// 1. QUẢN LÝ SẢN PHẨM (ADMIN PRODUCT CRUD)
+
+// GET /admin/products — Lấy tất cả sản phẩm hệ thống
+app.get("/admin/products", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const products = await ProductModel.find({})
+      .populate("cat_id brand_id")
+      .sort({ createdAt: -1 })
+      .lean();
+    return res.json({ success: true, count: products.length, data: products });
+  } catch (error) {
+    console.error("Lỗi GET admin products:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// POST /admin/products — Thêm mới sản phẩm (Kiểm tra trùng tên/slug trước khi thêm)
+app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { name, price, cat_id, brand_id, thumnail, description, status } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập tên sản phẩm" });
+    }
+
+    const trimmedName = name.trim();
+    const productSlug = req.body.slug ? slugify(req.body.slug) : slugify(trimmedName);
+
+    // KIỂM TRA TỒN TẠI: Kiểm tra xem sản phẩm cùng tên hoặc slug đã có trong DB chưa
+    const existing = await ProductModel.findOne({
+      $or: [{ name: trimmedName }, { slug: productSlug }]
+    });
+
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: "Sản phẩm này đã tồn tại trên hệ thống! Vui lòng kiểm tra lại tên hoặc slug."
+      });
+    }
+
+    const newProduct = await ProductModel.create({
+      name: trimmedName,
+      slug: productSlug,
+      price: Number(price) || 0,
+      cat_id: cat_id || null,
+      brand_id: brand_id || null,
+      thumnail: thumnail || "",
+      description: description || "",
+      status: status || "active"
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Thêm sản phẩm mới thành công",
+      data: newProduct
+    });
+  } catch (error) {
+    console.error("Lỗi POST admin product:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// PUT /admin/products/:id — Cập nhật sản phẩm (Kiểm tra trùng tên/slug ở sản phẩm khác)
+app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, price, cat_id, brand_id, thumnail, description, status, slug } = req.body;
+
+    const product = await ProductModel.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
+    }
+
+    if (name && name.trim()) {
+      const trimmedName = name.trim();
+      const newSlug = slug ? slugify(slug) : slugify(trimmedName);
+
+      // KIỂM TRA TỒN TẠI trên sản phẩm khác
+      const duplicate = await ProductModel.findOne({
+        _id: { $ne: id },
+        $or: [{ name: trimmedName }, { slug: newSlug }]
+      });
+
+      if (duplicate) {
+        return res.status(400).json({
+          success: false,
+          message: "Tên hoặc slug sản phẩm đã bị trùng với sản phẩm khác trên hệ thống!"
+        });
+      }
+
+      product.name = trimmedName;
+      product.slug = newSlug;
+    }
+
+    if (price !== undefined) product.price = Number(price);
+    if (cat_id !== undefined) product.cat_id = cat_id;
+    if (brand_id !== undefined) product.brand_id = brand_id;
+    if (thumnail !== undefined) product.thumnail = thumnail;
+    if (description !== undefined) product.description = description;
+    if (status !== undefined) product.status = status;
+
+    await product.save();
+    return res.json({ success: true, message: "Cập nhật sản phẩm thành công", data: product });
+  } catch (error) {
+    console.error("Lỗi PUT admin product:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// PUT /admin/products/:id/status — Đổi trạng thái sản phẩm (active / inactive)
+app.put("/admin/products/:id/status", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!status) return res.status(400).json({ success: false, message: "Thiếu trạng thái status" });
+
+    const product = await ProductModel.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!product) return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
+
+    return res.json({ success: true, message: "Cập nhật trạng thái thành công", data: product });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// DELETE /admin/products/:id — SOFT DELETE sản phẩm (Chuyển status = 'inactive', TUYỆT ĐỐI KHÔNG XÓA DB)
+app.delete("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const product = await ProductModel.findById(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
+
+    product.status = "inactive";
+    await product.save();
+
+    return res.json({ success: true, message: "Đã ngưng hoạt động sản phẩm (Soft delete thành công)", data: product });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+
+// 2. QUẢN LÝ THƯƠNG HIỆU (ADMIN BRAND CRUD)
+
+// GET /admin/brands — Lấy tất cả thương hiệu
+app.get("/admin/brands", async (req, res) => {
+  try {
+    const brands = await BrandModel.find({}).lean();
+    return res.json({ success: true, data: brands });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// POST /admin/brands — Thêm thương hiệu mới (Kiểm tra trùng tên)
+app.post("/admin/brands", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { name, image, status } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: "Thiếu tên thương hiệu" });
+    }
+
+    const trimmedName = name.trim();
+    const existing = await BrandModel.findOne({ name: trimmedName });
+    if (existing) {
+      return res.status(400).json({ success: false, message: "Thương hiệu này đã tồn tại trên hệ thống!" });
+    }
+
+    const brand = await BrandModel.create({
+      name: trimmedName,
+      image: image || "",
+      status: status || "active"
+    });
+
+    return res.status(201).json({ success: true, message: "Tạo thương hiệu thành công", data: brand });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// PUT /admin/brands/:id — Cập nhật thương hiệu (Kiểm tra trùng tên)
+app.put("/admin/brands/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, image, status } = req.body;
+
+    const brand = await BrandModel.findById(id);
+    if (!brand) return res.status(404).json({ success: false, message: "Không tìm thấy thương hiệu" });
+
+    if (name && name.trim()) {
+      const duplicate = await BrandModel.findOne({ name: name.trim(), _id: { $ne: id } });
+      if (duplicate) {
+        return res.status(400).json({ success: false, message: "Tên thương hiệu đã bị trùng với thương hiệu khác!" });
+      }
+      brand.name = name.trim();
+    }
+
+    if (image !== undefined) brand.image = image;
+    if (status !== undefined) brand.status = status;
+
+    await brand.save();
+    return res.json({ success: true, message: "Cập nhật thương hiệu thành công", data: brand });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// DELETE /admin/brands/:id — SOFT DELETE thương hiệu (Chỉ đổi status = 'inactive')
+app.delete("/admin/brands/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const brand = await BrandModel.findById(req.params.id);
+    if (!brand) return res.status(404).json({ success: false, message: "Không tìm thấy thương hiệu" });
+
+    brand.status = "inactive";
+    await brand.save();
+
+    return res.json({ success: true, message: "Đã ẩn thương hiệu (Soft delete thành công)", data: brand });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+
+// 3. QUẢN LÝ NGƯỜI DÙNG (ADMIN USER MANAGEMENT)
+
+// GET /admin/users — Danh sách người dùng
+app.get("/admin/users", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const users = await UserModel.find({}).select("-password").sort({ createdAt: -1 }).lean();
+    return res.json({ success: true, count: users.length, data: users });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// POST /admin/users — Tạo người dùng mới (Kiểm tra trùng email/phone)
+app.post("/admin/users", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { name, email, phone, password, role, status } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: "Thiếu email hoặc mật khẩu" });
+    }
+
+    const existing = await UserModel.findOne({
+      $or: [{ email: email.trim() }, { phone: phone ? phone.trim() : null }]
+    });
+
+    if (existing) {
+      return res.status(400).json({ success: false, message: "Email hoặc Số điện thoại này đã được sử dụng!" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = await UserModel.create({
+      name: name || email.split("@")[0],
+      email: email.trim(),
+      phone: phone ? phone.trim() : "",
+      password: hashedPassword,
+      role: role || "user",
+      status: status || "active"
+    });
+
+    const userObj = newUser.toObject();
+    delete userObj.password;
+    return res.status(201).json({ success: true, message: "Tạo tài khoản thành công", data: userObj });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// PUT /admin/users/:id/status — Đổi trạng thái/khóa người dùng ('active' | 'inactive' | 'locked')
+app.put("/admin/users/:id/status", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!status) return res.status(400).json({ success: false, message: "Thiếu trạng thái status" });
+
+    const user = await UserModel.findByIdAndUpdate(req.params.id, { status }, { new: true }).select("-password");
+    if (!user) return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+
+    return res.json({ success: true, message: `Đã đổi trạng thái tài khoản thành ${status}`, data: user });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// DELETE /admin/users/:id — SOFT DELETE người dùng (Chuyển status = 'inactive')
+app.delete("/admin/users/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const user = await UserModel.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+
+    user.status = "inactive";
+    await user.save();
+
+    return res.json({ success: true, message: "Đã vô hiệu hóa tài khoản (Soft delete thành công)" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+
+// 4. QUẢN LÝ ĐƠN HÀNG (ADMIN ORDER MANAGEMENT)
+
+// GET /admin/orders — Lấy tất cả đơn hàng hệ thống
+app.get("/admin/orders", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { status, payment_status } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+    if (payment_status) filter.payment_status = payment_status;
+
+    const orders = await Order.find(filter)
+      .populate("user_id", "name email phone")
+      .populate("payment_method")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({ success: true, count: orders.length, data: orders });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// PUT /admin/orders/:id/status — Cập nhật trạng thái đơn hàng
+app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { status } = req.body; // pending, preparing, handed_over, shipping, delivering, completed, canceled
+    if (!status) return res.status(400).json({ success: false, message: "Thiếu trạng thái status" });
+
+    const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+
+    return res.json({ success: true, message: "Cập nhật trạng thái đơn hàng thành công", data: order });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// DELETE /admin/orders/:id — SOFT CANCEL đơn hàng (Chuyển status = 'canceled')
+app.delete("/admin/orders/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+
+    order.status = "canceled";
+    await order.save();
+
+    return res.json({ success: true, message: "Đã hủy đơn hàng (Soft delete/cancel thành công)", data: order });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+
+// 5. CHỨC NĂNG THỐNG KÊ DOANH THU & XUẤT FILE EXCEL
+
+// GET /admin/revenue/stats — Thống kê doanh thu theo Ngày, Tuần, Tháng, Năm
+app.get("/admin/revenue/stats", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { type = "month" } = req.query; // 'day' | 'week' | 'month' | 'year'
+
+    // Lấy các đơn hàng đã thanh toán hoặc đã hoàn thành
+    const paidOrders = await Order.find({
+      $or: [{ payment_status: "paid" }, { status: "completed" }]
+    }).sort({ createdAt: 1 }).lean();
+
+    const statsMap = {};
+    let totalRevenue = 0;
+    let totalPaidOrders = paidOrders.length;
+
+    paidOrders.forEach((ord) => {
+      const date = moment(ord.createdAt || ord.date);
+      let key = "";
+      if (type === "day") {
+        key = date.format("YYYY-MM-DD");
+      } else if (type === "week") {
+        key = `Tuần ${date.isoWeek()} - ${date.format("YYYY")}`;
+      } else if (type === "year") {
+        key = date.format("YYYY");
+      } else {
+        key = date.format("YYYY-MM");
+      }
+
+      const amount = ord.total_amount || 0;
+      totalRevenue += amount;
+
+      if (!statsMap[key]) {
+        statsMap[key] = { period: key, orderCount: 0, revenue: 0 };
+      }
+      statsMap[key].orderCount += 1;
+      statsMap[key].revenue += amount;
+    });
+
+    const breakdown = Object.values(statsMap);
+    const avgOrderValue = totalPaidOrders > 0 ? Math.round(totalRevenue / totalPaidOrders) : 0;
+
+    return res.json({
+      success: true,
+      summary: {
+        type,
+        totalRevenue,
+        totalPaidOrders,
+        avgOrderValue,
+      },
+      breakdown
+    });
+  } catch (error) {
+    console.error("Lỗi thống kê doanh thu:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// GET /admin/revenue/export-excel — Xuất bảng thống kê doanh thu ra file Excel (.xlsx)
+app.get("/admin/revenue/export-excel", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { type = "month" } = req.query;
+
+    const paidOrders = await Order.find({
+      $or: [{ payment_status: "paid" }, { status: "completed" }]
+    }).sort({ createdAt: 1 }).lean();
+
+    const statsMap = {};
+    paidOrders.forEach((ord) => {
+      const date = moment(ord.createdAt || ord.date);
+      let key = "";
+      if (type === "day") key = date.format("YYYY-MM-DD");
+      else if (type === "week") key = `Tuần ${date.isoWeek()} - ${date.format("YYYY")}`;
+      else if (type === "year") key = date.format("YYYY");
+      else key = date.format("YYYY-MM");
+
+      const amount = ord.total_amount || 0;
+      if (!statsMap[key]) statsMap[key] = { key, count: 0, revenue: 0 };
+      statsMap[key].count += 1;
+      statsMap[key].revenue += amount;
+    });
+
+    const statsList = Object.values(statsMap);
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Thống kê doanh thu");
+
+    // Banner Tiêu Đề
+    worksheet.mergeCells("A1:E1");
+    const titleCell = worksheet.getCell("A1");
+    titleCell.value = "BÁO CÁO THỐNG KÊ DOANH THU - WINNOTECH STORE";
+    titleCell.font = { name: "Arial", size: 16, bold: true, color: { argb: "FFFFFFFF" } };
+    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F172A" } };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+    worksheet.getRow(1).height = 40;
+
+    // Subtitle
+    worksheet.mergeCells("A2:E2");
+    const subCell = worksheet.getCell("A2");
+    subCell.value = `Loại thống kê: theo ${type.toUpperCase()} | Ngày xuất file: ${moment().format("DD/MM/YYYY HH:mm")}`;
+    subCell.font = { name: "Arial", size: 10, italic: true, color: { argb: "FF475569" } };
+    subCell.alignment = { horizontal: "center", vertical: "middle" };
+
+    // Hàng Tiêu Đề Bảng
+    const headerRow = worksheet.getRow(4);
+    headerRow.values = ["STT", "Thời gian", "Số lượng đơn", "Tổng doanh thu (VNĐ)", "Doanh thu TB / Đơn"];
+    headerRow.font = { name: "Arial", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+    headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E293B" } };
+    headerRow.height = 28;
+
+    worksheet.columns = [
+      { width: 8, alignment: { horizontal: "center" } },
+      { width: 25, alignment: { horizontal: "center" } },
+      { width: 18, alignment: { horizontal: "right" } },
+      { width: 28, alignment: { horizontal: "right" } },
+      { width: 25, alignment: { horizontal: "right" } },
+    ];
+
+    let totalRevenue = 0;
+    let totalOrders = 0;
+
+    statsList.forEach((item, idx) => {
+      const avg = item.count > 0 ? Math.round(item.revenue / item.count) : 0;
+      totalRevenue += item.revenue;
+      totalOrders += item.count;
+
+      const row = worksheet.addRow([
+        idx + 1,
+        item.key,
+        item.count,
+        item.revenue,
+        avg
+      ]);
+
+      row.height = 22;
+      row.getCell(4).numFmt = '#,##0 "đ"';
+      row.getCell(5).numFmt = '#,##0 "đ"';
+
+      if (idx % 2 === 1) {
+        row.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } };
+      }
+    });
+
+    // Hàng Tổng Cộng
+    const totalRow = worksheet.addRow([
+      "",
+      "TỔNG CỘNG",
+      totalOrders,
+      totalRevenue,
+      totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0
+    ]);
+    totalRow.height = 26;
+    totalRow.font = { name: "Arial", size: 11, bold: true, color: { argb: "FF1E40AF" } };
+    totalRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
+    totalRow.getCell(4).numFmt = '#,##0 "đ"';
+    totalRow.getCell(5).numFmt = '#,##0 "đ"';
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="ThongKeDoanhThu_WINNOTECH_${type}.xlsx"`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error("Lỗi xuất Excel thống kê doanh thu:", error);
+    if (!res.headersSent) {
+      return res.status(500).json({ success: false, message: "Lỗi Server khi xuất Excel: " + error.message });
+    }
+  }
+});
+
 
 // GET /post-categories — Lấy danh mục bài viết
 app.get("/post-categories", async (req, res) => {
@@ -2767,16 +3602,21 @@ app.put("/admin/posts/:id", checklogin, checkAdmin, async (req, res) => {
   }
 });
 
-// DELETE /admin/posts/:id — Xóa bài viết (Yêu cầu Admin)
+// DELETE /admin/posts/:id — SOFT DELETE bài viết (Chỉ đổi status)
 app.delete("/admin/posts/:id", checklogin, checkAdmin, async (req, res) => {
   try {
-    const deleted = await PostModel.findByIdAndDelete(req.params.id);
-    if (!deleted) {
+    const post = await PostModel.findById(req.params.id);
+    if (!post) {
       return res
         .status(404)
         .json({ success: false, message: "Không tìm thấy bài viết" });
     }
-    return res.json({ success: true, message: "Đã xóa bài viết thành công" });
+
+    // SOFT DELETE: đổi trạng thái sang 'inactive', KHÔNG XÓA DB
+    post.status = "inactive";
+    await post.save();
+
+    return res.json({ success: true, message: "Đã ẩn bài viết (Soft delete thành công)", data: post });
   } catch (error) {
     console.error("Lỗi DELETE admin posts:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
@@ -2805,7 +3645,7 @@ app.get(
   },
 );
 
-// POST /admin/products/:productId/variants — Thêm biến thể mới
+// POST /admin/products/:productId/variants — Thêm biến thể mới (Kiểm tra trùng SKU)
 app.post(
   "/admin/products/:productId/variants",
   checklogin,
@@ -2815,6 +3655,7 @@ app.post(
       const { productId } = req.params;
       const { variant_name, price, sku, sale_price, stock_quantity, status } =
         req.body;
+
       if (!variant_name || !price || !sku) {
         return res
           .status(400)
@@ -2823,15 +3664,26 @@ app.post(
             message: "Vui lòng nhập đầy đủ tên, SKU và giá của biến thể",
           });
       }
+
+      // KIỂM TRA TỒN TẠI SKU
+      const existingSku = await ProductVariantModel.findOne({ sku: sku.trim() });
+      if (existingSku) {
+        return res.status(400).json({
+          success: false,
+          message: "Mã SKU này đã tồn tại trên hệ thống!",
+        });
+      }
+
       const v = await ProductVariantModel.create({
         variant_name,
         price: Number(price) || 0,
-        sku,
+        sku: sku.trim(),
         sale_price: Number(sale_price) || 0,
         stock_quantity: Number(stock_quantity) || 0,
         status: status || "active",
         p_id: productId,
       });
+
       return res.status(201).json({ success: true, data: v });
     } catch (error) {
       console.error("Lỗi POST admin variants:", error);
@@ -2840,7 +3692,7 @@ app.post(
   },
 );
 
-// PUT /admin/variants/:variantId — Cập nhật biến thể
+// PUT /admin/variants/:variantId — Cập nhật biến thể (Kiểm tra trùng SKU)
 app.put(
   "/admin/variants/:variantId",
   checklogin,
@@ -2850,23 +3702,39 @@ app.put(
       const { variantId } = req.params;
       const { variant_name, price, sku, sale_price, stock_quantity, status } =
         req.body;
+
+      if (sku) {
+        const duplicateSku = await ProductVariantModel.findOne({
+          sku: sku.trim(),
+          _id: { $ne: variantId },
+        });
+        if (duplicateSku) {
+          return res.status(400).json({
+            success: false,
+            message: "Mã SKU này đã bị trùng với biến thể khác!",
+          });
+        }
+      }
+
       const v = await ProductVariantModel.findByIdAndUpdate(
         variantId,
         {
           variant_name,
           price: Number(price) || 0,
-          sku,
+          sku: sku ? sku.trim() : undefined,
           sale_price: Number(sale_price) || 0,
           stock_quantity: Number(stock_quantity) || 0,
           status,
         },
         { new: true },
       );
+
       if (!v) {
         return res
           .status(404)
           .json({ success: false, message: "Không tìm thấy biến thể" });
       }
+
       return res.json({ success: true, data: v });
     } catch (error) {
       console.error("Lỗi PUT admin variants:", error);
@@ -2875,7 +3743,7 @@ app.put(
   },
 );
 
-// DELETE /admin/variants/:variantId — Xóa biến thể
+// DELETE /admin/variants/:variantId — SOFT DELETE biến thể (Đổi status sang 'inactive')
 app.delete(
   "/admin/variants/:variantId",
   checklogin,
@@ -2883,13 +3751,18 @@ app.delete(
   async (req, res) => {
     try {
       const { variantId } = req.params;
-      const deleted = await ProductVariantModel.findByIdAndDelete(variantId);
-      if (!deleted) {
+      const variant = await ProductVariantModel.findById(variantId);
+      if (!variant) {
         return res
           .status(404)
           .json({ success: false, message: "Không tìm thấy biến thể" });
       }
-      return res.json({ success: true, message: "Xóa biến thể thành công" });
+
+      // SOFT DELETE: Đổi status sang inactive, KHÔNG XÓA DB
+      variant.status = "inactive";
+      await variant.save();
+
+      return res.json({ success: true, message: "Đã ẩn biến thể (Soft delete thành công)", data: variant });
     } catch (error) {
       console.error("Lỗi DELETE admin variants:", error);
       return res.status(500).json({ success: false, message: "Lỗi Server" });
