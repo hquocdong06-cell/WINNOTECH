@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, RefreshCw, Star, MessageSquare, User, Package, Calendar } from 'lucide-react';
+import { Search, RefreshCw, Star, MessageSquare, User, Package, Calendar, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchReviewsFilter } from '../services/adminService';
+import { fetchReviewsFilter, toggleReviewStatus } from '../services/adminService';
 
 const Reviews = () => {
   const [reviews, setReviews] = useState([]);
@@ -27,6 +27,17 @@ const Reviews = () => {
   useEffect(() => {
     fetchReviews();
   }, [fetchReviews]);
+
+  const handleToggleStatus = async (review) => {
+    const nextStatus = review.status === 'hidden' ? 'active' : 'hidden';
+    try {
+      await toggleReviewStatus(review._id, nextStatus);
+      toast.success(nextStatus === 'hidden' ? 'Đã ẩn đánh giá khỏi giao diện' : 'Đã hiện lại đánh giá');
+      setReviews(prev => prev.map(r => r._id === review._id ? { ...r, status: nextStatus } : r));
+    } catch (err) {
+      toast.error(err.message || 'Lỗi đổi trạng thái đánh giá');
+    }
+  };
 
   const getCustomerName = (r) => {
     try {
@@ -163,13 +174,14 @@ const Reviews = () => {
                 <th className="px-6 py-4 font-semibold">SẢN PHẨM</th>
                 <th className="px-6 py-4 font-semibold">ĐÁNH GIÁ SAO</th>
                 <th className="px-6 py-4 font-semibold">NỘI DUNG BÌNH LUẬN</th>
-                <th className="px-6 py-4 font-semibold text-right">NGÀY ĐÁNH GIÁ</th>
+                <th className="px-6 py-4 font-semibold">TRẠNG THÁI</th>
+                <th className="px-6 py-4 font-semibold text-right">NGÀY & HÀNH ĐỘNG</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#222]">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">Đang tải danh sách đánh giá...</td>
+                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">Đang tải danh sách đánh giá...</td>
                 </tr>
               ) : (
                 filtered.map((r) => (
@@ -210,15 +222,35 @@ const Reviews = () => {
                         <span className="text-gray-500 italic">Khách hàng không để lại nhận xét văn bản.</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right text-gray-400 text-xs whitespace-nowrap">
-                      {formatDate(r.createdAt)}
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                        r.status === 'hidden' ? 'bg-gray-800 text-gray-400 border border-gray-700' : 'bg-green-500/10 text-green-400 border border-green-500/30'
+                      }`}>
+                        {r.status === 'hidden' ? 'Đã ẩn' : 'Hiển thị'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-3">
+                        <span className="text-gray-400 text-xs">{formatDate(r.createdAt)}</span>
+                        <button
+                          onClick={() => handleToggleStatus(r)}
+                          className={`p-2 rounded-lg border transition-colors ${
+                            r.status === 'hidden'
+                              ? 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
+                              : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20'
+                          }`}
+                          title={r.status === 'hidden' ? 'Hiện lại đánh giá' : 'Ẩn đánh giá khỏi giao diện (Soft delete)'}
+                        >
+                          {r.status === 'hidden' ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
               )}
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                     Chưa có đánh giá nào phù hợp với bộ lọc.
                   </td>
                 </tr>

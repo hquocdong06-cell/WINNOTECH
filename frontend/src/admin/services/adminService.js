@@ -57,6 +57,14 @@ export async function updateCategory(id, { name, image }) {
   });
 }
 
+export async function toggleCategoryStatus(id, status) {
+  return apiFetch(`/categories/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+}
+
 export async function deleteCategory(id) {
   return apiFetch(`/categories/${id}`, { method: 'DELETE' });
 }
@@ -250,7 +258,7 @@ export async function deleteVoucher(id) {
 }
 
 // ============================================================
-// REVIEWS
+// REVIEWS (ADMIN)
 // ============================================================
 export async function fetchReviewsFilter(filter = {}) {
   const data = await apiFetch('/reviews/filter', {
@@ -261,8 +269,16 @@ export async function fetchReviewsFilter(filter = {}) {
   return data.data || [];
 }
 
+export async function toggleReviewStatus(id, status) {
+  return apiFetch(`/admin/reviews/${id}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+}
+
 // ============================================================
-// POSTS (BLOG)
+// POSTS & POST CATEGORIES (ADMIN)
 // ============================================================
 export async function fetchPosts(status) {
   const query = status ? `?status=${status}` : '';
@@ -273,6 +289,30 @@ export async function fetchPosts(status) {
 export async function fetchPostCategories() {
   const data = await apiFetch('/post-categories');
   return data.data || [];
+}
+
+export async function createPostCategory(payload) {
+  return apiFetch('/admin/post-categories', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updatePostCategory(id, payload) {
+  return apiFetch(`/admin/post-categories/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function togglePostCategoryStatus(id, status) {
+  return apiFetch(`/admin/post-categories/${id}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
 }
 
 export async function createPost(payload) {

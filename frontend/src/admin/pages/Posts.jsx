@@ -3,7 +3,7 @@ import { Plus, Search, Edit, Trash2, Loader2, AlertTriangle, FileText } from 'lu
 import { toast } from 'react-toastify';
 import { fetchPosts, fetchPostCategories, createPost, updatePost, deletePost, uploadImage } from '../services/adminService';
 
-// ——— Component Dialog xác nhận xóa ———
+// ——— Component Dialog xác nhận xóa (Soft Delete) ———
 const ConfirmDeleteDialog = ({ isOpen, postTitle, onConfirm, onCancel, isLoading }) => {
   if (!isOpen) return null;
   return (
@@ -14,12 +14,12 @@ const ConfirmDeleteDialog = ({ isOpen, postTitle, onConfirm, onCancel, isLoading
             <AlertTriangle className="w-5 h-5 text-red-500" />
           </div>
           <div>
-            <h3 className="font-bold text-lg">Xác nhận xóa</h3>
-            <p className="text-xs text-gray-400 mt-0.5">Hành động này không thể hoàn tác</p>
+            <h3 className="font-bold text-lg">Ẩn Bài Viết (Soft Delete)</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Bài viết sẽ chuyển sang trạng thái Ẩn</p>
           </div>
         </div>
         <p className="text-sm text-gray-300 mb-6 leading-relaxed">
-          Bạn có chắc muốn xóa bài viết <span className="font-semibold text-white">"{postTitle}"</span>?
+          Bạn có chắc muốn chuyển bài viết <span className="font-semibold text-white">"{postTitle}"</span> sang trạng thái Ẩn?
         </p>
         <div className="flex gap-3 justify-end">
           <button
@@ -35,7 +35,7 @@ const ConfirmDeleteDialog = ({ isOpen, postTitle, onConfirm, onCancel, isLoading
             className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-60"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-            {isLoading ? 'Đang xóa...' : 'Xóa bài viết'}
+            {isLoading ? 'Đang ẩn...' : 'Ẩn bài viết'}
           </button>
         </div>
       </div>
