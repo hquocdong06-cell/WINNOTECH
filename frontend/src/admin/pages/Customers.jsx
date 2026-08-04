@@ -33,7 +33,7 @@ const Customers = () => {
         return { ...c, status: newStatus };
       }
       return c;
-    });
+    }));
   };
 
   const handleDelete = (id) => {
