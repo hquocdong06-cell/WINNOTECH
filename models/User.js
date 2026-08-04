@@ -9,7 +9,8 @@ const UserSchema = new mongoose.Schema({
     status: { type: String, default: 'active' },
     resetPasswordOTP: { type: String, default: null },
     resetPasswordExpires: { type: Date, default: null },
-    avatar: { type: String }
+    avatar: { type: String },
+    googleId: { type: String, default: null }
 }, { timestamps: true, 
     collection: 'User'
 });

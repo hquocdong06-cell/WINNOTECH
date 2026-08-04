@@ -415,6 +415,119 @@ app.get("/logout", function (req, res) {
 });
 
 // ============================================================
+// POST /api/auth/google — API Đăng nhập / Đăng ký bằng Google Account
+// ============================================================
+app.post(["/api/auth/google", "/auth/google"], async (req, res) => {
+  try {
+    const { email, name, avatar, googleId, credential, idToken } = req.body;
+    let userEmail = email;
+    let userName = name;
+    let userAvatar = avatar;
+    let userGoogleId = googleId;
+
+    // 1. Kiểm tra nếu FE gửi credential / idToken từ Google OAuth
+    const tokenToVerify = credential || idToken;
+    if (tokenToVerify) {
+      try {
+        const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${tokenToVerify}`);
+        if (verifyRes.ok) {
+          const googlePayload = await verifyRes.json();
+          userEmail = googlePayload.email || userEmail;
+          userName = googlePayload.name || userName;
+          userAvatar = googlePayload.picture || userAvatar;
+          userGoogleId = googlePayload.sub || userGoogleId;
+        }
+      } catch (verifyErr) {
+        console.warn("Không thể verify Google token info trực tiếp, dùng thông tin payload:", verifyErr.message);
+      }
+    }
+
+    if (!userEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu thông tin Email từ Google",
+      });
+    }
+
+    // 2. Tìm User trong database theo Email hoặc Google ID
+    let user = await UserModel.findOne({
+      $or: [
+        { email: userEmail },
+        ...(userGoogleId ? [{ googleId: userGoogleId }] : []),
+      ],
+    });
+
+    if (user) {
+      // Nếu tài khoản đã tồn tại => kiểm tra trạng thái
+      if (user.status !== "active") {
+        return res.status(403).json({
+          success: false,
+          message: "Tài khoản này đã bị khóa hoặc ngừng hoạt động!",
+        });
+      }
+
+      // Cập nhật googleId & avatar nếu chưa có
+      let hasChanges = false;
+      if (!user.googleId && userGoogleId) {
+        user.googleId = userGoogleId;
+        hasChanges = true;
+      }
+      if (!user.avatar && userAvatar) {
+        user.avatar = userAvatar;
+        hasChanges = true;
+      }
+      if (hasChanges) await user.save();
+
+    } else {
+      // Nếu tài khoản chưa tồn tại => tạo mới tự động
+      const randomPassword = crypto.randomBytes(16).toString("hex");
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      user = await UserModel.create({
+        name: userName || userEmail.split("@")[0],
+        email: userEmail,
+        password: hashedPassword,
+        avatar: userAvatar || "",
+        googleId: userGoogleId || "",
+        role: "user",
+        status: "active",
+      });
+    }
+
+    // 3. Ký JWT Token RS256 và lưu cookie token 1 năm (giống API /login)
+    const payload = { _id: user._id };
+    const token = jwt.sign(payload, privatekey, {
+      algorithm: "RS256",
+      expiresIn: "1y",
+    });
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      maxAge: 365 * 12 * 30 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Đăng nhập Google thành công!",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+      },
+    });
+  } catch (error) {
+    console.error("Lỗi API /api/auth/google:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server trong quá trình đăng nhập Google: " + error.message,
+    });
+  }
+});
+
+// ============================================================
 // GET /profile
 // ============================================================
 
