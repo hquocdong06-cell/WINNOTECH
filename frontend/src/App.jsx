@@ -35,6 +35,8 @@ import AdminPosts from './admin/pages/Posts'
 import Contact from './pages/Contact'
 import Compare from './pages/Compare'
 
+import AdminGuard from './admin/components/AdminGuard'
+
 function App() {
   return (
     <>
@@ -66,8 +68,8 @@ function App() {
         <Route path="/login" element={<GuestGuard><Auth /></GuestGuard>} />
         <Route path="/register" element={<GuestGuard><Auth /></GuestGuard>} />
 
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminLayout />}>
+        {/* Admin Routes (Chỉ dành cho Admin) */}
+        <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
           <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="products" element={<Products />} />
@@ -83,7 +85,6 @@ function App() {
       </Routes>
     </>
   )
-  
 }
 
 export default App

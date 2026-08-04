@@ -2,7 +2,7 @@
 // adminService.js — Tập trung toàn bộ API call cho Admin
 // ============================================================
 
-const API_BASE = 'http://localhost:3000';
+export const API_BASE = 'http://localhost:3000';
 
 // ——— Hàm helper fetch ———
 async function apiFetch(endpoint, options = {}) {
@@ -27,7 +27,6 @@ export async function uploadImage(file) {
     method: 'POST',
     credentials: 'include',
     body: formData,
-    // KHÔNG set Content-Type — để browser tự set multipart/form-data
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || 'Upload ảnh thất bại');
@@ -37,14 +36,11 @@ export async function uploadImage(file) {
 // ============================================================
 // CATEGORIES
 // ============================================================
-
-/** Lấy toàn bộ danh mục */
 export async function fetchCategories() {
   const data = await apiFetch('/categories');
   return data.data || [];
 }
 
-/** Tạo danh mục mới */
 export async function createCategory({ name, image }) {
   return apiFetch('/categories', {
     method: 'POST',
@@ -53,7 +49,6 @@ export async function createCategory({ name, image }) {
   });
 }
 
-/** Cập nhật danh mục */
 export async function updateCategory(id, { name, image }) {
   return apiFetch(`/categories/${id}`, {
     method: 'PUT',
@@ -62,77 +57,224 @@ export async function updateCategory(id, { name, image }) {
   });
 }
 
-/** Xóa danh mục */
 export async function deleteCategory(id) {
   return apiFetch(`/categories/${id}`, { method: 'DELETE' });
 }
 
 // ============================================================
-// PRODUCTS
+// PRODUCTS & BRANDS & VARIANTS (ADMIN)
 // ============================================================
-
-/** Lấy toàn bộ sản phẩm kèm ảnh + biến thể */
 export async function fetchProducts() {
   const data = await apiFetch('/products');
   return data.data || [];
 }
 
-/** Lấy toàn bộ thương hiệu */
+export async function fetchAdminProducts() {
+  const data = await apiFetch('/admin/products');
+  return data.data || [];
+}
+
 export async function fetchBrands() {
   const data = await apiFetch('/brands');
   return data.data || [];
 }
 
-/** Tạo sản phẩm mới */
-export async function createProduct(payload) {
-  return apiFetch('/products', {
+export async function fetchAdminBrands() {
+  const data = await apiFetch('/admin/brands');
+  return data.data || [];
+}
+
+export async function createAdminBrand(payload) {
+  return apiFetch('/admin/brands', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
 }
 
-/** Cập nhật sản phẩm */
-export async function updateProduct(id, payload) {
-  return apiFetch(`/products/${id}`, {
+export async function updateAdminBrand(id, payload) {
+  return apiFetch(`/admin/brands/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
 }
 
-/** Xóa sản phẩm (cascade variants + images) */
-export async function deleteProduct(id) {
-  return apiFetch(`/products/${id}`, { method: 'DELETE' });
+export async function deleteAdminBrand(id) {
+  return apiFetch(`/admin/brands/${id}`, { method: 'DELETE' });
 }
 
-/** Toggle trạng thái active ↔ hidden */
+export async function createProduct(payload) {
+  return apiFetch('/admin/products', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateProduct(id, payload) {
+  return apiFetch(`/admin/products/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteProduct(id) {
+  return apiFetch(`/admin/products/${id}`, { method: 'DELETE' });
+}
+
 export async function toggleProductStatus(id, newStatus) {
-  return apiFetch(`/products/${id}/status`, {
-    method: 'PATCH',
+  return apiFetch(`/admin/products/${id}/status`, {
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status: newStatus }),
   });
 }
 
+/** Biến thể sản phẩm (Variants) */
+export async function fetchAdminVariants(productId) {
+  const data = await apiFetch(`/admin/products/${productId}/variants`);
+  return data.data || [];
+}
+
+export async function createAdminVariant(productId, payload) {
+  return apiFetch(`/admin/products/${productId}/variants`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAdminVariant(variantId, payload) {
+  return apiFetch(`/admin/variants/${variantId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAdminVariant(variantId) {
+  return apiFetch(`/admin/variants/${variantId}`, { method: 'DELETE' });
+}
+
+// ============================================================
+// USERS / CUSTOMERS (ADMIN)
+// ============================================================
+export async function fetchAdminUsers() {
+  const data = await apiFetch('/admin/users');
+  return data.data || [];
+}
+
+export async function createAdminUser(payload) {
+  return apiFetch('/admin/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAdminUserStatus(id, status) {
+  return apiFetch(`/admin/users/${id}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function deleteAdminUser(id) {
+  return apiFetch(`/admin/users/${id}`, { method: 'DELETE' });
+}
+
+// ============================================================
+// ORDERS (ADMIN)
+// ============================================================
+export async function fetchAdminOrders() {
+  const data = await apiFetch('/admin/orders');
+  return data;
+}
+
+export async function updateAdminOrderStatus(id, status) {
+  return apiFetch(`/admin/orders/${id}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function deleteAdminOrder(id) {
+  return apiFetch(`/admin/orders/${id}`, { method: 'DELETE' });
+}
+
+export function getOrderPdfUrl(id) {
+  return `${API_BASE}/admin/orders/${id}/export-pdf`;
+}
+
+// ============================================================
+// REVENUE & STATS (ADMIN)
+// ============================================================
+export async function fetchRevenueStats(type = 'month') {
+  return apiFetch(`/admin/revenue/stats?type=${type}`);
+}
+
+export function getRevenueExcelExportUrl() {
+  return `${API_BASE}/admin/revenue/export-excel`;
+}
+
+// ============================================================
+// VOUCHERS / PROMOTIONS (ADMIN)
+// ============================================================
+export async function fetchVouchers() {
+  const data = await apiFetch('/api/vouchers');
+  return data.data || [];
+}
+
+export async function createVoucher(payload) {
+  return apiFetch('/api/vouchers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateVoucher(id, payload) {
+  return apiFetch(`/api/vouchers/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteVoucher(id) {
+  return apiFetch(`/api/vouchers/${id}`, { method: 'DELETE' });
+}
+
+// ============================================================
+// REVIEWS
+// ============================================================
+export async function fetchReviewsFilter(filter = {}) {
+  const data = await apiFetch('/reviews/filter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(filter),
+  });
+  return data.data || [];
+}
+
 // ============================================================
 // POSTS (BLOG)
 // ============================================================
-
-/** Lấy toàn bộ bài viết */
 export async function fetchPosts(status) {
   const query = status ? `?status=${status}` : '';
   const data = await apiFetch(`/posts${query}`);
   return data.data || [];
 }
 
-/** Lấy toàn bộ danh mục bài viết */
 export async function fetchPostCategories() {
   const data = await apiFetch('/post-categories');
   return data.data || [];
 }
 
-/** Tạo bài viết mới */
 export async function createPost(payload) {
   return apiFetch('/admin/posts', {
     method: 'POST',
@@ -141,7 +283,6 @@ export async function createPost(payload) {
   });
 }
 
-/** Cập nhật bài viết */
 export async function updatePost(id, payload) {
   return apiFetch(`/admin/posts/${id}`, {
     method: 'PUT',
@@ -150,7 +291,6 @@ export async function updatePost(id, payload) {
   });
 }
 
-/** Xóa bài viết */
 export async function deletePost(id) {
   return apiFetch(`/admin/posts/${id}`, { method: 'DELETE' });
 }

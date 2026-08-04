@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Plus, Search, Settings2, Edit, Eye, EyeOff, Trash2, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchProducts, fetchCategories, deleteProduct, toggleProductStatus } from '../services/adminService';
+import { fetchAdminProducts, fetchCategories, deleteProduct, toggleProductStatus } from '../services/adminService';
 import ProductFormModal from '../components/ProductFormModal';
 import VariantManagementModal from '../components/VariantManagementModal';
 
@@ -58,7 +58,7 @@ const Products = () => {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [prods, cats] = await Promise.all([fetchProducts(), fetchCategories()]);
+      const [prods, cats] = await Promise.all([fetchAdminProducts(), fetchCategories()]);
       setProducts(prods);
       setCategories(cats);
     } catch (err) {
