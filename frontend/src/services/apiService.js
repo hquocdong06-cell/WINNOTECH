@@ -217,7 +217,10 @@ export const addressAPI = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   }),
+  // Xóa địa chỉ theo ID (DELETE /delivery-addresses/:id)
+  deleteAddress: (id) => apiFetch(`/delivery-addresses/${id}`, { method: 'DELETE' }),
 };
+
 
 // ============================================================
 // VOUCHERS

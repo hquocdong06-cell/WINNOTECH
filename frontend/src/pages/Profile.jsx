@@ -49,6 +49,11 @@ export default function Profile() {
   const [myVouchers, setMyVouchers] = useState([])
   const [vouchersLoading, setVouchersLoading] = useState(false)
 
+  // ── Review modal ──
+  const [reviewModal, setReviewModal] = useState(null) // { orderId, items: [] }
+  const [reviewForm, setReviewForm] = useState({})    // { [orderItemId]: { star: 5, content: '' } }
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -111,6 +116,7 @@ export default function Profile() {
     const items = order.items || []
     return {
       id: order.code || order._id,
+      _id: order._id,           // MongoDB ObjectId thật — dùng cho PDF URL
       date: formatDate(order.createdAt),
       status: order.status,
       payMethod: (order.payment_method && typeof order.payment_method === 'object') ? order.payment_method.name : (order.payment_method || 'COD'),
@@ -508,9 +514,15 @@ export default function Profile() {
                 <button className="odm-action-btn odm-action-btn--contact">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Liên hệ shop
                 </button>
-                <button className="odm-action-btn odm-action-btn--invoice">
+                <a
+                  href={`${API_URL}/orders/${detail._id}/export-pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="odm-action-btn odm-action-btn--invoice"
+                  title="Tải hóa đơn PDF"
+                >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Tải hóa đơn
-                </button>
+                </a>
               </div>
             </div>
 
@@ -561,6 +573,80 @@ export default function Profile() {
   return (
     <DefaultLayout>
       {selectedOrder && <OrderDetailModal detail={getOrderDetail(selectedOrder)} onClose={() => setSelectedOrder(null)} />}
+
+      {/* ── REVIEW MODAL ── */}
+      {reviewModal && (
+        <div style={{ position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px' }}>
+          <div style={{ background:'#fff',borderRadius:'16px',padding:'28px',width:'100%',maxWidth:'520px',maxHeight:'80vh',overflowY:'auto' }}>
+            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px' }}>
+              <h3 style={{ fontSize:'18px',fontWeight:700,margin:0 }}>⭐ Đánh giá sản phẩm</h3>
+              <button onClick={() => setReviewModal(null)} style={{ background:'none',border:'none',fontSize:'20px',cursor:'pointer',color:'#888' }}>✕</button>
+            </div>
+            {reviewModal.items.length === 0 ? (
+              <p style={{ color:'#888',textAlign:'center' }}>Không có sản phẩm để đánh giá.</p>
+            ) : (
+              reviewModal.items.map(item => (
+                <div key={item.orderItemId} style={{ marginBottom:'20px',padding:'16px',border:'1px solid #eee',borderRadius:'12px' }}>
+                  <div style={{ fontWeight:600,marginBottom:'10px',fontSize:'14px' }}>{item.name}</div>
+                  {/* Star rating */}
+                  <div style={{ display:'flex',gap:'6px',marginBottom:'10px' }}>
+                    {[1,2,3,4,5].map(star => (
+                      <button key={star} onClick={() => setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], star } }))}
+                        style={{ background:'none',border:'none',fontSize:'24px',cursor:'pointer',color: (reviewForm[item.orderItemId]?.star || 5) >= star ? '#f5a623' : '#ddd' }}>
+                        ★
+                      </button>
+                    ))}
+                    <span style={{ alignSelf:'center',fontSize:'13px',color:'#666',marginLeft:'4px' }}>
+                      {reviewForm[item.orderItemId]?.star || 5}/5 sao
+                    </span>
+                  </div>
+                  <textarea
+                    placeholder="Nhận xét của bạn về sản phẩm..."
+                    rows={3}
+                    value={reviewForm[item.orderItemId]?.content || ''}
+                    onChange={e => setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], content: e.target.value } }))}
+                    style={{ width:'100%',padding:'10px',border:'1px solid #ddd',borderRadius:'8px',fontSize:'13px',resize:'vertical',boxSizing:'border-box' }}
+                  />
+                </div>
+              ))
+            )}
+            <div style={{ display:'flex',gap:'12px',justifyContent:'flex-end',marginTop:'8px' }}>
+              <button onClick={() => setReviewModal(null)} style={{ padding:'8px 20px',border:'1px solid #ddd',borderRadius:'8px',background:'#fff',cursor:'pointer',fontSize:'14px' }}>
+                Hủy
+              </button>
+              <button
+                disabled={reviewSubmitting || reviewModal.items.length === 0}
+                onClick={async () => {
+                  setReviewSubmitting(true)
+                  let successCount = 0, failCount = 0
+                  for (const item of reviewModal.items) {
+                    const { star, content } = reviewForm[item.orderItemId] || { star: 5, content: '' }
+                    if (!content.trim()) { failCount++; continue }
+                    try {
+                      const res = await fetch(API_URL + '/reviews', {
+                        method: 'POST', credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ order_item_id: item.orderItemId, star_number: star, content })
+                      })
+                      const data = await res.json()
+                      if (data.success) successCount++
+                      else failCount++
+                    } catch { failCount++ }
+                  }
+                  setReviewSubmitting(false)
+                  setReviewModal(null)
+                  if (successCount > 0) toast.success(`Đã gửi ${successCount} đánh giá thành công!`, { position: 'bottom-right' })
+                  if (failCount > 0) toast.warn(`${failCount} sản phẩm chưa gửi được (có thể đã đánh giá hoặc chưa nhập nội dung)`, { position: 'bottom-right' })
+                }}
+                style={{ padding:'8px 24px',border:'none',borderRadius:'8px',background: reviewSubmitting ? '#ccc' : '#d4ff00',cursor: reviewSubmitting ? 'not-allowed' : 'pointer',fontWeight:700,fontSize:'14px' }}
+              >
+                {reviewSubmitting ? 'Đang gửi...' : 'Gửi đánh giá'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="profile-page">
         <div className="profile-inner">
           <div className="profile-breadcrumb">
@@ -863,7 +949,21 @@ export default function Profile() {
                                 </button>
                               }
                               {(order.status === 'done') &&
-                                <button className="profile-order-btn profile-order-btn--review">
+                                <button
+                                  className="profile-order-btn profile-order-btn--review"
+                                  onClick={() => {
+                                    // Lấy items của đơn hàng tương ứng từ danh sách orders
+                                    const fullOrder = orders.find(o => o._id === order.id || o.code === order.code)
+                                    const items = (fullOrder?.items || []).map(oi => ({
+                                      orderItemId: oi._id,
+                                      name: oi.product?.name || oi.variant?.variant_name || 'Sản phẩm'
+                                    }))
+                                    setReviewModal({ orderId: order.id, items })
+                                    const initForm = {}
+                                    items.forEach(it => { initForm[it.orderItemId] = { star: 5, content: '' } })
+                                    setReviewForm(initForm)
+                                  }}
+                                >
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Đánh giá
                                 </button>
                               }
@@ -999,10 +1099,22 @@ export default function Profile() {
                             <button className="profile-address-btn-edit" onClick={() => handleEditAddress(addr)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Sửa</button>
                             {!addr.set_default && (
                               <button className="profile-address-btn-delete" onClick={async () => {
-                                if (!window.confirm('Xóa địa chỉ này?')) return
-                                await fetch(API_URL + '/profile/deliver/' + addr._id, { method: 'PUT', headers: {'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({set_default: false}) })
-                                fetchAddresses()
-                                toast.info('Cập nhật địa chỉ', { position: 'bottom-right' })
+                                if (!window.confirm('Bạn có chắc muốn xóa địa chỉ này?')) return
+                                try {
+                                  const res = await fetch(API_URL + '/delivery-addresses/' + addr._id, {
+                                    method: 'DELETE',
+                                    credentials: 'include'
+                                  })
+                                  const data = await res.json()
+                                  if (data.success) {
+                                    toast.success('Đã xóa địa chỉ thành công', { position: 'bottom-right' })
+                                    fetchAddresses()
+                                  } else {
+                                    toast.error(data.message || 'Không thể xóa địa chỉ', { position: 'bottom-right' })
+                                  }
+                                } catch {
+                                  toast.error('Lỗi kết nối server', { position: 'bottom-right' })
+                                }
                               }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>Xóa</button>
                             )}
                           </div>
