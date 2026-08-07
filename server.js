@@ -390,7 +390,16 @@ app.post("/login", function (req, res, next) {
         });
         return res
           .status(200)
-          .json({ success: true, message: "Đăng nhập thành công" });
+          .json({
+            success: true,
+            message: "Đăng nhập thành công",
+            user: {
+              _id: user._id,
+              name: user.name,
+              email: user.email,
+              role: user.role,
+            },
+          });
       } catch (jwtErr) {
         return res.status(500).json("Lỗi quá trình ký token");
       }
@@ -403,6 +412,119 @@ app.get("/logout", function (req, res) {
   return res
     .status(200)
     .json({ success: true, message: "Đăng xuất thành công" });
+});
+
+// ============================================================
+// POST /api/auth/google — API Đăng nhập / Đăng ký bằng Google Account
+// ============================================================
+app.post(["/api/auth/google", "/auth/google"], async (req, res) => {
+  try {
+    const { email, name, avatar, googleId, credential, idToken } = req.body;
+    let userEmail = email;
+    let userName = name;
+    let userAvatar = avatar;
+    let userGoogleId = googleId;
+
+    // 1. Kiểm tra nếu FE gửi credential / idToken từ Google OAuth
+    const tokenToVerify = credential || idToken;
+    if (tokenToVerify) {
+      try {
+        const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${tokenToVerify}`);
+        if (verifyRes.ok) {
+          const googlePayload = await verifyRes.json();
+          userEmail = googlePayload.email || userEmail;
+          userName = googlePayload.name || userName;
+          userAvatar = googlePayload.picture || userAvatar;
+          userGoogleId = googlePayload.sub || userGoogleId;
+        }
+      } catch (verifyErr) {
+        console.warn("Không thể verify Google token info trực tiếp, dùng thông tin payload:", verifyErr.message);
+      }
+    }
+
+    if (!userEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu thông tin Email từ Google",
+      });
+    }
+
+    // 2. Tìm User trong database theo Email hoặc Google ID
+    let user = await UserModel.findOne({
+      $or: [
+        { email: userEmail },
+        ...(userGoogleId ? [{ googleId: userGoogleId }] : []),
+      ],
+    });
+
+    if (user) {
+      // Nếu tài khoản đã tồn tại => kiểm tra trạng thái
+      if (user.status !== "active") {
+        return res.status(403).json({
+          success: false,
+          message: "Tài khoản này đã bị khóa hoặc ngừng hoạt động!",
+        });
+      }
+
+      // Cập nhật googleId & avatar nếu chưa có
+      let hasChanges = false;
+      if (!user.googleId && userGoogleId) {
+        user.googleId = userGoogleId;
+        hasChanges = true;
+      }
+      if (!user.avatar && userAvatar) {
+        user.avatar = userAvatar;
+        hasChanges = true;
+      }
+      if (hasChanges) await user.save();
+
+    } else {
+      // Nếu tài khoản chưa tồn tại => tạo mới tự động
+      const randomPassword = crypto.randomBytes(16).toString("hex");
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      user = await UserModel.create({
+        name: userName || userEmail.split("@")[0],
+        email: userEmail,
+        password: hashedPassword,
+        avatar: userAvatar || "",
+        googleId: userGoogleId || "",
+        role: "user",
+        status: "active",
+      });
+    }
+
+    // 3. Ký JWT Token RS256 và lưu cookie token 1 năm (giống API /login)
+    const payload = { _id: user._id };
+    const token = jwt.sign(payload, privatekey, {
+      algorithm: "RS256",
+      expiresIn: "1y",
+    });
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      maxAge: 365 * 12 * 30 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Đăng nhập Google thành công!",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+      },
+    });
+  } catch (error) {
+    console.error("Lỗi API /api/auth/google:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server trong quá trình đăng nhập Google: " + error.message,
+    });
+  }
 });
 
 // ============================================================
@@ -3619,6 +3741,124 @@ app.delete("/admin/posts/:id", checklogin, checkAdmin, async (req, res) => {
     return res.json({ success: true, message: "Đã ẩn bài viết (Soft delete thành công)", data: post });
   } catch (error) {
     console.error("Lỗi DELETE admin posts:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ============================================================
+// ADMIN POST CATEGORIES CRUD (SOFT DELETE & STATUS TOGGLE)
+// ============================================================
+
+// POST /admin/post-categories — Tạo mới danh mục bài viết
+app.post("/admin/post-categories", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { name, image } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập tên danh mục bài viết" });
+    }
+
+    const slug = name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[đĐ]/g, "d")
+      .replace(/([^a-z0-9\s-]+)/g, "")
+      .replace(/([\s-]+)/g, "-")
+      .trim();
+
+    const existing = await PostCategoryModel.findOne({ slug });
+    if (existing) {
+      return res.status(400).json({ success: false, message: "Danh mục bài viết này đã tồn tại!" });
+    }
+
+    const cat = await PostCategoryModel.create({
+      name: name.trim(),
+      slug,
+      image: image || "",
+      status: "active",
+    });
+
+    return res.status(201).json({ success: true, data: cat });
+  } catch (error) {
+    console.error("Lỗi POST post-categories:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// PUT /admin/post-categories/:id — Cập nhật danh mục bài viết
+app.put("/admin/post-categories/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { name, image, status } = req.body;
+    const cat = await PostCategoryModel.findById(req.params.id);
+    if (!cat) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy danh mục bài viết" });
+    }
+
+    if (name) {
+      cat.name = name.trim();
+      cat.slug = name
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[đĐ]/g, "d")
+        .replace(/([^a-z0-9\s-]+)/g, "")
+        .replace(/([\s-]+)/g, "-")
+        .trim();
+    }
+    if (image !== undefined) cat.image = image;
+    if (status) cat.status = status;
+
+    await cat.save();
+    return res.json({ success: true, data: cat });
+  } catch (error) {
+    console.error("Lỗi PUT post-categories:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// PUT /admin/post-categories/:id/status — Đổi trạng thái danh mục bài viết (active ↔ inactive)
+app.put("/admin/post-categories/:id/status", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const cat = await PostCategoryModel.findById(req.params.id);
+    if (!cat) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy danh mục bài viết" });
+    }
+
+    cat.status = status || (cat.status === "active" ? "inactive" : "active");
+    await cat.save();
+    return res.json({ success: true, message: `Đã đổi trạng thái danh mục bài viết thành ${cat.status}`, data: cat });
+  } catch (error) {
+    console.error("Lỗi status post-categories:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ============================================================
+// ADMIN REVIEWS MODERATION (SOFT TOGGLE STATUS: ACTIVE / HIDDEN)
+// ============================================================
+
+// PUT /admin/reviews/:id/status — Đổi trạng thái review (active ↔ hidden), KHÔNG XÓA DB
+app.put("/admin/reviews/:id/status", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body; // 'active' | 'hidden'
+
+    const review = await Review.findById(id);
+    if (!review) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy đánh giá" });
+    }
+
+    review.status = status || (review.status === "hidden" ? "active" : "hidden");
+    await review.save();
+
+    return res.json({
+      success: true,
+      message: review.status === "hidden" ? "Đã ẩn đánh giá khỏi giao diện" : "Đã hiện lại đánh giá",
+      data: review,
+    });
+  } catch (error) {
+    console.error("Lỗi PUT admin review status:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });

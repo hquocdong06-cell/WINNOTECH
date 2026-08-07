@@ -5,6 +5,7 @@ const PostCategorySchema = new mongoose.Schema({
     name: { type: String, required: true },
     slug: { type: String, required: true, unique: true },
     image: { type: String },
+    status: { type: String, default: 'active' },
     parents_id: { type: mongoose.Schema.Types.ObjectId, ref: 'PostCategory', default: null }
 });
 

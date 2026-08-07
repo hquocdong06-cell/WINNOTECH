@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { DollarSign, ShoppingCart, Users, Package, TrendingUp, Calendar, Clock, Activity } from 'lucide-react';
-import { orderAPI, productAPI } from '../../services/apiService';
+import React, { useState, useEffect, useCallback } from 'react';
+import { DollarSign, ShoppingCart, Users, Package, TrendingUp, Download, RefreshCw, Eye } from 'lucide-react';
+import { fetchRevenueStats, getRevenueExcelExportUrl, fetchAdminUsers, fetchAdminProducts, fetchAdminOrders } from '../services/adminService';
+import { Link } from 'react-router-dom';
 
 const STATUS_LABELS = {
   pending: 'Chờ xác nhận',
@@ -12,238 +13,263 @@ const STATUS_LABELS = {
   canceled: 'Đã hủy',
 };
 
-const mockBestSellers = [
-  { id: 1, name: 'RTX 4090 24GB', sold: 156, revenue: 166890000, image: 'https://images.unsplash.com/photo-1591485121907-26859ff93e37?q=80&w=150&auto=format&fit=crop' },
-  { id: 2, name: 'Intel Core i9-14900K', sold: 142, revenue: 121580000, image: 'https://images.unsplash.com/photo-1591485121907-26859ff93e37?q=80&w=150&auto=format&fit=crop' },
-];
-
 const Dashboard = () => {
-  const [revenueTab, setRevenueTab] = useState('day');
+  const [revenueTab, setRevenueTab] = useState('month'); // 'day' | 'week' | 'month' | 'year'
+  const [revenueData, setRevenueData] = useState({ summary: {}, breakdown: [] });
+  const [userCount, setUserCount] = useState(0);
+  const [productCount, setProductCount] = useState(0);
   const [recentOrders, setRecentOrders] = useState([]);
-  const [orderCounts, setOrderCounts] = useState({});
-  const [totalProducts, setTotalProducts] = useState(0);
-  const [loadingOrders, setLoadingOrders] = useState(true);
+  const [bestSellers, setBestSellers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [statsRes, users, products, ordersRes] = await Promise.all([
+        fetchRevenueStats(revenueTab).catch(() => ({ summary: {}, breakdown: [] })),
+        fetchAdminUsers().catch(() => []),
+        fetchAdminProducts().catch(() => []),
+        fetchAdminOrders().catch(() => ({ data: [] })),
+      ]);
+
+      if (statsRes.success) {
+        setRevenueData(statsRes);
+      } else {
+        setRevenueData({ summary: statsRes.summary || {}, breakdown: statsRes.breakdown || [] });
+      }
+
+      setUserCount(users.length);
+      setProductCount(products.length);
+
+      const ordersList = ordersRes.data || ordersRes || [];
+      setRecentOrders(ordersList.slice(0, 6));
+
+      // Calculate Top Best Sellers from products or orders
+      const sortedProducts = [...products]
+        .sort((a, b) => (b.sold_quantity || b.buyturn || 0) - (a.sold_quantity || a.buyturn || 0))
+        .slice(0, 4);
+      setBestSellers(sortedProducts);
+    } catch (err) {
+      console.error('Lỗi load dashboard:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [revenueTab]);
 
   useEffect(() => {
-    // Lấy đơn hàng thật từ API
-    orderAPI.getOrders('all')
-      .then(data => {
-        if (data.success) {
-          setRecentOrders((data.data || []).slice(0, 5));
-          setOrderCounts(data.counts || {});
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingOrders(false));
+    loadDashboardData();
+  }, [loadDashboardData]);
 
-    // Lấy tổng số sản phẩm
-    productAPI.getAll()
-      .then(data => { if (data.success) setTotalProducts(data.SoLuongSP || 0); })
-      .catch(() => {});
-  }, []);
+  const maxRevenue = Math.max(...(revenueData.breakdown || []).map(b => b.revenue), 1);
 
   return (
     <div className="p-8 text-white min-h-screen">
-      <div className="flex justify-between items-center mb-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Tổng quan Dashboard</h1>
-          <p className="text-gray-400 text-sm">Chào mừng bạn trở lại, hệ thống đang hoạt động tốt.</p>
+          <p className="text-gray-400 text-sm">Dữ liệu quản trị thời gian thực từ hệ thống backend WINNOTECH</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={loadDashboardData}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#222] border border-[#333] hover:bg-[#333] text-white font-medium rounded-xl transition-colors text-sm"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới
+          </button>
+          <a
+            href={getRevenueExcelExportUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#d4ff00] hover:bg-[#bce600] text-black font-bold rounded-xl transition-colors text-sm shadow-[0_0_15px_rgba(212,255,0,0.2)]"
+          >
+            <Download className="w-4 h-4" /> Xuất Excel Doanh Thu
+          </a>
         </div>
       </div>
 
-      {/* TỔNG QUAN */}
+      {/* 4 Thẻ Thống Kê Tổng Quan */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-[#141414] border border-[#333] p-6 rounded-xl relative overflow-hidden">
+        <div className="bg-[#141414] border border-[#333] p-6 rounded-2xl relative overflow-hidden shadow-lg">
           <div className="relative z-10">
-            <div className="text-gray-400 text-sm font-medium mb-1">TỔNG DOANH THU</div>
-            <div className="text-2xl font-bold text-white mb-2">2,450,000,000₫</div>
-            <div className="text-xs text-green-400 font-medium">↑ 12.5% so với tháng trước</div>
+            <div className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">TỔNG DOANH THU</div>
+            <div className="text-2xl font-black text-[#d4ff00] mb-1">
+              {(revenueData.summary?.totalRevenue || 0).toLocaleString('vi-VN')}₫
+            </div>
+            <div className="text-xs text-gray-400">
+              TB đơn: <span className="text-white font-medium">{(revenueData.summary?.avgOrderValue || 0).toLocaleString('vi-VN')}₫</span>
+            </div>
           </div>
-          <DollarSign className="absolute -right-4 -bottom-4 w-24 h-24 text-gray-800/50" />
-        </div>
-        
-        <div className="bg-[#141414] border border-[#333] p-6 rounded-xl relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="text-gray-400 text-sm font-medium mb-1">TỔNG ĐƠN HÀNG</div>
-            <div className="text-2xl font-bold text-white mb-2">{orderCounts.all || '—'}</div>
-            <div className="text-xs text-green-400 font-medium">Từ database thực tế</div>
-          </div>
-          <ShoppingCart className="absolute -right-4 -bottom-4 w-24 h-24 text-gray-800/50" />
+          <DollarSign className="absolute -right-4 -bottom-4 w-24 h-24 text-gray-800/30" />
         </div>
 
-        <div className="bg-[#141414] border border-[#333] p-6 rounded-xl relative overflow-hidden">
+        <div className="bg-[#141414] border border-[#333] p-6 rounded-2xl relative overflow-hidden shadow-lg">
           <div className="relative z-10">
-            <div className="text-gray-400 text-sm font-medium mb-1">KHÁCH HÀNG</div>
-            <div className="text-2xl font-bold text-white mb-2">3,452</div>
-            <div className="text-xs text-green-400 font-medium">↑ 15.7% so với tháng trước</div>
+            <div className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">ĐƠN HÀNG ĐÃ THANH TOÁN</div>
+            <div className="text-2xl font-black text-white mb-1">
+              {revenueData.summary?.totalPaidOrders || 0} đơn
+            </div>
+            <div className="text-xs text-green-400 font-medium">Từ dữ liệu thực tế</div>
           </div>
-          <Users className="absolute -right-4 -bottom-4 w-24 h-24 text-gray-800/50" />
+          <ShoppingCart className="absolute -right-4 -bottom-4 w-24 h-24 text-gray-800/30" />
         </div>
 
-        <div className="bg-[#141414] border border-[#333] p-6 rounded-xl relative overflow-hidden">
+        <div className="bg-[#141414] border border-[#333] p-6 rounded-2xl relative overflow-hidden shadow-lg">
           <div className="relative z-10">
-            <div className="text-gray-400 text-sm font-medium mb-1">SẢN PHẨM</div>
-            <div className="text-2xl font-bold text-white mb-2">{totalProducts || '—'}</div>
-            <div className="text-xs text-green-400 font-medium">Từ database thực tế</div>
+            <div className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">TỔNG KHÁCH HÀNG</div>
+            <div className="text-2xl font-black text-white mb-1">{userCount} tài khoản</div>
+            <div className="text-xs text-blue-400 font-medium">Đã đăng ký hệ thống</div>
           </div>
-          <Package className="absolute -right-4 -bottom-4 w-24 h-24 text-gray-800/50" />
+          <Users className="absolute -right-4 -bottom-4 w-24 h-24 text-gray-800/30" />
+        </div>
+
+        <div className="bg-[#141414] border border-[#333] p-6 rounded-2xl relative overflow-hidden shadow-lg">
+          <div className="relative z-10">
+            <div className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">TỔNG SẢN PHẨM</div>
+            <div className="text-2xl font-black text-white mb-1">{productCount} sản phẩm</div>
+            <div className="text-xs text-purple-400 font-medium">Trong kho hàng</div>
+          </div>
+          <Package className="absolute -right-4 -bottom-4 w-24 h-24 text-gray-800/30" />
         </div>
       </div>
 
-      {/* BÁO CÁO DOANH THU THEO NGÀY/THÁNG/NĂM */}
-      <div className="bg-[#141414] border border-[#333] rounded-xl p-6 mb-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+      {/* Biểu đồ Doanh thu (Ngày / Tuần / Tháng / Năm) */}
+      <div className="bg-[#141414] border border-[#333] rounded-2xl p-6 mb-8 shadow-xl">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-[#2b2b36] pb-4">
           <h3 className="text-lg font-bold flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-[#d4ff00]" /> Báo Cáo Doanh Thu (Ngày / Tháng / Năm)
+            <TrendingUp className="w-5 h-5 text-[#d4ff00]" /> Phân Tích Doanh Thu
           </h3>
-          <div className="flex bg-[#222] p-1 rounded-lg border border-[#333]">
-            <button 
-              onClick={() => setRevenueTab('day')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${revenueTab === 'day' ? 'bg-[#d4ff00] text-black' : 'text-gray-400 hover:bg-[#333] hover:text-white'}`}
-            >
-              Hôm nay
-            </button>
-            <button 
-              onClick={() => setRevenueTab('month')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${revenueTab === 'month' ? 'bg-[#d4ff00] text-black' : 'text-gray-400 hover:bg-[#333] hover:text-white'}`}
-            >
-              Tháng này
-            </button>
-            <button 
-              onClick={() => setRevenueTab('year')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${revenueTab === 'year' ? 'bg-[#d4ff00] text-black' : 'text-gray-400 hover:bg-[#333] hover:text-white'}`}
-            >
-              Năm nay
-            </button>
+          <div className="flex bg-[#1e1e2d] p-1 rounded-xl border border-[#333]">
+            {[
+              { id: 'day', label: 'Theo Ngày' },
+              { id: 'week', label: 'Theo Tuần' },
+              { id: 'month', label: 'Theo Tháng' },
+              { id: 'year', label: 'Theo Năm' },
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setRevenueTab(t.id)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  revenueTab === t.id ? 'bg-[#d4ff00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-5">
-            <div className="flex items-center gap-2 text-gray-400 mb-2 text-sm">
-              <Clock className="w-4 h-4 text-blue-400" /> Doanh thu hôm nay
-            </div>
-            <div className="text-2xl font-bold text-white">12,500,000₫</div>
-            <div className="text-xs text-green-400 mt-2">↑ 5% so với hôm qua</div>
+        {/* Dynamic Chart Container */}
+        {revenueData.breakdown && revenueData.breakdown.length > 0 ? (
+          <div className="h-64 flex items-end gap-3 pt-8 pb-4 px-2 overflow-x-auto">
+            {revenueData.breakdown.map((item, idx) => {
+              const heightPercent = Math.max(Math.round((item.revenue / maxRevenue) * 100), 5);
+              return (
+                <div key={idx} className="flex-1 min-w-[50px] flex flex-col items-center gap-2 group relative">
+                  {/* Tooltip */}
+                  <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-black border border-[#d4ff00] text-white text-[11px] py-1 px-2.5 rounded-md pointer-events-none whitespace-nowrap z-20 shadow-xl">
+                    <div className="font-bold text-[#d4ff00]">{item.period}</div>
+                    <div>{item.revenue.toLocaleString('vi-VN')}₫ ({item.orderCount} đơn)</div>
+                  </div>
+                  {/* Bar */}
+                  <div className="w-full bg-[#1e1e2d] rounded-t-lg h-full flex items-end overflow-hidden p-1">
+                    <div
+                      style={{ height: `${heightPercent}%` }}
+                      className="w-full bg-gradient-to-t from-[#d4ff00]/20 to-[#d4ff00] rounded-t border-t-2 border-[#d4ff00] group-hover:brightness-125 transition-all"
+                    ></div>
+                  </div>
+                  <span className="text-[11px] text-gray-400 truncate w-full text-center font-mono">
+                    {item.period.replace(/^.*?-/, '')}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-          <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-5">
-            <div className="flex items-center gap-2 text-gray-400 mb-2 text-sm">
-              <Calendar className="w-4 h-4 text-purple-400" /> Doanh thu tháng này
-            </div>
-            <div className="text-2xl font-bold text-white">354,200,000₫</div>
-            <div className="text-xs text-green-400 mt-2">↑ 12% so với tháng trước</div>
+        ) : (
+          <div className="h-48 flex items-center justify-center text-gray-500 text-sm">
+            {loading ? 'Đang tải dữ liệu thống kê...' : 'Chưa có dữ liệu giao dịch trong khoảng thời gian này'}
           </div>
-          <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-5">
-            <div className="flex items-center gap-2 text-gray-400 mb-2 text-sm">
-              <Activity className="w-4 h-4 text-[#d4ff00]" /> Doanh thu năm nay
-            </div>
-            <div className="text-2xl font-bold text-white">2,450,000,000₫</div>
-            <div className="text-xs text-green-400 mt-2">↑ 28% so với năm ngoái</div>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* BIỂU ĐỒ DOANH THU */}
-      <div className="bg-[#141414] border border-[#333] rounded-xl p-6 mb-8">
-        <h3 className="text-lg font-bold flex items-center gap-2 mb-6">
-          <Activity className="w-5 h-5 text-[#d4ff00]" /> Biểu Đồ Tăng Trưởng Doanh Thu (12 Tháng)
-        </h3>
-        <div className="h-64 flex items-end justify-between px-2 pt-6 pb-2 border-b border-[#333] relative">
-          <div className="absolute w-full top-0 border-t border-[#222]"></div>
-          <div className="absolute w-full top-1/4 border-t border-[#222]"></div>
-          <div className="absolute w-full top-2/4 border-t border-[#222]"></div>
-          <div className="absolute w-full top-3/4 border-t border-[#222]"></div>
-          
-          {[30, 45, 35, 60, 50, 75, 65, 80, 95, 85, 90, 100].map((h, i) => (
-             <div key={i} className="w-[6%] relative flex justify-center group">
-               <div 
-                  style={{ height: `${h}%` }} 
-                  className="w-full bg-gradient-to-t from-[#d4ff00]/10 to-[#d4ff00] hover:opacity-80 transition-opacity rounded-t-sm z-10"
-               ></div>
-               <div className="opacity-0 group-hover:opacity-100 absolute -top-8 bg-black border border-[#333] text-xs px-2 py-1 rounded text-white z-20 pointer-events-none transition-opacity whitespace-nowrap">
-                 {(h * 24.5).toLocaleString()}tr
-               </div>
-               <span className="absolute -bottom-6 text-xs text-gray-500">T{i+1}</span>
-             </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ĐƠN HÀNG GẦN ĐÂY */}
-        <div className="bg-[#141414] border border-[#333] rounded-xl overflow-hidden">
-          <div className="p-5 border-b border-[#333] bg-[#1a1a1a]">
-            <h3 className="text-lg font-bold flex items-center gap-2">Đơn Hàng Gần Đây</h3>
+      {/* Grid: Đơn Hàng Mới Nhất & Sản Phẩm Bán Chạy */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Đơn hàng gần đây */}
+        <div className="lg:col-span-2 bg-[#141414] border border-[#333] rounded-2xl p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-bold">Đơn Hàng Gần Đây</h3>
+            <Link to="/admin/orders" className="text-xs text-[#d4ff00] hover:underline font-semibold">
+              Xem tất cả đơn hàng →
+            </Link>
           </div>
-          <div className="p-0 overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-[#111] text-gray-400">
+              <thead className="bg-[#1e1e2d] text-gray-400 text-xs uppercase border-b border-[#333]">
                 <tr>
-                  <th className="px-5 py-3 font-medium">Mã đơn</th>
-                  <th className="px-5 py-3 font-medium">Khách hàng</th>
-                  <th className="px-5 py-3 font-medium">Tổng tiền</th>
-                  <th className="px-5 py-3 font-medium">Trạng thái</th>
+                  <th className="px-4 py-3">Mã Đơn</th>
+                  <th className="px-4 py-3">Khách hàng</th>
+                  <th className="px-4 py-3">Tổng tiền</th>
+                  <th className="px-4 py-3">Trạng thái</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#333]">
-                {loadingOrders ? (
-                  <tr><td colSpan="4" className="px-5 py-4 text-center text-gray-500 text-xs">Đang tải...</td></tr>
-                ) : recentOrders.length === 0 ? (
-                  <tr><td colSpan="4" className="px-5 py-4 text-center text-gray-500 text-xs">Chưa có đơn hàng</td></tr>
-                ) : (
-                  recentOrders.map((order, i) => (
-                    <tr key={i} className="hover:bg-[#1e1e1e] transition-colors">
-                      <td className="px-5 py-3 font-semibold text-gray-300 font-mono text-xs">{order.code || order._id?.slice(-8).toUpperCase()}</td>
-                      <td className="px-5 py-3 text-white">{order.Name || '—'}</td>
-                      <td className="px-5 py-3 text-[#d4ff00] font-medium">{(order.total_amount || 0).toLocaleString('vi-VN')}₫</td>
-                      <td className="px-5 py-3">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${
-                          order.status === 'completed' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                          order.status === 'canceled' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                          'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                        }`}>
-                          {STATUS_LABELS[order.status] || order.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+              <tbody className="divide-y divide-[#222]">
+                {recentOrders.map((ord) => (
+                  <tr key={ord._id} className="hover:bg-[#1a1a24] transition-colors">
+                    <td className="px-4 py-3 font-mono text-xs font-bold text-gray-300">
+                      {ord.code || ord._id?.slice(-8).toUpperCase()}
+                    </td>
+                    <td className="px-4 py-3 text-gray-200">{ord.Name || ord.user_id?.name || 'Khách vãng lai'}</td>
+                    <td className="px-4 py-3 text-[#d4ff00] font-bold">
+                      {(ord.total_amount || 0).toLocaleString('vi-VN')}₫
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#222] border border-[#444] text-gray-300">
+                        {STATUS_LABELS[ord.status] || ord.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {recentOrders.length === 0 && (
+                  <tr>
+                    <td colSpan="4" className="px-4 py-6 text-center text-gray-500">Chưa có đơn hàng nào</td>
+                  </tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* SẢN PHẨM BÁN CHẠY */}
-        <div className="bg-[#141414] border border-[#333] rounded-xl overflow-hidden">
-          <div className="p-5 border-b border-[#333] bg-[#1a1a1a]">
-            <h3 className="text-lg font-bold flex items-center gap-2">Sản Phẩm Bán Chạy</h3>
+        {/* Sản phẩm Nổi Bật / Bán Chạy */}
+        <div className="bg-[#141414] border border-[#333] rounded-2xl p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-bold">Sản Phẩm Trong Kho</h3>
+            <Link to="/admin/products" className="text-xs text-[#d4ff00] hover:underline font-semibold">
+              Quản lý kho →
+            </Link>
           </div>
-          <div className="p-0 overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-[#111] text-gray-400">
-                <tr>
-                  <th className="px-5 py-3 font-medium">Sản phẩm</th>
-                  <th className="px-5 py-3 font-medium text-center">Đã bán</th>
-                  <th className="px-5 py-3 font-medium text-right">Doanh thu</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#333]">
-                {mockBestSellers.map((item, i) => (
-                  <tr key={i} className="hover:bg-[#1e1e1e] transition-colors">
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        <img src={item.image} className="w-10 h-10 rounded object-cover border border-[#333]" />
-                        <span className="font-semibold text-gray-200">{item.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-center text-white font-bold">{item.sold}</td>
-                    <td className="px-5 py-3 text-right text-[#d4ff00] font-medium">
-                      {(item.revenue / 1000).toLocaleString('vi-VN')}k
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-4">
+            {bestSellers.map((prod) => (
+              <div key={prod._id} className="flex items-center gap-3 p-3 bg-[#1a1a24] rounded-xl border border-[#2b2b36]">
+                <img
+                  src={prod.image ? (prod.image.startsWith('http') ? prod.image : `http://localhost:3000${prod.image}`) : 'https://placehold.co/100'}
+                  alt={prod.name}
+                  className="w-12 h-12 object-cover rounded-lg border border-[#333]"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-white truncate">{prod.name}</div>
+                  <div className="text-xs text-[#d4ff00] font-semibold">
+                    {(prod.sale_price || prod.price || 0).toLocaleString('vi-VN')}₫
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs text-gray-400 block">Tồn kho</span>
+                  <span className="text-sm font-bold text-white">{prod.stock_quantity ?? prod.stock ?? 0}</span>
+                </div>
+              </div>
+            ))}
+            {bestSellers.length === 0 && (
+              <div className="text-center py-6 text-gray-500 text-sm">Chưa có sản phẩm</div>
+            )}
           </div>
         </div>
       </div>

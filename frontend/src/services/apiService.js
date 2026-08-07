@@ -23,6 +23,11 @@ async function apiFetch(endpoint, options = {}) {
 // ============================================================
 export const authAPI = {
   me: () => apiFetch('/auth/me'),
+  googleLogin: (payload) => apiFetch('/api/auth/google', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }),
   login: (email, password) => apiFetch('/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

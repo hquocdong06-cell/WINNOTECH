@@ -89,7 +89,11 @@ export default function Auth() {
       const data = await res.json()
 
       if (data.success) {
-        navigate('/') // Đăng nhập thành công → về trang chủ
+        if (data.user?.role === 'admin') {
+          navigate('/admin/dashboard', { replace: true })
+        } else {
+          navigate('/', { replace: true })
+        }
       } else {
         setErrors({ general: data.message || 'Email hoặc mật khẩu không đúng' })
       }

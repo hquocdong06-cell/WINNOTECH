@@ -17,7 +17,8 @@ const CompareSchema = new mongoose.Schema({
 const ReviewSchema = new mongoose.Schema({
     id_oderitems: { type: mongoose.Schema.Types.ObjectId, ref: 'OrderItem' },
     content: { type: String, required: true },
-    star_number: { type: Number, required: true, min: 1, max: 5 }
+    star_number: { type: Number, required: true, min: 1, max: 5 },
+    status: { type: String, default: 'active' }
 }, { timestamps: true });
 
 module.exports = {

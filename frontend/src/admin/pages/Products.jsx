@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Plus, Search, Settings2, Edit, Eye, EyeOff, Trash2, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Settings2, Edit, Eye, EyeOff, Trash2, Loader2, AlertTriangle, Award } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchProducts, fetchCategories, deleteProduct, toggleProductStatus } from '../services/adminService';
+import { fetchAdminProducts, fetchCategories, deleteProduct, toggleProductStatus } from '../services/adminService';
 import ProductFormModal from '../components/ProductFormModal';
 import VariantManagementModal from '../components/VariantManagementModal';
+import BrandManagementModal from '../components/BrandManagementModal';
 
 const ConfirmDeleteDialog = ({ isOpen, productName, onConfirm, onCancel, isLoading }) => {
   if (!isOpen) return null;
@@ -15,17 +16,13 @@ const ConfirmDeleteDialog = ({ isOpen, productName, onConfirm, onCancel, isLoadi
             <AlertTriangle className="w-5 h-5 text-red-500" />
           </div>
           <div>
-            <h3 className="font-bold text-lg">Xác nhận xóa</h3>
-            <p className="text-xs text-gray-400 mt-0.5">Hành động này không thể hoàn tác</p>
+            <h3 className="font-bold text-lg">Xác nhận xóa (Soft Delete)</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Sản phẩm sẽ chuyển sang trạng thái Ẩn</p>
           </div>
         </div>
         <p className="text-sm text-gray-300 mb-6 leading-relaxed">
-          Bạn có chắc muốn xóa sản phẩm{' '}
+          Bạn có chắc muốn ẩn sản phẩm{' '}
           <span className="font-semibold text-white">"{productName}"</span>?
-          <br />
-          <span className="text-yellow-400 text-xs mt-1 block">
-            Tất cả biến thể và ảnh của sản phẩm này cũng sẽ bị xóa.
-          </span>
         </p>
         <div className="flex gap-3 justify-end">
           <button onClick={onCancel} disabled={isLoading}
@@ -35,7 +32,7 @@ const ConfirmDeleteDialog = ({ isOpen, productName, onConfirm, onCancel, isLoadi
           <button onClick={onConfirm} disabled={isLoading}
             className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-60">
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-            {isLoading ? 'Đang xóa...' : 'Xóa sản phẩm'}
+            {isLoading ? 'Đang ẩn...' : 'Ẩn sản phẩm'}
           </button>
         </div>
       </div>
@@ -51,6 +48,7 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+  const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, product: null });
   const [isDeleting, setIsDeleting] = useState(false);
@@ -58,7 +56,7 @@ const Products = () => {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [prods, cats] = await Promise.all([fetchProducts(), fetchCategories()]);
+      const [prods, cats] = await Promise.all([fetchAdminProducts(), fetchCategories()]);
       setProducts(prods);
       setCategories(cats);
     } catch (err) {
@@ -95,11 +93,11 @@ const Products = () => {
     setIsDeleting(true);
     try {
       await deleteProduct(deleteDialog.product._id);
-      toast.success(`Đã xóa sản phẩm "${deleteDialog.product.name}"`);
+      toast.success(`Đã ẩn sản phẩm "${deleteDialog.product.name}"`);
       setDeleteDialog({ open: false, product: null });
       loadData();
     } catch (err) {
-      toast.error(err.message);
+      toast.error('Lỗi: ' + err.message);
     } finally {
       setIsDeleting(false);
     }
@@ -243,6 +241,7 @@ const Products = () => {
       <ProductFormModal isOpen={isFormModalOpen} onClose={() => setIsFormModalOpen(false)}
         product={editingProduct} categories={categories} onSuccess={() => { setIsFormModalOpen(false); loadData(); }} />
       <VariantManagementModal isOpen={isVariantModalOpen} onClose={() => setIsVariantModalOpen(false)} product={editingProduct} onSuccess={loadData} />
+      <BrandManagementModal isOpen={isBrandModalOpen} onClose={() => setIsBrandModalOpen(false)} onSuccess={loadData} />
       <ConfirmDeleteDialog isOpen={deleteDialog.open} productName={deleteDialog.product?.name}
         onConfirm={handleDeleteConfirm} onCancel={() => setDeleteDialog({ open: false, product: null })} isLoading={isDeleting} />
     </div>

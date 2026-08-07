@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Edit, Trash2, Image as ImageIcon, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Image as ImageIcon, Loader2, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchCategories, deleteCategory, fetchProducts } from '../services/adminService';
+import { fetchCategories, deleteCategory, toggleCategoryStatus } from '../services/adminService';
 import CategoryFormModal from '../components/CategoryFormModal';
 
 // ——— Component Dialog xác nhận xóa ———
@@ -119,6 +119,17 @@ const Categories = () => {
     }
   };
 
+  const handleToggleCategoryStatus = async (cat) => {
+    const nextStatus = cat.status === 'inactive' ? 'active' : 'inactive';
+    try {
+      await toggleCategoryStatus(cat._id, nextStatus);
+      toast.success(nextStatus === 'active' ? 'Đã kích hoạt danh mục' : 'Đã ẩn danh mục (Soft delete)');
+      loadData();
+    } catch (err) {
+      toast.error(err.message || 'Lỗi đổi trạng thái danh mục');
+    }
+  };
+
   const filteredCategories = categories.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -165,24 +176,25 @@ const Categories = () => {
         <table className="w-full text-sm text-left">
           <thead className="bg-[#1a1a1a] border-b border-[#333] text-gray-400">
             <tr>
-              <th className="px-6 py-4 font-medium">Hình ảnh</th>
-              <th className="px-6 py-4 font-medium">Tên danh mục</th>
-              <th className="px-6 py-4 font-medium">Đường dẫn (Slug)</th>
-              <th className="px-6 py-4 font-medium">Số sản phẩm</th>
-              <th className="px-6 py-4 font-medium text-right">Hành động</th>
+              <th className="px-6 py-4 font-medium">HÌNH ẢNH</th>
+              <th className="px-6 py-4 font-medium">TÊN DANH MỤC</th>
+              <th className="px-6 py-4 font-medium">SLUG</th>
+              <th className="px-6 py-4 font-medium">SẢN PHẨM</th>
+              <th className="px-6 py-4 font-medium">TRẠNG THÁI</th>
+              <th className="px-6 py-4 font-medium text-right">HÀNH ĐỘNG</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#333]">
             {isLoading ? (
               <tr>
-                <td colSpan="5" className="px-6 py-16 text-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#d4ff00] mx-auto mb-3" />
+                <td colSpan="6" className="px-6 py-16 text-center">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#d4ff00] mb-2" />
                   <p className="text-gray-500 text-sm">Đang tải dữ liệu...</p>
                 </td>
               </tr>
             ) : filteredCategories.length === 0 ? (
               <tr>
-                <td colSpan="5" className="px-6 py-16 text-center text-gray-500">
+                <td colSpan="6" className="px-6 py-16 text-center text-gray-500">
                   {searchQuery ? 'Không tìm thấy danh mục phù hợp.' : 'Chưa có danh mục nào.'}
                 </td>
               </tr>
@@ -209,12 +221,30 @@ const Categories = () => {
                   </td>
                   <td className="px-6 py-4 text-gray-300 font-mono text-sm">/{cat.slug}</td>
                   <td className="px-6 py-4">
-                    <span className="text-gray-300">
+                    <span className="text-gray-300 font-bold">
                       {productCounts[cat._id] || 0} sản phẩm
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                      cat.status === 'inactive' ? 'bg-gray-800 text-gray-400' : 'bg-green-500/10 text-green-400 border border-green-500/30'
+                    }`}>
+                      {cat.status === 'inactive' ? 'Đã ẩn' : 'Hoạt động'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => handleToggleCategoryStatus(cat)}
+                        className={`p-2 rounded-md border transition-colors ${
+                          cat.status === 'inactive'
+                            ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                            : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+                        }`}
+                        title={cat.status === 'inactive' ? 'Hiện danh mục' : 'Ẩn danh mục (Soft delete)'}
+                      >
+                        {cat.status === 'inactive' ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
                       <button
                         onClick={() => handleOpenEditModal(cat)}
                         className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-md text-gray-300 hover:text-blue-400 transition-colors"
@@ -225,7 +255,7 @@ const Categories = () => {
                       <button
                         onClick={() => handleDeleteClick(cat)}
                         className="p-2 bg-[#222] hover:bg-red-500/20 border border-[#444] hover:border-red-500/50 rounded-md text-gray-300 hover:text-red-500 transition-colors"
-                        title="Xóa danh mục"
+                        title="Ẩn danh mục"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
