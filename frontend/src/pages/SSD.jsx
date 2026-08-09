@@ -1146,13 +1146,13 @@ export default function SSD() {
                           product.sale > 0 && <div className="cpu-card-sale-badge">-{product.sale}%</div>
                         )}
                         <div className="cpu-card-img">
-                          <Link to={`/product/${product.slug}`}>
+                          <Link to={`/product/${product.slug || product._id}`}>
                             <img src={image} alt={product.name} />
                           </Link>
                         </div>
                         <div className="cpu-card-info">
                           <h3 className="cpu-card-name">
-                            <Link to={`/product/${product.slug}`}>{product.name}</Link>
+                            <Link to={`/product/${product.slug || product._id}`}>{product.name}</Link>
                           </h3>
                           <p className="cpu-card-specs">{product.short_desc || 'Sản phẩm công nghệ cao'}</p>
                           <div className="cpu-card-footer">

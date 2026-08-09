@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/build-pc.css'
 import { buildPCAPI } from '../services/apiService'
+import { addToCart } from '../redux/cartSlice'
+import { toast } from 'react-toastify'
 
 const API_URL = 'http://localhost:3000'
 
@@ -233,8 +237,9 @@ function normalizeProduct(p, stepId) {
   const brand = p.brand_id?.name || (p.name.includes('Intel') ? 'Intel' : p.name.includes('AMD') ? 'AMD' : p.name.includes('ASUS') ? 'ASUS' : p.name.includes('MSI') ? 'MSI' : p.name.includes('GIGABYTE') || p.name.includes('Gigabyte') ? 'GIGABYTE' : '')
 
   return {
-    id:         p._id,
+    id:         p._id,          // product id (để dedup chọn trong UI)
     _id:        p._id,
+    variantId:  variant?._id || null,  // 🔑 variant ID để addToCart
     name:       p.name,
     price:      rawPrice,
     specs,
@@ -337,6 +342,8 @@ const BRAND_FILTERS = {
 
 // ══════════════════════════════════════════════════════════════════════════
 export default function BuildPC() {
+  const navigate  = useNavigate()
+  const dispatch  = useDispatch()
   const [activeStep, setActiveStep]     = useState('cpu')
   const [selected, setSelected]         = useState({})
   const [brandFilter, setBrandFilter]   = useState('Tất cả')
@@ -467,9 +474,92 @@ export default function BuildPC() {
     }
   }
 
-  const handleAddAllToCart = () => {
+  const handleAddAllToCart = async () => {
     setShowSummaryModal(false)
-    alert('✅ Đã thêm tất cả linh kiện vào giỏ hàng!')
+
+    const items = Object.values(selected).filter(Boolean)
+    if (items.length === 0) {
+      toast.warn('Vui lòng chọn ít nhất 1 linh kiện!')
+      return
+    }
+
+    let successCount = 0
+    let failCount    = 0
+    const errors     = []
+
+    for (const item of items) {
+      // Sản phẩm static fallback (monitor, peripheral, extra) không có variantId thật
+      // → chỉ thêm vào Redux/localStorage (guest mode)
+      if (!item.variantId) {
+        const cartPayload = {
+          product_id: item._id || item.id,
+          variant_id: item.id,  // dùng id làm key
+          name:       item.name,
+          price:      item.price,
+          quantity:   1,
+          image:      item.image || null,
+        }
+        dispatch(addToCart(cartPayload))
+        successCount++
+        continue
+      }
+
+      // Sản phẩm từ DB → gọi API
+      try {
+        const res = await fetch(`${API_URL}/cart/add`, {
+          method:      'POST',
+          credentials: 'include',
+          headers:     { 'Content-Type': 'application/json' },
+          body:        JSON.stringify({ variant_id: item.variantId, quantity: 1 }),
+        })
+        const data = await res.json()
+
+        if (res.status === 401) {
+          // Chưa đăng nhập → thêm vào Redux local
+          const cartPayload = {
+            product_id: item._id,
+            variant_id: item.variantId,
+            name:       item.name,
+            price:      item.price,
+            quantity:   1,
+            image:      item.image || null,
+          }
+          dispatch(addToCart(cartPayload))
+          successCount++
+        } else if (data.success) {
+          const cartPayload = {
+            product_id: item._id,
+            variant_id: item.variantId,
+            name:       item.name,
+            price:      item.price,
+            quantity:   1,
+            image:      item.image || null,
+          }
+          dispatch(addToCart(cartPayload))
+          successCount++
+        } else {
+          failCount++
+          errors.push(`${item.name}: ${data.message || 'Lỗi không xác định'}`)
+        }
+      } catch (err) {
+        failCount++
+        errors.push(`${item.name}: Lỗi kết nối`)
+      }
+    }
+
+    if (successCount > 0 && failCount === 0) {
+      toast.success(`✅ Đã thêm ${successCount} linh kiện vào giỏ hàng!`, { position: 'bottom-right' })
+    } else if (successCount > 0 && failCount > 0) {
+      toast.warn(`⚠️ Đã thêm ${successCount} linh kiện. ${failCount} linh kiện thất bại: ${errors.join('; ')}`, { position: 'bottom-right' })
+    } else {
+      toast.error(`❌ Không thể thêm vào giỏ hàng: ${errors.join('; ')}`, { position: 'bottom-right' })
+    }
+  }
+
+  const handleCheckoutNow = async () => {
+    setShowSummaryModal(false)
+    await handleAddAllToCart()
+    navigate('/cart')
   }
 
   const ctaText = isComplete
@@ -864,7 +954,7 @@ export default function BuildPC() {
               <button className="bp-modal-buy" onClick={handleAddAllToCart}>
                 🛒 Thêm toàn bộ vào giỏ hàng
               </button>
-              <button className="bp-modal-checkout" onClick={() => { handleAddAllToCart(); window.location.href='/cart' }}>
+              <button className="bp-modal-checkout" onClick={handleCheckoutNow}>
                 ⚡ Thanh toán ngay
               </button>
             </div>

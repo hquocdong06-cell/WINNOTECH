@@ -92,7 +92,7 @@ const ProductCard = ({ product, onAddToCart, favoriteIds, onToggleFavorite }) =>
   const isOutOfStock = defaultVariant && defaultVariant.stock_quantity !== undefined ? defaultVariant.stock_quantity <= 0 : false
 
   return (
-    <Link to={`/product/${product.slug}`} className="product-link">
+    <Link to={`/product/${product.slug || product._id}`} className="product-link">
       <div className="product-card" style={isOutOfStock ? { opacity: 0.85 } : {}}>
         {isOutOfStock ? (
           <div className="product-sale-badge" style={{ background: '#ef4444', color: '#fff' }}>Hết hàng</div>

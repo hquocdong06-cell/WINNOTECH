@@ -229,7 +229,7 @@ export default function Compare() {
                   />
                   <div className="compare-product-name">{products[0].name}</div>
                   <div className="compare-product-price">{fmt(getPrice(products[0]))}</div>
-                  <Link to={`/product/${products[0].slug}`} className="compare-product-btn">Xem chi tiết</Link>
+                  <Link to={`/product/${products[0].slug || products[0]._id}`} className="compare-product-btn">Xem chi tiết</Link>
                 </div>
 
                 {/* Slot chờ */}
@@ -298,7 +298,7 @@ export default function Compare() {
                           {addingCart === p._id ? 'Đang thêm...' : '🛒 Thêm giỏ hàng'}
                         </button>
                         <Link
-                          to={`/product/${p.slug}`}
+                          to={`/product/${p.slug || p._id}`}
                           style={{
                             padding: '8px 14px', background: 'transparent',
                             border: '1px solid #444', color: '#ccc',
@@ -363,7 +363,7 @@ export default function Compare() {
                         {addingCart === p._id ? 'Đang thêm...' : '🛒 Thêm vào giỏ hàng'}
                       </button>
                       <Link
-                        to={`/product/${p.slug}`}
+                        to={`/product/${p.slug || p._id}`}
                         style={{
                           width: '100%', padding: '9px', background: 'transparent',
                           border: '1px solid #333', color: '#aaa',

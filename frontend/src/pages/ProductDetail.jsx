@@ -550,7 +550,7 @@ export default function ProductDetail() {
                     const itemSalePrice = firstVariant?.sale_price > 0 ? firstVariant.sale_price : itemBasePrice
                     const displayPrice = itemSalePrice || itemBasePrice
                     return (
-                      <Link key={item._id} to={`/product/${item.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      <Link key={item._id} to={`/product/${item.slug || item._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                         <div className="related-card" style={{ background: 'var(--dark2)', border: '1px solid #333', padding: '15px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}>
                           <div className="related-img" style={{ height: '150px', background: 'var(--dark3)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', overflow: 'hidden' }}>
                             <img src={itemImg || 'https://images.unsplash.com/photo-1591485121907-26859ff93e37?q=80&w=2670&auto=format&fit=crop'} alt={item.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />

@@ -123,20 +123,23 @@ export default function Profile() {
       trackingCode: order.tracking_code || '—',
       estimatedDelivery: '—',
       receiver: { name: order.Name || '—', phone: order.Phone || '—', address: order.Adress || '—', note: '' },
-      products: items.map(oi => ({
-        name: oi.product?.name || oi.variant?.variant_name || 'Sản phẩm',
-        variant: oi.variant?.variant_name !== 'Mặc định' ? oi.variant?.variant_name : '',
-        price: formatPrice(oi.price),
-        qty: oi.Quantity || 1,
-        subtotal: formatPrice((oi.price || 0) * (oi.Quantity || 1)),
-        img: oi.AnhSP?.[0]?.url || ''
-      })),
+      products: items.map(oi => {
+        const rawImg = oi.AnhSP?.[0]?.url || oi.product?.thumnail || oi.product?.AnhSP?.[0]?.url || ''
+        const img = rawImg ? (rawImg.startsWith('http') ? rawImg : `${API_URL}${rawImg}`) : ''
+        return {
+          name: oi.product?.name || oi.variant?.variant_name || 'Sản phẩm',
+          variant: oi.variant?.variant_name && oi.variant?.variant_name !== 'Mặc định' ? oi.variant?.variant_name : '',
+          price: formatPrice(oi.price),
+          qty: oi.Quantity || 1,
+          subtotal: formatPrice((oi.price || 0) * (oi.Quantity || 1)),
+          img
+        }
+      }),
       payment: {
         subtotal: formatPrice(order.total_amount + (order.voucher_value || 0)),
         shipping: '0đ',
         discount: '—',
         voucher: order.voucher_value ? '-' + formatPrice(order.voucher_value) : '-0đ',
-        points: '-0đ',
         total: formatPrice(order.total_amount)
       },
       shipping: { carrier: '—', tracking: order.tracking_code || '—' },
@@ -419,11 +422,34 @@ export default function Profile() {
                 {detail.products.map((p, i) => (
                   <div key={i} className="odm-product-row">
                     <div className="odm-product-img">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28" opacity="0.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      {p.img ? (
+                        <img 
+                          src={p.img} 
+                          alt={p.name} 
+                          onError={(e) => { 
+                            e.target.style.display = 'none'; 
+                            if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'block'; 
+                          }} 
+                        />
+                      ) : null}
+                      <svg 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="1.5" 
+                        width="28" 
+                        height="28" 
+                        opacity="0.3" 
+                        style={{ display: p.img ? 'none' : 'block' }}
+                      >
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <polyline points="21 15 16 10 5 21"/>
+                      </svg>
                     </div>
                     <div className="odm-product-info">
                       <div className="odm-product-name">{p.name}</div>
-                      <div className="odm-product-variant">{p.variant}</div>
+                      {p.variant && <div className="odm-product-variant">{p.variant}</div>}
                       <div className="odm-product-pricing">
                         <span className="odm-product-price">{p.price}</span>
                         <span className="odm-product-qty">× {p.qty}</span>
@@ -446,7 +472,6 @@ export default function Profile() {
                 <div className="odm-payment-row"><span>Phí vận chuyển</span><span>{detail.payment.shipping}</span></div>
                 <div className="odm-payment-row odm-payment-row--discount"><span>Mã giảm giá</span><span>{detail.payment.discount}</span></div>
                 <div className="odm-payment-row odm-payment-row--discount"><span>Voucher</span><span>{detail.payment.voucher}</span></div>
-                <div className="odm-payment-row odm-payment-row--discount"><span>Điểm thưởng</span><span>{detail.payment.points}</span></div>
                 <div className="odm-payment-divider"/>
                 <div className="odm-payment-row odm-payment-row--total"><span>Tổng thanh toán</span><span>{detail.payment.total}</span></div>
               </div>
@@ -748,7 +773,7 @@ export default function Profile() {
                       <div 
                         key={p._id} 
                         className="profile-wishlist-card"
-                        onClick={() => navigate(`/product/${p.slug}`)}
+                        onClick={() => navigate(`/product/${p.slug || p._id}`)}
                       >
                         <button 
                           className="wishlist-heart" 
@@ -999,7 +1024,7 @@ export default function Profile() {
                           <div 
                             key={p._id} 
                             className="profile-wishlist-full-card"
-                            onClick={() => navigate(`/product/${p.slug}`)}
+                            onClick={() => navigate(`/product/${p.slug || p._id}`)}
                             style={{ cursor: 'pointer' }}
                           >
                             <div className="profile-wishlist-full-img"><img src={p.image || 'https://via.placeholder.com/150'} alt={p.name} onError={e=>{e.target.style.display='none'}}/></div>
@@ -1251,11 +1276,6 @@ export default function Profile() {
                       <div className="profile-stat-icon spending"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg></div>
                       <div className="profile-stat-label">Tổng chi tiêu</div>
                       <div className="profile-stat-value small">48.760.000đ</div>
-                    </div>
-                    <div className="profile-stat-item">
-                      <div className="profile-stat-icon points"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
-                      <div className="profile-stat-label">Điểm thưởng</div>
-                      <div className="profile-stat-value">2.450</div>
                     </div>
                     <div className="profile-stat-item">
                       <div className="profile-stat-icon wishlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>

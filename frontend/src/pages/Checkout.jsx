@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/checkout.css'
 import { voucherAPI } from '../services/apiService'
-import { clearCart } from '../redux/cartSlice'
+import { clearCart, selectCartItems } from '../redux/cartSlice'
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const API_URL = 'http://localhost:3000'
@@ -289,6 +289,9 @@ export default function Checkout() {
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
+  // Cart từ Redux/localStorage (fallback khi chưa đăng nhập hoặc API trả trống)
+  const localCartItems = useSelector(selectCartItems)
+
   // ── Auth state ──
   const [user, setUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -336,7 +339,8 @@ export default function Checkout() {
 
   // ── Computed totals ──
   const subtotal = cartItems.reduce((s, item) => {
-    const price = item.variant?.sale_price > 0 ? item.variant.sale_price : (item.variant?.price || item.cartItem?.price || 0)
+    const price = item._localPrice ||
+                  (item.variant?.sale_price > 0 ? item.variant.sale_price : (item.variant?.price || item.cartItem?.price || 0))
     return s + price * (item.cartItem?.quantity || 1)
   }, 0)
   const discount = voucherInfo?.discount || 0
@@ -388,18 +392,68 @@ export default function Checkout() {
       .finally(() => setAuthLoading(false))
   }, [])
 
-  // ── Fetch cart từ API thật ──
+  // ── Fetch cart từ API thật (fallback về Redux khi chưa đăng nhập hoặc API trả rỗng) ──
   useEffect(() => {
     setCartLoading(true)
     fetch(API_URL + '/cart', { credentials: 'include' })
       .then((r) => r.json())
       .then((data) => {
-        if (data.success) setCartItems(data.data || [])
-        else setCartItems([])
+        if (data.success && data.data && data.data.length > 0) {
+          // Đã đăng nhập và có hàng trong DB → dùng DB
+          setCartItems(data.data)
+        } else {
+          // Chưa đăng nhập (401) hoặc giỏ trống trong DB
+          // → fallback về Redux/localStorage
+          if (localCartItems && localCartItems.length > 0) {
+            // Chuyển định dạng Redux items sang format Checkout cần
+            const mapped = localCartItems.map((item) => ({
+              cartItem: {
+                _id:        item.variant_id,
+                variant_id: item.variant_id,
+                quantity:   item.quantity || 1,
+                price:      item.price || 0,
+              },
+              variant: {
+                _id:   item.variant_id,
+                price: item.price || 0,
+                sale_price: 0,
+              },
+              product: {
+                _id:  item.product_id,
+                name: item.name,
+              },
+              AnhSP: item.image ? [{ url: item.image }] : [],
+              // flag để getOrderItems biết đây là local item
+              _isLocal: true,
+              _localPrice: item.price || 0,
+              _variantId:  item.variant_id,
+            }))
+            setCartItems(mapped)
+          } else {
+            setCartItems([])
+          }
+        }
       })
-      .catch(() => setCartItems([]))
+      .catch(() => {
+        // Lỗi mạng → dùng Redux
+        if (localCartItems && localCartItems.length > 0) {
+          const mapped = localCartItems.map((item) => ({
+            cartItem: { _id: item.variant_id, variant_id: item.variant_id, quantity: item.quantity || 1, price: item.price || 0 },
+            variant:  { _id: item.variant_id, price: item.price || 0, sale_price: 0 },
+            product:  { _id: item.product_id, name: item.name },
+            AnhSP:    item.image ? [{ url: item.image }] : [],
+            _isLocal: true,
+            _localPrice: item.price || 0,
+            _variantId:  item.variant_id,
+          }))
+          setCartItems(mapped)
+        } else {
+          setCartItems([])
+        }
+      })
       .finally(() => setCartLoading(false))
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])  // chỉ chạy 1 lần khi mount; localCartItems được đọc tại thời điểm mount
 
   // ── Trực tiếp gọi API khi người dùng đã xác nhận trên modal ──
   const executeOrderSubmission = async () => {
@@ -543,13 +597,26 @@ export default function Checkout() {
     }
   }
 
-  // ── Lấy items để POST ──
+  // ── Lấy items để POST — lọc bỏ items không có variant_id MongoDB hợp lệ ──
+  const OBJECTID_RE = /^[0-9a-fA-F]{24}$/
   const getOrderItems = () => {
-    return cartItems.map((item) => ({
-      variant_id: item.cartItem?.variant_id || item.variant?._id,
-      quantity: item.cartItem?.quantity || 1,
-      price: item.variant?.sale_price > 0 ? item.variant.sale_price : (item.variant?.price || item.cartItem?.price || 0),
-    }))
+    return cartItems
+      .map((item) => ({
+        variant_id: item._variantId || item.cartItem?.variant_id || item.variant?._id,
+        quantity:   item.cartItem?.quantity || 1,
+        price:      item._localPrice ||
+                    (item.variant?.sale_price > 0 ? item.variant.sale_price : (item.variant?.price || item.cartItem?.price || 0)),
+        _name:      item.product?.name || 'Sản phẩm',
+      }))
+      .filter((item) => {
+        const vid = String(item.variant_id || '')
+        if (!OBJECTID_RE.test(vid)) {
+          console.warn(`[Checkout] Bỏ qua sản phẩm "${item._name}" — variant_id không hợp lệ: ${vid}`)
+          return false
+        }
+        return true
+      })
+      .map(({ _name, ...rest }) => rest)  // xóa _name trước khi gửi
   }
 
 
@@ -587,17 +654,20 @@ export default function Checkout() {
     const variant = item.variant
     const cartItem = item.cartItem
     const mainImg = item.AnhSP?.find((img) => img.is_main) || item.AnhSP?.[0]
-    const imgUrl = mainImg?.url || product?.thumnail || ''
-    const price = variant?.sale_price > 0 ? variant.sale_price : (variant?.price || cartItem?.price || 0)
-    const qty = cartItem?.quantity || 1
-    const name = product?.name || variant?.variant_name || 'Sản phẩm'
-    const specs = variant?.variant_name !== 'Mặc định' ? variant?.variant_name : ''
+    const imgUrl   = mainImg?.url || product?.thumnail || ''
+    // Nếu imgUrl đã là URL đầy đủ (http) thì không thêm prefix API_URL
+    const imgSrc   = imgUrl ? (imgUrl.startsWith('http') ? imgUrl : API_URL + imgUrl) : null
+    const price    = item._localPrice ||
+                     (variant?.sale_price > 0 ? variant.sale_price : (variant?.price || cartItem?.price || 0))
+    const qty      = cartItem?.quantity || 1
+    const name     = product?.name || variant?.variant_name || 'Sản phẩm'
+    const specs    = (variant?.variant_name && variant.variant_name !== 'Mặc định') ? variant.variant_name : ''
 
     return (
       <div key={cartItem?._id || idx} className="co-item">
         <div className="co-item-img">
-          {imgUrl
-            ? <img src={API_URL + imgUrl} alt={name} onError={(e) => { e.target.style.display = 'none' }} />
+          {imgSrc
+            ? <img src={imgSrc} alt={name} onError={(e) => { e.target.style.display = 'none' }} />
             : <div style={{ width: '100%', height: '100%', background: '#333', borderRadius: '6px' }} />
           }
         </div>

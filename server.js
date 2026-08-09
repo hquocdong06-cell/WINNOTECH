@@ -53,9 +53,54 @@ const moment = require('moment');
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 
-
-
 // ============================================================
+// CART HELPERS — Chuẩn hóa u_id tránh lỗi lệch type String vs ObjectId
+// ============================================================
+const cleanUserId = (id) => {
+  if (!id) return null;
+  const s = id.toString();
+  return mongoose.Types.ObjectId.isValid(s) ? new mongoose.Types.ObjectId(s) : s;
+};
+
+const getUserCartFilter = (u_id) => {
+  if (!u_id) return { u_id: null };
+  const s = u_id.toString();
+  if (mongoose.Types.ObjectId.isValid(s)) {
+    const objId = new mongoose.Types.ObjectId(s);
+    return { u_id: { $in: [s, objId] } };
+  }
+  return { u_id: s };
+};
+
+async function fixCartItemsInDB() {
+  try {
+    const items = await CartItemModel.find({}).lean();
+    for (const item of items) {
+      if (typeof item.u_id === 'string' && mongoose.Types.ObjectId.isValid(item.u_id)) {
+        const objId = new mongoose.Types.ObjectId(item.u_id);
+        const existing = await CartItemModel.findOne({
+          _id: { $ne: item._id },
+          u_id: objId,
+          variant_id: item.variant_id
+        });
+        if (existing) {
+          existing.quantity += item.quantity;
+          await existing.save();
+          await CartItemModel.deleteOne({ _id: item._id });
+        } else {
+          await CartItemModel.updateOne(
+            { _id: item._id },
+            { $set: { u_id: objId } }
+          );
+        }
+      }
+    }
+    console.log("✅ Đã dọn dẹp và chuẩn hóa dữ liệu Giỏ hàng (CartItem) thành công!");
+  } catch (err) {
+    console.error("Lỗi dọn dẹp CartItem:", err);
+  }
+}
+
 // MULTER — cấu hình upload file ảnh
 // ============================================================
 const storage = multer.diskStorage({
@@ -961,9 +1006,10 @@ app.get("/products/search", async (req, res) => {
       return res.status(400).json({ success: false, message: "Vui lòng nhập từ khóa tìm kiếm!" });
     }
 
-    // 2. Lấy dữ liệu sản phẩm từ DB lên
+    // 2. Lấy dữ liệu sản phẩm từ DB lên (bao gồm slug, thumnail, cat_id, brand_id)
     const products = await ProductModel.find({ status: 'active' })
-                                     .select('_id name price images')
+                                     .select('_id name slug price images thumnail active cat_id brand_id')
+                                     .populate('cat_id brand_id')
                                      .lean();
 
     if (!products || products.length === 0) {
@@ -982,7 +1028,36 @@ app.get("/products/search", async (req, res) => {
 
     // 4. Thực hiện tìm kiếm
     const result = fuse.search(q);
-    const finalProducts = result.map(match => match.item);
+    const matchedProducts = result.map(match => match.item);
+
+    if (matchedProducts.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "Không có sản phẩm nào phù hợp!",
+        data: []
+      });
+    }
+
+    // 5. Lấy danh sách biến thể, ảnh và thuộc tính của các sản phẩm khớp tìm kiếm
+    const matchedIds = matchedProducts.map(p => p._id);
+    const [variants, images] = await Promise.all([
+      ProductVariantModel.find({ p_id: { $in: matchedIds } }).lean(),
+      ImageModel.find({ p_id: { $in: matchedIds } }).lean()
+    ]);
+
+    const variantIds = variants.map(v => v._id);
+    const variantAttrMap = await getVariantAttributeMap(variantIds);
+
+    const variantsWithAttributes = variants.map(v => ({
+      ...v,
+      Attributes: variantAttrMap[v._id.toString()] || [],
+    }));
+
+    const finalProducts = matchedProducts.map(product => ({
+      ...product,
+      AnhSP: images.filter(img => img.p_id.toString() === product._id.toString()),
+      Variants: variantsWithAttributes.filter(v => v.p_id.toString() === product._id.toString()),
+    }));
 
     return res.status(200).json({
       success: true,
@@ -997,14 +1072,20 @@ app.get("/products/search", async (req, res) => {
 });
 
 // ============================================================
-// GET /products/:slug — chi tiết sản phẩm theo slug
+// GET /products/:slug — chi tiết sản phẩm theo slug (hoặc _id)
 // ============================================================
 app.get("/products/:slug", async (req, res, next) => {
   try {
-    const slug = req.params.slug;
-    const productDetail = await ProductModel.findOne({ slug })
+    const slugParam = req.params.slug;
+    let productDetail = await ProductModel.findOne({ slug: slugParam })
       .populate("cat_id brand_id")
       .lean();
+
+    if (!productDetail && mongoose.Types.ObjectId.isValid(slugParam)) {
+      productDetail = await ProductModel.findById(slugParam)
+        .populate("cat_id brand_id")
+        .lean();
+    }
 
     if (!productDetail) {
       return res
@@ -1678,7 +1759,7 @@ app.post("/cart/add", async (req, res) => {
     if (cookieToken) {
       try {
         const verify = jwt.verify(cookieToken, cert, { algorithms: ["RS256"] });
-        u_id = verify._id;
+        u_id = cleanUserId(verify._id);
       } catch (err) {
         console.log("Token lỗi hoặc hết hạn, coi như khách vãng lai (Guest)");
       }
@@ -1686,7 +1767,8 @@ app.post("/cart/add", async (req, res) => {
 
     if (u_id) {
       // Đã login — lưu vào DB
-      let existingCart = await CartItemModel.findOne({ u_id, variant_id });
+      const u_id_filter = getUserCartFilter(u_id);
+      let existingCart = await CartItemModel.findOne({ ...u_id_filter, variant_id });
 
       const reqQty = parseInt(quantity) || 1;
       if (variant.stock_quantity !== undefined && variant.stock_quantity <= 0) {
@@ -1770,9 +1852,10 @@ app.post("/cart/add", async (req, res) => {
 // ============================================================
 app.get("/cart", checklogin, async (req, res) => {
   try {
-    const u_id = req.user._id;
+    const u_id = cleanUserId(req.user._id);
+    const u_id_filter = getUserCartFilter(u_id);
 
-    const cartItems = await CartItemModel.find({ u_id }).lean();
+    const cartItems = await CartItemModel.find(u_id_filter).lean();
     if (cartItems.length === 0) {
       return res.json({ success: true, data: [], message: "Giỏ hàng trống" });
     }
@@ -1842,9 +1925,12 @@ app.put("/cart/:cartItemId", checklogin, async (req, res) => {
         .json({ success: false, message: "Số lượng không hợp lệ" });
     }
 
+    const u_id = cleanUserId(req.user._id);
+    const u_id_filter = getUserCartFilter(u_id);
+
     const cartItem = await CartItemModel.findOne({
       _id: cartItemId,
-      u_id: req.user._id,
+      ...u_id_filter,
     });
     if (!cartItem) {
       return res.status(404).json({
@@ -1888,10 +1974,23 @@ app.put("/cart/:cartItemId", checklogin, async (req, res) => {
 // ============================================================
 app.delete("/cart/:cartItemId", checklogin, async (req, res) => {
   try {
+    const u_id = cleanUserId(req.user._id);
+    const u_id_filter = getUserCartFilter(u_id);
+
     const cartItem = await CartItemModel.findOneAndDelete({
       _id: req.params.cartItemId,
-      u_id: req.user._id,
+      ...u_id_filter,
     });
+
+    if (!cartItem) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy item trong giỏ hàng",
+      });
+    }
+
+    return res.json({ success: true, message: "Đã xóa khỏi giỏ hàng" });
+
 
     if (!cartItem) {
       return res.status(404).json({
@@ -1925,6 +2024,17 @@ app.post("/orders", checklogin, async (req, res) => {
     // 1. LẤY GIÁ THẬT VÀ CHECK TỒN KHO TỪ DB
     // ==========================================
     const variantIds = items.map((i) => i.variant_id);
+
+    // Validate: loại bỏ variant_id không phải MongoDB ObjectId hợp lệ
+    const OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/;
+    const invalidIds = variantIds.filter(id => !id || !OBJECT_ID_REGEX.test(String(id)));
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Đơn hàng chứa sản phẩm không hợp lệ (chưa có trong hệ thống): ${invalidIds.join(', ')}. Vui lòng chỉ đặt hàng các linh kiện có trong cơ sở dữ liệu (CPU, RAM, GPU, Mainboard, Ổ cứng, PSU, Vỏ case, Tản nhiệt).`
+      });
+    }
+
     const dbVariants = await ProductVariantModel.find({ _id: { $in: variantIds } }).lean();
 
     let total_amount = 0;
@@ -2101,7 +2211,10 @@ app.get("/orders", checklogin, async (req, res) => {
     const variants = await ProductVariantModel.find({ _id: { $in: variantIds } }).lean();
 
     const productIds = [...new Set(variants.map((v) => v.p_id?.toString()).filter(Boolean))];
-    const products = await ProductModel.find({ _id: { $in: productIds } }).lean();
+    const [products, images] = await Promise.all([
+      ProductModel.find({ _id: { $in: productIds } }).lean(),
+      ImageModel.find({ p_id: { $in: productIds } }).lean()
+    ]);
 
     const variantMap = new Map(variants.map(v => [v._id.toString(), v]));
     const productMap = new Map(products.map(p => [p._id.toString(), p]));
@@ -2112,7 +2225,8 @@ app.get("/orders", checklogin, async (req, res) => {
         .map((oi) => {
           const variant = variantMap.get(oi.variants_id?.toString());
           const product = variant ? productMap.get(variant.p_id?.toString()) : null;
-          return { ...oi, variant: variant || null, product: product || null };
+          const AnhSP = product ? images.filter(img => img.p_id?.toString() === product._id.toString()) : [];
+          return { ...oi, variant: variant || null, product: product || null, AnhSP };
         });
       return { ...order, items };
     });
@@ -5546,4 +5660,5 @@ app.post("/reviews", async (req, res, next) => {
 
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
+  fixCartItemsInDB();
 });
