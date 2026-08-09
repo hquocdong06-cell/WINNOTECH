@@ -27,6 +27,7 @@
     "express-session": "^1.19.0",
     "fuejs": "^0.0.1",
     "fuse.js": "^7.4.2",
+    "google-auth-library": "^11.0.0",
     "jquery": "^4.0.0",
     "jsonwebtoken": "^9.0.3",
     "module": "^2.0.0",
