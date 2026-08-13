@@ -1167,11 +1167,11 @@ app.post("/categories/upload", uploadCategory.single("image"), (req, res) => {
 // ============================================================
 // GET /categories/:id — Lấy chi tiết danh mục theo ID
 // ============================================================
-app.get("/categories/:id", async (req, res) => {
+app.get("/categories/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: "ID danh mục không hợp lệ" });
+      return next();
     }
     const category = await CategoryModel.findById(id);
     if (!category) {
@@ -1655,7 +1655,12 @@ app.patch("/products/:id/status", async (req, res) => {
 app.get("/categories/:slug", async (req, res, next) => {
   try {
     const slug = req.params.slug;
-    const category = await CategoryModel.findOne({ slug });
+    const category = await CategoryModel.findOne({
+      $or: [
+        { slug: slug },
+        ...(mongoose.Types.ObjectId.isValid(slug) ? [{ _id: slug }] : [])
+      ]
+    });
 
     if (!category) {
       return res
@@ -1668,9 +1673,10 @@ app.get("/categories/:slug", async (req, res, next) => {
       .lean();
 
     if (products.length === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Danh mục này chưa có sản phẩm nào" });
+      return res.json({
+        success: true,
+        data: { category, products: [] },
+      });
     }
 
     const productIds = products.map((p) => p._id);
@@ -3254,7 +3260,7 @@ app.get("/admin/products", checklogin, checkAdmin, async (req, res) => {
 // POST /admin/products — Thêm mới sản phẩm (Kiểm tra trùng tên/slug trước khi thêm)
 app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { name, price, cat_id, brand_id, thumnail, description, status } = req.body;
+    const { name, price, sale, stock, short_desc, cat_id, brand_id, thumnail, description, status } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, message: "Vui lòng nhập tên sản phẩm" });
@@ -3275,10 +3281,16 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
       });
     }
 
+    const numPrice = Number(price) || 0;
+    const numSale = Number(sale) || 0;
+    const numStock = stock !== undefined && stock !== "" ? Number(stock) : 10;
+
     const newProduct = await ProductModel.create({
       name: trimmedName,
       slug: productSlug,
-      price: Number(price) || 0,
+      price: numPrice,
+      sale: numSale,
+      short_desc: short_desc || "",
       cat_id: cat_id || null,
       brand_id: brand_id || null,
       thumnail: thumnail || "",
@@ -3286,10 +3298,20 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
       status: status || "active"
     });
 
+    // TỰ ĐỘNG TẠO BIẾN THỂ MẶC ĐỊNH CHO SẢN PHẨM MỚI
+    const defaultVariant = await ProductVariantModel.create({
+      p_id: newProduct._id,
+      variant_name: "Mặc định",
+      sku: `SKU-${Date.now()}`,
+      price: numPrice,
+      sale_price: numSale > 0 && numPrice > 0 ? Math.round(numPrice * (1 - numSale / 100)) : 0,
+      stock_quantity: numStock,
+    });
+
     return res.status(201).json({
       success: true,
       message: "Thêm sản phẩm mới thành công",
-      data: newProduct
+      data: { ...newProduct.toObject(), Variants: [defaultVariant] }
     });
   } catch (error) {
     console.error("Lỗi POST admin product:", error);
@@ -3301,7 +3323,7 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
 app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, price, cat_id, brand_id, thumnail, description, status, slug } = req.body;
+    const { name, price, sale, stock, short_desc, cat_id, brand_id, thumnail, description, status, slug } = req.body;
 
     const product = await ProductModel.findById(id);
     if (!product) {
@@ -3329,7 +3351,9 @@ app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
       product.slug = newSlug;
     }
 
-    if (price !== undefined) product.price = Number(price);
+    if (price !== undefined) product.price = Number(price) || 0;
+    if (sale !== undefined) product.sale = Number(sale) || 0;
+    if (short_desc !== undefined) product.short_desc = short_desc;
     if (cat_id !== undefined) product.cat_id = cat_id;
     if (brand_id !== undefined) product.brand_id = brand_id;
     if (thumnail !== undefined) product.thumnail = thumnail;
@@ -3337,6 +3361,37 @@ app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
     if (status !== undefined) product.status = status;
 
     await product.save();
+
+    // Cập nhật hoặc tạo biến thể mặc định cho sản phẩm
+    let defaultVariant = await ProductVariantModel.findOne({
+      p_id: id,
+      variant_name: "Mặc định"
+    });
+    if (!defaultVariant) {
+      defaultVariant = await ProductVariantModel.findOne({ p_id: id });
+    }
+
+    const targetPrice = price !== undefined ? Number(price) || 0 : product.price || 0;
+    const targetSale = sale !== undefined ? Number(sale) || 0 : product.sale || 0;
+    const targetStock = stock !== undefined ? Number(stock) || 0 : (defaultVariant ? defaultVariant.stock_quantity : 10);
+    const salePrice = targetSale > 0 && targetPrice > 0 ? Math.round(targetPrice * (1 - targetSale / 100)) : 0;
+
+    if (defaultVariant) {
+      defaultVariant.price = targetPrice;
+      defaultVariant.sale_price = salePrice;
+      if (stock !== undefined) defaultVariant.stock_quantity = targetStock;
+      await defaultVariant.save();
+    } else {
+      defaultVariant = await ProductVariantModel.create({
+        p_id: id,
+        variant_name: "Mặc định",
+        sku: `SKU-${Date.now()}`,
+        price: targetPrice,
+        sale_price: salePrice,
+        stock_quantity: targetStock,
+      });
+    }
+
     return res.json({ success: true, message: "Cập nhật sản phẩm thành công", data: product });
   } catch (error) {
     console.error("Lỗi PUT admin product:", error);
@@ -5658,7 +5713,13 @@ app.post("/reviews", async (req, res, next) => {
   }
 });
 
+// ============================================================
+// AI CHATBOT ROUTER
+// ============================================================
+app.use("/api/chatbot", require("./routers/AI_chatbot"));
+
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
   fixCartItemsInDB();
 });
+

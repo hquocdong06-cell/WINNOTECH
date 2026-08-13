@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { selectCartTotalQuantity, setCart } from '../redux/cartSlice'
 import CartDrawer from '../components/CartDrawer'
+import AIChatbot from '../components/AIChatbot'
 import { compareAPI } from '../services/apiService'
 
 const API_URL = 'http://localhost:3000'
@@ -22,6 +23,7 @@ export default function DefaultLayout({ children }) {
         const data = await res.json()
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
           const reduxItems = data.data.map(d => ({
+            cartItemId: d.cartItem?._id,       // ← lưu MongoDB _id để CartDrawer gọi DELETE API
             product_id: d.product?._id,
             variant_id: d.cartItem?.variant_id,
             name: d.product?.name || 'Sản phẩm',
@@ -234,6 +236,7 @@ export default function DefaultLayout({ children }) {
       {children}
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      <AIChatbot />
 
       {/* FOOTER */}
       <footer>

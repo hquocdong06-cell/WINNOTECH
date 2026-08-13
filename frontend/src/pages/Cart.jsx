@@ -64,6 +64,7 @@ export default function Cart() {
 
       // Sync về Redux store để header cart badge cập nhật đúng
       const reduxItems = (data.data || []).map(d => ({
+        cartItemId: d.cartItem?._id,           // ← lưu MongoDB _id để CartDrawer gọi DELETE API
         product_id: d.product?._id,
         variant_id: d.cartItem?.variant_id,
         name:       d.product?.name || 'Sản phẩm',

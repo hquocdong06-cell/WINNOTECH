@@ -352,3 +352,20 @@ export const uploadAPI = {
     }).then(r => r.json());
   },
 };
+
+// ============================================================
+// AI CHATBOT
+// ============================================================
+export const chatbotAPI = {
+  chat: (message, history = []) => apiFetch('/api/chatbot/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, history }),
+  }),
+  ask: (message, history = []) => apiFetch('/api/chatbot/ask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, history }),
+  }),
+};
+
