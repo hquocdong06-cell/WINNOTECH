@@ -16,7 +16,7 @@ function formatPrice(price) {
 function getProductImage(item) {
   const url = item.AnhSP?.[0]?.url || item.product?.thumnail || ''
   if (!url) return null
-  return url.startsWith('http') ? url : `${API_URL}${url}`
+  return url.startsWith('http') ? url : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`
 }
 
 export default function Cart() {

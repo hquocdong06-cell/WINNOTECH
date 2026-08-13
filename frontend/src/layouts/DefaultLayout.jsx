@@ -29,9 +29,11 @@ export default function DefaultLayout({ children }) {
             name: d.product?.name || 'Sản phẩm',
             price: d.variant?.sale_price > 0 ? d.variant.sale_price : (d.variant?.price || 0),
             quantity: d.cartItem?.quantity || 1,
-            image: d.AnhSP?.[0]?.url
-              ? (d.AnhSP[0].url.startsWith('http') ? d.AnhSP[0].url : `${API_URL}${d.AnhSP[0].url}`)
-              : (d.product?.thumnail || ''),
+            image: (() => {
+              const url = d.AnhSP?.[0]?.url || d.product?.thumnail || '';
+              if (!url) return '';
+              return url.startsWith('http') ? url : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+            })(),
           }))
           dispatch(setCart(reduxItems))
         }

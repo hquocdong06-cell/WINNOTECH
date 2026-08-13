@@ -17,6 +17,12 @@ export default function CartDrawer({ isOpen, onClose }) {
     return price.toLocaleString('vi-VN') + 'đ';
   };
 
+  const getImageUrl = (image) => {
+    if (!image) return 'https://via.placeholder.com/60';
+    if (image.startsWith('http')) return image;
+    return `${API_URL}${image.startsWith('/') ? '' : '/'}${image}`;
+  };
+
   const handleUpdateQuantity = async (item, newQuantity) => {
     if (newQuantity <= 0) return;
     // Cập nhật Redux local ngay để UX mượt
@@ -82,7 +88,7 @@ export default function CartDrawer({ isOpen, onClose }) {
             <div className="cart-items">
               {cartItems.map((item, index) => (
                 <div className="cart-item" key={index}>
-                  <img src={item.image || 'https://via.placeholder.com/60'} alt={item.name} className="cart-item-img" />
+                  <img src={getImageUrl(item.image)} alt={item.name} className="cart-item-img" />
                   <div className="cart-item-info">
                     <div className="cart-item-title">{item.name}</div>
                     <div className="cart-item-price">{formatPrice(item.price)}</div>
