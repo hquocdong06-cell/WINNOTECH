@@ -283,6 +283,78 @@ function AddressSelectorModal({ addresses, selectedId, onSelect, onClose, onAddN
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// HELPER: Tính toán giảm giá Voucher (Xử lý mã FRS, SHIP và voucher thường)
+// ═══════════════════════════════════════════════════════════════════════════
+function calculateVoucherDiscount(voucher, subtotal, baseShipping = 30000) {
+  const baseShippingFee = subtotal >= 1000000 ? 0 : baseShipping
+  if (!voucher || !voucher.code) {
+    return {
+      productDiscount: 0,
+      shippingDiscount: 0,
+      shippingFee: baseShippingFee,
+      baseShippingFee,
+      totalDiscount: 0,
+      finalTotal: subtotal + baseShippingFee,
+      voucherType: 'none',
+    }
+  }
+
+  const codeUpper = String(voucher.code).trim().toUpperCase()
+  const hasFRS = codeUpper.includes('FRS')
+  const hasSHIP = codeUpper.includes('SHIP')
+
+  let productDiscount = 0
+  let shippingDiscount = 0
+  let voucherType = 'normal'
+
+  if (hasFRS) {
+    voucherType = 'frs'
+    shippingDiscount = baseShippingFee
+
+    if (voucher.discount_type === 'percent') {
+      productDiscount = Math.round((subtotal * Number(voucher.discount_value)) / 100)
+    } else {
+      productDiscount = Number(voucher.discount_value) || 0
+    }
+    productDiscount = Math.min(productDiscount, subtotal)
+  } else if (hasSHIP) {
+    voucherType = 'ship'
+    productDiscount = 0
+
+    if (voucher.discount_type === 'percent') {
+      shippingDiscount = Math.round((baseShippingFee * Number(voucher.discount_value)) / 100)
+    } else {
+      shippingDiscount = Number(voucher.discount_value) || 0
+    }
+    shippingDiscount = Math.min(shippingDiscount, baseShippingFee)
+  } else {
+    voucherType = 'normal'
+    shippingDiscount = 0
+
+    if (voucher.discount_type === 'percent') {
+      productDiscount = Math.round((subtotal * Number(voucher.discount_value)) / 100)
+    } else {
+      productDiscount = Number(voucher.discount_value) || 0
+    }
+    productDiscount = Math.min(productDiscount, subtotal)
+  }
+
+  const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount)
+  const totalDiscount = productDiscount + shippingDiscount
+  const finalTotal = Math.max(0, subtotal - productDiscount) + finalShippingFee
+
+  return {
+    productDiscount,
+    shippingDiscount,
+    shippingFee: finalShippingFee,
+    baseShippingFee,
+    totalDiscount,
+    finalTotal,
+    voucherType,
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT: Checkout
 // ═══════════════════════════════════════════════════════════════════════════
 export default function Checkout() {
@@ -343,9 +415,24 @@ export default function Checkout() {
                   (item.variant?.sale_price > 0 ? item.variant.sale_price : (item.variant?.price || item.cartItem?.price || 0))
     return s + price * (item.cartItem?.quantity || 1)
   }, 0)
-  const discount = voucherInfo?.discount || 0
-  const shipping = subtotal >= 1000000 ? 0 : 30000
-  const total = subtotal - discount + shipping
+
+  const voucherCalc = voucherInfo?.rawVoucher
+    ? calculateVoucherDiscount(voucherInfo.rawVoucher, subtotal, 30000)
+    : {
+        productDiscount: 0,
+        shippingDiscount: 0,
+        shippingFee: subtotal >= 1000000 ? 0 : 30000,
+        baseShippingFee: subtotal >= 1000000 ? 0 : 30000,
+        totalDiscount: 0,
+        finalTotal: subtotal + (subtotal >= 1000000 ? 0 : 30000),
+        voucherType: 'none',
+      }
+
+  const productDiscount = voucherCalc.productDiscount
+  const shippingDiscount = voucherCalc.shippingDiscount
+  const discount = voucherCalc.totalDiscount
+  const shipping = voucherCalc.shippingFee
+  const total = voucherCalc.finalTotal
 
   // ── Áp dụng voucher ──
   const handleApplyVoucher = async () => {
@@ -357,19 +444,30 @@ export default function Checkout() {
       const data = await voucherAPI.check(voucherCode.trim())
       if (data.success && data.data) {
         const v = data.data
-        // Tính giảm giá thực tế
-        let discountAmt = 0
-        if (v.discount_type === 'percent') {
-          discountAmt = Math.round(subtotal * v.discount_value / 100)
-        } else {
-          discountAmt = v.discount_value || 0
-        }
         if (v.min_order > 0 && subtotal < v.min_order) {
           setVoucherError(`Đơn hàng tối thiểu ${v.min_order.toLocaleString('vi-VN')}đ để dùng mã này`)
           setVoucherInfo(null)
-        } else {
-          setVoucherInfo({ discount: discountAmt, code: v.code, msg: `Áp dụng thành công — Giảm ${discountAmt.toLocaleString('vi-VN')}đ` })
+          return
         }
+
+        const calc = calculateVoucherDiscount(v, subtotal, 30000)
+        let msg = ''
+        if (calc.voucherType === 'frs') {
+          msg = `Áp dụng thành công — Miễn phí ship & Giảm ${calc.productDiscount.toLocaleString('vi-VN')}đ tiền hàng`
+        } else if (calc.voucherType === 'ship') {
+          msg = `Áp dụng thành công — Giảm ${calc.shippingDiscount.toLocaleString('vi-VN')}đ phí vận chuyển`
+        } else {
+          msg = `Áp dụng thành công — Giảm ${calc.productDiscount.toLocaleString('vi-VN')}đ tiền hàng`
+        }
+
+        setVoucherInfo({
+          discount: calc.totalDiscount,
+          productDiscount: calc.productDiscount,
+          shippingDiscount: calc.shippingDiscount,
+          code: v.code,
+          msg,
+          rawVoucher: v,
+        })
       } else {
         setVoucherError(data.message || 'Mã không hợp lệ')
       }
@@ -379,6 +477,7 @@ export default function Checkout() {
       setVoucherChecking(false)
     }
   }
+
 
   // ── Fetch current user ──
   useEffect(() => {
@@ -855,15 +954,35 @@ export default function Checkout() {
                 <span className="label">Tạm tính</span>
                 <span className="value">{fmt(subtotal)}</span>
               </div>
-              <div className="co-total-row">
-                <span className="label">Giảm giá {voucherInfo && <span style={{ fontSize: '10px', color: '#d4ff00', fontFamily: 'monospace' }}>({voucherInfo.code})</span>}</span>
-                <span className="value discount">-{fmt(discount)}</span>
-              </div>
+              {productDiscount > 0 && (
+                <div className="co-total-row">
+                  <span className="label">Giảm giá sản phẩm {voucherInfo && <span style={{ fontSize: '10px', color: '#d4ff00', fontFamily: 'monospace' }}>({voucherInfo.code})</span>}</span>
+                  <span className="value discount">-{fmt(productDiscount)}</span>
+                </div>
+              )}
               <div className="co-total-row">
                 <span className="label">Phí vận chuyển</span>
-                <span className="value free">{shipping === 0 ? 'Miễn phí' : fmt(shipping)}</span>
+                <span className="value free">
+                  {shippingDiscount > 0 && voucherCalc.baseShippingFee > 0 ? (
+                    <span>
+                      <s style={{ color: '#888', marginRight: '6px', fontSize: '12px' }}>{fmt(voucherCalc.baseShippingFee)}</s>
+                      <span style={{ color: '#22c55e' }}>{shipping === 0 ? 'Miễn phí' : fmt(shipping)}</span>
+                    </span>
+                  ) : (
+                    shipping === 0 ? 'Miễn phí' : fmt(shipping)
+                  )}
+                </span>
               </div>
+              {shippingDiscount > 0 && voucherCalc.baseShippingFee > 0 && (
+                <div className="co-total-row">
+                  <span className="label" style={{ fontSize: '12px', color: '#22c55e' }}>
+                    Giảm phí ship {voucherInfo && <span style={{ fontSize: '10px', color: '#d4ff00', fontFamily: 'monospace' }}>({voucherInfo.code})</span>}
+                  </span>
+                  <span className="value discount" style={{ color: '#22c55e' }}>-{fmt(shippingDiscount)}</span>
+                </div>
+              )}
             </div>
+
 
             {/* Grand total */}
             <div className="co-grand-total">

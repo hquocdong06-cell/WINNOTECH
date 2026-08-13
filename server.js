@@ -72,6 +72,90 @@ const getUserCartFilter = (u_id) => {
   return { u_id: s };
 };
 
+// ============================================================
+// VOUCHER CALCULATION HELPER
+// - Nếu voucher có mã chứa "FRS":
+//     + Giảm 100% phí ship (phí ship = 0)
+//     + Giá sản phẩm vẫn giảm theo giá trị voucher (% hoặc fixed)
+// - Nếu voucher có mã chứa "SHIP" (và không có FRS):
+//     + Chỉ giảm vào Phí vận chuyển
+//     + Giảm fixed (200, 300, 20k...) trừ thẳng vào ship
+//     + Giảm % thì giảm % phí ship đó
+//     + Giá sản phẩm KHÔNG giảm
+// - Voucher thường (không FRS/SHIP):
+//     + Giảm giá vào sản phẩm (% hoặc fixed)
+//     + Phí ship giữ nguyên
+// ============================================================
+function calculateVoucherDiscount(voucher, subtotal, baseShipping = 30000) {
+  const baseShippingFee = subtotal >= 1000000 ? 0 : baseShipping;
+  if (!voucher || !voucher.code) {
+    return {
+      productDiscount: 0,
+      shippingDiscount: 0,
+      shippingFee: baseShippingFee,
+      baseShippingFee,
+      totalDiscount: 0,
+      finalTotal: subtotal + baseShippingFee,
+      voucherType: 'none',
+    };
+  }
+
+  const codeUpper = String(voucher.code).trim().toUpperCase();
+  const hasFRS = codeUpper.includes('FRS');
+  const hasSHIP = codeUpper.includes('SHIP');
+
+  let productDiscount = 0;
+  let shippingDiscount = 0;
+  let voucherType = 'normal';
+
+  if (hasFRS) {
+    voucherType = 'frs';
+    shippingDiscount = baseShippingFee;
+
+    if (voucher.discount_type === 'percent') {
+      productDiscount = Math.round((subtotal * Number(voucher.discount_value)) / 100);
+    } else {
+      productDiscount = Number(voucher.discount_value) || 0;
+    }
+    productDiscount = Math.min(productDiscount, subtotal);
+  } else if (hasSHIP) {
+    voucherType = 'ship';
+    productDiscount = 0;
+
+    if (voucher.discount_type === 'percent') {
+      shippingDiscount = Math.round((baseShippingFee * Number(voucher.discount_value)) / 100);
+    } else {
+      shippingDiscount = Number(voucher.discount_value) || 0;
+    }
+    shippingDiscount = Math.min(shippingDiscount, baseShippingFee);
+  } else {
+    voucherType = 'normal';
+    shippingDiscount = 0;
+
+    if (voucher.discount_type === 'percent') {
+      productDiscount = Math.round((subtotal * Number(voucher.discount_value)) / 100);
+    } else {
+      productDiscount = Number(voucher.discount_value) || 0;
+    }
+    productDiscount = Math.min(productDiscount, subtotal);
+  }
+
+  const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
+  const totalDiscount = productDiscount + shippingDiscount;
+  const finalTotal = Math.max(0, subtotal - productDiscount) + finalShippingFee;
+
+  return {
+    productDiscount,
+    shippingDiscount,
+    shippingFee: finalShippingFee,
+    baseShippingFee,
+    totalDiscount,
+    finalTotal,
+    voucherType,
+  };
+}
+
+
 async function fixCartItemsInDB() {
   try {
     const items = await CartItemModel.find({}).lean();
@@ -2080,10 +2164,12 @@ app.post("/orders", checklogin, async (req, res) => {
     }
 
     // ==========================================
-    // 2. XỬ LÝ VOUCHER
+    // 2. XỬ LÝ VOUCHER & PHÍ VẬN CHUYỂN
     // ==========================================
     let voucher_value = 0;
     let validVoucher = null;
+    let baseShippingFee = total_amount >= 1000000 ? 0 : 30000;
+    let final_amount = total_amount + baseShippingFee;
 
     if (voucher_code) {
       validVoucher = await Voucher.findOne({ code: voucher_code });
@@ -2092,15 +2178,20 @@ app.post("/orders", checklogin, async (req, res) => {
         validVoucher.end_day >= new Date() &&
         validVoucher.used_count < validVoucher.usage_limit
       ) {
-        voucher_value = validVoucher.discount_type === "percent"
-            ? (total_amount * validVoucher.discount_value) / 100
-            : validVoucher.discount_value;
+        if (validVoucher.min_order > 0 && total_amount < validVoucher.min_order) {
+          return res.status(400).json({
+            success: false,
+            message: `Đơn hàng tối thiểu ${validVoucher.min_order.toLocaleString('vi-VN')} đ để sử dụng voucher này!`
+          });
+        }
+        const vCalc = calculateVoucherDiscount(validVoucher, total_amount, 30000);
+        voucher_value = vCalc.totalDiscount;
+        final_amount = vCalc.finalTotal;
       } else {
         return res.status(400).json({ success: false, message: "Voucher không hợp lệ hoặc đã hết hạn!" });
       }
     }
 
-    const final_amount = Math.max(0, total_amount - voucher_value); 
 
     // ==========================================
     // 3. TẠO ĐƠN HÀNG VỚI STATUS MỚI
@@ -4681,9 +4772,26 @@ app.post("/api/create-qr", checklogin, async (req, res) => {
       });
     }
 
-    // Tính toán Voucher
-    const discount = voucher_value ? Number(voucher_value) : 0;
-    const totalAmount = subTotal - discount > 0 ? subTotal - discount : 0;
+    // Tính toán Voucher & Phí vận chuyển
+    let discount = 0;
+    let baseShip = subTotal >= 1000000 ? 0 : 30000;
+    let totalAmount = subTotal + baseShip;
+
+    if (voucher_code) {
+      const vDoc = await Voucher.findOne({ code: voucher_code });
+      if (vDoc && vDoc.end_day >= new Date() && vDoc.used_count < vDoc.usage_limit) {
+        const vCalc = calculateVoucherDiscount(vDoc, subTotal, 30000);
+        discount = vCalc.totalDiscount;
+        totalAmount = vCalc.finalTotal;
+      } else if (voucher_value) {
+        discount = Number(voucher_value);
+        totalAmount = Math.max(0, subTotal - discount) + baseShip;
+      }
+    } else if (voucher_value) {
+      discount = Number(voucher_value);
+      totalAmount = Math.max(0, subTotal - discount) + baseShip;
+    }
+
 
     // ==========================================
     // 2. TẠO HÓA ĐƠN GỐC (BẢNG ORDER)
@@ -5231,17 +5339,11 @@ app.post("/api/vouchers/apply", async (req, res) => {
       });
     }
 
-    // 7. Xử lý giảm giá theo loại voucher (% hoặc fixed tiền)
-    let discountAmount = 0;
-    if (voucher.discount_type === "percent") {
-      discountAmount = (totalVariantPrice * voucher.discount_value) / 100;
-    } else if (voucher.discount_type === "fixed") {
-      discountAmount = voucher.discount_value;
-    }
+    // 7. Xử lý giảm giá theo loại voucher (% hoặc fixed tiền, FRS, SHIP)
+    const vCalc = calculateVoucherDiscount(voucher, totalVariantPrice, 30000);
+    const discountAmount = vCalc.totalDiscount;
+    const finalPrice = vCalc.finalTotal;
 
-    // Đảm bảo số tiền giảm không vượt quá tổng giá tiền sản phẩm
-    discountAmount = Math.min(discountAmount, totalVariantPrice);
-    const finalPrice = Math.max(0, totalVariantPrice - discountAmount);
 
     return res.json({
       success: true,
@@ -5445,16 +5547,11 @@ app.post("/api/user-vouchers/apply", async (req, res) => {
       });
     }
 
-    // Tính giá giảm (percent hoặc fixed)
-    let discountAmount = 0;
-    if (voucher.discount_type === "percent") {
-      discountAmount = (totalVariantPrice * voucher.discount_value) / 100;
-    } else if (voucher.discount_type === "fixed") {
-      discountAmount = voucher.discount_value;
-    }
+    // Tính giá giảm (percent, fixed, FRS, SHIP)
+    const vCalc = calculateVoucherDiscount(voucher, totalVariantPrice, 30000);
+    const discountAmount = vCalc.totalDiscount;
+    const finalPrice = vCalc.finalTotal;
 
-    discountAmount = Math.min(discountAmount, totalVariantPrice);
-    const finalPrice = Math.max(0, totalVariantPrice - discountAmount);
 
     return res.json({
       success: true,
