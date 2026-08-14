@@ -4578,115 +4578,6 @@ app.post("/api/auth/reset-password", async (req, res) => {
     const { identifier, otp, newPassword, confirmPassword } = req.body;
 
     if (!identifier || !otp || !newPassword || !confirmPassword) {
-      return res.status(400).json({ success: false, message: "Thiếu thông tin!" });
-    }
-    if (newPassword !== confirmPassword) {
-      return res.status(400).json({ success: false, message: "Mật khẩu không khớp!" });
-    }
-
-    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
-    const query = isEmail ? { email: identifier } : { phone: identifier };
-
-    const user = await UserModel.findOne(query).select('_id resetPasswordOTP resetPasswordExpires').lean();
-
-    if (!user) return res.status(404).json({ success: false, message: "Không tìm thấy user." });
-    if (user.resetPasswordOTP !== otp) return res.status(400).json({ success: false, message: "Mã OTP sai!" });
-    if (user.resetPasswordExpires < Date.now()) return res.status(400).json({ success: false, message: "OTP hết hạn!" });
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    await UserModel.updateOne(
-      { _id: user._id },
-      { 
-        $set: { password: hashedPassword },
-        $unset: { resetPasswordOTP: "", resetPasswordExpires: "" } 
-      }
-    );
-
-    return res.status(200).json({ success: true, message: "Đổi mật khẩu thành công!" });
-  } catch (error) {
-    console.error("Lỗi:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
-  }
-});
-
-// API quên mật khẩu (đã login) 
-// ========================================================
-// [PRIVATE] 3. YÊU CẦU OTP (KHI ĐÃ LOGIN)
-// ========================================================
-app.post("/profile/change-password/request-otp", checklogin, async (req, res) => {
-  try {
-
-    const { _id, email, name } = req.user; 
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = Date.now() + 5 * 60 * 1000;
-
-    await UserModel.updateOne(
-      { _id: _id },
-      { $set: { resetPasswordOTP: otp, resetPasswordExpires: expires } }
-    );
-
-    const mailOptions = {
-      from: `"WINNOTech Security" <${process.env.EMAIL_USER}>`,
-      to: email, 
-      subject: "[WINNOTech] Mã Đổi Mật Khẩu",
-      html: `<h3>Chào ${name},</h3><p>Mã OTP đổi pass của bạn là: <b style="font-size: 24px; color: red;">${otp}</b></p>`
-    };
-    await transporter.sendMail(mailOptions);
-
-    return res.status(200).json({ success: true, message: "Đã gửi OTP!" });
-  } catch (error) {
-    console.error("Lỗi:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
-  }
-});
-
-// ========================================================
-// [PRIVATE] 4. NHẬP OTP & ĐỔI PASS (KHI ĐÃ LOGIN)
-// ========================================================
-app.post("/profile/change-password/verify", checklogin, async (req, res) => {
-  try {
-    const { otp, newPassword, confirmPassword } = req.body;
-    const userId = req.user._id;
-
-    if (!otp || !newPassword || !confirmPassword) {
-      return res.status(400).json({ success: false, message: "Thiếu thông tin!" });
-    }
-    if (newPassword !== confirmPassword) {
-      return res.status(400).json({ success: false, message: "Mật khẩu không khớp!" });
-    }
-
-    // TỐI ƯU: Đâm thẳng bằng findById, lấy đúng 2 cột cần thiết
-    const user = await UserModel.findById(userId).select('resetPasswordOTP resetPasswordExpires').lean();
-
-    if (user.resetPasswordOTP !== otp) return res.status(400).json({ success: false, message: "Mã OTP sai!" });
-    if (user.resetPasswordExpires < Date.now()) return res.status(400).json({ success: false, message: "OTP hết hạn!" });
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // TỐI ƯU: Dùng $unset để dọn dẹp DB
-    await UserModel.updateOne(
-      { _id: userId },
-      { 
-        $set: { password: hashedPassword },
-        $unset: { resetPasswordOTP: "", resetPasswordExpires: "" } 
-      }
-    );
-
-    return res.status(200).json({ success: true, message: "Bảo mật tài khoản thành công!" });
-  } catch (error) {
-    console.error("Lỗi:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
-  }
-});
-
-app.put("/profile/change-password", checklogin, async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { oldPassword, newPassword, confirmPassword } = req.body;
-
-    if (!oldPassword || !newPassword || !confirmPassword) {
       return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ các trường mật khẩu!" });
     }
     if (newPassword !== confirmPassword) {
@@ -4726,134 +4617,7 @@ app.put("/profile/change-password", checklogin, async (req, res) => {
   }
 });
 
-// ==========================================
-// KHỞI TẠO VNPAY
-// ==========================================
-const vnpay = new VNPay({
-  tmnCode: '6HB2Z3XJ', 
-  secureSecret: '17H264J1LFK5JZGCF08DBXTAUMC4WIO3', 
-  vnpayHost: 'https://sandbox.vnpayment.vn',
-  testMode: true, 
-});
 
-// ==========================================
-// API TẠO ĐƠN & XUẤT MÃ QR VNPAY (CẬP NHẬT THEO PRODUCT VARIANT)
-// ==========================================
-app.post("/api/create-qr", checklogin, async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { items, Name, Phone, Adress, payment_method, voucher_code, voucher_value } = req.body;
-
-    if (!items || items.length === 0) {
-      return res.status(400).json({ success: false, message: "Giỏ hàng trống!" });
-    }
-
-    let subTotal = 0;
-    const orderItemsData = []; 
-
-    for (let item of items) {
-      const variant = await ProductVariantModel.findById(item.variant_id).lean();
-
-      if (!variant || variant.stock_quantity < (item.quantity || item.Quantity)) {
-        return res.status(400).json({
-          success: false,
-          message: `Sản phẩm ${variant ? variant.variant_name : ''} đã hết hàng hoặc không đủ số lượng trong kho!`
-        });
-      }
-
-      const currentPrice = variant.sale_price > 0 ? variant.sale_price : (variant.price || 0);
-      const qty = item.quantity || item.Quantity || 1;
-      subTotal += currentPrice * qty;
-
-      orderItemsData.push({
-        variant_id: variant._id,
-        Quantity: qty,
-        price: currentPrice
-      });
-    }
-
-    // Tính toán Voucher & Phí vận chuyển
-    let discount = 0;
-    let baseShip = subTotal >= 1000000 ? 0 : 30000;
-    let totalAmount = subTotal + baseShip;
-
-    if (voucher_code) {
-      const vDoc = await Voucher.findOne({ code: voucher_code });
-      if (vDoc && vDoc.end_day >= new Date() && vDoc.used_count < vDoc.usage_limit) {
-        const vCalc = calculateVoucherDiscount(vDoc, subTotal, 30000);
-        discount = vCalc.totalDiscount;
-        totalAmount = vCalc.finalTotal;
-      } else if (voucher_value) {
-        discount = Number(voucher_value);
-        totalAmount = Math.max(0, subTotal - discount) + baseShip;
-      }
-    } else if (voucher_value) {
-      discount = Number(voucher_value);
-      totalAmount = Math.max(0, subTotal - discount) + baseShip;
-    }
-
-
-    // ==========================================
-    // 2. TẠO HÓA ĐƠN GỐC (BẢNG ORDER)
-    // ==========================================
-    const orderCode = `WN${moment().format('DDHHmmss')}`;
-
-    const newOrder = await Order.create({
-      user_id: userId,
-      code: orderCode,
-      status: 'pending',
-      Name: Name,
-      Phone: Phone,
-      Adress: Adress, 
-      total_amount: totalAmount,
-      payment_method: payment_method,
-      voucher_code: voucher_code,
-      voucher_value: discount,
-      payment_status: 'unpaid'
-    });
-
-    // ==========================================
-    // 3. TẠO CHI TIẾT HÓA ĐƠN (BẢNG ORDER ITEM)
-    // ==========================================
-    const finalOrderItems = orderItemsData.map(item => ({
-      ...item,
-      order_id: newOrder._id
-    }));
-
-    await OrderItem.insertMany(finalOrderItems);
-
-    // ==========================================
-    // 4. TẠO LINK VÀ MÃ QR VNPAY BẰNG THƯ VIỆN
-    // ==========================================
-    const ipAddr = req.headers['x-forwarded-for'] || req.connection.remoteAddress || '127.0.0.1';
-
-    const paymentUrl = vnpay.buildPaymentUrl({
-      vnp_Amount: totalAmount, 
-      vnp_IpAddr: ipAddr,
-      vnp_TxnRef: orderCode,
-      vnp_OrderInfo: `Thanh toan don hang ${orderCode}`,
-      vnp_OrderType: 'other',
-      vnp_ReturnUrl: 'http://localhost:5173/payment-result', // Link FE nhận kết quả
-    });
-
-    // Tạo QR Code dạng Base64 từ Link VNPay
-    const qrImageBase64 = await QRCode.toDataURL(paymentUrl);
-
-    // ==========================================
-    // 5. TRẢ DỮ LIỆU VỀ FRONTEND
-    // ==========================================
-    return res.status(200).json({
-      success: true,
-      message: "Tạo đơn và mã QR thành công!",
-      qrCode: qrImageBase64,
-      paymentUrl: paymentUrl
-    });
-
-  } catch (error) {
-    console.error("Lỗi tạo QR VNPay:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server, không thể tạo mã QR lúc này" });
-  }
-});
 
 // Route /products/search đã được chuyển lên trước /products/:slug (line ~917)
 // để tránh bị Express match nhầm như một slug.
@@ -5809,6 +5573,323 @@ app.post("/reviews", async (req, res, next) => {
       .json({ success: false, message: "Lỗi Server: " + error.message });
   }
 });
+
+
+// ============================================================
+// VNPAY PAYMENT CONTROLLER & ROUTES
+// ============================================================
+function sortObject(obj) {
+  let sorted = {};
+  let str = [];
+  let key;
+  for (key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      str.push(encodeURIComponent(key));
+    }
+  }
+  str.sort();
+  for (key = 0; key < str.length; key++) {
+    sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+  }
+  return sorted;
+}
+
+const payment = async (req, res) => {
+  try {
+    process.env.TZ = 'Asia/Ho_Chi_Minh';
+    
+    let date = new Date();
+    let createDate = moment(date).format('YYYYMMDDHHmmss');
+    
+    let ipAddr = req.headers['x-forwarded-for'] ||
+        req.connection?.remoteAddress ||
+        req.socket?.remoteAddress ||
+        req.connection?.socket?.remoteAddress || '127.0.0.1';
+
+    let config;
+    try {
+      config = require('config');
+    } catch (e) {
+      config = { get: () => null };
+    }
+    
+    let tmnCode = req.body.tmnCode || (config && config.get ? config.get('vnp_TmnCode') : '') || 'FGJPW2A4';
+    let secretKey = req.body.secretKey || (config && config.get ? config.get('vnp_HashSecret') : '') || 'IQQTBFVCHOXFTGLMITJIGOYAWJANMKYV';
+    let vnpUrl = req.body.vnpUrl || (config && config.get ? config.get('vnp_Url') : '') || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
+    let returnUrl = req.body.returnUrl || (config && config.get ? config.get('vnp_ReturnUrl') : '') || 'http://localhost:3000/order/vnpay_return';
+    
+    let orderId = req.body.orderId || req.body.code;
+    let amount = req.body.amount || 0;
+    let bankCode = req.body.bankCode;
+
+    // Nếu gửi từ Checkout (có items) mà chưa có Order trong DB, tự tạo Order
+    if ((!orderId || !amount) && req.body.items && req.body.items.length > 0) {
+      const userId = req.user ? req.user._id : (req.body.user_id || null);
+      let subTotal = 0;
+      const orderItemsData = [];
+
+      for (let item of req.body.items) {
+        const variant = await ProductVariantModel.findById(item.variant_id).lean();
+        if (variant) {
+          const price = variant.sale_price > 0 ? variant.sale_price : (variant.price || 0);
+          const qty = item.quantity || item.Quantity || 1;
+          subTotal += price * qty;
+          orderItemsData.push({
+            variants_id: variant._id,
+            Quantity: qty,
+            price: price
+          });
+        }
+      }
+
+      let discount = Number(req.body.voucher_value || 0);
+      let baseShip = subTotal >= 1000000 ? 0 : 30000;
+      amount = Math.max(0, subTotal - discount) + baseShip;
+      orderId = `WN${moment(date).format('DDHHmmss')}`;
+
+      const newOrder = await Order.create({
+        user_id: userId,
+        code: orderId,
+        status: 'pending',
+        Name: req.body.Name || 'Khách hàng',
+        Phone: req.body.Phone || '0900000000',
+        Adress: req.body.Adress || 'Hà Nội',
+        total_amount: amount,
+        payment_method: req.body.payment_method || null,
+        voucher_code: req.body.voucher_code || null,
+        voucher_value: discount,
+        payment_status: 'unpaid'
+      });
+
+      const finalOrderItems = orderItemsData.map(item => ({
+        ...item,
+        order_id: newOrder._id
+      }));
+      await OrderItem.insertMany(finalOrderItems);
+    }
+
+    if (!orderId) orderId = `WN${moment(date).format('DDHHmmss')}`;
+    
+    let locale = req.body.language || 'vn';
+    let currCode = 'VND';
+    let vnp_Params = {};
+    vnp_Params['vnp_Version'] = '2.1.0';
+    vnp_Params['vnp_Command'] = 'pay';
+    vnp_Params['vnp_TmnCode'] = tmnCode;
+    vnp_Params['vnp_Locale'] = locale;
+    vnp_Params['vnp_CurrCode'] = currCode;
+    vnp_Params['vnp_TxnRef'] = orderId;
+    vnp_Params['vnp_OrderInfo'] = 'Thanh toan cho ma GD:' + orderId;
+    vnp_Params['vnp_OrderType'] = 'other';
+    vnp_Params['vnp_Amount'] = amount * 100;
+    vnp_Params['vnp_ReturnUrl'] = returnUrl;
+    vnp_Params['vnp_IpAddr'] = ipAddr;
+    vnp_Params['vnp_CreateDate'] = createDate;
+    if (bankCode !== null && bankCode !== undefined && bankCode !== '') {
+      vnp_Params['vnp_BankCode'] = bankCode;
+    }
+
+    vnp_Params = sortObject(vnp_Params);
+
+    let querystring = require('qs');
+    let signData = querystring.stringify(vnp_Params, { encode: false });
+    let hmac = crypto.createHmac("sha512", secretKey);
+    let signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex"); 
+    vnp_Params['vnp_SecureHash'] = signed;
+    vnpUrl += '?' + querystring.stringify(vnp_Params, { encode: false });
+
+    let qrCodeBase64 = null;
+    try {
+      qrCodeBase64 = await QRCode.toDataURL(vnpUrl);
+    } catch (qrErr) {}
+
+    if (req.headers['accept']?.includes('application/json') || req.xhr || req.body.items || req.body.amount) {
+      return res.status(200).json({ success: true, paymentUrl: vnpUrl, vnpUrl, qrCode: qrCodeBase64 });
+    }
+    return res.redirect(vnpUrl);
+  } catch (error) {
+    console.error("Lỗi tạo thanh toán VNPay:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server trong quá trình tạo link thanh toán" });
+  }
+};
+
+const paymentReturn = async (req, res) => {
+  try {
+    let vnp_Params = { ...req.query };
+    let secureHash = vnp_Params['vnp_SecureHash'];
+
+    delete vnp_Params['vnp_SecureHash'];
+    delete vnp_Params['vnp_SecureHashType'];
+
+    vnp_Params = sortObject(vnp_Params);
+
+    let config;
+    try {
+      config = require('config');
+    } catch (e) {
+      config = { get: () => null };
+    }
+    let secretKey = (config && config.get ? config.get('vnp_HashSecret') : '') || "IQQTBFVCHOXFTGLMITJIGOYAWJANMKYV";
+
+    let querystring = require('qs');
+    let signData = querystring.stringify(vnp_Params, { encode: false });
+    let hmac = crypto.createHmac("sha512", secretKey);
+    let signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
+
+    if (secureHash === signed) {
+      const paymentId = vnp_Params['vnp_TxnRef'];
+
+      if (vnp_Params['vnp_ResponseCode'] === "00") {
+        try {
+          const order = await Order.findOne({
+            $or: [
+              { code: paymentId },
+              ...(mongoose.Types.ObjectId.isValid(paymentId) ? [{ _id: paymentId }] : [])
+            ]
+          });
+
+          if (!order) {
+            return res.status(404).json({ message: "Không tìm thấy đơn hàng hoặc đơn hàng đã được xử lý" });
+          }
+
+          // Cập nhật trạng thái thanh toán
+          order.payment_status = "paid";
+          order.status = "preparing";
+
+          // Cập nhật lại số lượng sản phẩm tồn kho sau khi mua hàng
+          const orderItems = await OrderItem.find({ order_id: order._id });
+          for (let item of orderItems) {
+            const variantId = item.variants_id || item.variant_id;
+            if (variantId && item.Quantity) {
+              await ProductVariantModel.findByIdAndUpdate(variantId, {
+                $inc: { stock_quantity: -item.Quantity }
+              });
+            }
+          }
+
+          await order.save();
+
+          // Gửi email thông tin đơn hàng đã đặt
+          const user = await UserModel.findById(order.user_id);
+          if (user && user.email) {
+            try {
+              const mailOptions = {
+                from: '"WINNOTECH" <hquocdong06@gmail.com>',
+                to: user.email,
+                subject: `[WINNOTECH] Xác nhận thanh toán thành công đơn hàng #${order.code}`,
+                html: `
+                  <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                    <h2 style="color: #16A34A;">Thanh toán online thành công!</h2>
+                    <p>Xin chào <strong>${user.name || 'Khách hàng'}</strong>,</p>
+                    <p>Đơn hàng mã <strong>#${order.code}</strong> của bạn đã được thanh toán thành công qua VNPay.</p>
+                    <p>Tổng tiền: <strong>${(order.total_amount || 0).toLocaleString('vi-VN')} VNĐ</strong></p>
+                    <p>Địa chỉ giao hàng: ${order.Adress}</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                    <p style="color: #666; font-size: 12px;">Cảm ơn bạn đã mua sắm tại WINNOTECH!</p>
+                  </div>
+                `
+              };
+              await transporter.sendMail(mailOptions);
+            } catch (mailErr) {
+              console.error("Lỗi gửi email xác nhận thanh toán:", mailErr.message);
+            }
+          }
+
+          if (req.headers['accept']?.includes('text/html') || !req.xhr) {
+            return res.redirect(`http://localhost:5173/payment-result?${querystring.stringify(req.query)}`);
+          }
+          return res.status(200).json("Thanh toán online thành công, chi tiết đơn hàng đã gửi qua mail");
+        } catch (error) {
+          console.error("Lỗi xử lý thanh toán:", error);
+          return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
+        }
+
+      } else if (vnp_Params['vnp_ResponseCode'] === "24") {
+        try {
+          const order = await Order.findOne({
+            $or: [
+              { code: paymentId },
+              ...(mongoose.Types.ObjectId.isValid(paymentId) ? [{ _id: paymentId }] : [])
+            ]
+          });
+
+          if (!order) {
+            return res.status(404).json({ message: "Không tìm thấy đơn hàng hoặc đơn hàng đã được xử lý" });
+          }
+
+          // Cập nhật trạng thái thanh toán
+          order.payment_status = "canceled";
+          await order.save();
+
+          if (req.headers['accept']?.includes('text/html') || !req.xhr) {
+            return res.redirect(`http://localhost:5173/payment-result?${querystring.stringify(req.query)}`);
+          }
+          // Trả về kết quả cho client
+          return res.status(200).json("Hủy thanh toán thành công");
+        } catch (error) {
+          console.error("Lỗi xử lý thanh toán:", error);
+          return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
+        }
+
+      } else {
+        try {
+          const order = await Order.findOne({
+            $or: [
+              { code: paymentId },
+              ...(mongoose.Types.ObjectId.isValid(paymentId) ? [{ _id: paymentId }] : [])
+            ]
+          });
+
+          if (!order) {
+            return res.status(404).json({ message: "Không tìm thấy đơn hàng hoặc đơn hàng đã được xử lý" });
+          }
+
+          // Cập nhật trạng thái thanh toán
+          order.payment_status = "failed";
+          await order.save();
+
+          if (req.headers['accept']?.includes('text/html') || !req.xhr) {
+            return res.redirect(`http://localhost:5173/payment-result?${querystring.stringify(req.query)}`);
+          }
+          // Trả về kết quả cho VNPAY
+          return res.status(500).json("Thanh toán online không thành công, xin mời bạn đặt hàng lại ");
+        } catch (error) {
+          console.error("Lỗi xử lý thanh toán:", error);
+          return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
+        }
+      }
+
+    } else {
+      console.error("Chữ ký VNPay không khớp!");
+      if (req.headers['accept']?.includes('text/html') || !req.xhr) {
+        return res.redirect(`http://localhost:5173/payment-result?vnp_ResponseCode=97&vnp_TxnRef=${vnp_Params['vnp_TxnRef'] || ''}`);
+      }
+      return res.status(400).json({ code: '97', message: "Chữ ký không hợp lệ" });
+    }
+  } catch (error) {
+    console.error("Lỗi callback VNPay return:", error);
+    return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
+  }
+};
+
+app.post("/create_payment_url", payment);
+app.post("/order/create_payment_url", payment);
+app.post("/api/create-qr", payment);
+app.get("/order/vnpay_return", paymentReturn);
+app.get("/vnpay_return", paymentReturn);
+app.use("/order", require("./routers/order"));
+
+// ============================================================
+// AI CHATBOT ROUTER
+// ============================================================
+app.use("/api/chatbot", require("./routers/AI_chatbot"));
+
+app.listen(port, () => {
+  console.log(`Server started on port ${port}`);
+  fixCartItemsInDB();
+});
+
+
 
 // ============================================================
 // AI CHATBOT ROUTER
