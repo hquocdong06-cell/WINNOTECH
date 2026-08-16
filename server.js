@@ -999,93 +999,118 @@ app.get("/products/home/featured", async (req, res) => {
 });
 
 // ============================================================
-// dev fresher - REAL-TIME FLASH SALE API (Đếm ngược cố định đúng 8:00:00 tròn liên tục mỗi phiên)
+// dev fresher - REAL-TIME FLASH SALE API & ADMIN MANAGEMENT
 // ============================================================
-let flashSaleSessionStart = Date.now();
-const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000; // 28,800,000 ms = 8 tiếng tròn
+const FlashSaleSetting = require("./models/FlashSaleSetting");
 
-function getFlashSaleSessionRemainingSeconds() {
-  const now = Date.now();
-  // Khi đếm hết 8 tiếng (00:00:00) -> Tự động khởi tạo lại phiên sale 8 tiếng mới
-  if (now - flashSaleSessionStart >= EIGHT_HOURS_MS) {
-    flashSaleSessionStart = now;
+async function getOrCreateFlashSaleSetting() {
+  let setting = await FlashSaleSetting.findOne();
+  if (!setting) {
+    setting = new FlashSaleSetting({
+      durationSeconds: 28800,
+      status: "active",
+      customProductIds: [],
+      sessionStartMs: Date.now(),
+    });
+    await setting.save();
   }
-  const elapsedMs = now - flashSaleSessionStart;
-  return Math.max(0, Math.floor((EIGHT_HOURS_MS - elapsedMs) / 1000));
+  return setting;
 }
 
+// 1. PUBLIC API GET FLASH SALE (Trang chủ)
 app.get(["/products/home/flash-sale", "/api/products/flash-sale"], async (req, res) => {
   try {
-    // 1. LẤY SỐ GIÂY ĐẾM NGƯỢC CỦA PHIÊN 8 TIẾNG TRÒN
-    const remainingSeconds = getFlashSaleSessionRemainingSeconds();
-    const startTime = new Date(flashSaleSessionStart);
-    const endTime = new Date(flashSaleSessionStart + EIGHT_HOURS_MS);
+    const setting = await getOrCreateFlashSaleSetting();
 
-    // 2. TÍNH LƯỢT BÁN (SOLD COUNT) CỦA CÁC SẢN PHẨM TRONG HỆ THỐNG
-    const products = await ProductModel.find({ status: "active" }).lean();
-    if (!products || products.length === 0) {
+    // Nếu admin TẮT hoàn toàn section này -> Ẩn khỏi giao diện
+    if (setting.status === "disabled") {
       return res.status(200).json({
         success: true,
+        active: false,
+        message: "Section Flash Sale hiện đang bị tắt bởi Admin",
         sessionInfo: {
-          startTime,
-          endTime,
-          remainingSeconds
+          remainingSeconds: 0,
         },
-        data: []
+        data: [],
       });
     }
 
-    const productIds = products.map((p) => p._id);
-    const variants = await ProductVariantModel.find({ p_id: { $in: productIds } }).lean();
+    // Tính thời gian đếm ngược dựa trên durationSeconds (tối đa 8 tiếng = 28,800s)
+    const maxDurationMs = Math.min(setting.durationSeconds || 28800, 28800) * 1000;
+    const now = Date.now();
+    let elapsedMs = now - (setting.sessionStartMs || now);
+    if (elapsedMs >= maxDurationMs) {
+      setting.sessionStartMs = now;
+      await setting.save();
+      elapsedMs = 0;
+    }
+    const remainingSeconds = Math.max(0, Math.floor((maxDurationMs - elapsedMs) / 1000));
+    const startTime = new Date(setting.sessionStartMs);
+    const endTime = new Date(setting.sessionStartMs + maxDurationMs);
 
-    const variantToProductMap = {};
-    const variantIds = [];
-    variants.forEach((v) => {
-      variantToProductMap[v._id.toString()] = v.p_id.toString();
-      variantIds.push(v._id);
-    });
+    let selectedProducts = [];
 
-    const orderItems = await OrderItem.find({ variants_id: { $in: variantIds } }).lean();
-    const productSalesMap = {};
-    orderItems.forEach((item) => {
-      if (item.variants_id) {
-        const pId = variantToProductMap[item.variants_id.toString()];
-        if (pId) {
-          productSalesMap[pId] = (productSalesMap[pId] || 0) + (item.Quantity || 0);
+    // Nếu admin cấu hình CHỌN TỰ TAY đúng 5 sản phẩm
+    if (setting.customProductIds && setting.customProductIds.length === 5) {
+      selectedProducts = await ProductModel.find({
+        _id: { $in: setting.customProductIds },
+        status: "active",
+      }).lean();
+    }
+
+    // Nếu chưa chọn đủ 5 sản phẩm tự tay -> Lấy tự động TOP 5 sản phẩm có lượt bán thấp nhất
+    if (selectedProducts.length < 5) {
+      const products = await ProductModel.find({ status: "active" }).lean();
+      const productIds = products.map((p) => p._id);
+      const variants = await ProductVariantModel.find({ p_id: { $in: productIds } }).lean();
+
+      const variantToProductMap = {};
+      const variantIds = [];
+      variants.forEach((v) => {
+        variantToProductMap[v._id.toString()] = v.p_id.toString();
+        variantIds.push(v._id);
+      });
+
+      const orderItems = await OrderItem.find({ variants_id: { $in: variantIds } }).lean();
+      const productSalesMap = {};
+      orderItems.forEach((item) => {
+        if (item.variants_id) {
+          const pId = variantToProductMap[item.variants_id.toString()];
+          if (pId) {
+            productSalesMap[pId] = (productSalesMap[pId] || 0) + (item.Quantity || 0);
+          }
         }
-      }
-    });
+      });
 
-    // 3. LẮP LƯỢT BÁN VÀ SẮP XẾP LẤY TOP 5 SẢN PHẨM BÁN THẤP NHẤT
-    const productsWithSales = products.map((p) => {
-      const pIdStr = p._id.toString();
-      const soldCount = productSalesMap[pIdStr] || p.sold_quantity || p.buyturn || 0;
-      return {
+      const productsWithSales = products.map((p) => {
+        const pIdStr = p._id.toString();
+        const soldCount = productSalesMap[pIdStr] || p.sold_quantity || p.buyturn || 0;
+        return {
+          ...p,
+          sold_count: soldCount,
+        };
+      });
+
+      productsWithSales.sort((a, b) => a.sold_count - b.sold_count);
+      selectedProducts = productsWithSales.slice(0, 5);
+    } else {
+      selectedProducts = selectedProducts.map(p => ({
         ...p,
-        sold_count: soldCount
-      };
-    });
+        sold_count: p.sold_quantity || p.buyturn || 0
+      }));
+    }
 
-    // Sắp xếp tăng dần theo sold_count (sản phẩm bán ít nhất lên đầu)
-    productsWithSales.sort((a, b) => a.sold_count - b.sold_count);
-
-    // Giới hạn đúng 5 sản phẩm theo yêu cầu đề bài
-    const top5LowestSoldProducts = productsWithSales.slice(0, 5);
-
-    // 4. BỔ SUNG ẢNH, BIẾN THỂ VÀ MỨC GIẢM GIÁ FLASH SALE (25% - 35%)
-    const selectedProductIds = top5LowestSoldProducts.map((p) => p._id);
+    const selectedProductIds = selectedProducts.map((p) => p._id);
     const images = await ImageModel.find({ p_id: { $in: selectedProductIds } }).lean();
-    const selectedVariants = variants.filter((v) =>
-      selectedProductIds.some((id) => id.toString() === v.p_id.toString())
-    );
+    const variants = await ProductVariantModel.find({ p_id: { $in: selectedProductIds } }).lean();
+    const variantAttrMap = await getVariantAttributeMap(variants.map((v) => v._id));
 
-    const variantAttrMap = await getVariantAttributeMap(selectedVariants.map((v) => v._id));
-    const variantsWithAttributes = selectedVariants.map((v) => ({
+    const variantsWithAttributes = variants.map((v) => ({
       ...v,
       Attributes: variantAttrMap[v._id.toString()] || [],
     }));
 
-    const finalFlashSaleProducts = top5LowestSoldProducts.map((product) => {
+    const finalFlashSaleProducts = selectedProducts.slice(0, 5).map((product) => {
       const productIdStr = product._id.toString();
       const flashDiscountPercent = product.sale && product.sale > 0 ? Math.max(product.sale, 25) : 25;
 
@@ -1099,20 +1124,141 @@ app.get(["/products/home/flash-sale", "/api/products/flash-sale"], async (req, r
 
     return res.status(200).json({
       success: true,
-      message: "Lấy danh sách 5 sản phẩm Flash Sale 8 giờ thành công",
+      active: true,
+      message: "Lấy danh sách 5 sản phẩm Flash Sale thành công",
       sessionInfo: {
         startTime,
         endTime,
         remainingSeconds,
+        durationSeconds: setting.durationSeconds,
       },
       data: finalFlashSaleProducts,
     });
   } catch (error) {
-    console.error("Lỗi API Flash Sale 8h:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Lỗi Server, không thể lấy danh sách Flash Sale",
+    console.error("Lỗi API Flash Sale:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 2. ADMIN GET FLASH SALE SETTINGS
+app.get("/api/admin/flash-sale", async (req, res) => {
+  try {
+    const setting = await getOrCreateFlashSaleSetting();
+    const allProducts = await ProductModel.find({ status: "active" }).select("_id name price thumnail").lean();
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        durationSeconds: setting.durationSeconds,
+        status: setting.status,
+        customProductIds: setting.customProductIds || [],
+        sessionStartMs: setting.sessionStartMs,
+      },
+      allProducts,
     });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 3. ADMIN PUT FLASH SALE SETTINGS
+app.put("/api/admin/flash-sale", async (req, res) => {
+  try {
+    const { durationSeconds, status, customProductIds } = req.body;
+    const setting = await getOrCreateFlashSaleSetting();
+
+    if (durationSeconds !== undefined) {
+      const parsedDuration = parseInt(durationSeconds);
+      if (isNaN(parsedDuration) || parsedDuration <= 0 || parsedDuration > 28800) {
+        return res.status(400).json({
+          success: false,
+          message: "Thời gian Flash Sale phải từ 1 giây đến tối đa 8 tiếng (28,800 giây)!",
+        });
+      }
+      setting.durationSeconds = parsedDuration;
+      setting.sessionStartMs = Date.now();
+    }
+
+    if (status) {
+      if (!["active", "disabled"].includes(status)) {
+        return res.status(400).json({ success: false, message: "Trạng thái không hợp lệ (chỉ active hoặc disabled)!" });
+      }
+      setting.status = status;
+    }
+
+    if (customProductIds !== undefined) {
+      if (!Array.isArray(customProductIds)) {
+        return res.status(400).json({ success: false, message: "Danh sách sản phẩm tùy chỉnh không hợp lệ!" });
+      }
+      if (customProductIds.length > 0 && customProductIds.length !== 5) {
+        return res.status(400).json({
+          success: false,
+          message: "Nếu chọn sản phẩm thủ công, bạn BẮT BUỘC phải chọn ĐỦ ĐÚNG 5 sản phẩm!",
+        });
+      }
+      setting.customProductIds = customProductIds;
+    }
+
+    await setting.save();
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật cấu hình Flash Sale thành công!",
+      data: setting,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ============================================================
+// dev fresher - BUILD PC COMPONENTS & SEARCH API
+// ============================================================
+app.get(["/api/buildpc/components", "/api/products/build-pc"], async (req, res) => {
+  try {
+    const { category, search } = req.query;
+    let categoryFilter = {};
+
+    if (category) {
+      const cat = await CategoryModel.findOne({ slug: category });
+      if (cat) {
+        categoryFilter.cat_id = cat._id;
+      }
+    }
+
+    let searchQuery = { status: "active", ...categoryFilter };
+
+    if (search && search.trim()) {
+      searchQuery.name = { $regex: search.trim(), $options: "i" };
+    }
+
+    const products = await ProductModel.find(searchQuery).lean();
+    const productIds = products.map((p) => p._id);
+    const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
+    const variants = await ProductVariantModel.find({ p_id: { $in: productIds } }).lean();
+    const variantAttrMap = await getVariantAttributeMap(variants.map((v) => v._id));
+
+    const variantsWithAttributes = variants.map((v) => ({
+      ...v,
+      Attributes: variantAttrMap[v._id.toString()] || [],
+    }));
+
+    const result = products.map((p) => {
+      const pIdStr = p._id.toString();
+      return {
+        ...p,
+        AnhSP: images.filter((img) => img.p_id.toString() === pIdStr),
+        Variants: variantsWithAttributes.filter((v) => v.p_id.toString() === pIdStr),
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: result.length,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Lỗi API Build PC Components:", error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 

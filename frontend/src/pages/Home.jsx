@@ -314,6 +314,7 @@ export default function Home() {
   const [newProducts, setNewProducts]           = useState([])  // Hàng mới
   const [saleProducts, setSaleProducts]         = useState([])  // Giảm giá
   const [flashSaleProducts, setFlashSaleProducts] = useState([])  // Flash Sale 8h
+  const [isFlashSaleActive, setIsFlashSaleActive] = useState(true)
   const [flashSaleRemainingSeconds, setFlashSaleRemainingSeconds] = useState(28800)
   const [allProducts, setAllProducts]           = useState([])  // Toàn bộ sản phẩm phục vụ tìm kiếm
   const [categories, setCategories]             = useState([])
@@ -467,15 +468,21 @@ export default function Home() {
       .finally(() => setLoadingCategories(false))
   }, [])
 
-  // ── Fetch Flash Sale 8h (Top 5 sản phẩm bán thấp nhất) ──
+  // ── Fetch Flash Sale 8h (Top 5 sản phẩm bán thấp nhất hoặc tùy chỉnh) ──
   useEffect(() => {
     setLoadingFlashSale(true)
     productAPI.getFlashSale()
       .then(res => {
-        if (res.success && res.data) {
-          setFlashSaleProducts(res.data.slice(0, 5))
-          if (res.sessionInfo && res.sessionInfo.remainingSeconds !== undefined) {
-            setFlashSaleRemainingSeconds(res.sessionInfo.remainingSeconds)
+        if (res.success) {
+          if (res.active === false) {
+            setIsFlashSaleActive(false)
+            setFlashSaleProducts([])
+          } else if (res.data) {
+            setIsFlashSaleActive(true)
+            setFlashSaleProducts(res.data.slice(0, 5))
+            if (res.sessionInfo && res.sessionInfo.remainingSeconds !== undefined) {
+              setFlashSaleRemainingSeconds(res.sessionInfo.remainingSeconds)
+            }
           }
         }
       })
@@ -668,8 +675,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── 🔥 FLASH SALE 8H REAL-TIME (TOP 5 SẢN PHẨM BÁN THẤP NHẤT) ── */}
-      {!searchQuery && (
+      {/* ── 🔥 FLASH SALE 8H REAL-TIME (TOP 5 SẢN PHẨM BÁN THẤP NHẤT HẶC TÙY CHỈNH) ── */}
+      {!searchQuery && isFlashSaleActive && flashSaleProducts.length > 0 && (
         <section className="flash-sale-section">
           <div className="section-inner">
             <div className="flash-sale-container">
