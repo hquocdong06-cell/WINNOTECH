@@ -323,7 +323,8 @@ export default function Checkout() {
 
   // ── Voucher ──
   const [voucherCode, setVoucherCode] = useState('')
-  const [voucherInfo, setVoucherInfo] = useState(null)   // { discount: number, code: string, msg: string }
+  // voucherInfo: { code, productDiscount, shippingDiscount, msg, isFreeShip, isShipOnly }
+  const [voucherInfo, setVoucherInfo] = useState(null)
   const [voucherError, setVoucherError] = useState('')
   const [voucherChecking, setVoucherChecking] = useState(false)
 
@@ -343,9 +344,13 @@ export default function Checkout() {
                   (item.variant?.sale_price > 0 ? item.variant.sale_price : (item.variant?.price || item.cartItem?.price || 0))
     return s + price * (item.cartItem?.quantity || 1)
   }, 0)
-  const discount = voucherInfo?.discount || 0
-  const shipping = subtotal >= 1000000 ? 0 : 30000
-  const total = subtotal - discount + shipping
+  const baseShipping = subtotal >= 1000000 ? 0 : 30000
+  const productDiscount = voucherInfo?.productDiscount || 0
+  const shippingDiscount = voucherInfo?.shippingDiscount || 0
+  // Tổng giảm giá gộp (dùng cho hiển thị legacy)
+  const discount = productDiscount + shippingDiscount
+  const shipping = Math.max(0, baseShipping - shippingDiscount)
+  const total = subtotal - productDiscount + shipping
 
   // ── Áp dụng voucher ──
   const handleApplyVoucher = async () => {
@@ -357,19 +362,68 @@ export default function Checkout() {
       const data = await voucherAPI.check(voucherCode.trim())
       if (data.success && data.data) {
         const v = data.data
-        // Tính giảm giá thực tế
-        let discountAmt = 0
-        if (v.discount_type === 'percent') {
-          discountAmt = Math.round(subtotal * v.discount_value / 100)
-        } else {
-          discountAmt = v.discount_value || 0
-        }
+        const code = (v.code || voucherCode).toUpperCase()
+
+        // Kiểm tra đơn tối thiểu
         if (v.min_order > 0 && subtotal < v.min_order) {
           setVoucherError(`Đơn hàng tối thiểu ${v.min_order.toLocaleString('vi-VN')}đ để dùng mã này`)
-          setVoucherInfo(null)
-        } else {
-          setVoucherInfo({ discount: discountAmt, code: v.code, msg: `Áp dụng thành công — Giảm ${discountAmt.toLocaleString('vi-VN')}đ` })
+          return
         }
+
+        // ── Phân loại voucher theo tên ──────────────────────────────────────
+        // FRS___: Free ship hoàn toàn + giảm sản phẩm theo giá trị voucher
+        const isFRS  = code.includes('FRS')
+        // SHIP__ / FREESHIP: Chỉ giảm phí ship, không giảm sản phẩm
+        const isSHIP = !isFRS && (code.includes('SHIP') || code.includes('FREESHIP'))
+
+        let productDiscount = 0
+        let shippingDiscount = 0
+        let msgParts = []
+
+        if (isFRS) {
+          // Freeship hoàn toàn (ship về 0)
+          shippingDiscount = baseShipping  // = toàn bộ phí ship
+          // Giảm sản phẩm theo discount_type / discount_value của voucher
+          if (v.discount_type === 'percent') {
+            productDiscount = Math.round(subtotal * (v.discount_value || 0) / 100)
+          } else {
+            productDiscount = Math.min(subtotal, v.discount_value || 0)
+          }
+          msgParts.push('Miễn phí vận chuyển 🚚')
+          if (productDiscount > 0)
+            msgParts.push(`Giảm sản phẩm ${productDiscount.toLocaleString('vi-VN')}đ`)
+        } else if (isSHIP) {
+          // Chỉ giảm phí ship
+          if (v.discount_type === 'percent') {
+            shippingDiscount = Math.round(baseShipping * (v.discount_value || 0) / 100)
+          } else {
+            shippingDiscount = Math.min(baseShipping, v.discount_value || 0)
+          }
+          productDiscount = 0
+          const afterShip = Math.max(0, baseShipping - shippingDiscount)
+          msgParts.push(
+            shippingDiscount >= baseShipping
+              ? 'Miễn phí vận chuyển 🚚'
+              : `Giảm ship ${shippingDiscount.toLocaleString('vi-VN')}đ (còn ${afterShip.toLocaleString('vi-VN')}đ)`
+          )
+        } else {
+          // Voucher thông thường: chỉ giảm sản phẩm
+          if (v.discount_type === 'percent') {
+            productDiscount = Math.round(subtotal * (v.discount_value || 0) / 100)
+          } else {
+            productDiscount = Math.min(subtotal, v.discount_value || 0)
+          }
+          msgParts.push(`Giảm ${productDiscount.toLocaleString('vi-VN')}đ`)
+        }
+
+        setVoucherInfo({
+          code,
+          productDiscount,
+          shippingDiscount,
+          isFRS,
+          isSHIP,
+          msg: `✓ Áp dụng thành công — ${msgParts.join(' + ')}`,
+        })
       } else {
         setVoucherError(data.message || 'Mã không hợp lệ')
       }
@@ -855,13 +909,35 @@ export default function Checkout() {
                 <span className="label">Tạm tính</span>
                 <span className="value">{fmt(subtotal)}</span>
               </div>
+
+              {/* Giảm giá sản phẩm (chỉ hiện khi có) */}
+              {productDiscount > 0 && (
+                <div className="co-total-row">
+                  <span className="label">
+                    Giảm sản phẩm
+                    {voucherInfo && <span style={{ fontSize: '10px', color: '#d4ff00', fontFamily: 'monospace', marginLeft: '4px' }}>({voucherInfo.code})</span>}
+                  </span>
+                  <span className="value discount">-{fmt(productDiscount)}</span>
+                </div>
+              )}
+
+              {/* Phí vận chuyển — hiện giảm ship nếu có */}
               <div className="co-total-row">
-                <span className="label">Giảm giá {voucherInfo && <span style={{ fontSize: '10px', color: '#d4ff00', fontFamily: 'monospace' }}>({voucherInfo.code})</span>}</span>
-                <span className="value discount">-{fmt(discount)}</span>
-              </div>
-              <div className="co-total-row">
-                <span className="label">Phí vận chuyển</span>
-                <span className="value free">{shipping === 0 ? 'Miễn phí' : fmt(shipping)}</span>
+                <span className="label">Phí vận chuyển
+                  {shippingDiscount > 0 && baseShipping > 0 && (
+                    <span style={{ fontSize: '10px', color: '#d4ff00', marginLeft: '4px' }}>
+                      ({voucherInfo?.isFRS || shippingDiscount >= baseShipping ? 'FREESHIP' : `-${fmt(shippingDiscount)}`})
+                    </span>
+                  )}
+                </span>
+                <span className="value free">
+                  {shipping === 0 ? 'Miễn phí' : fmt(shipping)}
+                  {shippingDiscount > 0 && baseShipping > 0 && shipping > 0 && (
+                    <span style={{ textDecoration: 'line-through', color: '#555', fontSize: '11px', marginLeft: '6px' }}>
+                      {fmt(baseShipping)}
+                    </span>
+                  )}
+                </span>
               </div>
             </div>
 
