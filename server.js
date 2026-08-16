@@ -259,6 +259,26 @@ const uploadAvatar = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
+// Cấu hình upload riêng cho Banner: lưu vào public/images/banners
+const bannerStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const bannerUploadDir = path.join(__dirname, "public", "images", "banners");
+    fs.mkdirSync(bannerUploadDir, { recursive: true });
+    cb(null, bannerUploadDir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    const uniqueName = "banner_" + Date.now() + "_" + Math.round(Math.random() * 1e6) + ext;
+    cb(null, uniqueName);
+  },
+});
+
+const uploadBanner = multer({
+  storage: bannerStorage,
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
 var cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 var session = require("express-session");
@@ -5878,6 +5898,145 @@ app.post("/api/create-qr", payment);
 app.get("/order/vnpay_return", paymentReturn);
 app.get("/vnpay_return", paymentReturn);
 app.use("/order", require("./routers/order"));
+
+// ============================================================
+// BANNER MANAGEMENT APIs
+// ============================================================
+
+// Upload Banner Image
+app.post("/admin/banners/upload", uploadBanner.single("image"), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Không tìm thấy file ảnh" });
+    }
+    const imageUrl = `/public/images/banners/${req.file.filename}`;
+    return res.status(200).json({ success: true, url: imageUrl });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Get all banners (ordered by position ascending)
+app.get(["/admin/banners", "/api/banners"], async (req, res) => {
+  try {
+    const banners = await Banner.find({}).sort({ position: 1, createdAt: -1 }).lean();
+    return res.status(200).json({ success: true, data: banners });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Add new banner (unique name check)
+app.post("/admin/banners", uploadBanner.single("imageFile"), async (req, res) => {
+  try {
+    let { name, image, position, status, link } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: "Tên banner không được để trống" });
+    }
+
+    const trimmedName = name.trim();
+
+    // Kiểm tra trùng tên banner (không phân biệt hoa thường)
+    const existing = await Banner.findOne({
+      name: { $regex: new RegExp(`^${trimmedName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') }
+    });
+
+    if (existing) {
+      return res.status(400).json({ success: false, message: `Tên banner "${trimmedName}" đã tồn tại trong hệ thống!` });
+    }
+
+    if (req.file) {
+      image = `/public/images/banners/${req.file.filename}`;
+    }
+
+    const newBanner = new Banner({
+      name: trimmedName,
+      image: image || "",
+      position: Number(position) || 0,
+      status: status || "active",
+      link: link || "",
+    });
+
+    await newBanner.save();
+    return res.status(201).json({ success: true, data: newBanner, message: "Thêm banner mới thành công" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Update banner (allows uploading new image, editing position, name, status)
+app.put("/admin/banners/:id", uploadBanner.single("imageFile"), async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { name, image, position, status, link } = req.body;
+
+    const banner = await Banner.findById(id);
+    if (!banner) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy banner" });
+    }
+
+    if (name && name.trim()) {
+      const trimmedName = name.trim();
+      // Kiểm tra trùng tên với các banner khác
+      const existing = await Banner.findOne({
+        _id: { $ne: id },
+        name: { $regex: new RegExp(`^${trimmedName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') }
+      });
+
+      if (existing) {
+        return res.status(400).json({ success: false, message: `Tên banner "${trimmedName}" đã tồn tại!` });
+      }
+      banner.name = trimmedName;
+    }
+
+    if (req.file) {
+      banner.image = `/public/images/banners/${req.file.filename}`;
+    } else if (image !== undefined) {
+      banner.image = image;
+    }
+
+    if (position !== undefined) {
+      banner.position = Number(position) || 0;
+    }
+
+    if (status !== undefined) {
+      banner.status = status;
+    }
+
+    if (link !== undefined) {
+      banner.link = link;
+    }
+
+    await banner.save();
+    return res.status(200).json({ success: true, data: banner, message: "Cập nhật banner thành công" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Toggle banner status between 'active' and 'hidden'
+app.patch(["/admin/banners/:id/status", "/api/banners/:id/status"], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const banner = await Banner.findById(id);
+    if (!banner) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy banner" });
+    }
+
+    const nextStatus = banner.status === "active" ? "hidden" : "active";
+    banner.status = nextStatus;
+    await banner.save();
+
+    return res.status(200).json({
+      success: true,
+      data: banner,
+      message: `Đã chuyển trạng thái banner sang ${nextStatus === 'active' ? 'Hiển thị (Active)' : 'Ẩn (Hidden)'}`
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 // ============================================================
 // AI CHATBOT ROUTER

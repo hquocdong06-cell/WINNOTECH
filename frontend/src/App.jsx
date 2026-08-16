@@ -23,6 +23,7 @@ import AdminLayout from './admin/layouts/AdminLayout'
 import Dashboard from './admin/pages/Dashboard'
 import Products from './admin/pages/Products'
 import Categories from './admin/pages/Categories'
+import Banners from './admin/pages/Banners'
 import Orders from './admin/pages/Orders'
 import Customers from './admin/pages/Customers'
 import Reviews from './admin/pages/Reviews'
@@ -74,6 +75,7 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="products" element={<Products />} />
           <Route path="categories" element={<Categories />} />
+          <Route path="banners" element={<Banners />} />
           <Route path="orders" element={<Orders />} />
           <Route path="customers" element={<Customers />} />
           <Route path="reviews" element={<Reviews />} />
