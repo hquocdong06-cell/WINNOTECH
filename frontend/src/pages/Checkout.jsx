@@ -474,7 +474,6 @@ if (v.min_order > 0 && subtotal < v.min_order) {
           isSHIP,
           msg,
         })
-        })
       } else {
         setVoucherError(data.message || 'Mã không hợp lệ')
       }
@@ -987,9 +986,6 @@ if (v.min_order > 0 && subtotal < v.min_order) {
                     </span>
                   ) : (
                     shipping === 0 ? 'Miễn phí' : fmt(shipping)
-                  )}
-                </span>
-              </div>
                   )}
                 </span>
               </div>
