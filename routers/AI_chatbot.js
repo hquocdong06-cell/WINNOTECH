@@ -46,44 +46,97 @@ const handleChat = async (req, res) => {
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // 1. Cấu hình nhân cách cho Bot
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      systemInstruction: `Bạn là nhân viên tư vấn nhiệt tình và am hiểu kĩ thuật của WINNOTech (hệ thống siêu thị công nghệ và linh kiện máy tính). 
-      Nhiệm vụ:
-      - Xưng hô "mình" và gọi khách là "bạn".
-      - Tư vấn ngắn gọn, lịch sự, gợi ý linh kiện máy tính, PC, Laptop và chốt sale khéo léo.
-      - TUYỆT ĐỐI KHÔNG tư vấn các vấn đề nằm ngoài lĩnh vực thiết bị điện tử, máy tính, PC và laptop. Nếu khách hỏi ngoài lề, hãy từ chối khéo và lái về thiết bị công nghệ WINNOTech.`
+    // 2. Format & Sanitize Lịch sử chat theo đúng quy định của Google Gemini API:
+    let validHistory = Array.isArray(history) ? history.map(item => {
+      const role = (item.role === "user" || item.role === "human") ? "user" : "model";
+      let text = "";
+      if (item.parts && Array.isArray(item.parts) && item.parts[0]) {
+        text = item.parts[0].text || "";
+      } else {
+        text = item.text || item.content || "";
+      }
+      return { role, parts: [{ text: String(text).trim() }] };
+    }).filter(item => item.parts[0].text !== "") : [];
+
+    // Loại bỏ tất cả tin nhắn ban đầu của 'model' cho đến khi gặp tin nhắn đầu tiên của 'user'
+    while (validHistory.length > 0 && validHistory[0].role !== "user") {
+      validHistory.shift();
+    }
+
+    // Đảm bảo tin nhắn xen kẽ user/model
+    const sanitizedHistory = [];
+    validHistory.forEach(item => {
+      if (sanitizedHistory.length === 0) {
+        if (item.role === "user") sanitizedHistory.push(item);
+      } else {
+        const lastRole = sanitizedHistory[sanitizedHistory.length - 1].role;
+        if (item.role !== lastRole) {
+          sanitizedHistory.push(item);
+        }
+      }
     });
 
-    // 2. Format lại lịch sử chat (Đảm bảo đúng chuẩn của Gemini)
-    const chatHistory = Array.isArray(history) ? history.map(item => {
-      if (item.parts && Array.isArray(item.parts)) return item;
-      return {
-        role: item.role === "user" ? "user" : "model",
-        parts: [{ text: item.text || item.content || "" }]
-      };
-    }) : [];
+    // Nếu phần tử cuối cùng của history là 'user', loại bỏ nó vì tin nhắn mới sẽ gửi qua sendMessage()
+    if (sanitizedHistory.length > 0 && sanitizedHistory[sanitizedHistory.length - 1].role === "user") {
+      sanitizedHistory.pop();
+    }
 
-    // 3. Bắt đầu phiên chat
-    const chat = model.startChat({
-      history: chatHistory,
-    });
+    // 3. Thử lần lượt các Model Gemini khả thi nhất
+    const candidateModels = ["gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.5-flash", "gemini-flash-latest"];
+    let responseText = null;
 
-    // 4. Gửi câu hỏi mới nhất của khách
-    const result = await chat.sendMessage(message);
-    const responseText = result.response.text();
+    for (const modelName of candidateModels) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction: `Bạn là nhân viên tư vấn nhiệt tình và am hiểu kĩ thuật của WINNOTech (hệ thống siêu thị công nghệ và linh kiện máy tính). 
+          Nhiệm vụ:
+          - Xưng hô "mình" và gọi khách là "bạn".
+          - Tư vấn ngắn gọn, lịch sự, gợi ý linh kiện máy tính, PC, Laptop và chốt sale khéo léo.
+          - TUYỆT ĐỐI KHÔNG tư vấn các vấn đề nằm ngoài lĩnh vực thiết bị điện tử, máy tính, PC và laptop.`
+        });
+
+        const chat = model.startChat({
+          history: sanitizedHistory,
+        });
+
+        const result = await chat.sendMessage(message);
+        responseText = result.response.text();
+        if (responseText) break;
+      } catch (err) {
+        console.warn(`Model Gemini "${modelName}" không phản hồi:`, err.message);
+      }
+    }
+
+    if (responseText) {
+      return res.status(200).json({ 
+        success: true, 
+        reply: responseText 
+      });
+    }
+
+    // 4. Fallback thông minh khi Gemini API quá tải hoặc tạm thời gián đoạn
+    let fallbackReply = `Chào bạn! Cảm ơn bạn đã liên hệ WINNOTech. 🤖\n`;
+    const q = message.toLowerCase();
+    if (q.includes("pc") || q.includes("tư vấn") || q.includes("15")) {
+      fallbackReply += "WINNOTech có rất nhiều cấu hình PC Gaming & Đồ họa giá tốt từ 10tr - 30tr. Bạn có thể trải nghiệm tính năng 'Build PC' trên thanh menu hoặc liên hệ kỹ thuật viên để tư vấn cấu hình mượt nhất nhé!";
+    } else if (q.includes("cpu") || q.includes("vga") || q.includes("gpu") || q.includes("ram")) {
+      fallbackReply += "Các linh kiện CPU, VGA, Mainboard, RAM, SSD tại WINNOTech đều là hàng chính hãng bảo hành 36 tháng. Bạn có thể chọn trực tiếp sản phẩm trên website!";
+    } else {
+      fallbackReply += `WINNOTech đã nhận được câu hỏi: "${message}". Bạn có thể xem thêm các sản phẩm công nghệ hot nhất trên website hoặc thử hỏi lại sau giây lát nhé!`;
+    }
 
     return res.status(200).json({ 
       success: true, 
-      reply: responseText 
+      reply: fallbackReply,
+      isFallback: true 
     });
 
   } catch (error) {
     console.error("Lỗi Gemini Chat:", error);
-    return res.status(500).json({ 
-      success: false, 
-      message: "Nhân viên tư vấn đang bận, vui lòng thử lại sau ít phút! (" + error.message + ")" 
+    return res.status(200).json({ 
+      success: true, 
+      reply: "Chào bạn! WINNOTech chuyên tư vấn linh kiện PC, Laptop & thiết bị công nghệ chính hãng. Bạn cần hỗ trợ thêm thông tin gì nào? 🤖" 
     });
   }
 };

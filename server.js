@@ -998,6 +998,124 @@ app.get("/products/home/featured", async (req, res) => {
   }
 });
 
+// ============================================================
+// dev fresher - REAL-TIME FLASH SALE API (Đếm ngược cố định đúng 8:00:00 tròn liên tục mỗi phiên)
+// ============================================================
+let flashSaleSessionStart = Date.now();
+const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000; // 28,800,000 ms = 8 tiếng tròn
+
+function getFlashSaleSessionRemainingSeconds() {
+  const now = Date.now();
+  // Khi đếm hết 8 tiếng (00:00:00) -> Tự động khởi tạo lại phiên sale 8 tiếng mới
+  if (now - flashSaleSessionStart >= EIGHT_HOURS_MS) {
+    flashSaleSessionStart = now;
+  }
+  const elapsedMs = now - flashSaleSessionStart;
+  return Math.max(0, Math.floor((EIGHT_HOURS_MS - elapsedMs) / 1000));
+}
+
+app.get(["/products/home/flash-sale", "/api/products/flash-sale"], async (req, res) => {
+  try {
+    // 1. LẤY SỐ GIÂY ĐẾM NGƯỢC CỦA PHIÊN 8 TIẾNG TRÒN
+    const remainingSeconds = getFlashSaleSessionRemainingSeconds();
+    const startTime = new Date(flashSaleSessionStart);
+    const endTime = new Date(flashSaleSessionStart + EIGHT_HOURS_MS);
+
+    // 2. TÍNH LƯỢT BÁN (SOLD COUNT) CỦA CÁC SẢN PHẨM TRONG HỆ THỐNG
+    const products = await ProductModel.find({ status: "active" }).lean();
+    if (!products || products.length === 0) {
+      return res.status(200).json({
+        success: true,
+        sessionInfo: {
+          startTime,
+          endTime,
+          remainingSeconds
+        },
+        data: []
+      });
+    }
+
+    const productIds = products.map((p) => p._id);
+    const variants = await ProductVariantModel.find({ p_id: { $in: productIds } }).lean();
+
+    const variantToProductMap = {};
+    const variantIds = [];
+    variants.forEach((v) => {
+      variantToProductMap[v._id.toString()] = v.p_id.toString();
+      variantIds.push(v._id);
+    });
+
+    const orderItems = await OrderItem.find({ variants_id: { $in: variantIds } }).lean();
+    const productSalesMap = {};
+    orderItems.forEach((item) => {
+      if (item.variants_id) {
+        const pId = variantToProductMap[item.variants_id.toString()];
+        if (pId) {
+          productSalesMap[pId] = (productSalesMap[pId] || 0) + (item.Quantity || 0);
+        }
+      }
+    });
+
+    // 3. LẮP LƯỢT BÁN VÀ SẮP XẾP LẤY TOP 5 SẢN PHẨM BÁN THẤP NHẤT
+    const productsWithSales = products.map((p) => {
+      const pIdStr = p._id.toString();
+      const soldCount = productSalesMap[pIdStr] || p.sold_quantity || p.buyturn || 0;
+      return {
+        ...p,
+        sold_count: soldCount
+      };
+    });
+
+    // Sắp xếp tăng dần theo sold_count (sản phẩm bán ít nhất lên đầu)
+    productsWithSales.sort((a, b) => a.sold_count - b.sold_count);
+
+    // Giới hạn đúng 5 sản phẩm theo yêu cầu đề bài
+    const top5LowestSoldProducts = productsWithSales.slice(0, 5);
+
+    // 4. BỔ SUNG ẢNH, BIẾN THỂ VÀ MỨC GIẢM GIÁ FLASH SALE (25% - 35%)
+    const selectedProductIds = top5LowestSoldProducts.map((p) => p._id);
+    const images = await ImageModel.find({ p_id: { $in: selectedProductIds } }).lean();
+    const selectedVariants = variants.filter((v) =>
+      selectedProductIds.some((id) => id.toString() === v.p_id.toString())
+    );
+
+    const variantAttrMap = await getVariantAttributeMap(selectedVariants.map((v) => v._id));
+    const variantsWithAttributes = selectedVariants.map((v) => ({
+      ...v,
+      Attributes: variantAttrMap[v._id.toString()] || [],
+    }));
+
+    const finalFlashSaleProducts = top5LowestSoldProducts.map((product) => {
+      const productIdStr = product._id.toString();
+      const flashDiscountPercent = product.sale && product.sale > 0 ? Math.max(product.sale, 25) : 25;
+
+      return {
+        ...product,
+        flash_sale_discount: flashDiscountPercent,
+        AnhSP: images.filter((img) => img.p_id.toString() === productIdStr),
+        Variants: variantsWithAttributes.filter((v) => v.p_id.toString() === productIdStr),
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Lấy danh sách 5 sản phẩm Flash Sale 8 giờ thành công",
+      sessionInfo: {
+        startTime,
+        endTime,
+        remainingSeconds,
+      },
+      data: finalFlashSaleProducts,
+    });
+  } catch (error) {
+    console.error("Lỗi API Flash Sale 8h:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server, không thể lấy danh sách Flash Sale",
+    });
+  }
+});
+
 app.get("/products/home/Newest", async (req, res) => {
   try {
     const newestProducts = await ProductModel.find({})
