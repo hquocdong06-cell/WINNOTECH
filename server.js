@@ -72,6 +72,90 @@ const getUserCartFilter = (u_id) => {
   return { u_id: s };
 };
 
+// ============================================================
+// VOUCHER CALCULATION HELPER
+// - Nếu voucher có mã chứa "FRS":
+//     + Giảm 100% phí ship (phí ship = 0)
+//     + Giá sản phẩm vẫn giảm theo giá trị voucher (% hoặc fixed)
+// - Nếu voucher có mã chứa "SHIP" (và không có FRS):
+//     + Chỉ giảm vào Phí vận chuyển
+//     + Giảm fixed (200, 300, 20k...) trừ thẳng vào ship
+//     + Giảm % thì giảm % phí ship đó
+//     + Giá sản phẩm KHÔNG giảm
+// - Voucher thường (không FRS/SHIP):
+//     + Giảm giá vào sản phẩm (% hoặc fixed)
+//     + Phí ship giữ nguyên
+// ============================================================
+function calculateVoucherDiscount(voucher, subtotal, baseShipping = 30000) {
+  const baseShippingFee = subtotal >= 1000000 ? 0 : baseShipping;
+  if (!voucher || !voucher.code) {
+    return {
+      productDiscount: 0,
+      shippingDiscount: 0,
+      shippingFee: baseShippingFee,
+      baseShippingFee,
+      totalDiscount: 0,
+      finalTotal: subtotal + baseShippingFee,
+      voucherType: 'none',
+    };
+  }
+
+  const codeUpper = String(voucher.code).trim().toUpperCase();
+  const hasFRS = codeUpper.includes('FRS');
+  const hasSHIP = codeUpper.includes('SHIP');
+
+  let productDiscount = 0;
+  let shippingDiscount = 0;
+  let voucherType = 'normal';
+
+  if (hasFRS) {
+    voucherType = 'frs';
+    shippingDiscount = baseShippingFee;
+
+    if (voucher.discount_type === 'percent') {
+      productDiscount = Math.round((subtotal * Number(voucher.discount_value)) / 100);
+    } else {
+      productDiscount = Number(voucher.discount_value) || 0;
+    }
+    productDiscount = Math.min(productDiscount, subtotal);
+  } else if (hasSHIP) {
+    voucherType = 'ship';
+    productDiscount = 0;
+
+    if (voucher.discount_type === 'percent') {
+      shippingDiscount = Math.round((baseShippingFee * Number(voucher.discount_value)) / 100);
+    } else {
+      shippingDiscount = Number(voucher.discount_value) || 0;
+    }
+    shippingDiscount = Math.min(shippingDiscount, baseShippingFee);
+  } else {
+    voucherType = 'normal';
+    shippingDiscount = 0;
+
+    if (voucher.discount_type === 'percent') {
+      productDiscount = Math.round((subtotal * Number(voucher.discount_value)) / 100);
+    } else {
+      productDiscount = Number(voucher.discount_value) || 0;
+    }
+    productDiscount = Math.min(productDiscount, subtotal);
+  }
+
+  const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
+  const totalDiscount = productDiscount + shippingDiscount;
+  const finalTotal = Math.max(0, subtotal - productDiscount) + finalShippingFee;
+
+  return {
+    productDiscount,
+    shippingDiscount,
+    shippingFee: finalShippingFee,
+    baseShippingFee,
+    totalDiscount,
+    finalTotal,
+    voucherType,
+  };
+}
+
+
 async function fixCartItemsInDB() {
   try {
     const items = await CartItemModel.find({}).lean();
@@ -173,6 +257,26 @@ const uploadAvatar = multer({
   storage: avatarStorage,
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+// Cấu hình upload riêng cho Banner: lưu vào public/images/banners
+const bannerStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const bannerUploadDir = path.join(__dirname, "public", "images", "banners");
+    fs.mkdirSync(bannerUploadDir, { recursive: true });
+    cb(null, bannerUploadDir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    const uniqueName = "banner_" + Date.now() + "_" + Math.round(Math.random() * 1e6) + ext;
+    cb(null, uniqueName);
+  },
+});
+
+const uploadBanner = multer({
+  storage: bannerStorage,
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 var cookieParser = require("cookie-parser");
@@ -891,6 +995,270 @@ app.get("/products/home/featured", async (req, res) => {
       success: false,
       message: "Lỗi Server, không thể lấy danh sách sản phẩm nổi bật",
     });
+  }
+});
+
+// ============================================================
+// dev fresher - REAL-TIME FLASH SALE API & ADMIN MANAGEMENT
+// ============================================================
+const FlashSaleSetting = require("./models/FlashSaleSetting");
+
+async function getOrCreateFlashSaleSetting() {
+  let setting = await FlashSaleSetting.findOne();
+  if (!setting) {
+    setting = new FlashSaleSetting({
+      durationSeconds: 28800,
+      status: "active",
+      customProductIds: [],
+      sessionStartMs: Date.now(),
+    });
+    await setting.save();
+  }
+  return setting;
+}
+
+// 1. PUBLIC API GET FLASH SALE (Trang chủ)
+app.get(["/products/home/flash-sale", "/api/products/flash-sale"], async (req, res) => {
+  try {
+    const setting = await getOrCreateFlashSaleSetting();
+
+    // Nếu admin TẮT hoàn toàn section này -> Ẩn khỏi giao diện
+    if (setting.status === "disabled") {
+      return res.status(200).json({
+        success: true,
+        active: false,
+        message: "Section Flash Sale hiện đang bị tắt bởi Admin",
+        sessionInfo: {
+          remainingSeconds: 0,
+        },
+        data: [],
+      });
+    }
+
+    // Tính thời gian đếm ngược dựa trên durationSeconds (tối đa 8 tiếng = 28,800s)
+    const maxDurationMs = Math.min(setting.durationSeconds || 28800, 28800) * 1000;
+    const now = Date.now();
+    let elapsedMs = now - (setting.sessionStartMs || now);
+    if (elapsedMs >= maxDurationMs) {
+      setting.sessionStartMs = now;
+      await setting.save();
+      elapsedMs = 0;
+    }
+    const remainingSeconds = Math.max(0, Math.floor((maxDurationMs - elapsedMs) / 1000));
+    const startTime = new Date(setting.sessionStartMs);
+    const endTime = new Date(setting.sessionStartMs + maxDurationMs);
+
+    let selectedProducts = [];
+
+    // Nếu admin cấu hình CHỌN TỰ TAY đúng 5 sản phẩm
+    if (setting.customProductIds && setting.customProductIds.length === 5) {
+      selectedProducts = await ProductModel.find({
+        _id: { $in: setting.customProductIds },
+        status: "active",
+      }).lean();
+    }
+
+    // Nếu chưa chọn đủ 5 sản phẩm tự tay -> Lấy tự động TOP 5 sản phẩm có lượt bán thấp nhất
+    if (selectedProducts.length < 5) {
+      const products = await ProductModel.find({ status: "active" }).lean();
+      const productIds = products.map((p) => p._id);
+      const variants = await ProductVariantModel.find({ p_id: { $in: productIds } }).lean();
+
+      const variantToProductMap = {};
+      const variantIds = [];
+      variants.forEach((v) => {
+        variantToProductMap[v._id.toString()] = v.p_id.toString();
+        variantIds.push(v._id);
+      });
+
+      const orderItems = await OrderItem.find({ variants_id: { $in: variantIds } }).lean();
+      const productSalesMap = {};
+      orderItems.forEach((item) => {
+        if (item.variants_id) {
+          const pId = variantToProductMap[item.variants_id.toString()];
+          if (pId) {
+            productSalesMap[pId] = (productSalesMap[pId] || 0) + (item.Quantity || 0);
+          }
+        }
+      });
+
+      const productsWithSales = products.map((p) => {
+        const pIdStr = p._id.toString();
+        const soldCount = productSalesMap[pIdStr] || p.sold_quantity || p.buyturn || 0;
+        return {
+          ...p,
+          sold_count: soldCount,
+        };
+      });
+
+      productsWithSales.sort((a, b) => a.sold_count - b.sold_count);
+      selectedProducts = productsWithSales.slice(0, 5);
+    } else {
+      selectedProducts = selectedProducts.map(p => ({
+        ...p,
+        sold_count: p.sold_quantity || p.buyturn || 0
+      }));
+    }
+
+    const selectedProductIds = selectedProducts.map((p) => p._id);
+    const images = await ImageModel.find({ p_id: { $in: selectedProductIds } }).lean();
+    const variants = await ProductVariantModel.find({ p_id: { $in: selectedProductIds } }).lean();
+    const variantAttrMap = await getVariantAttributeMap(variants.map((v) => v._id));
+
+    const variantsWithAttributes = variants.map((v) => ({
+      ...v,
+      Attributes: variantAttrMap[v._id.toString()] || [],
+    }));
+
+    const finalFlashSaleProducts = selectedProducts.slice(0, 5).map((product) => {
+      const productIdStr = product._id.toString();
+      const flashDiscountPercent = product.sale && product.sale > 0 ? Math.max(product.sale, 25) : 25;
+
+      return {
+        ...product,
+        flash_sale_discount: flashDiscountPercent,
+        AnhSP: images.filter((img) => img.p_id.toString() === productIdStr),
+        Variants: variantsWithAttributes.filter((v) => v.p_id.toString() === productIdStr),
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      active: true,
+      message: "Lấy danh sách 5 sản phẩm Flash Sale thành công",
+      sessionInfo: {
+        startTime,
+        endTime,
+        remainingSeconds,
+        durationSeconds: setting.durationSeconds,
+      },
+      data: finalFlashSaleProducts,
+    });
+  } catch (error) {
+    console.error("Lỗi API Flash Sale:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 2. ADMIN GET FLASH SALE SETTINGS
+app.get("/api/admin/flash-sale", async (req, res) => {
+  try {
+    const setting = await getOrCreateFlashSaleSetting();
+    const allProducts = await ProductModel.find({ status: "active" }).select("_id name price thumnail").lean();
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        durationSeconds: setting.durationSeconds,
+        status: setting.status,
+        customProductIds: setting.customProductIds || [],
+        sessionStartMs: setting.sessionStartMs,
+      },
+      allProducts,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 3. ADMIN PUT FLASH SALE SETTINGS
+app.put("/api/admin/flash-sale", async (req, res) => {
+  try {
+    const { durationSeconds, status, customProductIds } = req.body;
+    const setting = await getOrCreateFlashSaleSetting();
+
+    if (durationSeconds !== undefined) {
+      const parsedDuration = parseInt(durationSeconds);
+      if (isNaN(parsedDuration) || parsedDuration <= 0 || parsedDuration > 28800) {
+        return res.status(400).json({
+          success: false,
+          message: "Thời gian Flash Sale phải từ 1 giây đến tối đa 8 tiếng (28,800 giây)!",
+        });
+      }
+      setting.durationSeconds = parsedDuration;
+      setting.sessionStartMs = Date.now();
+    }
+
+    if (status) {
+      if (!["active", "disabled"].includes(status)) {
+        return res.status(400).json({ success: false, message: "Trạng thái không hợp lệ (chỉ active hoặc disabled)!" });
+      }
+      setting.status = status;
+    }
+
+    if (customProductIds !== undefined) {
+      if (!Array.isArray(customProductIds)) {
+        return res.status(400).json({ success: false, message: "Danh sách sản phẩm tùy chỉnh không hợp lệ!" });
+      }
+      if (customProductIds.length > 0 && customProductIds.length !== 5) {
+        return res.status(400).json({
+          success: false,
+          message: "Nếu chọn sản phẩm thủ công, bạn BẮT BUỘC phải chọn ĐỦ ĐÚNG 5 sản phẩm!",
+        });
+      }
+      setting.customProductIds = customProductIds;
+    }
+
+    await setting.save();
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật cấu hình Flash Sale thành công!",
+      data: setting,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ============================================================
+// dev fresher - BUILD PC COMPONENTS & SEARCH API
+// ============================================================
+app.get(["/api/buildpc/components", "/api/products/build-pc"], async (req, res) => {
+  try {
+    const { category, search } = req.query;
+    let categoryFilter = {};
+
+    if (category) {
+      const cat = await CategoryModel.findOne({ slug: category });
+      if (cat) {
+        categoryFilter.cat_id = cat._id;
+      }
+    }
+
+    let searchQuery = { status: "active", ...categoryFilter };
+
+    if (search && search.trim()) {
+      searchQuery.name = { $regex: search.trim(), $options: "i" };
+    }
+
+    const products = await ProductModel.find(searchQuery).lean();
+    const productIds = products.map((p) => p._id);
+    const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
+    const variants = await ProductVariantModel.find({ p_id: { $in: productIds } }).lean();
+    const variantAttrMap = await getVariantAttributeMap(variants.map((v) => v._id));
+
+    const variantsWithAttributes = variants.map((v) => ({
+      ...v,
+      Attributes: variantAttrMap[v._id.toString()] || [],
+    }));
+
+    const result = products.map((p) => {
+      const pIdStr = p._id.toString();
+      return {
+        ...p,
+        AnhSP: images.filter((img) => img.p_id.toString() === pIdStr),
+        Variants: variantsWithAttributes.filter((v) => v.p_id.toString() === pIdStr),
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: result.length,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Lỗi API Build PC Components:", error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -2080,10 +2448,12 @@ app.post("/orders", checklogin, async (req, res) => {
     }
 
     // ==========================================
-    // 2. XỬ LÝ VOUCHER
+    // 2. XỬ LÝ VOUCHER & PHÍ VẬN CHUYỂN
     // ==========================================
     let voucher_value = 0;
     let validVoucher = null;
+    let baseShippingFee = total_amount >= 1000000 ? 0 : 30000;
+    let final_amount = total_amount + baseShippingFee;
 
     if (voucher_code) {
       validVoucher = await Voucher.findOne({ code: voucher_code });
@@ -2092,15 +2462,20 @@ app.post("/orders", checklogin, async (req, res) => {
         validVoucher.end_day >= new Date() &&
         validVoucher.used_count < validVoucher.usage_limit
       ) {
-        voucher_value = validVoucher.discount_type === "percent"
-            ? (total_amount * validVoucher.discount_value) / 100
-            : validVoucher.discount_value;
+        if (validVoucher.min_order > 0 && total_amount < validVoucher.min_order) {
+          return res.status(400).json({
+            success: false,
+            message: `Đơn hàng tối thiểu ${validVoucher.min_order.toLocaleString('vi-VN')} đ để sử dụng voucher này!`
+          });
+        }
+        const vCalc = calculateVoucherDiscount(validVoucher, total_amount, 30000);
+        voucher_value = vCalc.totalDiscount;
+        final_amount = vCalc.finalTotal;
       } else {
         return res.status(400).json({ success: false, message: "Voucher không hợp lệ hoặc đã hết hạn!" });
       }
     }
 
-    const final_amount = Math.max(0, total_amount - voucher_value); 
 
     // ==========================================
     // 3. TẠO ĐƠN HÀNG VỚI STATUS MỚI
@@ -4487,115 +4862,6 @@ app.post("/api/auth/reset-password", async (req, res) => {
     const { identifier, otp, newPassword, confirmPassword } = req.body;
 
     if (!identifier || !otp || !newPassword || !confirmPassword) {
-      return res.status(400).json({ success: false, message: "Thiếu thông tin!" });
-    }
-    if (newPassword !== confirmPassword) {
-      return res.status(400).json({ success: false, message: "Mật khẩu không khớp!" });
-    }
-
-    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
-    const query = isEmail ? { email: identifier } : { phone: identifier };
-
-    const user = await UserModel.findOne(query).select('_id resetPasswordOTP resetPasswordExpires').lean();
-
-    if (!user) return res.status(404).json({ success: false, message: "Không tìm thấy user." });
-    if (user.resetPasswordOTP !== otp) return res.status(400).json({ success: false, message: "Mã OTP sai!" });
-    if (user.resetPasswordExpires < Date.now()) return res.status(400).json({ success: false, message: "OTP hết hạn!" });
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    await UserModel.updateOne(
-      { _id: user._id },
-      { 
-        $set: { password: hashedPassword },
-        $unset: { resetPasswordOTP: "", resetPasswordExpires: "" } 
-      }
-    );
-
-    return res.status(200).json({ success: true, message: "Đổi mật khẩu thành công!" });
-  } catch (error) {
-    console.error("Lỗi:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
-  }
-});
-
-// API quên mật khẩu (đã login) 
-// ========================================================
-// [PRIVATE] 3. YÊU CẦU OTP (KHI ĐÃ LOGIN)
-// ========================================================
-app.post("/profile/change-password/request-otp", checklogin, async (req, res) => {
-  try {
-
-    const { _id, email, name } = req.user; 
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = Date.now() + 5 * 60 * 1000;
-
-    await UserModel.updateOne(
-      { _id: _id },
-      { $set: { resetPasswordOTP: otp, resetPasswordExpires: expires } }
-    );
-
-    const mailOptions = {
-      from: `"WINNOTech Security" <${process.env.EMAIL_USER}>`,
-      to: email, 
-      subject: "[WINNOTech] Mã Đổi Mật Khẩu",
-      html: `<h3>Chào ${name},</h3><p>Mã OTP đổi pass của bạn là: <b style="font-size: 24px; color: red;">${otp}</b></p>`
-    };
-    await transporter.sendMail(mailOptions);
-
-    return res.status(200).json({ success: true, message: "Đã gửi OTP!" });
-  } catch (error) {
-    console.error("Lỗi:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
-  }
-});
-
-// ========================================================
-// [PRIVATE] 4. NHẬP OTP & ĐỔI PASS (KHI ĐÃ LOGIN)
-// ========================================================
-app.post("/profile/change-password/verify", checklogin, async (req, res) => {
-  try {
-    const { otp, newPassword, confirmPassword } = req.body;
-    const userId = req.user._id;
-
-    if (!otp || !newPassword || !confirmPassword) {
-      return res.status(400).json({ success: false, message: "Thiếu thông tin!" });
-    }
-    if (newPassword !== confirmPassword) {
-      return res.status(400).json({ success: false, message: "Mật khẩu không khớp!" });
-    }
-
-    // TỐI ƯU: Đâm thẳng bằng findById, lấy đúng 2 cột cần thiết
-    const user = await UserModel.findById(userId).select('resetPasswordOTP resetPasswordExpires').lean();
-
-    if (user.resetPasswordOTP !== otp) return res.status(400).json({ success: false, message: "Mã OTP sai!" });
-    if (user.resetPasswordExpires < Date.now()) return res.status(400).json({ success: false, message: "OTP hết hạn!" });
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // TỐI ƯU: Dùng $unset để dọn dẹp DB
-    await UserModel.updateOne(
-      { _id: userId },
-      { 
-        $set: { password: hashedPassword },
-        $unset: { resetPasswordOTP: "", resetPasswordExpires: "" } 
-      }
-    );
-
-    return res.status(200).json({ success: true, message: "Bảo mật tài khoản thành công!" });
-  } catch (error) {
-    console.error("Lỗi:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
-  }
-});
-
-app.put("/profile/change-password", checklogin, async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { oldPassword, newPassword, confirmPassword } = req.body;
-
-    if (!oldPassword || !newPassword || !confirmPassword) {
       return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ các trường mật khẩu!" });
     }
     if (newPassword !== confirmPassword) {
@@ -4635,117 +4901,7 @@ app.put("/profile/change-password", checklogin, async (req, res) => {
   }
 });
 
-// ==========================================
-// KHỞI TẠO VNPAY
-// ==========================================
-const vnpay = new VNPay({
-  tmnCode: '6HB2Z3XJ', 
-  secureSecret: '17H264J1LFK5JZGCF08DBXTAUMC4WIO3', 
-  vnpayHost: 'https://sandbox.vnpayment.vn',
-  testMode: true, 
-});
 
-// ==========================================
-// API TẠO ĐƠN & XUẤT MÃ QR VNPAY (CẬP NHẬT THEO PRODUCT VARIANT)
-// ==========================================
-app.post("/api/create-qr", checklogin, async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { items, Name, Phone, Adress, payment_method, voucher_code, voucher_value } = req.body;
-
-    if (!items || items.length === 0) {
-      return res.status(400).json({ success: false, message: "Giỏ hàng trống!" });
-    }
-
-    let subTotal = 0;
-    const orderItemsData = []; 
-
-    for (let item of items) {
-      const variant = await ProductVariantModel.findById(item.variant_id).lean();
-
-      if (!variant || variant.stock_quantity < (item.quantity || item.Quantity)) {
-        return res.status(400).json({
-          success: false,
-          message: `Sản phẩm ${variant ? variant.variant_name : ''} đã hết hàng hoặc không đủ số lượng trong kho!`
-        });
-      }
-
-      const currentPrice = variant.sale_price > 0 ? variant.sale_price : (variant.price || 0);
-      const qty = item.quantity || item.Quantity || 1;
-      subTotal += currentPrice * qty;
-
-      orderItemsData.push({
-        variant_id: variant._id,
-        Quantity: qty,
-        price: currentPrice
-      });
-    }
-
-    // Tính toán Voucher
-    const discount = voucher_value ? Number(voucher_value) : 0;
-    const totalAmount = subTotal - discount > 0 ? subTotal - discount : 0;
-
-    // ==========================================
-    // 2. TẠO HÓA ĐƠN GỐC (BẢNG ORDER)
-    // ==========================================
-    const orderCode = `WN${moment().format('DDHHmmss')}`;
-
-    const newOrder = await Order.create({
-      user_id: userId,
-      code: orderCode,
-      status: 'pending',
-      Name: Name,
-      Phone: Phone,
-      Adress: Adress, 
-      total_amount: totalAmount,
-      payment_method: payment_method,
-      voucher_code: voucher_code,
-      voucher_value: discount,
-      payment_status: 'unpaid'
-    });
-
-    // ==========================================
-    // 3. TẠO CHI TIẾT HÓA ĐƠN (BẢNG ORDER ITEM)
-    // ==========================================
-    const finalOrderItems = orderItemsData.map(item => ({
-      ...item,
-      order_id: newOrder._id
-    }));
-
-    await OrderItem.insertMany(finalOrderItems);
-
-    // ==========================================
-    // 4. TẠO LINK VÀ MÃ QR VNPAY BẰNG THƯ VIỆN
-    // ==========================================
-    const ipAddr = req.headers['x-forwarded-for'] || req.connection.remoteAddress || '127.0.0.1';
-
-    const paymentUrl = vnpay.buildPaymentUrl({
-      vnp_Amount: totalAmount, 
-      vnp_IpAddr: ipAddr,
-      vnp_TxnRef: orderCode,
-      vnp_OrderInfo: `Thanh toan don hang ${orderCode}`,
-      vnp_OrderType: 'other',
-      vnp_ReturnUrl: 'http://localhost:5173/payment-result', // Link FE nhận kết quả
-    });
-
-    // Tạo QR Code dạng Base64 từ Link VNPay
-    const qrImageBase64 = await QRCode.toDataURL(paymentUrl);
-
-    // ==========================================
-    // 5. TRẢ DỮ LIỆU VỀ FRONTEND
-    // ==========================================
-    return res.status(200).json({
-      success: true,
-      message: "Tạo đơn và mã QR thành công!",
-      qrCode: qrImageBase64,
-      paymentUrl: paymentUrl
-    });
-
-  } catch (error) {
-    console.error("Lỗi tạo QR VNPay:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server, không thể tạo mã QR lúc này" });
-  }
-});
 
 // Route /products/search đã được chuyển lên trước /products/:slug (line ~917)
 // để tránh bị Express match nhầm như một slug.
@@ -5231,17 +5387,11 @@ app.post("/api/vouchers/apply", async (req, res) => {
       });
     }
 
-    // 7. Xử lý giảm giá theo loại voucher (% hoặc fixed tiền)
-    let discountAmount = 0;
-    if (voucher.discount_type === "percent") {
-      discountAmount = (totalVariantPrice * voucher.discount_value) / 100;
-    } else if (voucher.discount_type === "fixed") {
-      discountAmount = voucher.discount_value;
-    }
+    // 7. Xử lý giảm giá theo loại voucher (% hoặc fixed tiền, FRS, SHIP)
+    const vCalc = calculateVoucherDiscount(voucher, totalVariantPrice, 30000);
+    const discountAmount = vCalc.totalDiscount;
+    const finalPrice = vCalc.finalTotal;
 
-    // Đảm bảo số tiền giảm không vượt quá tổng giá tiền sản phẩm
-    discountAmount = Math.min(discountAmount, totalVariantPrice);
-    const finalPrice = Math.max(0, totalVariantPrice - discountAmount);
 
     return res.json({
       success: true,
@@ -5445,16 +5595,11 @@ app.post("/api/user-vouchers/apply", async (req, res) => {
       });
     }
 
-    // Tính giá giảm (percent hoặc fixed)
-    let discountAmount = 0;
-    if (voucher.discount_type === "percent") {
-      discountAmount = (totalVariantPrice * voucher.discount_value) / 100;
-    } else if (voucher.discount_type === "fixed") {
-      discountAmount = voucher.discount_value;
-    }
+    // Tính giá giảm (percent, fixed, FRS, SHIP)
+    const vCalc = calculateVoucherDiscount(voucher, totalVariantPrice, 30000);
+    const discountAmount = vCalc.totalDiscount;
+    const finalPrice = vCalc.finalTotal;
 
-    discountAmount = Math.min(discountAmount, totalVariantPrice);
-    const finalPrice = Math.max(0, totalVariantPrice - discountAmount);
 
     return res.json({
       success: true,
@@ -5712,6 +5857,462 @@ app.post("/reviews", async (req, res, next) => {
       .json({ success: false, message: "Lỗi Server: " + error.message });
   }
 });
+
+
+// ============================================================
+// VNPAY PAYMENT CONTROLLER & ROUTES
+// ============================================================
+function sortObject(obj) {
+  let sorted = {};
+  let str = [];
+  let key;
+  for (key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      str.push(encodeURIComponent(key));
+    }
+  }
+  str.sort();
+  for (key = 0; key < str.length; key++) {
+    sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+  }
+  return sorted;
+}
+
+const payment = async (req, res) => {
+  try {
+    process.env.TZ = 'Asia/Ho_Chi_Minh';
+    
+    let date = new Date();
+    let createDate = moment(date).format('YYYYMMDDHHmmss');
+    
+    let ipAddr = req.headers['x-forwarded-for'] ||
+        req.connection?.remoteAddress ||
+        req.socket?.remoteAddress ||
+        req.connection?.socket?.remoteAddress || '127.0.0.1';
+
+    let config;
+    try {
+      config = require('config');
+    } catch (e) {
+      config = { get: () => null };
+    }
+    
+    let tmnCode = req.body.tmnCode || (config && config.get ? config.get('vnp_TmnCode') : '') || 'FGJPW2A4';
+    let secretKey = req.body.secretKey || (config && config.get ? config.get('vnp_HashSecret') : '') || 'IQQTBFVCHOXFTGLMITJIGOYAWJANMKYV';
+    let vnpUrl = req.body.vnpUrl || (config && config.get ? config.get('vnp_Url') : '') || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
+    let returnUrl = req.body.returnUrl || (config && config.get ? config.get('vnp_ReturnUrl') : '') || 'http://localhost:3000/order/vnpay_return';
+    
+    let orderId = req.body.orderId || req.body.code;
+    let amount = req.body.amount || 0;
+    let bankCode = req.body.bankCode;
+
+    // Nếu gửi từ Checkout (có items) mà chưa có Order trong DB, tự tạo Order
+    if ((!orderId || !amount) && req.body.items && req.body.items.length > 0) {
+      const userId = req.user ? req.user._id : (req.body.user_id || null);
+      let subTotal = 0;
+      const orderItemsData = [];
+
+      for (let item of req.body.items) {
+        const variant = await ProductVariantModel.findById(item.variant_id).lean();
+        if (variant) {
+          const price = variant.sale_price > 0 ? variant.sale_price : (variant.price || 0);
+          const qty = item.quantity || item.Quantity || 1;
+          subTotal += price * qty;
+          orderItemsData.push({
+            variants_id: variant._id,
+            Quantity: qty,
+            price: price
+          });
+        }
+      }
+
+      let discount = Number(req.body.voucher_value || 0);
+      let baseShip = subTotal >= 1000000 ? 0 : 30000;
+      amount = Math.max(0, subTotal - discount) + baseShip;
+      orderId = `WN${moment(date).format('DDHHmmss')}`;
+
+      const newOrder = await Order.create({
+        user_id: userId,
+        code: orderId,
+        status: 'pending',
+        Name: req.body.Name || 'Khách hàng',
+        Phone: req.body.Phone || '0900000000',
+        Adress: req.body.Adress || 'Hà Nội',
+        total_amount: amount,
+        payment_method: req.body.payment_method || null,
+        voucher_code: req.body.voucher_code || null,
+        voucher_value: discount,
+        payment_status: 'unpaid'
+      });
+
+      const finalOrderItems = orderItemsData.map(item => ({
+        ...item,
+        order_id: newOrder._id
+      }));
+      await OrderItem.insertMany(finalOrderItems);
+    }
+
+    if (!orderId) orderId = `WN${moment(date).format('DDHHmmss')}`;
+    
+    let locale = req.body.language || 'vn';
+    let currCode = 'VND';
+    let vnp_Params = {};
+    vnp_Params['vnp_Version'] = '2.1.0';
+    vnp_Params['vnp_Command'] = 'pay';
+    vnp_Params['vnp_TmnCode'] = tmnCode;
+    vnp_Params['vnp_Locale'] = locale;
+    vnp_Params['vnp_CurrCode'] = currCode;
+    vnp_Params['vnp_TxnRef'] = orderId;
+    vnp_Params['vnp_OrderInfo'] = 'Thanh toan cho ma GD:' + orderId;
+    vnp_Params['vnp_OrderType'] = 'other';
+    vnp_Params['vnp_Amount'] = amount * 100;
+    vnp_Params['vnp_ReturnUrl'] = returnUrl;
+    vnp_Params['vnp_IpAddr'] = ipAddr;
+    vnp_Params['vnp_CreateDate'] = createDate;
+    if (bankCode !== null && bankCode !== undefined && bankCode !== '') {
+      vnp_Params['vnp_BankCode'] = bankCode;
+    }
+
+    vnp_Params = sortObject(vnp_Params);
+
+    let querystring = require('qs');
+    let signData = querystring.stringify(vnp_Params, { encode: false });
+    let hmac = crypto.createHmac("sha512", secretKey);
+    let signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex"); 
+    vnp_Params['vnp_SecureHash'] = signed;
+    vnpUrl += '?' + querystring.stringify(vnp_Params, { encode: false });
+
+    let qrCodeBase64 = null;
+    try {
+      qrCodeBase64 = await QRCode.toDataURL(vnpUrl);
+    } catch (qrErr) {}
+
+    if (req.headers['accept']?.includes('application/json') || req.xhr || req.body.items || req.body.amount) {
+      return res.status(200).json({ success: true, paymentUrl: vnpUrl, vnpUrl, qrCode: qrCodeBase64 });
+    }
+    return res.redirect(vnpUrl);
+  } catch (error) {
+    console.error("Lỗi tạo thanh toán VNPay:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server trong quá trình tạo link thanh toán" });
+  }
+};
+
+const paymentReturn = async (req, res) => {
+  try {
+    let vnp_Params = { ...req.query };
+    let secureHash = vnp_Params['vnp_SecureHash'];
+
+    delete vnp_Params['vnp_SecureHash'];
+    delete vnp_Params['vnp_SecureHashType'];
+
+    vnp_Params = sortObject(vnp_Params);
+
+    let config;
+    try {
+      config = require('config');
+    } catch (e) {
+      config = { get: () => null };
+    }
+    let secretKey = (config && config.get ? config.get('vnp_HashSecret') : '') || "IQQTBFVCHOXFTGLMITJIGOYAWJANMKYV";
+
+    let querystring = require('qs');
+    let signData = querystring.stringify(vnp_Params, { encode: false });
+    let hmac = crypto.createHmac("sha512", secretKey);
+    let signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
+
+    if (secureHash === signed) {
+      const paymentId = vnp_Params['vnp_TxnRef'];
+
+      if (vnp_Params['vnp_ResponseCode'] === "00") {
+        try {
+          const order = await Order.findOne({
+            $or: [
+              { code: paymentId },
+              ...(mongoose.Types.ObjectId.isValid(paymentId) ? [{ _id: paymentId }] : [])
+            ]
+          });
+
+          if (!order) {
+            return res.status(404).json({ message: "Không tìm thấy đơn hàng hoặc đơn hàng đã được xử lý" });
+          }
+
+          // Cập nhật trạng thái thanh toán
+          order.payment_status = "paid";
+          order.status = "preparing";
+
+          // Cập nhật lại số lượng sản phẩm tồn kho sau khi mua hàng
+          const orderItems = await OrderItem.find({ order_id: order._id });
+          for (let item of orderItems) {
+            const variantId = item.variants_id || item.variant_id;
+            if (variantId && item.Quantity) {
+              await ProductVariantModel.findByIdAndUpdate(variantId, {
+                $inc: { stock_quantity: -item.Quantity }
+              });
+            }
+          }
+
+          await order.save();
+
+          // Gửi email thông tin đơn hàng đã đặt
+          const user = await UserModel.findById(order.user_id);
+          if (user && user.email) {
+            try {
+              const mailOptions = {
+                from: '"WINNOTECH" <hquocdong06@gmail.com>',
+                to: user.email,
+                subject: `[WINNOTECH] Xác nhận thanh toán thành công đơn hàng #${order.code}`,
+                html: `
+                  <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                    <h2 style="color: #16A34A;">Thanh toán online thành công!</h2>
+                    <p>Xin chào <strong>${user.name || 'Khách hàng'}</strong>,</p>
+                    <p>Đơn hàng mã <strong>#${order.code}</strong> của bạn đã được thanh toán thành công qua VNPay.</p>
+                    <p>Tổng tiền: <strong>${(order.total_amount || 0).toLocaleString('vi-VN')} VNĐ</strong></p>
+                    <p>Địa chỉ giao hàng: ${order.Adress}</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                    <p style="color: #666; font-size: 12px;">Cảm ơn bạn đã mua sắm tại WINNOTECH!</p>
+                  </div>
+                `
+              };
+              await transporter.sendMail(mailOptions);
+            } catch (mailErr) {
+              console.error("Lỗi gửi email xác nhận thanh toán:", mailErr.message);
+            }
+          }
+
+          if (req.headers['accept']?.includes('text/html') || !req.xhr) {
+            return res.redirect(`http://localhost:5173/payment-result?${querystring.stringify(req.query)}`);
+          }
+          return res.status(200).json("Thanh toán online thành công, chi tiết đơn hàng đã gửi qua mail");
+        } catch (error) {
+          console.error("Lỗi xử lý thanh toán:", error);
+          return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
+        }
+
+      } else if (vnp_Params['vnp_ResponseCode'] === "24") {
+        try {
+          const order = await Order.findOne({
+            $or: [
+              { code: paymentId },
+              ...(mongoose.Types.ObjectId.isValid(paymentId) ? [{ _id: paymentId }] : [])
+            ]
+          });
+
+          if (!order) {
+            return res.status(404).json({ message: "Không tìm thấy đơn hàng hoặc đơn hàng đã được xử lý" });
+          }
+
+          // Cập nhật trạng thái thanh toán
+          order.payment_status = "canceled";
+          await order.save();
+
+          if (req.headers['accept']?.includes('text/html') || !req.xhr) {
+            return res.redirect(`http://localhost:5173/payment-result?${querystring.stringify(req.query)}`);
+          }
+          // Trả về kết quả cho client
+          return res.status(200).json("Hủy thanh toán thành công");
+        } catch (error) {
+          console.error("Lỗi xử lý thanh toán:", error);
+          return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
+        }
+
+      } else {
+        try {
+          const order = await Order.findOne({
+            $or: [
+              { code: paymentId },
+              ...(mongoose.Types.ObjectId.isValid(paymentId) ? [{ _id: paymentId }] : [])
+            ]
+          });
+
+          if (!order) {
+            return res.status(404).json({ message: "Không tìm thấy đơn hàng hoặc đơn hàng đã được xử lý" });
+          }
+
+          // Cập nhật trạng thái thanh toán
+          order.payment_status = "failed";
+          await order.save();
+
+          if (req.headers['accept']?.includes('text/html') || !req.xhr) {
+            return res.redirect(`http://localhost:5173/payment-result?${querystring.stringify(req.query)}`);
+          }
+          // Trả về kết quả cho VNPAY
+          return res.status(500).json("Thanh toán online không thành công, xin mời bạn đặt hàng lại ");
+        } catch (error) {
+          console.error("Lỗi xử lý thanh toán:", error);
+          return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
+        }
+      }
+
+    } else {
+      console.error("Chữ ký VNPay không khớp!");
+      if (req.headers['accept']?.includes('text/html') || !req.xhr) {
+        return res.redirect(`http://localhost:5173/payment-result?vnp_ResponseCode=97&vnp_TxnRef=${vnp_Params['vnp_TxnRef'] || ''}`);
+      }
+      return res.status(400).json({ code: '97', message: "Chữ ký không hợp lệ" });
+    }
+  } catch (error) {
+    console.error("Lỗi callback VNPay return:", error);
+    return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
+  }
+};
+
+app.post("/create_payment_url", payment);
+app.post("/order/create_payment_url", payment);
+app.post("/api/create-qr", payment);
+app.get("/order/vnpay_return", paymentReturn);
+app.get("/vnpay_return", paymentReturn);
+app.use("/order", require("./routers/order"));
+
+// ============================================================
+// BANNER MANAGEMENT APIs
+// ============================================================
+
+// Upload Banner Image
+app.post("/admin/banners/upload", uploadBanner.single("image"), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Không tìm thấy file ảnh" });
+    }
+    const imageUrl = `/public/images/banners/${req.file.filename}`;
+    return res.status(200).json({ success: true, url: imageUrl });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Get all banners (ordered by position ascending)
+app.get(["/admin/banners", "/api/banners"], async (req, res) => {
+  try {
+    const banners = await Banner.find({}).sort({ position: 1, createdAt: -1 }).lean();
+    return res.status(200).json({ success: true, data: banners });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Add new banner (unique name check)
+app.post("/admin/banners", uploadBanner.single("imageFile"), async (req, res) => {
+  try {
+    let { name, image, position, status, link } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: "Tên banner không được để trống" });
+    }
+
+    const trimmedName = name.trim();
+
+    // Kiểm tra trùng tên banner (không phân biệt hoa thường)
+    const existing = await Banner.findOne({
+      name: { $regex: new RegExp(`^${trimmedName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') }
+    });
+
+    if (existing) {
+      return res.status(400).json({ success: false, message: `Tên banner "${trimmedName}" đã tồn tại trong hệ thống!` });
+    }
+
+    if (req.file) {
+      image = `/public/images/banners/${req.file.filename}`;
+    }
+
+    const newBanner = new Banner({
+      name: trimmedName,
+      image: image || "",
+      position: Number(position) || 0,
+      status: status || "active",
+      link: link || "",
+    });
+
+    await newBanner.save();
+    return res.status(201).json({ success: true, data: newBanner, message: "Thêm banner mới thành công" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Update banner (allows uploading new image, editing position, name, status)
+app.put("/admin/banners/:id", uploadBanner.single("imageFile"), async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { name, image, position, status, link } = req.body;
+
+    const banner = await Banner.findById(id);
+    if (!banner) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy banner" });
+    }
+
+    if (name && name.trim()) {
+      const trimmedName = name.trim();
+      // Kiểm tra trùng tên với các banner khác
+      const existing = await Banner.findOne({
+        _id: { $ne: id },
+        name: { $regex: new RegExp(`^${trimmedName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') }
+      });
+
+      if (existing) {
+        return res.status(400).json({ success: false, message: `Tên banner "${trimmedName}" đã tồn tại!` });
+      }
+      banner.name = trimmedName;
+    }
+
+    if (req.file) {
+      banner.image = `/public/images/banners/${req.file.filename}`;
+    } else if (image !== undefined) {
+      banner.image = image;
+    }
+
+    if (position !== undefined) {
+      banner.position = Number(position) || 0;
+    }
+
+    if (status !== undefined) {
+      banner.status = status;
+    }
+
+    if (link !== undefined) {
+      banner.link = link;
+    }
+
+    await banner.save();
+    return res.status(200).json({ success: true, data: banner, message: "Cập nhật banner thành công" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Toggle banner status between 'active' and 'hidden'
+app.patch(["/admin/banners/:id/status", "/api/banners/:id/status"], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const banner = await Banner.findById(id);
+    if (!banner) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy banner" });
+    }
+
+    const nextStatus = banner.status === "active" ? "hidden" : "active";
+    banner.status = nextStatus;
+    await banner.save();
+
+    return res.status(200).json({
+      success: true,
+      data: banner,
+      message: `Đã chuyển trạng thái banner sang ${nextStatus === 'active' ? 'Hiển thị (Active)' : 'Ẩn (Hidden)'}`
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ============================================================
+// AI CHATBOT ROUTER
+// ============================================================
+app.use("/api/chatbot", require("./routers/AI_chatbot"));
+
+app.listen(port, () => {
+  console.log(`Server started on port ${port}`);
+  fixCartItemsInDB();
+});
+
+
 
 // ============================================================
 // AI CHATBOT ROUTER

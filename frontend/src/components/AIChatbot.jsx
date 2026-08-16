@@ -3,6 +3,7 @@ import { chatbotAPI } from '../services/apiService'
 
 export default function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false)
+  const [showQuickContact, setShowQuickContact] = useState(false)
   const [messages, setMessages] = useState([
     {
       role: 'model',
@@ -83,7 +84,7 @@ export default function AIChatbot() {
   }
 
   return (
-    <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 99999, fontFamily: 'sans-serif' }}>
+    <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 99999, fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
       {/* CHAT WINDOW */}
       {isOpen && (
         <div
@@ -338,44 +339,140 @@ export default function AIChatbot() {
         </div>
       )}
 
-      {/* FLOATING TRIGGER BUTTON */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          width: '56px',
-          height: '56px',
-          borderRadius: '28px',
-          background: 'linear-gradient(135deg, #d4ff00 0%, #99cc00 100%)',
-          color: '#000',
-          border: 'none',
-          cursor: 'pointer',
-          boxShadow: '0 8px 24px rgba(212, 255, 0, 0.4), 0 0 0 2px rgba(0, 0, 0, 0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '24px',
-          position: 'relative',
-          transition: 'transform 0.2s ease',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.08)')}
-        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-      >
-        {isOpen ? '✕' : '🤖'}
-        {!isOpen && (
-          <span
+      {/* STACKED QUICK CONTACT BUTTONS (ZALO & MESSENGER) */}
+      {showQuickContact && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-end', animation: 'fadeInUp 0.3s ease-out' }}>
+          
+          {/* Zalo Button */}
+          <a
+            href="https://zalo.me/0909260436"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Chat qua Zalo (0909260436)"
             style={{
-              position: 'absolute',
-              top: '-2px',
-              right: '-2px',
-              width: '14px',
-              height: '14px',
-              background: '#22c55e',
-              border: '2px solid #121621',
-              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 16px 8px 10px',
+              borderRadius: '25px',
+              background: 'linear-gradient(135deg, #0068FF 0%, #0044CC 100%)',
+              color: '#ffffff',
+              textDecoration: 'none',
+              fontWeight: 'bold',
+              fontSize: '13px',
+              boxShadow: '0 6px 20px rgba(0, 104, 255, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2)',
+              transition: 'all 0.2s ease',
             }}
-          />
-        )}
-      </button>
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0) scale(1)')}
+          >
+            <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '2px', flexShrink: 0 }}>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Icon_of_Zalo.svg" alt="Zalo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+            <span>Zalo: 0909260436</span>
+          </a>
+
+          {/* Messenger Button */}
+          <a
+            href="https://www.facebook.com/sgdeath04/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Chat qua Facebook Messenger"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 16px 8px 10px',
+              borderRadius: '25px',
+              background: 'linear-gradient(135deg, #0084FF 0%, #00C6FF 100%)',
+              color: '#ffffff',
+              textDecoration: 'none',
+              fontWeight: 'bold',
+              fontSize: '13px',
+              boxShadow: '0 6px 20px rgba(0, 132, 255, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2)',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0) scale(1)')}
+          >
+            <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '2px', flexShrink: 0 }}>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/b/be/Facebook_Messenger_logo_2020.svg" alt="Messenger" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+            <span>Messenger Fanpage</span>
+          </a>
+
+        </div>
+      )}
+
+      {/* FLOATING ACTION BAR: MŨI TÊN MỞ RỘNG + NÚT AI CHATBOT */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        
+        {/* Nút mũi tên đệm stack Zalo / Messenger */}
+        <button
+          onClick={() => setShowQuickContact(!showQuickContact)}
+          title={showQuickContact ? 'Thu gọn kênh liên hệ Zalo / Messenger' : 'Mở rộng liên hệ Zalo & Messenger'}
+          style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
+            background: showQuickContact ? '#ff3333' : '#1e1e2d',
+            color: showQuickContact ? '#ffffff' : '#d4ff00',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '13px',
+            fontWeight: 'bold',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+            transition: 'all 0.3s ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+        >
+          {showQuickContact ? '▼' : '▲'}
+        </button>
+
+        {/* Nút AI Chatbot chính */}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '28px',
+            background: 'linear-gradient(135deg, #d4ff00 0%, #99cc00 100%)',
+            color: '#000',
+            border: 'none',
+            cursor: 'pointer',
+            boxShadow: '0 8px 24px rgba(212, 255, 0, 0.4), 0 0 0 2px rgba(0, 0, 0, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '24px',
+            position: 'relative',
+            transition: 'transform 0.2s ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.08)')}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+        >
+          {isOpen ? '✕' : '🤖'}
+          {!isOpen && (
+            <span
+              style={{
+                position: 'absolute',
+                top: '-2px',
+                right: '-2px',
+                width: '14px',
+                height: '14px',
+                background: '#22c55e',
+                border: '2px solid #121621',
+                borderRadius: '50%',
+              }}
+            />
+          )}
+        </button>
+
+      </div>
 
       <style>{`
         @keyframes fadeInUp {

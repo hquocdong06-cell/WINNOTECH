@@ -3,9 +3,10 @@ const mongoose = require('mongoose');
 const BannerSchema = new mongoose.Schema({
     name: { type: String, required: true },
     image: { type: String },
-    link: { type: String },
-    status: { type: String },
-});
+    position: { type: Number, default: 0 },
+    status: { type: String, default: 'active' },
+    link: { type: String }
+}, { timestamps: true });
 
 const PaymentMethodSchema = new mongoose.Schema({
     name: { type: String, required: true },
@@ -24,4 +25,4 @@ const Banner = mongoose.model('Banner', BannerSchema);
 const PaymentMethod = mongoose.model('PaymentMethod', PaymentMethodSchema);
 const Image = mongoose.model('Image', ImageSchema);
 
-module.exports = { Banner, PaymentMethod, Image };
+module.exports = { Banner, PaymentMethod, Image };

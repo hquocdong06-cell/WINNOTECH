@@ -71,6 +71,7 @@ export const productAPI = {
   getBySlug: (slug) => apiFetch(`/products/${slug}`),
   getNewest: () => apiFetch('/products/home/newest'),
   getFeatured: () => apiFetch('/products/home/featured'),
+  getFlashSale: () => apiFetch('/products/home/flash-sale'),
   getAllNewest: () => apiFetch('/products/home/Newest'),
   getAllBySale: () => apiFetch('/products/home/Sale'),
   search: (q) => apiFetch(`/products/search?q=${encodeURIComponent(q)}`),

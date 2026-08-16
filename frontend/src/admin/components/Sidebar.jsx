@@ -6,6 +6,8 @@ const Sidebar = () => {
     { title: 'Dashboard', path: '/admin/dashboard', icon: '🏠' },
     { title: 'Sản phẩm', path: '/admin/products', icon: '📦' },
     { title: 'Danh mục', path: '/admin/categories', icon: '📂' },
+    { title: 'Banner', path: '/admin/banners', icon: '🖼️' },
+    { title: 'Flash Sale 8h', path: '/admin/flash-sale', icon: '🔥' },
     { title: 'Đơn hàng', path: '/admin/orders', icon: '🛒' },
     { title: 'Khách hàng', path: '/admin/customers', icon: '👥' },
     { title: 'Đánh giá', path: '/admin/reviews', icon: '⭐' },

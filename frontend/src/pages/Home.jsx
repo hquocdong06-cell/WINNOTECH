@@ -313,13 +313,29 @@ export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState([])  // Bán chạy
   const [newProducts, setNewProducts]           = useState([])  // Hàng mới
   const [saleProducts, setSaleProducts]         = useState([])  // Giảm giá
+  const [flashSaleProducts, setFlashSaleProducts] = useState([])  // Flash Sale 8h
+  const [isFlashSaleActive, setIsFlashSaleActive] = useState(true)
+  const [flashSaleRemainingSeconds, setFlashSaleRemainingSeconds] = useState(28800)
   const [allProducts, setAllProducts]           = useState([])  // Toàn bộ sản phẩm phục vụ tìm kiếm
   const [categories, setCategories]             = useState([])
 
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [loadingCategories, setLoadingCategories] = useState(true)
+  const [loadingFlashSale, setLoadingFlashSale] = useState(true)
 
   const [currentBanner, setCurrentBanner] = useState(0)
+
+  const formatCountdown = (totalSeconds) => {
+    const s = Math.max(0, totalSeconds || 0);
+    const hrs = Math.floor(s / 3600);
+    const mins = Math.floor((s % 3600) / 60);
+    const secs = s % 60;
+    return {
+      hrs: String(hrs).padStart(2, '0'),
+      mins: String(mins).padStart(2, '0'),
+      secs: String(secs).padStart(2, '0'),
+    };
+  };
 
   const handleQuickAddToCart = async (product) => {
     const defaultVariant = product.Variants?.find(v => v.variant_name === 'Mặc định') || product.Variants?.[0];
@@ -450,6 +466,36 @@ export default function Home() {
       .then(d => { if (d.success) setCategories(d.data) })
       .catch(() => {})
       .finally(() => setLoadingCategories(false))
+  }, [])
+
+  // ── Fetch Flash Sale 8h (Top 5 sản phẩm bán thấp nhất hoặc tùy chỉnh) ──
+  useEffect(() => {
+    setLoadingFlashSale(true)
+    productAPI.getFlashSale()
+      .then(res => {
+        if (res.success) {
+          if (res.active === false) {
+            setIsFlashSaleActive(false)
+            setFlashSaleProducts([])
+          } else if (res.data) {
+            setIsFlashSaleActive(true)
+            setFlashSaleProducts(res.data.slice(0, 5))
+            if (res.sessionInfo && res.sessionInfo.remainingSeconds !== undefined) {
+              setFlashSaleRemainingSeconds(res.sessionInfo.remainingSeconds)
+            }
+          }
+        }
+      })
+      .catch(err => console.error("Lỗi fetch Flash Sale:", err))
+      .finally(() => setLoadingFlashSale(false))
+  }, [])
+
+  // ── Đếm ngược thời gian thực 8h (Real-time timer 1s) ──
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFlashSaleRemainingSeconds(prev => (prev > 0 ? prev - 1 : 28800))
+    }, 1000)
+    return () => clearInterval(timer)
   }, [])
 
   // Blog & FAQ (dynamic with static fallback)
@@ -628,6 +674,104 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ── 🔥 FLASH SALE 8H REAL-TIME (TOP 5 SẢN PHẨM BÁN THẤP NHẤT HẶC TÙY CHỈNH) ── */}
+      {!searchQuery && isFlashSaleActive && flashSaleProducts.length > 0 && (
+        <section className="flash-sale-section">
+          <div className="section-inner">
+            <div className="flash-sale-container">
+              
+              {/* Header với Tiêu đề & Đồng hồ đếm ngược 8 tiếng thực */}
+              <div className="flash-sale-header">
+                <div className="flash-sale-title-wrap">
+                  <span className="flash-sale-icon-flame">🔥</span>
+                  <div>
+                    <h2 className="flash-sale-heading">
+                      FLASH SALE <span>8 GIỜ VÀNG</span>
+                    </h2>
+                    <p className="text-xs text-gray-400 mt-0.5">Top 5 sản phẩm xả kho giá sốc — Đếm ngược thời gian thực</p>
+                  </div>
+                </div>
+
+                {/* Đồng hồ đếm ngược Real-time */}
+                <div className="flash-sale-timer-box">
+                  <span className="flash-sale-timer-label">KẾT THÚC TRONG:</span>
+                  <div className="flash-sale-countdown">
+                    <span className="timer-num">{formatCountdown(flashSaleRemainingSeconds).hrs}</span>
+                    <span className="timer-colon">:</span>
+                    <span className="timer-num">{formatCountdown(flashSaleRemainingSeconds).mins}</span>
+                    <span className="timer-colon">:</span>
+                    <span className="timer-num">{formatCountdown(flashSaleRemainingSeconds).secs}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Danh sách đúng 5 sản phẩm Flash Sale */}
+              {loadingFlashSale ? (
+                <div className="text-center py-10 text-gray-400">Đang tải sản phẩm Flash Sale...</div>
+              ) : flashSaleProducts.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">Chưa có sản phẩm Flash Sale trong ca này</div>
+              ) : (
+                <div className="flash-sale-grid">
+                  {flashSaleProducts.slice(0, 5).map((product) => {
+                    const imgUrl = getProductImage(product)
+                    const { originalPrice, currentPrice } = getProductPriceInfo(product)
+                    const discountPct = product.flash_sale_discount || 25
+                    const flashPrice = currentPrice && currentPrice < originalPrice ? currentPrice : Math.round(originalPrice * (1 - discountPct / 100))
+
+                    return (
+                      <div key={product._id} className="flash-card">
+                        <div className="flash-badge">FLASH -{discountPct}%</div>
+                        
+                        <Link to={`/product/${product.slug || product._id}`}>
+                          <img 
+                            src={imgUrl || 'https://placehold.co/200x150?text=No+Image'} 
+                            alt={product.name} 
+                            className="flash-card-img" 
+                          />
+                        </Link>
+
+                        <div>
+                          <h4 className="flash-card-title">
+                            <Link to={`/product/${product.slug || product._id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                              {product.name}
+                            </Link>
+                          </h4>
+
+                          <div className="flash-price-box">
+                            <span className="flash-price-current">{formatPrice(flashPrice)}</span>
+                            {originalPrice > flashPrice && (
+                              <span className="flash-price-old">{formatPrice(originalPrice)}</span>
+                            )}
+                          </div>
+
+                          <div className="flash-progress-wrap">
+                            <div className="flash-progress-bar">
+                              <div 
+                                className="flash-progress-fill" 
+                                style={{ width: `${Math.min(100, Math.max(20, (product.sold_count || 1) * 20))}%` }}
+                              ></div>
+                              <span className="flash-progress-text">🔥 ĐÃ BẢN {product.sold_count || 0} CÁI</span>
+                            </div>
+                          </div>
+
+                          <button 
+                            onClick={() => handleQuickAddToCart(product)} 
+                            className="btn-flash-buy"
+                          >
+                            MUA NGAY
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+            </div>
+          </div>
+        </section>
+      )}
 
 
       {/* ── 🔥 BÁN CHẠY NHẤT ── */}

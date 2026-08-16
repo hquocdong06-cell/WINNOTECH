@@ -347,6 +347,7 @@ export default function BuildPC() {
   const [activeStep, setActiveStep]     = useState('cpu')
   const [selected, setSelected]         = useState({})
   const [brandFilter, setBrandFilter]   = useState('Tất cả')
+  const [searchQuery, setSearchQuery]   = useState('')
   const [sortOrder, setSortOrder]       = useState('price-desc')
   const [compatibility, setCompatibility] = useState({ compatible: true, issues: [], warnings: [] })
   const [showSummaryModal, setShowSummaryModal] = useState(false)
@@ -418,8 +419,11 @@ export default function BuildPC() {
     setCompatibility(checkCompatibility(selected))
   }, [selected])
 
-  // Reset brand filter when step changes
-  useEffect(() => { setBrandFilter('Tất cả') }, [activeStep])
+  // Reset brand filter & search query when step changes
+  useEffect(() => {
+    setBrandFilter('Tất cả')
+    setSearchQuery('')
+  }, [activeStep])
 
   // ── Derived state ─────────────────────────────────────────────────────
   const totalPrice    = calcTotal(selected)
@@ -441,11 +445,12 @@ export default function BuildPC() {
 
   const filteredProducts = rawProducts
     .filter(p => brandFilter === 'Tất cả' || (p.brand && p.brand === brandFilter) ||
-      (brandFilter === 'NVIDIA' && p.name.includes('RTX') || p.name.includes('GTX')) ||
+      (brandFilter === 'NVIDIA' && (p.name.includes('RTX') || p.name.includes('GTX'))) ||
       (brandFilter === 'AMD'    && (p.name.includes('Radeon') || p.name.includes('AMD'))) ||
       (brandFilter === 'ASUS'   && p.name.includes('ASUS')) ||
       (brandFilter === 'MSI'    && p.name.includes('MSI')) ||
-      (brandFilter === 'GIGABYTE' && p.name.includes('Gigabyte') || p.name.includes('GIGABYTE')))
+      (brandFilter === 'GIGABYTE' && (p.name.includes('Gigabyte') || p.name.includes('GIGABYTE'))))
+    .filter(p => !searchQuery.trim() || p.name.toLowerCase().includes(searchQuery.toLowerCase().trim()))
     .sort((a, b) => {
       if (sortOrder === 'price-desc') return b.price - a.price
       if (sortOrder === 'price-asc')  return a.price - b.price
@@ -681,6 +686,42 @@ export default function BuildPC() {
                       >{b}</button>
                     ))}
                   </div>
+
+                  {/* Search Bar cho từng danh mục */}
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="🔍 Tìm theo tên sản phẩm..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{
+                        padding: '6px 30px 6px 12px',
+                        borderRadius: '20px',
+                        background: '#121621',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: '#fff',
+                        fontSize: '13px',
+                        outline: 'none',
+                        width: '200px',
+                        transition: 'all 0.2s ease',
+                      }}
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          background: 'none',
+                          border: 'none',
+                          color: '#94a3b8',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                        }}
+                      >✕</button>
+                    )}
+                  </div>
+
                   {/* Sort */}
                   <select
                     className="bp-sort"

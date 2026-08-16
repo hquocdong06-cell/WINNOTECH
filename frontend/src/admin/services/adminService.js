@@ -334,3 +334,55 @@ export async function updatePost(id, payload) {
 export async function deletePost(id) {
   return apiFetch(`/admin/posts/${id}`, { method: 'DELETE' });
 }
+
+// ============================================================
+// BANNERS (ADMIN)
+// ============================================================
+export async function fetchAdminBanners() {
+  const data = await apiFetch('/admin/banners');
+  return data.data || [];
+}
+
+export async function createAdminBanner(formData) {
+  if (formData instanceof FormData) {
+    const res = await fetch(`${API_BASE}/admin/banners`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Lỗi khi tạo banner');
+    return data;
+  }
+
+  return apiFetch('/admin/banners', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(formData),
+  });
+}
+
+export async function updateAdminBanner(id, formData) {
+  if (formData instanceof FormData) {
+    const res = await fetch(`${API_BASE}/admin/banners/${id}`, {
+      method: 'PUT',
+      credentials: 'include',
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Lỗi khi cập nhật banner');
+    return data;
+  }
+
+  return apiFetch(`/admin/banners/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(formData),
+  });
+}
+
+export async function toggleAdminBannerStatus(id) {
+  return apiFetch(`/admin/banners/${id}/status`, {
+    method: 'PATCH',
+  });
+}
