@@ -37,6 +37,7 @@ import AdminPosts from './admin/pages/Posts'
 import Contact from './pages/Contact'
 import Compare from './pages/Compare'
 
+import IntroPage from './pages/IntroPage'
 import AdminGuard from './admin/components/AdminGuard'
 
 function App() {
@@ -44,7 +45,9 @@ function App() {
     <>
       <ToastContainer position="bottom-right" autoClose={3000} />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<IntroPage />} />
+        <Route path="/intro" element={<IntroPage />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/cpu" element={<CPU />} />
         <Route path="/gpu" element={<GPU />} />
         <Route path="/products" element={<CategoryPage slug="all" title="Tất cả sản phẩm" />} />

@@ -1,0 +1,215 @@
+/* ── STANDALONE ESPORTS INTRO PAGE STYLES ── */
+.intro-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000000;
+  z-index: 999999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  user-select: none;
+  transition: opacity 0.6s ease-out;
+}
+
+/* Esports Gamer Setup Visual Wrap */
+.intro-gamer-wrap {
+  position: relative;
+  width: 90%;
+  max-width: 950px;
+  height: 52vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  padding: 4px;
+  background: linear-gradient(135deg, rgba(200, 230, 0, 0.4) 0%, rgba(59, 130, 246, 0.4) 50%, rgba(168, 85, 247, 0.4) 100%);
+  box-shadow: 0 0 40px rgba(0, 198, 255, 0.3), 0 0 80px rgba(200, 230, 0, 0.2);
+  animation: gamerBorderGlow 4s ease-in-out infinite alternate;
+}
+
+@keyframes gamerBorderGlow {
+  0% {
+    box-shadow: 0 0 30px rgba(0, 198, 255, 0.3), 0 0 60px rgba(200, 230, 0, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 60px rgba(168, 85, 247, 0.5), 0 0 100px rgba(200, 230, 0, 0.4);
+  }
+}
+
+.intro-gamer-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 14px;
+  opacity: 0;
+  transform: scale(0.92) translateY(20px);
+  animation: gamerEntrance 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes gamerEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+    filter: brightness(0.4) contrast(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: brightness(1) contrast(1);
+  }
+}
+
+/* WINNOTECH Brand Title Container below Esports Setup */
+.intro-brand-container {
+  margin-top: 20px;
+  text-align: center;
+  z-index: 10;
+  opacity: 0;
+  transform: translateY(25px);
+  animation: logoEntrance 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
+}
+
+@keyframes logoEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(25px) scale(0.92);
+    filter: blur(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.intro-logo-text {
+  font-size: clamp(32px, 5.5vw, 68px);
+  font-weight: 900;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 
+    0 0 15px rgba(255, 255, 255, 0.8),
+    0 0 30px #00c6ff,
+    0 0 50px #c8e600,
+    0 0 80px #c8e600;
+  animation: logoNeonPulse 2.5s ease-in-out 2.2s infinite alternate;
+}
+
+.intro-logo-text span.highlight {
+  color: #c8e600;
+  text-shadow: 
+    0 0 15px #c8e600,
+    0 0 35px #86efac,
+    0 0 70px #c8e600;
+}
+
+@keyframes logoNeonPulse {
+  0% {
+    text-shadow: 0 0 15px #00c6ff, 0 0 30px #0072ff, 0 0 45px #c8e600;
+  }
+  100% {
+    text-shadow: 0 0 30px #00c6ff, 0 0 60px #a855f7, 0 0 90px #c8e600;
+  }
+}
+
+.intro-sub-tag {
+  font-size: clamp(10px, 1.6vw, 14px);
+  color: #38bdf8;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  margin-top: 8px;
+  font-weight: 700;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+  opacity: 0;
+  animation: subTagFade 1.2s ease 1.5s forwards;
+}
+
+@keyframes subTagFade {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Floating RGB particles background */
+.intro-ember {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #38bdf8;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #38bdf8, 0 0 15px #c8e600;
+  animation: emberRise 4s linear infinite;
+  opacity: 0;
+}
+
+@keyframes emberRise {
+  0% {
+    transform: translateY(100vh) scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-20vh) scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Bottom Progress Bar & Button */
+.intro-footer-action {
+  margin-top: 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  z-index: 20;
+  opacity: 0;
+  animation: subTagFade 1.2s ease 1.8s forwards;
+}
+
+.intro-progress-bar-wrap {
+  width: 280px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(200, 230, 0, 0.3);
+  box-shadow: 0 0 15px rgba(200, 230, 0, 0.2);
+}
+
+.intro-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00c6ff 0%, #a855f7 50%, #c8e600 100%);
+  border-radius: 10px;
+  transition: width 0.1s linear;
+}
+
+.btn-skip-intro {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1.5px solid #c8e600;
+  color: #c8e600;
+  padding: 10px 28px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(200, 230, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-skip-intro:hover {
+  background: #c8e600;
+  color: #000000;
+  box-shadow: 0 0 35px rgba(200, 230, 0, 0.8);
+  transform: translateY(-2px);
+}

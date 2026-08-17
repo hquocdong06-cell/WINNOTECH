@@ -95,7 +95,7 @@ export default function DefaultLayout({ children }) {
         {/* Row 1: Logo + Search + Actions */}
         <div className="nav-main">
           <div className="nav-main-inner">
-            <Link to="/" className="logo" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link to="/home" className="logo" style={{ textDecoration: 'none', color: 'inherit' }}>
               <span style={{ color: 'white' }}>WINNO</span><span style={{ color: 'var(--yellow)' }}>TECH</span>
             </Link>
 
