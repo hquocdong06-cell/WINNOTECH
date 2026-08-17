@@ -92,6 +92,7 @@ export default function RecentlyViewedSidebar({ currentSlug }) {
             <Link
               key={p.slug || p._id}
               to={`/product/${p.slug || p._id}`}
+              className="rv-sidebar-item"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -102,14 +103,6 @@ export default function RecentlyViewedSidebar({ currentSlug }) {
                 borderRadius: '8px',
                 padding: '8px',
                 transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = 'var(--accent-color, #c8e600)'
-                e.currentTarget.style.transform = 'translateX(2px)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)'
-                e.currentTarget.style.transform = 'translateX(0)'
               }}
             >
               <div style={{

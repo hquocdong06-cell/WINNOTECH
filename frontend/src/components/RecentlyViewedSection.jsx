@@ -87,14 +87,6 @@ export default function RecentlyViewedSection({ currentSlug }) {
                 borderRadius: '8px',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = 'var(--accent-color, #c8e600)'
-                e.currentTarget.style.transform = 'translateY(-2px)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = '#333'
-                e.currentTarget.style.transform = 'translateY(0)'
               }}>
                 <div style={{ height: '140px', background: '#0a0a0f', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', overflow: 'hidden' }}>
                   {itemImg ? (

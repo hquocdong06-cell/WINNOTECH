@@ -917,3 +917,73 @@
   }
 }
 
+/* ── ANIMATED PURPLE & BLUE/CYAN RUNNING GRADIENT BORDER FOR PRODUCT DETAIL ── */
+@keyframes purpleBlueBorderRun {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Active & Hover Gallery Thumbnails */
+.gallery-thumb.active,
+.gallery-thumb:hover {
+  position: relative !important;
+  border: 2px solid transparent !important;
+  background: linear-gradient(#0b0f19, #0b0f19) padding-box,
+              linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #06b6d4 100%, #a855f7 100%) border-box !important;
+  background-size: 200% 200% !important;
+  animation: purpleBlueBorderRun 2.5s ease infinite !important;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.5), 0 0 22px rgba(59, 130, 246, 0.35) !important;
+}
+
+/* Gallery Main Image Hover */
+.gallery-main:hover {
+  border: 2px solid transparent !important;
+  background: linear-gradient(#0a0a0f, #0a0a0f) padding-box,
+              linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #06b6d4 100%) border-box !important;
+  background-size: 200% 200% !important;
+  animation: purpleBlueBorderRun 2.5s ease infinite !important;
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.4) !important;
+}
+
+/* Active Tabs */
+.tab-btn.active {
+  color: #c084fc !important;
+  border-bottom: 3px solid transparent !important;
+  background: linear-gradient(90deg, #a855f7 0%, #3b82f6 50%, #06b6d4 100%) bottom / 100% 3px no-repeat !important;
+  text-shadow: 0 0 8px rgba(168, 85, 247, 0.6) !important;
+}
+
+/* Active & Hover Option/Variant Buttons */
+.variant-btn.active,
+.variant-btn:hover,
+.spec-btn.active,
+.spec-btn:hover {
+  border: 2px solid transparent !important;
+  background: linear-gradient(#121621, #121621) padding-box,
+              linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #06b6d4 100%) border-box !important;
+  background-size: 200% 200% !important;
+  animation: purpleBlueBorderRun 2.5s ease infinite !important;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.4) !important;
+  color: #ffffff !important;
+}
+
+/* Hover Cards (Related Products & Recently Viewed Cards) */
+.related-card:hover,
+.rv-card:hover,
+.rv-sidebar-item:hover {
+  border: 2px solid transparent !important;
+  background: linear-gradient(#121621, #121621) padding-box,
+              linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #06b6d4 100%) border-box !important;
+  background-size: 200% 200% !important;
+  animation: purpleBlueBorderRun 2.5s ease infinite !important;
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.4), 0 0 15px rgba(59, 130, 246, 0.3) !important;
+  transform: translateY(-3px) !important;
+}
+
