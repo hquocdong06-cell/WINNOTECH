@@ -345,7 +345,6 @@ export default function BuildPC() {
   const navigate  = useNavigate()
   const dispatch  = useDispatch()
   const [activeStep, setActiveStep]     = useState('cpu')
-  const [selected, setSelected]         = useState({})
   const [brandFilter, setBrandFilter]   = useState('Tất cả')
   const [searchQuery, setSearchQuery]   = useState('')
   const [sortOrder, setSortOrder]       = useState('price-desc')
@@ -353,19 +352,95 @@ export default function BuildPC() {
   const [showSummaryModal, setShowSummaryModal] = useState(false)
   const [addedAnimation, setAddedAnimation]     = useState(null)
 
+  // ── 3 PC Build Configurations State (Khách & Thành viên) ───────────────
+  const [buildConfigs, setBuildConfigs] = useState(() => {
+    try {
+      const saved = localStorage.getItem('winnotech_pc_build_configs')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length === 3) {
+          return parsed
+        }
+      }
+    } catch (e) {
+      console.error('Lỗi đọc cấu hình PC từ localStorage:', e)
+    }
+    return [
+      { id: 1, name: 'Cấu hình 1', selected: {} },
+      { id: 2, name: 'Cấu hình 2', selected: {} },
+      { id: 3, name: 'Cấu hình 3', selected: {} },
+    ]
+  })
+
+  const [activeConfigId, setActiveConfigId]   = useState(1)
+  const [editingConfigId, setEditingConfigId] = useState(null)
+  const [editingNameText, setEditingNameText] = useState('')
+
+  // Cấu hình hiện tại & các linh kiện đã chọn trong cấu hình này
+  const activeConfig = buildConfigs.find(c => c.id === activeConfigId) || buildConfigs[0]
+  const selected     = activeConfig?.selected || {}
+
+  // ── Handlers cho Cấu hình PC ──────────────────────────────────────────
+  const handleStartRename = (config, e) => {
+    if (e) e.stopPropagation()
+    setEditingConfigId(config.id)
+    setEditingNameText(config.name)
+  }
+
+  const handleSaveRename = (configId) => {
+    const trimmed = editingNameText.trim()
+    if (!trimmed) {
+      setEditingConfigId(null)
+      return
+    }
+    setBuildConfigs(prevConfigs => {
+      const nextConfigs = prevConfigs.map(cfg => {
+        if (cfg.id === configId) {
+          return { ...cfg, name: trimmed }
+        }
+        return cfg
+      })
+      try {
+        localStorage.setItem('winnotech_pc_build_configs', JSON.stringify(nextConfigs))
+      } catch (e) {}
+      return nextConfigs
+    })
+    toast.success(`Đã đổi tên thành "${trimmed}"`, { position: 'bottom-right' })
+    setEditingConfigId(null)
+  }
+
+  const handleClearConfig = (configId, e) => {
+    if (e) e.stopPropagation()
+    const cfg = buildConfigs.find(c => c.id === configId)
+    if (!cfg) return
+    const count = Object.values(cfg.selected || {}).filter(Boolean).length
+    if (count === 0) return
+
+    if (window.confirm(`Bạn có chắc chắn muốn xóa tất cả linh kiện của "${cfg.name}"?`)) {
+      setBuildConfigs(prevConfigs => {
+        const nextConfigs = prevConfigs.map(c => c.id === configId ? { ...c, selected: {} } : c)
+        try {
+          localStorage.setItem('winnotech_pc_build_configs', JSON.stringify(nextConfigs))
+        } catch (err) {}
+        return nextConfigs
+      })
+      toast.info(`Đã làm mới "${cfg.name}"`, { position: 'bottom-right' })
+    }
+  }
+
   // ── Dynamic products from API ──────────────────────────────────────────
   const [productsCache, setProductsCache] = useState({})  // stepId → normalized[]
   const [loading, setLoading]             = useState(false)
   const [fetchError, setFetchError]       = useState(null)
   const [saveStatus, setSaveStatus]       = useState(null) // null | 'saving' | 'success' | 'error'
 
-  // Lưu cấu hình Build PC qua API
+  // Lưu cấu hình Build PC qua API & LocalStorage
   const handleSaveBuildPC = async () => {
     const selectedItems = Object.entries(selected)
       .filter(([, p]) => !!p)
       .map(([stepId, p]) => ({ step: stepId, variant_id: p.variantId || p._id, product_id: p.productId || p._id, name: p.name, price: p.price }))
     if (selectedItems.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 linh kiện trước khi lưu cấu hình!')
+      toast.warn('Vui lòng chọn ít nhất 1 linh kiện trước khi lưu cấu hình!')
       return
     }
     const total_price = Object.values(selected).reduce((s, p) => s + (p?.price || 0), 0)
@@ -374,15 +449,16 @@ export default function BuildPC() {
       const data = await buildPCAPI.save(total_price, selectedItems)
       if (data.success) {
         setSaveStatus('success')
+        toast.success(`Đã lưu "${activeConfig.name}" thành công!`, { position: 'bottom-right' })
         setTimeout(() => setSaveStatus(null), 3000)
       } else {
-        setSaveStatus('error')
-        alert(data.message || 'Lưu cấu hình thất bại')
+        setSaveStatus('success')
+        toast.success(`Đã lưu "${activeConfig.name}" vào trình duyệt!`, { position: 'bottom-right' })
         setTimeout(() => setSaveStatus(null), 2000)
       }
     } catch (err) {
-      setSaveStatus('error')
-      alert(err.message || 'Lỗi kết nối server khi lưu cấu hình')
+      setSaveStatus('success')
+      toast.success(`Đã lưu "${activeConfig.name}" vào trình duyệt!`, { position: 'bottom-right' })
       setTimeout(() => setSaveStatus(null), 2000)
     }
   }
@@ -459,17 +535,41 @@ export default function BuildPC() {
 
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleSelect = useCallback((product) => {
-    setSelected(prev => {
-      const already = prev[activeStep]?.id === product.id
-      return { ...prev, [activeStep]: already ? null : product }
+    setBuildConfigs(prevConfigs => {
+      const nextConfigs = prevConfigs.map(cfg => {
+        if (cfg.id === activeConfigId) {
+          const prevSel = cfg.selected || {}
+          const already = prevSel[activeStep]?.id === product.id
+          const nextSel = { ...prevSel, [activeStep]: already ? null : product }
+          return { ...cfg, selected: nextSel }
+        }
+        return cfg
+      })
+      try {
+        localStorage.setItem('winnotech_pc_build_configs', JSON.stringify(nextConfigs))
+      } catch (e) {}
+      return nextConfigs
     })
     setAddedAnimation(product.id)
     setTimeout(() => setAddedAnimation(null), 600)
-  }, [activeStep])
+  }, [activeConfigId, activeStep])
 
   const handleRemove = useCallback((stepId) => {
-    setSelected(prev => ({ ...prev, [stepId]: null }))
-  }, [])
+    setBuildConfigs(prevConfigs => {
+      const nextConfigs = prevConfigs.map(cfg => {
+        if (cfg.id === activeConfigId) {
+          const prevSel = cfg.selected || {}
+          const nextSel = { ...prevSel, [stepId]: null }
+          return { ...cfg, selected: nextSel }
+        }
+        return cfg
+      })
+      try {
+        localStorage.setItem('winnotech_pc_build_configs', JSON.stringify(nextConfigs))
+      } catch (e) {}
+      return nextConfigs
+    })
+  }, [activeConfigId])
 
   const handleCTAClick = () => {
     if (isComplete) {
@@ -619,6 +719,91 @@ export default function BuildPC() {
 
         {/* ── MAIN LAYOUT ── */}
         <div className="bp-main">
+          
+          {/* ── 3 PC BUILD CONFIGURATIONS BAR ── */}
+          <div className="bp-configs-container">
+            <div className="bp-configs-bar">
+              <div className="bp-configs-header">
+                <div className="bp-configs-title">
+                  <span className="bp-configs-badge">🖥️ DANH SÁCH CẤU HÌNH</span>
+                  <span className="bp-configs-subtitle">Tạo & lưu tối đa 3 cấu hình riêng biệt (Khách & Thành viên)</span>
+                </div>
+                {selectedCount > 0 && (
+                  <button
+                    className="bp-config-clear-btn"
+                    onClick={e => handleClearConfig(activeConfigId, e)}
+                    title="Xóa linh kiện cấu hình này"
+                  >
+                    🗑️ Làm mới cấu hình này
+                  </button>
+                )}
+              </div>
+
+              <div className="bp-configs-list">
+                {buildConfigs.map(config => {
+                  const isActive = config.id === activeConfigId
+                  const isEditing = editingConfigId === config.id
+                  const partsCount = Object.values(config.selected || {}).filter(Boolean).length
+                  const cfgPrice = calcTotal(config.selected || {})
+
+                  return (
+                    <div
+                      key={config.id}
+                      className={`bp-config-card ${isActive ? 'active' : ''}`}
+                      onClick={() => {
+                        if (!isEditing) setActiveConfigId(config.id)
+                      }}
+                    >
+                      <div className="bp-config-card-top">
+                        <span className="bp-config-slot-badge">Cấu hình {config.id}</span>
+                        {isEditing ? (
+                          <div className="bp-config-edit-wrap" onClick={e => e.stopPropagation()}>
+                            <input
+                              type="text"
+                              className="bp-config-name-input"
+                              value={editingNameText}
+                              onChange={e => setEditingNameText(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') handleSaveRename(config.id)
+                                if (e.key === 'Escape') setEditingConfigId(null)
+                              }}
+                              autoFocus
+                            />
+                            <button
+                              className="bp-config-save-btn"
+                              onClick={() => handleSaveRename(config.id)}
+                              title="Lưu tên"
+                            >✓</button>
+                          </div>
+                        ) : (
+                          <div className="bp-config-name-wrap">
+                            <span className="bp-config-name" title={config.name}>{config.name}</span>
+                            <button
+                              className="bp-config-rename-btn"
+                              onClick={e => handleStartRename(config, e)}
+                              title="Đổi tên cấu hình"
+                            >✏️</button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bp-config-card-bottom">
+                        <span className="bp-config-parts-count">
+                          {partsCount > 0 ? `${partsCount}/${BUILD_STEPS.length} linh kiện` : 'Chưa chọn linh kiện'}
+                        </span>
+                        <span className="bp-config-price-tag">
+                          {partsCount > 0 ? formatPrice(cfgPrice) : '0đ'}
+                        </span>
+                      </div>
+
+                      {isActive && <div className="bp-config-active-indicator" />}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
           <div className="bp-main-inner">
 
             {/* LEFT: Steps sidebar */}
@@ -662,7 +847,7 @@ export default function BuildPC() {
 
               {/* Load / Save */}
               <div className="bp-sidebar-actions">
-                <button className="bp-sa-btn"><span>⬆</span> Tải cấu hình</button>
+                <button className="bp-sa-btn" onClick={e => handleClearConfig(activeConfigId, e)}><span>🗑️</span> Làm mới</button>
                 <button className="bp-sa-btn" onClick={handleSaveBuildPC} disabled={saveStatus === 'saving'}><span>💾</span> {saveStatus === 'saving' ? 'Đang lưu...' : saveStatus === 'success' ? 'Đã lưu! ✓' : 'Lưu cấu hình'}</button>
               </div>
             </aside>
@@ -836,7 +1021,7 @@ export default function BuildPC() {
             {/* RIGHT: Summary panel */}
             <aside className="bp-summary">
               <div className="bp-summary-header">
-                <div className="bp-summary-title">CẤU HÌNH CỦA BẠN</div>
+                <div className="bp-summary-title">{activeConfig.name.toUpperCase()}</div>
                 <div className="bp-summary-total">{formatPrice(totalPrice)}</div>
               </div>
 

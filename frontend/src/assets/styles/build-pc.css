@@ -187,6 +187,216 @@
   align-items: start;
 }
 
+.bp-configs-container {
+  max-width: 1280px;
+  margin: 0 auto 16px;
+  padding: 0 40px;
+}
+
+/* ─── 3 BUILD CONFIGURATIONS BAR ───────────────────────────── */
+.bp-configs-bar {
+  background: var(--bp-dark);
+  border: 1px solid var(--bp-border);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.bp-configs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.bp-configs-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bp-configs-badge {
+  font-family: 'Oswald', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--bp-yellow);
+  text-transform: uppercase;
+}
+
+.bp-configs-subtitle {
+  font-size: 11px;
+  color: var(--bp-muted);
+}
+
+.bp-config-clear-btn {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--bp-red);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.bp-config-clear-btn:hover {
+  background: var(--bp-red);
+  color: #fff;
+}
+
+.bp-configs-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.bp-config-card {
+  background: var(--bp-dark2);
+  border: 1px solid var(--bp-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.bp-config-card:hover {
+  border-color: rgba(124, 58, 237, 0.5);
+  transform: translateY(-2px);
+  background: rgba(124, 58, 237, 0.05);
+}
+
+.bp-config-card.active {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(200, 230, 0, 0.05) 100%);
+  border-color: var(--bp-yellow);
+  box-shadow: 0 0 15px rgba(200, 230, 0, 0.15);
+}
+
+.bp-config-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bp-config-slot-badge {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: var(--bp-dark3);
+  color: var(--bp-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.bp-config-card.active .bp-config-slot-badge {
+  background: var(--bp-yellow);
+  color: #000;
+}
+
+.bp-config-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.bp-config-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bp-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bp-config-rename-btn {
+  background: none;
+  border: none;
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.bp-config-rename-btn:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.bp-config-edit-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.bp-config-name-input {
+  flex: 1;
+  min-width: 0;
+  background: #000;
+  border: 1px solid var(--bp-yellow);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  outline: none;
+}
+
+.bp-config-save-btn {
+  background: var(--bp-green);
+  border: none;
+  color: #000;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.bp-config-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.bp-config-parts-count {
+  color: var(--bp-muted);
+}
+
+.bp-config-price-tag {
+  font-weight: 800;
+  color: var(--bp-yellow);
+}
+
+.bp-config-active-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--bp-purple), var(--bp-yellow));
+}
+
+@media (max-width: 992px) {
+  .bp-configs-list {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ─── LEFT SIDEBAR: Steps ───────────────────────────────────── */
 .bp-sidebar {
   background: var(--bp-dark);
