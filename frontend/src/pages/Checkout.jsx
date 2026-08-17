@@ -588,9 +588,8 @@ if (v.min_order > 0 && subtotal < v.min_order) {
         const data = await res.json()
 
         if (data.success) {
-          setVnpayQR(data.qrCode)      // base64 QR image
-          setVnpayUrl(data.paymentUrl) // direct payment URL
-          setShowVnpayModal(true)
+          // Chuyển hướng trực tiếp sang VNPay
+          window.location.href = data.paymentUrl;
         } else {
           setSubmitError(data.message || 'Không thể tạo thanh toán VNPay, vui lòng thử lại!')
         }
