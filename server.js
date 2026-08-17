@@ -1219,7 +1219,12 @@ app.get(["/api/buildpc/components", "/api/products/build-pc"], async (req, res) 
     let categoryFilter = {};
 
     if (category) {
-      const cat = await CategoryModel.findOne({ slug: category });
+      const cat = await CategoryModel.findOne({
+        $or: [
+          { slug: category },
+          { slug: category === 'tan-nhiet' ? 'cooling' : category === 'cooling' ? 'tan-nhiet' : category }
+        ]
+      });
       if (cat) {
         categoryFilter.cat_id = cat._id;
       }
@@ -5151,7 +5156,12 @@ app.get("/api/buildpc/components", async (req, res) => {
     const { category, search } = req.query;
     if (!category) return res.status(400).json({ success: false, message: "Thiếu category slug" });
 
-    const cat = await CategoryModel.findOne({ slug: category });
+    const cat = await CategoryModel.findOne({
+      $or: [
+        { slug: category },
+        { slug: category === 'tan-nhiet' ? 'cooling' : category === 'cooling' ? 'tan-nhiet' : category }
+      ]
+    });
     if (!cat) return res.status(404).json({ success: false, message: "Không tìm thấy danh mục" });
 
     let filter = { cat_id: cat._id };
@@ -5857,6 +5867,148 @@ app.post("/reviews", async (req, res, next) => {
       .json({ success: false, message: "Lỗi Server: " + error.message });
   }
 });
+
+// GET /api/products/:productId/reviews — Lấy tất cả đánh giá của sản phẩm này
+app.get("/api/products/:productId/reviews", async (req, res) => {
+  try {
+    const { productId } = req.params;
+    let targetProductId = productId;
+
+    // Nếu productId không phải ObjectId => tìm theo slug
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      const p = await Product.findOne({ slug: productId }).select("_id").lean();
+      if (p) targetProductId = p._id;
+      else return res.json({ success: true, count: 0, avgRating: 5, data: [] });
+    }
+
+    // Lấy tất cả variants của sản phẩm này
+    const variants = await Variant.find({ p_id: targetProductId }).select("_id").lean();
+    const variantIds = variants.map(v => v._id);
+
+    // Lấy các OrderItem thuộc các variant đó
+    const orderItems = await OrderItem.find({ variants_id: { $in: variantIds } }).select("_id").lean();
+    const orderItemIds = orderItems.map(item => item._id);
+
+    // Lấy danh sách review hiển thị (status != 'hidden')
+    const reviews = await Review.find({
+      id_oderitems: { $in: orderItemIds },
+      status: { $ne: "hidden" }
+    })
+      .populate({
+        path: "id_oderitems",
+        populate: [
+          {
+            path: "order_id",
+            populate: { path: "user_id", select: "name email avatar" }
+          },
+          {
+            path: "variants_id",
+            select: "variant_name price"
+          }
+        ]
+      })
+      .sort({ _id: -1 })
+      .lean();
+
+    const formattedReviews = reviews.map(r => {
+      const orderItem = r.id_oderitems || {};
+      const order = orderItem.order_id || {};
+      const user = order.user_id || {};
+
+      return {
+        _id: r._id,
+        content: r.content,
+        star_number: r.star_number,
+        createdAt: r.createdAt || r._id.getTimestamp(),
+        userName: user.name || "Khách hàng WinNoTech",
+        userAvatar: user.avatar || null,
+        variantName: orderItem.variants_id?.variant_name || null
+      };
+    });
+
+    const totalStars = formattedReviews.reduce((sum, r) => sum + (r.star_number || 5), 0);
+    const avgRating = formattedReviews.length > 0 ? Number((totalStars / formattedReviews.length).toFixed(1)) : 5;
+
+    return res.json({
+      success: true,
+      count: formattedReviews.length,
+      avgRating,
+      data: formattedReviews
+    });
+  } catch (error) {
+    console.error("Lỗi lấy danh sách đánh giá sản phẩm:", error);
+    return res.status(500).json({ success: false, message: "Lỗi server: " + error.message });
+  }
+});
+
+// GET /api/products/:productId/review-eligibility — Kiểm tra người dùng đã mua sản phẩm này chưa & có được phép viết đánh giá không
+app.get("/api/products/:productId/review-eligibility", checklogin, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    let targetProductId = productId;
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      const p = await Product.findOne({ slug: productId }).select("_id").lean();
+      if (p) targetProductId = p._id;
+      else return res.json({ success: true, canReview: false, hasPurchased: false, reason: "not_found" });
+    }
+
+    const userId = req.user._id;
+
+    // Lấy các đơn hàng của user này
+    const userOrders = await Order.find({ user_id: userId }).select("_id").lean();
+    const userOrderIds = userOrders.map(o => o._id);
+
+    if (userOrderIds.length === 0) {
+      return res.json({ success: true, canReview: false, hasPurchased: false, reason: "not_purchased" });
+    }
+
+    // Lấy các variants của sản phẩm này
+    const variants = await Variant.find({ p_id: targetProductId }).select("_id").lean();
+    const variantIds = variants.map(v => v._id);
+
+    // Lấy order items của user thuộc về sản phẩm này
+    const userOrderItems = await OrderItem.find({
+      order_id: { $in: userOrderIds },
+      variants_id: { $in: variantIds }
+    }).select("_id").lean();
+
+    if (userOrderItems.length === 0) {
+      return res.json({ success: true, canReview: false, hasPurchased: false, reason: "not_purchased" });
+    }
+
+    // Kiểm tra xem có order_item_id nào chưa review không
+    let eligibleOrderItem = null;
+    for (const item of userOrderItems) {
+      const existingReview = await Review.findOne({ id_oderitems: item._id }).lean();
+      if (!existingReview) {
+        eligibleOrderItem = item;
+        break;
+      }
+    }
+
+    if (eligibleOrderItem) {
+      return res.json({
+        success: true,
+        canReview: true,
+        hasPurchased: true,
+        order_item_id: eligibleOrderItem._id
+      });
+    }
+
+    return res.json({
+      success: true,
+      canReview: false,
+      hasPurchased: true,
+      alreadyReviewed: true,
+      reason: "already_reviewed"
+    });
+  } catch (error) {
+    console.error("Lỗi kiểm tra quyền review sản phẩm:", error);
+    return res.status(500).json({ success: false, message: "Lỗi server: " + error.message });
+  }
+});
+
 
 
 // ============================================================

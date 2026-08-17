@@ -5,10 +5,12 @@ import { selectCartTotalQuantity, setCart } from '../redux/cartSlice'
 import CartDrawer from '../components/CartDrawer'
 import AIChatbot from '../components/AIChatbot'
 import { compareAPI } from '../services/apiService'
+import { useAuth } from '../hooks/useAuth'
 
 const API_URL = 'http://localhost:3000'
 
 export default function DefaultLayout({ children }) {
+  const { isLoggedIn, user } = useAuth()
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [compareCount, setCompareCount] = useState(0)
   const dispatch = useDispatch()
@@ -146,12 +148,21 @@ export default function DefaultLayout({ children }) {
                   </span>
                 )}
               </Link>
-              <Link to="/profile" className="nav-action-btn" style={{ textDecoration: 'none' }}>
+              <Link 
+                to={isLoggedIn ? "/profile" : "/login"} 
+                className="nav-action-btn" 
+                style={{ textDecoration: 'none' }}
+                title={isLoggedIn ? `Tài khoản: ${user?.email}` : "Đăng ký / Đăng nhập"}
+              >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
-                <span>Tài khoản</span>
+                <span>
+                  {isLoggedIn && user
+                    ? (user.email ? user.email.replace(/@gmail\.com$/i, '').replace(/@.*/, '') : (user.name || 'Tài khoản'))
+                    : 'Đăng ký/Đăng nhập'}
+                </span>
               </Link>
               <button className="nav-cart-btn" onClick={() => setIsCartOpen(true)}>
                 <div className="cart-btn-inner">
@@ -180,9 +191,9 @@ export default function DefaultLayout({ children }) {
               Build PC ngay
             </Link>
             <div className="category-menu-wrapper">
-              <button className="btn-category-menu">
+              <Link to="/products" className="btn-category-menu" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
                 ☰ Danh mục ▾
-              </button>
+              </Link>
               <div className="mega-menu">
                 <div className="mega-menu-grid">
                   <div className="mega-menu-col">

@@ -7,7 +7,7 @@ import DefaultLayout from '../layouts/DefaultLayout'
 import useFavorite from '../hooks/useFavorite'
 import useCompare from '../hooks/useCompare'
 import { useAuth } from '../hooks/useAuth'
-import '../assets/styles/cpu.css'
+import RecentlyViewedSidebar from '../components/RecentlyViewedSidebar'
 
 const API_URL = 'http://localhost:3000'
 
@@ -1060,6 +1060,9 @@ export default function CPU() {
                   </div>
                 )}
               </div>
+
+              {/* SẢN PHẨM ĐÃ XEM WIDGET */}
+              <RecentlyViewedSidebar />
             </aside>
 
             {/* MAIN CONTENT - PRODUCTS */}

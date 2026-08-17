@@ -7,11 +7,24 @@ import DefaultLayout from '../layouts/DefaultLayout'
 import useFavorite from '../hooks/useFavorite'
 import useCompare from '../hooks/useCompare'
 import { useAuth } from '../hooks/useAuth'
-import '../assets/styles/cpu.css'
+import RecentlyViewedSidebar from '../components/RecentlyViewedSidebar'
 
 const API_URL = 'http://localhost:3000'
 
 const FILTER_CONFIG = {
+  all: [
+    { title: 'Hãng sản xuất', key: 'brands', options: [
+      { label: 'ASUS', value: 'asus' },
+      { label: 'MSI', value: 'msi' },
+      { label: 'Gigabyte', value: 'gigabyte' },
+      { label: 'AMD', value: 'amd' },
+      { label: 'Intel', value: 'intel' },
+      { label: 'Kingston', value: 'kingston' },
+      { label: 'Corsair', value: 'corsair' },
+      { label: 'Samsung', value: 'samsung' },
+      { label: 'NZXT', value: 'nzxt' }
+    ]}
+  ],
   gpu: [
     { title: 'Hãng', key: 'brands', options: [{ label: 'ASUS', value: 'asus' }, { label: 'MSI', value: 'msi' }, { label: 'Gigabyte', value: 'gigabyte' }] },
     { title: 'Dòng GPU', key: 'vgaLine', options: [{ label: 'RTX 4070 Ti Super', value: '4070-ti-super' }, { label: 'RTX 4060', value: '4060' }] },
@@ -48,13 +61,49 @@ const FILTER_CONFIG = {
   ]
 }
 
+const brandsData = [
+  { label: 'AMD', value: 'amd' },
+  { label: 'Intel', value: 'intel' },
+  { label: 'ASUS', value: 'asus' },
+  { label: 'MSI', value: 'msi' },
+  { label: 'Gigabyte', value: 'gigabyte' },
+  { label: 'Kingston', value: 'kingston' },
+  { label: 'Corsair', value: 'corsair' },
+  { label: 'Samsung', value: 'samsung' },
+  { label: 'NZXT', value: 'nzxt' }
+]
+
+const useCaseData = [
+  { label: 'Gaming', value: 'gaming' },
+  { label: 'Đồ họa - Kỹ thuật', value: 'do-hoa-ky-thuat' },
+  { label: 'Văn phòng', value: 'van-phong' },
+  { label: 'Doanh nghiệp', value: 'doanh-nghiep' },
+  { label: 'Học sinh - Sinh viên', value: 'hoc-sinh-sinh-vien' }
+]
+
+const seriesData = [
+  { label: 'Core i3 / i5 / i7 / i9', value: 'intel-core' },
+  { label: 'Ryzen 3 / 5 / 7 / 9', value: 'amd-ryzen' },
+  { label: 'RTX 40 Series / RTX 30 Series', value: 'rtx-series' },
+  { label: 'DDR5 / DDR4 RAM', value: 'ram-ddr' },
+  { label: 'SSD NVMe M.2 / SATA3', value: 'ssd-nvme' }
+]
+
+const socketData = [
+  { label: 'LGA1700', value: 'lga1700' },
+  { label: 'AM5', value: 'am5' },
+  { label: 'AM4', value: 'am4' },
+  { label: 'LGA1200', value: 'lga1200' },
+  { label: 'PCIe 4.0 / PCIe 5.0', value: 'pcie' }
+]
+
 export default function CategoryPage({ slug, title }) {
   const dispatch = useDispatch()
   const { favoriteIds, toggleFavorite } = useFavorite()
   const { compareIds, toggleCompare } = useCompare()
   const { isLoggedIn } = useAuth()
   const [products, setProducts] = useState([])
-  const [categoryName, setCategoryName] = useState(title)
+  const [categoryName, setCategoryName] = useState(title || 'Tất cả sản phẩm')
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedBrands, setSelectedBrands] = useState([])
@@ -116,8 +165,9 @@ export default function CategoryPage({ slug, title }) {
   // Accordion open/close states
   const [openFilters, setOpenFilters] = useState({
     brands: true,
-    custom1: true,
-    custom2: true,
+    useCase: true,
+    series: true,
+    socket: true,
     priceRange: true
   })
 
@@ -130,11 +180,18 @@ export default function CategoryPage({ slug, title }) {
     const fetchCategoryProducts = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`${API_URL}/categories/${slug}`)
+        const isAll = !slug || slug === 'all'
+        const endpoint = isAll ? `${API_URL}/products` : `${API_URL}/categories/${slug}`
+        const res = await fetch(endpoint)
         const data = await res.json()
         if (data.success) {
-          setProducts(data.data.products || [])
-          setCategoryName(data.data.category.name || title)
+          if (isAll) {
+            setProducts(Array.isArray(data.data) ? data.data : [])
+            setCategoryName(title || 'Tất cả sản phẩm')
+          } else {
+            setProducts(data.data.products || [])
+            setCategoryName(data.data.category?.name || title)
+          }
         } else {
           setProducts([])
         }
@@ -150,11 +207,6 @@ export default function CategoryPage({ slug, title }) {
     setCurrentPage(1)
   }, [slug])
 
-  // Get current filter configuration
-  const filters = FILTER_CONFIG[slug] || []
-  const brandFilter = filters.find(f => f.key === 'brands')
-  const customFilters = filters.filter(f => f.key !== 'brands')
-
   const handleBrandChange = (brandValue, checked) => {
     if (checked) {
       setSelectedBrands(prev => [...prev, brandValue])
@@ -167,8 +219,9 @@ export default function CategoryPage({ slug, title }) {
   // Filter products by selected brands
   const filteredProducts = products.filter(product => {
     if (selectedBrands.length === 0) return true
-    const productBrand = product.brand_id?.slug || ''
-    return selectedBrands.includes(productBrand.toLowerCase())
+    const productBrand = (product.brand_id?.slug || product.brand_id?.name || '').toLowerCase()
+    const productName = (product.name || '').toLowerCase()
+    return selectedBrands.some(b => productBrand.includes(b) || productName.includes(b))
   })
 
   // Pagination helper
@@ -217,66 +270,10 @@ export default function CategoryPage({ slug, title }) {
           <div className="cpu-layout">
             {/* LEFT SIDEBAR - FILTERS */}
             <aside className="cpu-sidebar">
-              {/* BRAND FILTER */}
-              {brandFilter && (
-                <div className="filter-group">
-                  <div className="filter-title" onClick={() => toggleFilter('brands')}>
-                    {brandFilter.title}
-                    <span className={`accordion-icon ${openFilters.brands ? 'open' : ''}`}>
-                      <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                        <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </span>
-                  </div>
-                  {openFilters.brands && (
-                    <div className="filter-options">
-                      {brandFilter.options.map(opt => (
-                        <label key={opt.value} className="filter-label">
-                          <input
-                            type="checkbox"
-                            checked={selectedBrands.includes(opt.value)}
-                            onChange={(e) => handleBrandChange(opt.value, e.target.checked)}
-                          />
-                          <span>{opt.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* DYNAMIC ADDITIONAL FILTERS */}
-              {customFilters.map((filter, index) => {
-                const stateKey = `custom${index + 1}`
-                const isOpen = openFilters[stateKey] !== false
-                return (
-                  <div key={filter.key} className="filter-group">
-                    <div className="filter-title" onClick={() => toggleFilter(stateKey)}>
-                      {filter.title}
-                      <span className={`accordion-icon ${isOpen ? 'open' : ''}`}>
-                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                          <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </span>
-                    </div>
-                    {isOpen && (
-                      <div className="filter-options">
-                        {filter.options.map(opt => (
-                          <label key={opt.value} className="filter-label">
-                            <input type="checkbox" />
-                            <span>{opt.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-
               {/* PRICE RANGE FILTER */}
               <div className="filter-group">
                 <div className="filter-title" onClick={() => toggleFilter('priceRange')}>
-                  Tầm Giá
+                  Khoảng giá
                   <span className={`accordion-icon ${openFilters.priceRange ? 'open' : ''}`}>
                     <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
                       <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -285,22 +282,116 @@ export default function CategoryPage({ slug, title }) {
                 </div>
                 {openFilters.priceRange && (
                   <div className="price-range">
+                    <div className="price-inputs" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <input type="text" value="0đ" disabled style={{ width: '100%', background: 'var(--dark2)', border: '1.5px solid var(--border)', color: 'var(--white)', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px' }} />
+                      <span style={{ color: 'var(--text-muted)' }}>-</span>
+                      <input type="text" value="420.000.000đ" disabled style={{ width: '100%', background: 'var(--dark2)', border: '1.5px solid var(--border)', color: 'var(--white)', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px' }} />
+                    </div>
                     <div className="custom-slider-wrapper">
                       <div className="slider-track-line">
                         <span className="slider-dot active" style={{left: '0%'}}></span>
-                        <span className="slider-dot active" style={{left: '33.33%'}}></span>
-                        <span className="slider-dot active" style={{left: '66.66%'}}></span>
                         <span className="slider-dot active" style={{left: '100%'}}></span>
                         <div className="slider-active-line" style={{left: '0%', width: '100%'}}></div>
                       </div>
                     </div>
-                    <div className="price-labels">
-                      <span>9.990.000đ</span>
-                      <span>18.990.000đ</span>
-                    </div>
                   </div>
                 )}
               </div>
+
+              {/* BRAND FILTER */}
+              <div className="filter-group">
+                <div className="filter-title" onClick={() => toggleFilter('brands')}>
+                  Thương hiệu
+                  <span className={`accordion-icon ${openFilters.brands ? 'open' : ''}`}>
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
+                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                </div>
+                {openFilters.brands && (
+                  <div className="filter-options">
+                    {brandsData.map(brand => (
+                      <label key={brand.value} className="filter-label">
+                        <input
+                          type="checkbox"
+                          checked={selectedBrands.includes(brand.value)}
+                          onChange={(e) => handleBrandChange(brand.value, e.target.checked)}
+                        />
+                        <span>{brand.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* NHU CẦU */}
+              <div className="filter-group">
+                <div className="filter-title" onClick={() => toggleFilter('useCase')}>
+                  Nhu cầu
+                  <span className={`accordion-icon ${openFilters.useCase ? 'open' : ''}`}>
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
+                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                </div>
+                {openFilters.useCase && (
+                  <div className="filter-options">
+                    {useCaseData.map(uc => (
+                      <label key={uc.value} className="filter-label">
+                        <input type="checkbox" />
+                        <span>{uc.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* SERIES */}
+              <div className="filter-group">
+                <div className="filter-title" onClick={() => toggleFilter('series')}>
+                  Dòng sản phẩm / Series
+                  <span className={`accordion-icon ${openFilters.series ? 'open' : ''}`}>
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
+                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                </div>
+                {openFilters.series && (
+                  <div className="filter-options">
+                    {seriesData.map(s => (
+                      <label key={s.value} className="filter-label">
+                        <input type="checkbox" />
+                        <span style={{ fontSize: '12px' }}>{s.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* SOCKET */}
+              <div className="filter-group">
+                <div className="filter-title" onClick={() => toggleFilter('socket')}>
+                  Socket / Chuẩn kết nối
+                  <span className={`accordion-icon ${openFilters.socket ? 'open' : ''}`}>
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
+                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                </div>
+                {openFilters.socket && (
+                  <div className="filter-options">
+                    {socketData.map(sock => (
+                      <label key={sock.value} className="filter-label">
+                        <input type="checkbox" />
+                        <span>{sock.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* SẢN PHẨM ĐÃ XEM WIDGET */}
+              <RecentlyViewedSidebar />
             </aside>
 
             {/* MAIN CONTENT - PRODUCTS */}
@@ -317,34 +408,6 @@ export default function CategoryPage({ slug, title }) {
                       <option value="price-desc">Giá: Cao đến Thấp</option>
                       <option value="newest">Mới nhất</option>
                     </select>
-                  </div>
-                  
-                  <div className="view-modes-group">
-                    <button className={`btn-view-mode ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <rect x="3" y="3" width="7" height="7" rx="1" />
-                        <rect x="14" y="3" width="7" height="7" rx="1" />
-                        <rect x="3" y="14" width="7" height="7" rx="1" />
-                        <rect x="14" y="14" width="7" height="7" rx="1" />
-                      </svg>
-                    </button>
-                    <button className={`btn-view-mode ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <line x1="3" y1="6" x2="8" y2="6" />
-                        <line x1="12" y1="6" x2="21" y2="6" />
-                        <line x1="3" y1="12" x2="8" y2="12" />
-                        <line x1="12" y1="12" x2="21" y2="12" />
-                        <line x1="3" y1="18" x2="8" y2="18" />
-                        <line x1="12" y1="18" x2="21" y2="18" />
-                      </svg>
-                    </button>
-                    <button className={`btn-view-mode ${viewMode === 'detail' ? 'active' : ''}`} onClick={() => setViewMode('detail')}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <line x1="9" y1="3" x2="9" y2="21" />
-                        <line x1="15" y1="3" x2="15" y2="21" />
-                      </svg>
-                    </button>
                   </div>
                 </div>
               </div>
@@ -452,8 +515,7 @@ export default function CategoryPage({ slug, title }) {
 
               {/* FOOTER / PAGINATION AREA */}
               {totalPages > 1 && (
-                <div className="cpu-footer-row">
-                  <button className="btn-show-more">Show More</button>
+                <div className="cpu-footer-row" style={{ justifyContent: 'center', marginTop: '16px', paddingTop: '16px' }}>
                   <div className="cpu-pagination-right">
                     <span className="pagination-label">Products</span>
                     <button 

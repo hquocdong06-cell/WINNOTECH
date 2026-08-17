@@ -47,6 +47,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/cpu" element={<CPU />} />
         <Route path="/gpu" element={<GPU />} />
+        <Route path="/products" element={<CategoryPage slug="all" title="Tất cả sản phẩm" />} />
+        <Route path="/categories" element={<CategoryPage slug="all" title="Tất cả sản phẩm" />} />
         <Route path="/ram" element={<RAM />} />
         <Route path="/storage" element={<SSD />} />
         <Route path="/mainboard" element={<Mainboard />} />

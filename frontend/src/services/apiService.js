@@ -178,6 +178,8 @@ export const reviewAPI = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ order_item_id, content, star_number }),
   }),
+  getProductReviews: (productId) => apiFetch(`/api/products/${productId}/reviews`),
+  checkEligibility: (productId) => apiFetch(`/api/products/${productId}/review-eligibility`),
 };
 
 // ============================================================

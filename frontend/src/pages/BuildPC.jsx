@@ -10,104 +10,7 @@ import { toast } from 'react-toastify'
 const API_URL = 'http://localhost:3000'
 
 // ─── SVG Step Icons Styled with Neon Green ──────────────────────────────
-const StepIcon = ({ id, size = 16, style = {} }) => {
-  const mergedStyle = {
-    width: size,
-    height: size,
-    verticalAlign: 'middle',
-    stroke: 'var(--bp-yellow)',
-    display: 'inline-block',
-    ...style
-  }
-
-  switch (id) {
-    case 'cpu':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={mergedStyle}>
-          <rect x="4" y="4" width="16" height="16" rx="2" />
-          <rect x="9" y="9" width="6" height="6" />
-          <path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3" />
-        </svg>
-      )
-    case 'mainboard':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={mergedStyle}>
-          <rect x="4" y="4" width="16" height="16" rx="2" />
-          <rect x="9" y="9" width="6" height="6" />
-          <path d="M9 4v5M15 4v3M9 15h6M9 17h3" />
-          <circle cx="15" cy="11" r="1" fill="var(--bp-yellow)" />
-        </svg>
-      )
-    case 'ram':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={mergedStyle}>
-          <rect x="2" y="8" width="20" height="8" rx="1" />
-          <path d="M6 8v2M10 8v2M14 8v2M18 8v2M6 14v2M10 14v2M14 14v2M18 14v2" />
-        </svg>
-      )
-    case 'gpu':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={mergedStyle}>
-          <rect x="2" y="5" width="20" height="14" rx="2" />
-          <circle cx="8" cy="12" r="3" />
-          <circle cx="16" cy="12" r="3" />
-          <path d="M2 9h4M2 15h4" />
-        </svg>
-      )
-    case 'storage':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={mergedStyle}>
-          <rect x="5" y="2" width="14" height="20" rx="2" />
-          <path d="M12 18h.01M5 14h14M12 6h.01" />
-        </svg>
-      )
-    case 'psu':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={mergedStyle}>
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <path d="M13 7l-4 6h4v4l4-6h-4z" />
-        </svg>
-      )
-    case 'cooling':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={mergedStyle}>
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 2v6M12 16v6M2 12h6M16 12h6" />
-          <path d="M12 12l3-3M12 12l-3 3M12 12l3 3M12 12l-3-3" />
-        </svg>
-      )
-    case 'case':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={mergedStyle}>
-          <rect x="5" y="3" width="14" height="18" rx="2" />
-          <path d="M5 7h14M5 12h14M9 16h6" />
-        </svg>
-      )
-    case 'monitor':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={mergedStyle}>
-          <rect x="2" y="3" width="20" height="14" rx="2" />
-          <path d="M8 21h8M12 17v4" />
-        </svg>
-      )
-    case 'peripheral':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={mergedStyle}>
-          <rect x="2" y="5" width="12" height="8" rx="1" />
-          <circle cx="19" cy="9" r="3" />
-          <path d="M19 6v3M5 7h1M9 7h1M5 10h1M9 10h1M16 9h1" />
-        </svg>
-      )
-    case 'extra':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={mergedStyle}>
-          <path d="M18 10h-4V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4H2v4h4v6h2v-6h4v6h2v-6h4z" />
-        </svg>
-      )
-    default:
-      return null
-  }
-}
+const StepIcon = () => null
 
 // ─── Danh sách bước build ─────────────────────────────────────────────────
 const BUILD_STEPS = [
@@ -134,7 +37,7 @@ const STEP_TO_SLUG = {
   gpu:        'gpu',
   storage:    'storage',
   psu:        'psu',
-  cooling:    'tan-nhiet',
+  cooling:    'cooling',
   case:       'case',
   // monitor / peripheral / extra chưa có category trong DB → dùng mock
 }
@@ -272,14 +175,14 @@ function checkCompatibility(selected) {
   // 1. Socket CPU ↔ Mainboard
   if (cpu && mb && cpu.socket && mb.socket) {
     if (cpu.socket !== mb.socket) {
-      issues.push(`❌ Socket không khớp: CPU ${cpu.socket} ≠ Mainboard ${mb.socket}`)
+      issues.push(`Socket không khớp: CPU ${cpu.socket} ≠ Mainboard ${mb.socket}`)
     }
   }
 
   // 2. RAM Type ↔ Mainboard
   if (ram && mb && ram.ramType && mb.ramType) {
     if (ram.ramType !== mb.ramType) {
-      issues.push(`❌ RAM type không khớp: RAM ${ram.ramType} ≠ Mainboard hỗ trợ ${mb.ramType}`)
+      issues.push(`RAM type không khớp: RAM ${ram.ramType} ≠ Mainboard hỗ trợ ${mb.ramType}`)
     }
   }
 
@@ -289,7 +192,7 @@ function checkCompatibility(selected) {
     const mbFF    = mb.formFactor || ''
     const arr     = Array.isArray(caseFF) ? caseFF : [caseFF]
     if (mbFF && arr.length > 0 && !arr.some(f => mbFF.includes(f) || f.includes(mbFF))) {
-      issues.push(`❌ Form factor không khớp: Case hỗ trợ ${arr.join('/')} nhưng Mainboard là ${mbFF}`)
+      issues.push(`Form factor không khớp: Case hỗ trợ ${arr.join('/')} nhưng Mainboard là ${mbFF}`)
     }
   }
 
@@ -301,9 +204,9 @@ function checkCompatibility(selected) {
     const recommended = Math.ceil((totalTdp * 1.25) / 50) * 50
 
     if (psu.wattage < totalTdp) {
-      issues.push(`❌ PSU ${psu.wattage}W không đủ cho hệ thống cần ~${totalTdp}W tổng TDP`)
+      issues.push(`PSU ${psu.wattage}W không đủ cho hệ thống cần ~${totalTdp}W tổng TDP`)
     } else if (psu.wattage < recommended) {
-      warnings.push(`⚠️ PSU ${psu.wattage}W hơi sát công suất. Khuyên dùng ≥${recommended}W`)
+      warnings.push(`PSU ${psu.wattage}W hơi sát công suất. Khuyên dùng ≥${recommended}W`)
     }
   }
 
@@ -313,8 +216,8 @@ function checkCompatibility(selected) {
     const cpuTier = cpu.tier || 3
     const diff = Math.abs(cpuTier - gpuTier)
     if (diff >= 2) {
-      if (cpuTier < gpuTier) warnings.push(`⚠️ CPU có thể bị bottleneck bởi GPU mạnh hơn ~${diff * 20}%`)
-      else warnings.push(`⚠️ GPU có thể không phát huy hết sức mạnh của CPU`)
+      if (cpuTier < gpuTier) warnings.push(`CPU có thể bị bottleneck bởi GPU mạnh hơn ~${diff * 20}%`)
+      else warnings.push(`GPU có thể không phát huy hết sức mạnh của CPU`)
     }
   }
 
@@ -593,12 +496,10 @@ export default function BuildPC() {
     const errors     = []
 
     for (const item of items) {
-      // Sản phẩm static fallback (monitor, peripheral, extra) không có variantId thật
-      // → chỉ thêm vào Redux/localStorage (guest mode)
       if (!item.variantId) {
         const cartPayload = {
           product_id: item._id || item.id,
-          variant_id: item.id,  // dùng id làm key
+          variant_id: item.id,
           name:       item.name,
           price:      item.price,
           quantity:   1,
@@ -609,7 +510,6 @@ export default function BuildPC() {
         continue
       }
 
-      // Sản phẩm từ DB → gọi API
       try {
         const res = await fetch(`${API_URL}/cart/add`, {
           method:      'POST',
@@ -619,19 +519,7 @@ export default function BuildPC() {
         })
         const data = await res.json()
 
-        if (res.status === 401) {
-          // Chưa đăng nhập → thêm vào Redux local
-          const cartPayload = {
-            product_id: item._id,
-            variant_id: item.variantId,
-            name:       item.name,
-            price:      item.price,
-            quantity:   1,
-            image:      item.image || null,
-          }
-          dispatch(addToCart(cartPayload))
-          successCount++
-        } else if (data.success) {
+        if (res.status === 401 || data.success) {
           const cartPayload = {
             product_id: item._id,
             variant_id: item.variantId,
@@ -653,11 +541,11 @@ export default function BuildPC() {
     }
 
     if (successCount > 0 && failCount === 0) {
-      toast.success(`✅ Đã thêm ${successCount} linh kiện vào giỏ hàng!`, { position: 'bottom-right' })
+      toast.success(`Đã thêm ${successCount} linh kiện vào giỏ hàng!`, { position: 'bottom-right' })
     } else if (successCount > 0 && failCount > 0) {
-      toast.warn(`⚠️ Đã thêm ${successCount} linh kiện. ${failCount} linh kiện thất bại: ${errors.join('; ')}`, { position: 'bottom-right' })
+      toast.warn(`Đã thêm ${successCount} linh kiện. ${failCount} linh kiện thất bại: ${errors.join('; ')}`, { position: 'bottom-right' })
     } else {
-      toast.error(`❌ Không thể thêm vào giỏ hàng: ${errors.join('; ')}`, { position: 'bottom-right' })
+      toast.error(`Không thể thêm vào giỏ hàng: ${errors.join('; ')}`, { position: 'bottom-right' })
     }
   }
 
@@ -668,10 +556,10 @@ export default function BuildPC() {
   }
 
   const ctaText = isComplete
-    ? '🛒 Thêm toàn bộ vào giỏ'
+    ? 'Thêm toàn bộ vào giỏ'
     : nextStep
-    ? `Tiếp tục chọn ${nextStep.label} →`
-    : 'Hoàn thiện cấu hình →'
+    ? `Tiếp tục chọn ${nextStep.label}`
+    : 'Hoàn thiện cấu hình'
 
   const ctaClass = isComplete ? 'bp-cta-btn bp-cta-buy' : 'bp-cta-btn bp-cta-next'
 
@@ -684,7 +572,7 @@ export default function BuildPC() {
         <div className="bp-header">
           <div className="bp-header-inner">
             <div className="bp-header-left">
-              <div className="bp-header-badge">// BUILD PC</div>
+              <div className="bp-header-badge">BUILD PC</div>
               <h1 className="bp-header-title">XÂY DỰNG <span>CẤU HÌNH</span> MƠ ƯỚC</h1>
               <p className="bp-header-sub">
                 Tự do lựa chọn linh kiện phù hợp nhu cầu và ngân sách<br />
@@ -725,7 +613,7 @@ export default function BuildPC() {
             <div className="bp-configs-bar">
               <div className="bp-configs-header">
                 <div className="bp-configs-title">
-                  <span className="bp-configs-badge">🖥️ DANH SÁCH CẤU HÌNH</span>
+                  <span className="bp-configs-badge">DANH SÁCH CẤU HÌNH</span>
                   <span className="bp-configs-subtitle">Tạo & lưu tối đa 3 cấu hình riêng biệt (Khách & Thành viên)</span>
                 </div>
                 {selectedCount > 0 && (
@@ -734,7 +622,7 @@ export default function BuildPC() {
                     onClick={e => handleClearConfig(activeConfigId, e)}
                     title="Xóa linh kiện cấu hình này"
                   >
-                    🗑️ Làm mới cấu hình này
+                    Làm mới cấu hình này
                   </button>
                 )}
               </div>
@@ -773,7 +661,7 @@ export default function BuildPC() {
                               className="bp-config-save-btn"
                               onClick={() => handleSaveRename(config.id)}
                               title="Lưu tên"
-                            >✓</button>
+                            >Lưu</button>
                           </div>
                         ) : (
                           <div className="bp-config-name-wrap">
@@ -782,7 +670,13 @@ export default function BuildPC() {
                               className="bp-config-rename-btn"
                               onClick={e => handleStartRename(config, e)}
                               title="Đổi tên cấu hình"
-                            >✏️</button>
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                              <span>Sửa</span>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -819,10 +713,7 @@ export default function BuildPC() {
                     onClick={() => setActiveStep(step.id)}
                   >
                     <div className="bp-step-num">
-                      {isDone
-                        ? <span className="bp-step-check">✓</span>
-                        : <StepIcon id={step.id} size={16} />
-                      }
+                      {idx + 1}
                     </div>
                     <div className="bp-step-info">
                       <div className="bp-step-name">
@@ -838,17 +729,16 @@ export default function BuildPC() {
                         className="bp-step-remove"
                         onClick={e => { e.stopPropagation(); handleRemove(step.id) }}
                         title="Bỏ chọn"
-                      >×</button>
+                      >X</button>
                     )}
-                    {isActive && <div className="bp-step-arrow">›</div>}
                   </div>
                 )
               })}
 
               {/* Load / Save */}
               <div className="bp-sidebar-actions">
-                <button className="bp-sa-btn" onClick={e => handleClearConfig(activeConfigId, e)}><span>🗑️</span> Làm mới</button>
-                <button className="bp-sa-btn" onClick={handleSaveBuildPC} disabled={saveStatus === 'saving'}><span>💾</span> {saveStatus === 'saving' ? 'Đang lưu...' : saveStatus === 'success' ? 'Đã lưu! ✓' : 'Lưu cấu hình'}</button>
+                <button className="bp-sa-btn" onClick={e => handleClearConfig(activeConfigId, e)}>Làm mới</button>
+                <button className="bp-sa-btn" onClick={handleSaveBuildPC} disabled={saveStatus === 'saving'}>{saveStatus === 'saving' ? 'Đang lưu...' : saveStatus === 'success' ? 'Đã lưu!' : 'Lưu cấu hình'}</button>
               </div>
             </aside>
 
@@ -856,7 +746,6 @@ export default function BuildPC() {
             <main className="bp-content">
               <div className="bp-content-header">
                 <div className="bp-content-title">
-                  <StepIcon id={activeStep} size={20} style={{ marginRight: '8px' }} />
                   {BUILD_STEPS.find(s => s.id === activeStep)?.label}
                   <span className="bp-content-count">{filteredProducts.length} sản phẩm</span>
                 </div>
@@ -876,7 +765,7 @@ export default function BuildPC() {
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <input
                       type="text"
-                      placeholder="🔍 Tìm theo tên sản phẩm..."
+                      placeholder="Tìm theo tên sản phẩm..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       style={{
@@ -903,7 +792,7 @@ export default function BuildPC() {
                           cursor: 'pointer',
                           fontSize: '12px',
                         }}
-                      >✕</button>
+                      >X</button>
                     )}
                   </div>
 
@@ -945,9 +834,9 @@ export default function BuildPC() {
                           : null
                         }
                         <div className="bp-product-img-placeholder" style={{ display: product.image ? 'none' : 'flex' }}>
-                          <StepIcon id={activeStep} size={32} />
+                          Sản phẩm
                         </div>
-                        {isSelected && <div className="bp-product-check-badge">✓</div>}
+                        {isSelected && <div className="bp-product-check-badge">Đã chọn</div>}
                       </div>
                       <div className="bp-product-info">
                         <div className="bp-product-name">{product.name}</div>
@@ -955,7 +844,7 @@ export default function BuildPC() {
                         <div className="bp-product-footer">
                           <div className="bp-product-price">{formatPrice(product.price)}</div>
                           <div className={`bp-product-stock ${product.stock ? 'in-stock' : 'out-stock'}`}>
-                            {product.stock ? '● Còn hàng' : '● Hết hàng'}
+                            {product.stock ? 'Còn hàng' : 'Hết hàng'}
                           </div>
                         </div>
                       </div>
@@ -963,7 +852,7 @@ export default function BuildPC() {
                         className={`bp-product-select-btn ${isSelected ? 'selected' : ''}`}
                         onClick={e => { e.stopPropagation(); handleSelect(product) }}
                       >
-                        {isSelected ? '✓ Đã chọn' : '+ Chọn'}
+                        {isSelected ? 'Đã chọn' : 'Chọn'}
                       </button>
                     </div>
                   )
@@ -976,40 +865,24 @@ export default function BuildPC() {
               {/* Trust bar */}
               <div className="bp-trust">
                 <div className="bp-trust-item">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
                   <div>
                     <div className="bp-trust-title">KIỂM TRA TƯƠNG THÍCH</div>
                     <div className="bp-trust-sub">Hệ thống kiểm tra tự động</div>
                   </div>
                 </div>
                 <div className="bp-trust-item">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
                   <div>
                     <div className="bp-trust-title">TƯ VẤN MIỄN PHÍ</div>
                     <div className="bp-trust-sub">Đội ngũ chuyên gia hỗ trợ</div>
                   </div>
                 </div>
                 <div className="bp-trust-item">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
                   <div>
                     <div className="bp-trust-title">BẢO HÀNH CHÍNH HÃNG</div>
                     <div className="bp-trust-sub">Cam kết bảo hành đầy đủ</div>
                   </div>
                 </div>
                 <div className="bp-trust-item">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                    <rect x="1" y="3" width="15" height="13" rx="2" ry="2" />
-                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-                    <circle cx="5.5" cy="18.5" r="2.5" />
-                    <circle cx="18.5" cy="18.5" r="2.5" />
-                  </svg>
                   <div>
                     <div className="bp-trust-title">GIAO HÀNG TOÀN QUỐC</div>
                     <div className="bp-trust-sub">Miễn phí từ 1.000.000đ</div>
@@ -1030,8 +903,8 @@ export default function BuildPC() {
                 <div className={`bp-compat-box ${compatibility.compatible ? 'ok' : 'error'}`}>
                   <div className="bp-compat-title">
                     {compatibility.compatible
-                      ? `✅ Tương thích tốt${compatibility.warnings.length ? ` (${compatibility.warnings.length} cảnh báo)` : ''}`
-                      : `❌ Phát hiện ${compatibility.issues.length} lỗi tương thích`}
+                      ? `Tương thích tốt${compatibility.warnings.length ? ` (${compatibility.warnings.length} cảnh báo)` : ''}`
+                      : `Phát hiện ${compatibility.issues.length} lỗi tương thích`}
                   </div>
                   {compatibility.issues.map((issue, i) => (
                     <div key={i} className="bp-compat-item bp-compat-error">{issue}</div>
@@ -1049,9 +922,6 @@ export default function BuildPC() {
                   if (!item) return null
                   return (
                     <div key={step.id} className="bp-summary-item">
-                      <div className="bp-summary-item-img">
-                        <StepIcon id={step.id} size={18} />
-                      </div>
                       <div className="bp-summary-item-info">
                         <div className="bp-summary-item-cat">{step.label}</div>
                         <div className="bp-summary-item-name">{item.name}</div>
@@ -1060,14 +930,13 @@ export default function BuildPC() {
                       <button
                         className="bp-summary-remove"
                         onClick={() => handleRemove(step.id)}
-                      >×</button>
+                      >Xóa</button>
                     </div>
                   )
                 })}
 
                 {selectedCount === 0 && (
                   <div className="bp-summary-empty">
-                    <div style={{ fontSize: '32px', marginBottom: '8px' }}>🖥️</div>
                     <div>Chưa có linh kiện nào được chọn</div>
                     <div style={{ fontSize: '11px', marginTop: '4px', color: '#666' }}>
                       Bắt đầu bằng cách chọn CPU
@@ -1083,7 +952,6 @@ export default function BuildPC() {
                   const done = !!selected[id]
                   return (
                     <div key={id} className={`bp-check-item ${done ? 'done' : ''}`}>
-                      <span className="bp-check-icon">{done ? '✓' : '○'}</span>
                       <span>{step?.label}</span>
                     </div>
                   )
@@ -1102,7 +970,7 @@ export default function BuildPC() {
               {/* If incomplete, show missing parts */}
               {!isComplete && requiredDone && !compatibility.compatible && (
                 <div className="bp-cta-hint">
-                  ⚠️ Vui lòng kiểm tra lỗi tương thích trước khi mua
+                  Vui lòng kiểm tra lỗi tương thích trước khi mua
                 </div>
               )}
               {!requiredDone && (
@@ -1115,24 +983,15 @@ export default function BuildPC() {
               <div className="bp-summary-actions">
                 <button className="bp-sa2-btn" onClick={handleSaveBuildPC} disabled={saveStatus === 'saving'}
                   style={{ opacity: saveStatus === 'saving' ? 0.7 : 1, background: saveStatus === 'success' ? 'rgba(34,197,94,0.2)' : '' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                  {saveStatus === 'saving' ? 'Đang lưu...' : saveStatus === 'success' ? 'Đã lưu! ✓' : 'Lưu cấu hình'}
+                  {saveStatus === 'saving' ? 'Đang lưu...' : saveStatus === 'success' ? 'Đã lưu!' : 'Lưu cấu hình'}
                 </button>
                 <button className="bp-sa2-btn">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                  </svg>
                   Chia sẻ
                 </button>
               </div>
 
               {/* Guarantee note */}
               <div className="bp-guarantee">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
                 Tất cả linh kiện đều chính hãng 100% · Bảo hành đầy đủ theo chính sách nhà sản xuất.
               </div>
             </aside>
@@ -1145,9 +1004,8 @@ export default function BuildPC() {
       {showSummaryModal && (
         <div className="bp-modal-overlay" onClick={() => setShowSummaryModal(false)}>
           <div className="bp-modal" onClick={e => e.stopPropagation()}>
-            <button className="bp-modal-close" onClick={() => setShowSummaryModal(false)}>×</button>
+            <button className="bp-modal-close" onClick={() => setShowSummaryModal(false)}>Đóng</button>
             <div className="bp-modal-header">
-              <div className="bp-modal-icon">✅</div>
               <h2>Cấu hình hoàn chỉnh!</h2>
               <p>Tất cả linh kiện tương thích · Sẵn sàng đặt hàng</p>
             </div>
@@ -1158,9 +1016,6 @@ export default function BuildPC() {
                 if (!item) return null
                 return (
                   <div key={step.id} className="bp-modal-item">
-                    <span className="bp-modal-item-icon">
-                      <StepIcon id={step.id} size={18} />
-                    </span>
                     <div className="bp-modal-item-info">
                       <div className="bp-modal-item-cat">{step.label}</div>
                       <div className="bp-modal-item-name">{item.name}</div>
@@ -1178,10 +1033,10 @@ export default function BuildPC() {
 
             <div className="bp-modal-actions">
               <button className="bp-modal-buy" onClick={handleAddAllToCart}>
-                🛒 Thêm toàn bộ vào giỏ hàng
+                Thêm toàn bộ vào giỏ hàng
               </button>
               <button className="bp-modal-checkout" onClick={handleCheckoutNow}>
-                ⚡ Thanh toán ngay
+                Thanh toán ngay
               </button>
             </div>
           </div>

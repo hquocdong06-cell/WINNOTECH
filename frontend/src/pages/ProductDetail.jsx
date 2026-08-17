@@ -10,6 +10,8 @@ import useFavorite from '../hooks/useFavorite'
 import { useAuth } from '../hooks/useAuth'
 import { reviewAPI } from '../services/apiService'
 
+import RecentlyViewedSection from '../components/RecentlyViewedSection'
+
 const API_URL = 'http://localhost:3000'
 
 export default function ProductDetail() {
@@ -36,6 +38,32 @@ export default function ProductDetail() {
     'Radeon RX 6000 Series'
   ]
   const sockets = ['PCIe 4.0', 'PCIe 3.0', 'PCIe 5.0']
+
+  // Lưu sản phẩm đã xem vào localStorage (tối đa 3 sản phẩm, tự xóa sản phẩm đầu tiên khi thêm sản phẩm mới)
+  useEffect(() => {
+    if (!slug) return
+    try {
+      const KEY = 'winnotech_recently_viewed'
+      const stored = localStorage.getItem(KEY)
+      let slugs = stored ? JSON.parse(stored) : []
+      if (!Array.isArray(slugs)) slugs = []
+
+      // Bỏ trùng lặp (nếu mở lại sản phẩm đã xem trước đó, đẩy lên vị trí mới nhất)
+      slugs = slugs.filter(s => s !== slug)
+
+      // Thêm slug hiện tại vào cuối
+      slugs.push(slug)
+
+      // Nếu vượt quá 3 sản phẩm, xóa sản phẩm đầu tiên đã lưu (FIFO)
+      if (slugs.length > 3) {
+        slugs = slugs.slice(-3)
+      }
+
+      localStorage.setItem(KEY, JSON.stringify(slugs))
+    } catch (e) {
+      console.error('Lỗi lưu sản phẩm đã xem:', e)
+    }
+  }, [slug])
 
   useEffect(() => {
     const fetchProductDetail = async () => {
@@ -251,76 +279,238 @@ export default function ProductDetail() {
     }
   }
 
-  // ── ReviewForm component (inline) ──
-  const ReviewForm = () => {
-    const [rOrderItemId, setROrderItemId] = React.useState('')
-    const [rStars, setRStars] = React.useState(5)
-    const [rContent, setRContent] = React.useState('')
-    const [rLoading, setRLoading] = React.useState(false)
-    const [rMsg, setRMsg] = React.useState(null)
+  // ── ReviewSection component (Purchase-check & Customer Reviews) ──
+  const ReviewSection = () => {
+    const [reviewsList, setReviewsList] = useState([])
+    const [avgRating, setAvgRating] = useState(5)
+    const [loadingReviews, setLoadingReviews] = useState(true)
+
+    const [eligibility, setEligibility] = useState({ canReview: false, hasPurchased: false, reason: null, order_item_id: null })
+    const [checkingEligibility, setCheckingEligibility] = useState(true)
+
+    const [rStars, setRStars] = useState(5)
+    const [rContent, setRContent] = useState('')
+    const [rSubmitting, setRSubmitting] = useState(false)
+    const [rMsg, setRMsg] = useState(null)
+
+    const productId = product?._id || slug
+
+    // Fetch reviews list
+    const loadReviews = async () => {
+      if (!productId) return
+      try {
+        setLoadingReviews(true)
+        const data = await reviewAPI.getProductReviews(productId)
+        if (data.success) {
+          setReviewsList(data.data || [])
+          setAvgRating(data.avgRating || 5)
+        }
+      } catch (e) {
+        console.error('Lỗi tải đánh giá sản phẩm:', e)
+      } finally {
+        setLoadingReviews(false)
+      }
+    }
+
+    // Check eligibility for logged in user
+    const checkUserEligibility = async () => {
+      if (!isLoggedIn || !productId) {
+        setEligibility({ canReview: false, hasPurchased: false, reason: 'not_logged_in' })
+        setCheckingEligibility(false)
+        return
+      }
+
+      try {
+        setCheckingEligibility(true)
+        const data = await reviewAPI.checkEligibility(productId)
+        if (data.success) {
+          setEligibility(data)
+        }
+      } catch (e) {
+        setEligibility({ canReview: false, hasPurchased: false, reason: 'error' })
+      } finally {
+        setCheckingEligibility(false)
+      }
+    }
+
+    useEffect(() => {
+      loadReviews()
+      checkUserEligibility()
+    }, [productId, isLoggedIn])
 
     const handleSubmitReview = async (e) => {
       e.preventDefault()
       setRMsg(null)
-      if (!rOrderItemId.trim()) { setRMsg({ type: 'error', text: 'Vui lòng nhập ID sản phẩm trong đơn hàng' }); return }
-      if (!rContent.trim()) { setRMsg({ type: 'error', text: 'Vui lòng nhập nội dung đánh giá' }); return }
-      setRLoading(true)
+
+      if (!eligibility.order_item_id) {
+        setRMsg({ type: 'error', text: 'Không xác định được đơn hàng để đánh giá.' })
+        return
+      }
+      if (!rContent.trim()) {
+        setRMsg({ type: 'error', text: 'Vui lòng nhập nội dung đánh giá' })
+        return
+      }
+
+      setRSubmitting(true)
       try {
-        const data = await reviewAPI.createReview(rOrderItemId.trim(), rContent.trim(), rStars)
+        const data = await reviewAPI.createReview(eligibility.order_item_id, rContent.trim(), rStars)
         if (data.success) {
-          setRMsg({ type: 'success', text: 'Gửi đánh giá thành công! Cảm ơn bạn.' })
-          setRContent(''); setROrderItemId(''); setRStars(5)
+          setRMsg({ type: 'success', text: 'Gửi đánh giá thành công! Cảm ơn bạn đã chia sẻ.' })
+          setRContent('')
+          setRStars(5)
+          loadReviews()
+          checkUserEligibility()
         } else {
           setRMsg({ type: 'error', text: data.message || 'Gửi đánh giá thất bại' })
         }
       } catch (err) {
         setRMsg({ type: 'error', text: err.message || 'Lỗi kết nối server' })
       } finally {
-        setRLoading(false)
+        setRSubmitting(false)
       }
     }
 
     return (
-      <div style={{ color: 'var(--text-muted)', maxWidth: '600px' }}>
-        <p style={{ marginBottom: '16px', fontSize: '14px' }}>
-          Bạn đã mua sản phẩm này? Chia sẻ cảm nhận để giúp người mua khác!
-        </p>
-        <form onSubmit={handleSubmitReview} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div>
-            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '4px' }}>ID sản phẩm trong đơn hàng (order_item_id)</label>
-            <input type="text" value={rOrderItemId} onChange={e => setROrderItemId(e.target.value)}
-              placeholder="Lấy từ trang Đơn hàng của tôi"
-              style={{ width: '100%', background: '#1a1a1a', border: '1px solid #333', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '13px' }} />
-          </div>
-          <div>
-            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '6px' }}>Số sao</label>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {[1, 2, 3, 4, 5].map(s => (
-                <button key={s} type="button" onClick={() => setRStars(s)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: s <= rStars ? '#fbbf24' : '#444' }}>★</button>
-              ))}
-              <span style={{ fontSize: '13px', color: '#888', alignSelf: 'center', marginLeft: '4px' }}>{rStars}/5</span>
+      <div className="product-reviews-container" style={{ color: '#ccc' }}>
+        {/* Form Đánh giá (Chỉ hiển thị nút viết cho người dùng ĐÃ MUA sản phẩm & chưa đánh giá) */}
+        <div className="review-box" style={{ background: '#121621', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '10px', padding: '20px', marginBottom: '30px' }}>
+          <h3 style={{ fontSize: '15px', color: '#fff', marginBottom: '12px' }}>ĐÁNH GIÁ SẢN PHẨM</h3>
+          
+          {checkingEligibility ? (
+            <div style={{ fontSize: '13px', color: '#888' }}>Đang kiểm tra quyền đánh giá...</div>
+          ) : !isLoggedIn ? (
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px dashed #333', borderRadius: '8px', padding: '14px', fontSize: '13px', color: '#aaa' }}>
+              🔒 Vui lòng đăng nhập và mua sản phẩm này để viết đánh giá.
             </div>
-          </div>
-          <div>
-            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '4px' }}>Nội dung đánh giá *</label>
-            <textarea value={rContent} onChange={e => setRContent(e.target.value)} rows={4}
-              placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
-              style={{ width: '100%', background: '#1a1a1a', border: '1px solid #333', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '13px', resize: 'vertical' }} />
-          </div>
-          {rMsg && (
-            <div style={{ padding: '10px 14px', borderRadius: '6px', fontSize: '13px',
-              background: rMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-              color: rMsg.type === 'success' ? '#22c55e' : '#ef4444',
-              border: `1px solid ${rMsg.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
-              {rMsg.text}
+          ) : eligibility.canReview ? (
+            <form onSubmit={handleSubmitReview} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#86efac' }}>
+                ✓ Bạn đã mua sản phẩm này! Hãy chia sẻ trải nghiệm thực tế của bạn:
+              </p>
+              <div>
+                <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '6px' }}>Chọn số sao đánh giá</label>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setRStars(s)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '24px', color: s <= rStars ? '#fbbf24' : '#444', transition: 'transform 0.1s' }}
+                    >
+                      ★
+                    </button>
+                  ))}
+                  <span style={{ fontSize: '14px', color: '#fbbf24', fontWeight: 700, marginLeft: '6px' }}>{rStars}/5 sao</span>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '6px' }}>Nội dung đánh giá *</label>
+                <textarea
+                  value={rContent}
+                  onChange={e => setRContent(e.target.value)}
+                  rows={4}
+                  placeholder="Nhập nhận xét chi tiết về sản phẩm (chất lượng, hiệu năng, đóng gói...)..."
+                  style={{ width: '100%', background: '#0a0a0f', border: '1px solid #333', borderRadius: '6px', padding: '10px 14px', color: '#fff', fontSize: '13px', outline: 'none', resize: 'vertical' }}
+                />
+              </div>
+
+              {rMsg && (
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  background: rMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                  color: rMsg.type === 'success' ? '#22c55e' : '#ef4444',
+                  border: `1px solid ${rMsg.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`
+                }}>
+                  {rMsg.text}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={rSubmitting}
+                style={{
+                  alignSelf: 'flex-start',
+                  background: 'var(--accent-color, #c8e600)',
+                  color: '#000',
+                  border: 'none',
+                  padding: '10px 24px',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: rSubmitting ? 'not-allowed' : 'pointer',
+                  opacity: rSubmitting ? 0.7 : 1
+                }}
+              >
+                {rSubmitting ? 'Đang gửi...' : 'GỬI ĐÁNH GIÁ'}
+              </button>
+            </form>
+          ) : eligibility.alreadyReviewed ? (
+            <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '8px', padding: '14px', fontSize: '13px', color: '#86efac' }}>
+              ✓ Bạn đã gửi đánh giá cho sản phẩm này. Cảm ơn phản hồi của bạn!
+            </div>
+          ) : (
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px dashed #333', borderRadius: '8px', padding: '14px', fontSize: '13px', color: '#aaa' }}>
+              🔒 Bạn chưa mua sản phẩm này nên không thể gửi đánh giá. Dưới đây là đánh giá từ các khách hàng đã mua:
             </div>
           )}
-          <button type="submit" disabled={rLoading}
-            style={{ alignSelf: 'flex-start', background: 'var(--accent-color, #d4ff00)', color: '#000', border: 'none', padding: '10px 24px', borderRadius: '6px', fontWeight: 700, fontSize: '13px', cursor: rLoading ? 'not-allowed' : 'pointer', opacity: rLoading ? 0.7 : 1 }}>
-            {rLoading ? 'Đang gửi...' : 'GỬI ĐÁNH GIÁ'}
-          </button>
-        </form>
+        </div>
+
+        {/* Danh sách Đánh giá của Khách hàng (Công khai cho tất cả người xem) */}
+        <div className="reviews-list-section">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #222', paddingBottom: '10px' }}>
+            <h4 style={{ fontSize: '15px', color: '#fff', margin: 0 }}>
+              ĐÁNH GIÁ TỪ KHÁCH HÀNG ({reviewsList.length})
+            </h4>
+            {reviewsList.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#fbbf24', fontWeight: 700 }}>
+                <span>★ {avgRating}/5</span>
+                <span style={{ fontSize: '12px', color: '#666', fontWeight: 400 }}>({reviewsList.length} nhận xét)</span>
+              </div>
+            )}
+          </div>
+
+          {loadingReviews ? (
+            <div style={{ fontSize: '13px', color: '#888', fontStyle: 'italic' }}>Đang tải danh sách đánh giá...</div>
+          ) : reviewsList.length === 0 ? (
+            <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '24px', borderRadius: '8px', textAlign: 'center', color: '#777', fontSize: '13px' }}>
+              Chưa có đánh giá nào cho sản phẩm này. Hãy là người đầu tiên mua và trải nghiệm sản phẩm!
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {reviewsList.map(r => (
+                <div key={r._id} style={{ background: '#121621', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '8px', padding: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--accent-color, #c8e600)', color: '#000', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>
+                        {r.userName ? r.userName.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '14px', color: '#fff' }}>{r.userName}</div>
+                        <div style={{ fontSize: '11px', color: '#22c55e', marginTop: '2px' }}>✓ Đã mua hàng tại WinNoTech</div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#888' }}>
+                      {new Date(r.createdAt).toLocaleDateString('vi-VN')}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '2px', color: '#fbbf24', fontSize: '14px', marginBottom: '8px' }}>
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <span key={s} style={{ color: s <= r.star_number ? '#fbbf24' : '#444' }}>★</span>
+                    ))}
+                  </div>
+
+                  <p style={{ margin: 0, fontSize: '13px', color: '#ddd', lineHeight: '1.6' }}>
+                    {r.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     )
   }
@@ -345,230 +535,231 @@ export default function ProductDetail() {
         <div className="section-inner">
           {/* PRODUCT MAIN */}
           <main className="product-main">
-            <div className="product-grid">
-              {/* LEFT: IMAGE GALLERY */}
-              <div className="product-gallery">
-                <div className="gallery-main" style={{ background: 'var(--dark2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', overflow: 'hidden' }}>
-                  <img src={images[selectedImage]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <div className="product-grid">
+                {/* LEFT: IMAGE GALLERY */}
+                <div className="product-gallery">
+                  <div className="gallery-main" style={{ background: 'var(--dark2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', overflow: 'hidden' }}>
+                    <img src={images[selectedImage]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  </div>
+                  <div className="gallery-thumbnails">
+                    {images.map((img, idx) => (
+                      <button
+                        key={idx}
+                        className={`gallery-thumb ${selectedImage === idx ? 'active' : ''}`}
+                        onClick={() => setSelectedImage(idx)}
+                        style={{ background: 'var(--dark2)', borderRadius: '4px', overflow: 'hidden', border: selectedImage === idx ? '1px solid var(--accent-color)' : '1px solid transparent' }}
+                      >
+                        <img src={img} alt={`Thumbnail ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="gallery-thumbnails">
-                  {images.map((img, idx) => (
-                    <button
-                      key={idx}
-                      className={`gallery-thumb ${selectedImage === idx ? 'active' : ''}`}
-                      onClick={() => setSelectedImage(idx)}
-                      style={{ background: 'var(--dark2)', borderRadius: '4px', overflow: 'hidden', border: selectedImage === idx ? '1px solid var(--accent-color)' : '1px solid transparent' }}
+
+                {/* RIGHT: PRODUCT INFO */}
+                <div className="product-info-section">
+                  <div className="product-header-info">
+                    <span className="product-brand" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{product.brand_id?.name || 'Chính hãng'}</span>
+                    <h1 className="product-title" style={{ fontSize: '24px', margin: '8px 0', color: '#fff' }}>{product.name}</h1>
+                  </div>
+
+                  <div className="product-meta">
+                    <span className="status-badge" style={{ 
+                      background: isOutOfStock ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)', 
+                      color: isOutOfStock ? '#ef4444' : '#22c55e', 
+                      padding: '4px 8px', 
+                      borderRadius: '4px', 
+                      fontSize: '12px' 
+                    }}>
+                      {isOutOfStock ? 'Hết hàng' : (activeVariant && activeVariant.stock_quantity !== undefined ? `Còn hàng (${availableStock} sản phẩm)` : 'Còn hàng')}
+                    </span>
+                    <div className="rating">
+                      <span className="stars">⭐⭐⭐⭐⭐</span>
+                      <span className="rating-value" style={{ marginLeft: '4px' }}>5.0</span>
+                    </div>
+                  </div>
+
+                  {/* SHORT DESC */}
+                  <div className="specs-table" style={{ marginTop: '20px', background: 'var(--dark2)', padding: '15px', borderRadius: '8px', border: '1px solid #333' }}>
+                    <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+                      {product.short_desc || 'Không có mô tả ngắn cho sản phẩm này.'}
+                    </p>
+                  </div>
+
+                  {/* PRICE */}
+                  <div className="product-pricing" style={{ margin: '20px 0' }}>
+                    <span className="price-note" style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)' }}>Giá đã bao gồm VAT</span>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '15px', marginTop: '5px' }}>
+                      <span className="price-main" style={{ fontSize: '28px', color: 'var(--accent-color)', fontWeight: 'bold' }}>
+                        {formatPrice(currentPrice)}
+                      </span>
+                      {hasSale && (
+                        <span className="price-original" style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '16px' }}>
+                          {formatPrice(originalPrice)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* SELECT VARIANT CHIPS */}
+                  {Variants && Variants.length > 1 && (
+                    <div className="variant-selector" style={{ margin: '20px 0 10px 0' }}>
+                      <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '8px' }}>
+                        Phiên bản / Biến thể:
+                      </span>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {Variants.map(v => (
+                          <button
+                            key={v._id}
+                            onClick={() => { setSelectedVariantId(v._id); setQuantity(1); }}
+                            style={{
+                              background: selectedVariantId === v._id ? 'var(--accent-color)' : 'var(--dark2)',
+                              color: selectedVariantId === v._id ? '#000' : '#fff',
+                              border: selectedVariantId === v._id ? '1px solid var(--accent-color)' : '1px solid #444',
+                              padding: '6px 14px',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {v.variant_name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* QUANTITY & ACTIONS */}
+                  <div className="product-actions">
+                    <div className="quantity-selector">
+                      <button 
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="qty-btn"
+                        disabled={isOutOfStock}
+                        style={{ opacity: isOutOfStock ? 0.3 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
+                      >−</button>
+                      <input 
+                        type="number" 
+                        value={isOutOfStock ? 0 : quantity} 
+                        onChange={handleQuantityChange}
+                        className="qty-input"
+                        disabled={isOutOfStock}
+                        style={{ color: isOutOfStock ? '#666' : '#fff' }}
+                      />
+                      <button 
+                        onClick={() => setQuantity(Math.min(availableStock, quantity + 1))}
+                        className="qty-btn"
+                        disabled={isOutOfStock}
+                        style={{ opacity: isOutOfStock ? 0.3 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
+                      >+</button>
+                    </div>
+                    <button 
+                      className="btn-add-cart" 
+                      onClick={handleAddToCart} 
+                      disabled={isOutOfStock}
+                      style={{ 
+                        background: isOutOfStock ? '#444' : 'var(--accent-color)', 
+                        color: isOutOfStock ? '#888' : '#000', 
+                        fontWeight: 'bold',
+                        cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                        border: 'none'
+                      }}
                     >
-                      <img src={img} alt={`Thumbnail ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      {isOutOfStock ? 'HẾT HÀNG' : 'THÊM VÀO GIỎ'}
                     </button>
-                  ))}
+                  </div>
+
+                  <button 
+                    className="btn-wishlist"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (product) toggleFavorite(product._id);
+                    }}
+                    style={{ color: (product && favoriteIds.has(product._id)) ? '#ef4444' : '#fff' }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill={(product && favoriteIds.has(product._id)) ? '#ef4444' : 'none'} stroke="currentColor" strokeWidth="2">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                    YÊU THÍCH
+                  </button>
                 </div>
               </div>
 
-              {/* RIGHT: PRODUCT INFO */}
-              <div className="product-info-section">
-                <div className="product-header-info">
-                  <span className="product-brand" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{product.brand_id?.name || 'Chính hãng'}</span>
-                  <h1 className="product-title" style={{ fontSize: '24px', margin: '8px 0', color: '#fff' }}>{product.name}</h1>
-                </div>
-
-                <div className="product-meta">
-                  <span className="status-badge" style={{ 
-                    background: isOutOfStock ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)', 
-                    color: isOutOfStock ? '#ef4444' : '#22c55e', 
-                    padding: '4px 8px', 
-                    borderRadius: '4px', 
-                    fontSize: '12px' 
-                  }}>
-                    {isOutOfStock ? 'Hết hàng' : (activeVariant && activeVariant.stock_quantity !== undefined ? `Còn hàng (${availableStock} sản phẩm)` : 'Còn hàng')}
-                  </span>
-                  <div className="rating">
-                    <span className="stars">⭐⭐⭐⭐⭐</span>
-                    <span className="rating-value" style={{ marginLeft: '4px' }}>5.0</span>
-                  </div>
-                </div>
-
-                {/* SHORT DESC */}
-                <div className="specs-table" style={{ marginTop: '20px', background: 'var(--dark2)', padding: '15px', borderRadius: '8px', border: '1px solid #333' }}>
-                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-                    {product.short_desc || 'Không có mô tả ngắn cho sản phẩm này.'}
-                  </p>
-                </div>
-
-                {/* PRICE */}
-                <div className="product-pricing" style={{ margin: '20px 0' }}>
-                  <span className="price-note" style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)' }}>Giá đã bao gồm VAT</span>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '15px', marginTop: '5px' }}>
-                    <span className="price-main" style={{ fontSize: '28px', color: 'var(--accent-color)', fontWeight: 'bold' }}>
-                      {formatPrice(currentPrice)}
-                    </span>
-                    {hasSale && (
-                      <span className="price-original" style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '16px' }}>
-                        {formatPrice(originalPrice)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* SELECT VARIANT CHIPS */}
-                {Variants && Variants.length > 1 && (
-                  <div className="variant-selector" style={{ margin: '20px 0 10px 0' }}>
-                    <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '8px' }}>
-                      Phiên bản / Biến thể:
-                    </span>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      {Variants.map(v => (
-                        <button
-                          key={v._id}
-                          onClick={() => { setSelectedVariantId(v._id); setQuantity(1); }}
-                          style={{
-                            background: selectedVariantId === v._id ? 'var(--accent-color)' : 'var(--dark2)',
-                            color: selectedVariantId === v._id ? '#000' : '#fff',
-                            border: selectedVariantId === v._id ? '1px solid var(--accent-color)' : '1px solid #444',
-                            padding: '6px 14px',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          {v.variant_name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* QUANTITY & ACTIONS */}
-                <div className="product-actions">
-                  <div className="quantity-selector">
-                    <button 
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="qty-btn"
-                      disabled={isOutOfStock}
-                      style={{ opacity: isOutOfStock ? 0.3 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
-                    >−</button>
-                    <input 
-                      type="number" 
-                      value={isOutOfStock ? 0 : quantity} 
-                      onChange={handleQuantityChange}
-                      className="qty-input"
-                      disabled={isOutOfStock}
-                      style={{ color: isOutOfStock ? '#666' : '#fff' }}
-                    />
-                    <button 
-                      onClick={() => setQuantity(Math.min(availableStock, quantity + 1))}
-                      className="qty-btn"
-                      disabled={isOutOfStock}
-                      style={{ opacity: isOutOfStock ? 0.3 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
-                    >+</button>
-                  </div>
+              {/* TABS */}
+              <div className="product-tabs" style={{ marginTop: '40px' }}>
+                <div className="tabs-header" style={{ borderBottom: '1px solid #333' }}>
                   <button 
-                    className="btn-add-cart" 
-                    onClick={handleAddToCart} 
-                    disabled={isOutOfStock}
-                    style={{ 
-                      background: isOutOfStock ? '#444' : 'var(--accent-color)', 
-                      color: isOutOfStock ? '#888' : '#000', 
-                      fontWeight: 'bold',
-                      cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                      border: 'none'
-                    }}
+                    className={`tab-btn ${activeTab === 'description' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('description')}
                   >
-                    {isOutOfStock ? 'HẾT HÀNG' : 'THÊM VÀO GIỎ'}
+                    MÔ TẢ CHI TIẾT
+                  </button>
+                  <button 
+                    className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('reviews')}
+                  >
+                    ĐÁNH GIÁ SẢN PHẨM
                   </button>
                 </div>
 
-                <button 
-                  className="btn-wishlist"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (product) toggleFavorite(product._id);
-                  }}
-                  style={{ color: (product && favoriteIds.has(product._id)) ? '#ef4444' : '#fff' }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill={(product && favoriteIds.has(product._id)) ? '#ef4444' : 'none'} stroke="currentColor" strokeWidth="2">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                  </svg>
-                  YÊU THÍCH
-                </button>
-              </div>
-            </div>
+                <div className="tabs-content" style={{ padding: '20px 0' }}>
+                  {activeTab === 'description' && (
+                    <div className="tab-pane" style={{ lineHeight: '1.8', color: '#ccc', fontSize: '15px' }}>
+                      <div style={{ whiteSpace: 'pre-line' }}>{product.description || 'Không có mô tả chi tiết cho sản phẩm này.'}</div>
+                    </div>
+                  )}
 
-            {/* TABS */}
-            <div className="product-tabs" style={{ marginTop: '40px' }}>
-              <div className="tabs-header" style={{ borderBottom: '1px solid #333' }}>
-                <button 
-                  className={`tab-btn ${activeTab === 'description' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('description')}
-                >
-                  MÔ TẢ CHI TIẾT
-                </button>
-                <button 
-                  className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('reviews')}
-                >
-                  ĐÁNH GIÁ (0)
-                </button>
-              </div>
-
-              <div className="tabs-content" style={{ padding: '20px 0' }}>
-                {activeTab === 'description' && (
-                  <div className="tab-pane" style={{ lineHeight: '1.8', color: '#ccc', fontSize: '15px' }}>
-                    <div style={{ whiteSpace: 'pre-line' }}>{product.description || 'Không có mô tả chi tiết cho sản phẩm này.'}</div>
-                  </div>
-                )}
-
-                {activeTab === 'reviews' && (
-                  <div className="tab-pane">
-                    <ReviewForm />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* RELATED PRODUCTS */}
-            {relatedProducts.length > 0 && (
-              <div className="related-products" style={{ marginTop: '50px' }}>
-                <div className="related-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h2 style={{ fontSize: '20px', color: '#fff' }}>SẢN PHẨM LIÊN QUAN</h2>
+                  {activeTab === 'reviews' && (
+                    <div className="tab-pane">
+                      <ReviewSection />
+                    </div>
+                  )}
                 </div>
-                <div className="related-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
-                {relatedProducts.map((item) => {
-                    // Xử lý ảnh: ưu tiên AnhSP, fallback thumnail; thêm API_URL nếu là relative path
-                    const rawImg = item.AnhSP && item.AnhSP.length > 0
-                      ? item.AnhSP[0].url
-                      : (item.thumnail || '')
-                    const itemImg = rawImg
-                      ? (rawImg.startsWith('http') ? rawImg : `${API_URL}${rawImg}`)
-                      : null
+              </div>
 
-                    // Xử lý giá: ưu tiên sale_price của variant đầu tiên
-                    const firstVariant = item.Variants && item.Variants.length > 0 ? item.Variants[0] : null
-                    const itemBasePrice = firstVariant?.price || item.price || 0
-                    const itemSalePrice = firstVariant?.sale_price > 0 ? firstVariant.sale_price : itemBasePrice
-                    const displayPrice = itemSalePrice || itemBasePrice
-                    return (
-                      <Link key={item._id} to={`/product/${item.slug || item._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <div className="related-card" style={{ background: 'var(--dark2)', border: '1px solid #333', padding: '15px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}>
-                          <div className="related-img" style={{ height: '150px', background: 'var(--dark3)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', overflow: 'hidden' }}>
-                            <img src={itemImg || 'https://images.unsplash.com/photo-1591485121907-26859ff93e37?q=80&w=2670&auto=format&fit=crop'} alt={item.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                          </div>
-                          <div className="related-info" style={{ marginTop: '10px' }}>
-                            <div className="related-name" style={{ fontWeight: 600, fontSize: '14px', height: '40px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', color: '#fff' }}>{item.name}</div>
-                            <div className="related-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                              <div className="related-price" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{formatPrice(displayPrice)}</div>
+              {/* RELATED PRODUCTS */}
+              {relatedProducts.length > 0 && (
+                <div className="related-products" style={{ marginTop: '50px' }}>
+                  <div className="related-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h2 style={{ fontSize: '20px', color: '#fff' }}>SẢN PHẨM LIÊN QUAN</h2>
+                  </div>
+                  <div className="related-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
+                  {relatedProducts.map((item) => {
+                      const rawImg = item.AnhSP && item.AnhSP.length > 0
+                        ? item.AnhSP[0].url
+                        : (item.thumnail || '')
+                      const itemImg = rawImg
+                        ? (rawImg.startsWith('http') ? rawImg : `${API_URL}${rawImg}`)
+                        : null
+
+                      const firstVariant = item.Variants && item.Variants.length > 0 ? item.Variants[0] : null
+                      const itemBasePrice = firstVariant?.price || item.price || 0
+                      const itemSalePrice = firstVariant?.sale_price > 0 ? firstVariant.sale_price : itemBasePrice
+                      const displayPrice = itemSalePrice || itemBasePrice
+                      return (
+                        <Link key={item._id} to={`/product/${item.slug || item._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                          <div className="related-card" style={{ background: 'var(--dark2)', border: '1px solid #333', padding: '15px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}>
+                            <div className="related-img" style={{ height: '150px', background: 'var(--dark3)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', overflow: 'hidden' }}>
+                              <img src={itemImg || 'https://images.unsplash.com/photo-1591485121907-26859ff93e37?q=80&w=2670&auto=format&fit=crop'} alt={item.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                            </div>
+                            <div className="related-info" style={{ marginTop: '10px' }}>
+                              <div className="related-name" style={{ fontWeight: 600, fontSize: '14px', height: '40px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', color: '#fff' }}>{item.name}</div>
+                              <div className="related-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                                <div className="related-price" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{formatPrice(displayPrice)}</div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </Link>
-                    )
-                  })}
+                        </Link>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-          </main>
+              )}
+
+              {/* RECENTLY VIEWED PRODUCTS SECTION */}
+              <RecentlyViewedSection currentSlug={slug} />
+            </main>
         </div>
       </div>
     </DefaultLayout>
