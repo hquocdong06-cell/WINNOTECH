@@ -395,7 +395,8 @@ export default function Checkout() {
 
   // ── Voucher ──
   const [voucherCode, setVoucherCode] = useState('')
-  const [voucherInfo, setVoucherInfo] = useState(null)   // { discount: number, code: string, msg: string }
+  // voucherInfo: { code, productDiscount, shippingDiscount, msg, isFreeShip, isShipOnly }
+  const [voucherInfo, setVoucherInfo] = useState(null)
   const [voucherError, setVoucherError] = useState('')
   const [voucherChecking, setVoucherChecking] = useState(false)
 
@@ -415,8 +416,7 @@ export default function Checkout() {
                   (item.variant?.sale_price > 0 ? item.variant.sale_price : (item.variant?.price || item.cartItem?.price || 0))
     return s + price * (item.cartItem?.quantity || 1)
   }, 0)
-
-  const voucherCalc = voucherInfo?.rawVoucher
+const voucherCalc = voucherInfo?.rawVoucher
     ? calculateVoucherDiscount(voucherInfo.rawVoucher, subtotal, 30000)
     : {
         productDiscount: 0,
@@ -444,11 +444,15 @@ export default function Checkout() {
       const data = await voucherAPI.check(voucherCode.trim())
       if (data.success && data.data) {
         const v = data.data
-        if (v.min_order > 0 && subtotal < v.min_order) {
+if (v.min_order > 0 && subtotal < v.min_order) {
           setVoucherError(`Đơn hàng tối thiểu ${v.min_order.toLocaleString('vi-VN')}đ để dùng mã này`)
           setVoucherInfo(null)
           return
         }
+
+        const code = (v.code || voucherCode).toUpperCase()
+        const isFRS = code.includes('FRS')
+        const isSHIP = !isFRS && (code.includes('SHIP') || code.includes('FREESHIP'))
 
         const calc = calculateVoucherDiscount(v, subtotal, 30000)
         let msg = ''
@@ -461,12 +465,14 @@ export default function Checkout() {
         }
 
         setVoucherInfo({
+          code,
           discount: calc.totalDiscount,
           productDiscount: calc.productDiscount,
           shippingDiscount: calc.shippingDiscount,
-          code: v.code,
-          msg,
           rawVoucher: v,
+          isFRS,
+          isSHIP,
+          msg,
         })
       } else {
         setVoucherError(data.message || 'Mã không hợp lệ')
@@ -954,14 +960,24 @@ export default function Checkout() {
                 <span className="label">Tạm tính</span>
                 <span className="value">{fmt(subtotal)}</span>
               </div>
-              {productDiscount > 0 && (
+{productDiscount > 0 && (
                 <div className="co-total-row">
-                  <span className="label">Giảm giá sản phẩm {voucherInfo && <span style={{ fontSize: '10px', color: '#d4ff00', fontFamily: 'monospace' }}>({voucherInfo.code})</span>}</span>
+                  <span className="label">
+                    Giảm sản phẩm
+                    {voucherInfo && <span style={{ fontSize: '10px', color: '#d4ff00', fontFamily: 'monospace', marginLeft: '4px' }}>({voucherInfo.code})</span>}
+                  </span>
                   <span className="value discount">-{fmt(productDiscount)}</span>
                 </div>
               )}
+
               <div className="co-total-row">
-                <span className="label">Phí vận chuyển</span>
+                <span className="label">Phí vận chuyển
+                  {shippingDiscount > 0 && voucherCalc.baseShippingFee > 0 && (
+                    <span style={{ fontSize: '10px', color: '#d4ff00', marginLeft: '4px' }}>
+                      ({voucherInfo?.isFRS || shippingDiscount >= voucherCalc.baseShippingFee ? 'FREESHIP' : `-${fmt(shippingDiscount)}`})
+                    </span>
+                  )}
+                </span>
                 <span className="value free">
                   {shippingDiscount > 0 && voucherCalc.baseShippingFee > 0 ? (
                     <span>
