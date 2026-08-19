@@ -1413,3 +1413,94 @@
   padding: 2px 6px;
   white-space: nowrap;
 }
+
+/* ─── MAINBOARD SLOT ANALYSIS CARD ─── */
+.bp-mb-slots-card {
+  margin: 12px;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(30, 41, 59, 0.6) 100%);
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bp-mb-slots-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 6px;
+}
+
+.bp-mb-slots-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #c084fc;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bp-mb-slots-subtitle {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--bp-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.bp-mb-slot-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bp-mb-slot-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.bp-mb-slot-sub {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--bp-muted);
+}
+
+.bp-mb-slot-visual {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.bp-mb-slot-chip {
+  flex: 1;
+  height: 10px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.bp-mb-slot-chip.empty {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.bp-mb-slot-chip.used-ram {
+  background: linear-gradient(90deg, #8b5cf6, #c084fc);
+  box-shadow: 0 0 8px rgba(192, 132, 252, 0.5);
+  border: 1px solid #c084fc;
+}
+
+.bp-mb-slot-chip.used-gpu {
+  background: linear-gradient(90deg, #c8e600, #d4f000);
+  box-shadow: 0 0 8px rgba(200, 230, 0, 0.5);
+  border: 1px solid #d4f000;
+}
+

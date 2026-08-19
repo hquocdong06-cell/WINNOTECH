@@ -121,6 +121,40 @@ function normalizeProduct(p, stepId) {
     formFactorArr = ['ATX', 'mATX', 'ITX']
   }
 
+  // 4b. Mainboard Specific Slot & Capacity Parsing (Khe RAM & Khe VGA/PCIe)
+  let ramSlots = formFactor === 'ITX' ? 2 : 4
+  let vgaSlots = formFactor === 'ITX' ? 1 : 2
+  let maxRam   = ramType === 'DDR5' ? 192 : 128
+
+  const ramSlotsAttr = getAttr('khe ram') || getAttr('ram slots') || getAttr('số khe ram') || getAttr('dimm')
+  if (ramSlotsAttr) {
+    const m = ramSlotsAttr.match(/(\d+)/)
+    if (m) ramSlots = parseInt(m[1])
+  } else {
+    const ramSlotsMatch = (p.description || '').match(/(\d+)\s*[kK]he\s*RAM/i) || (p.description || '').match(/(\d+)\s*x?\s*DIMM/i)
+    if (ramSlotsMatch) {
+      ramSlots = parseInt(ramSlotsMatch[1])
+    }
+  }
+
+  const vgaSlotsAttr = getAttr('khe vga') || getAttr('pcie slots') || getAttr('số khe vga') || getAttr('vga slots')
+  if (vgaSlotsAttr) {
+    const m = vgaSlotsAttr.match(/(\d+)/)
+    if (m) vgaSlots = parseInt(m[1])
+  } else {
+    const vgaSlotsMatch = (p.description || '').match(/(\d+)\s*[kK]he\s*(PCIe|VGA|x16)/i) || (p.description || '').match(/(\d+)\s*x?\s*PCIe\s*x16/i)
+    if (vgaSlotsMatch) {
+      vgaSlots = parseInt(vgaSlotsMatch[1])
+    } else if (nameLower.includes('ds3h') || nameLower.includes('h610m') || nameLower.includes('a520m') || nameLower.includes('b450m-k')) {
+      vgaSlots = 1
+    }
+  }
+
+  const maxRamMatch = (p.description || '').match(/Dung Lượng RAM Tối Đa[^\n]*?(\d+)\s*GB/i) || (p.description || '').match(/Tối đa\s*(\d+)\s*GB/i)
+  if (maxRamMatch) {
+    maxRam = parseInt(maxRamMatch[1])
+  }
+
   // 5. iGPU check (Intel/AMD F-series without integrated graphics)
   let hasIGPU = true
   if (stepId === 'cpu') {
@@ -192,6 +226,9 @@ function normalizeProduct(p, stepId) {
     brand,
     socket,
     ramType,
+    ramSlots,
+    vgaSlots,
+    maxRam,
     capacity,
     formFactor,
     formFactorArr,
@@ -239,6 +276,24 @@ function checkCompatibility(selected) {
   if (ram && mb && ram.ramType && mb.ramType) {
     if (ram.ramType !== mb.ramType) {
       issues.push(`Mainboard chỉ hỗ trợ RAM ${mb.ramType}, bạn đang chọn RAM ${ram.ramType}.`)
+    }
+  }
+
+  // 3b. Mainboard ↔ Khe RAM (RAM Slot count limit)
+  if (ram && mb) {
+    const ramQty = ram.quantity || 1
+    const maxRamSlots = mb.ramSlots || 4
+    if (ramQty > maxRamSlots) {
+      issues.push(`Mainboard "${mb.name}" chỉ có ${maxRamSlots} khe cắm RAM, bạn đang chọn ${ramQty} thanh RAM.`)
+    }
+  }
+
+  // 3c. Mainboard ↔ Khe VGA (PCIe x16 Slot count limit)
+  if (gpu && mb) {
+    const gpuQty = gpu.quantity || 1
+    const maxVgaSlots = mb.vgaSlots || 2
+    if (gpuQty > maxVgaSlots) {
+      issues.push(`Mainboard "${mb.name}" chỉ có ${maxVgaSlots} khe cắm Card màn hình (PCIe x16), bạn đang chọn ${gpuQty} card đồ họa.`)
     }
   }
 
@@ -553,9 +608,13 @@ export default function BuildPC() {
     if (activeStep === 'mainboard' && selected.cpu?.socket) {
       autoFilteredRaw = rawProducts.filter(p => !p.socket || p.socket === selected.cpu.socket)
       activeAutoFilterDescription = `Đang tự động lọc Mainboard Socket ${selected.cpu.socket} phù hợp với ${selected.cpu.name}`
-    } else if (activeStep === 'ram' && selected.mainboard?.ramType) {
-      autoFilteredRaw = rawProducts.filter(p => !p.ramType || p.ramType === selected.mainboard.ramType)
-      activeAutoFilterDescription = `Đang tự động lọc RAM ${selected.mainboard.ramType} tương thích với ${selected.mainboard.name}`
+    } else if (activeStep === 'ram' && selected.mainboard) {
+      if (selected.mainboard.ramType) {
+        autoFilteredRaw = rawProducts.filter(p => !p.ramType || p.ramType === selected.mainboard.ramType)
+      }
+      activeAutoFilterDescription = `Đang tự động lọc RAM ${selected.mainboard.ramType || ''} tương thích với ${selected.mainboard.name} (${selected.mainboard.ramSlots || 4} khe RAM, Tối đa ${selected.mainboard.maxRam || 128}GB)`
+    } else if (activeStep === 'gpu' && selected.mainboard) {
+      activeAutoFilterDescription = `Mainboard "${selected.mainboard.name}" có ${selected.mainboard.vgaSlots || 2} khe PCIe x16 (Hỗ trợ cắm tối đa ${selected.mainboard.vgaSlots || 2} Card đồ họa)`
     } else if (activeStep === 'cooling' && selected.cpu?.socket) {
       autoFilteredRaw = rawProducts.filter(p => !p.supportedSockets || p.supportedSockets.includes(selected.cpu.socket))
       activeAutoFilterDescription = `Đang tự động lọc Tản nhiệt hỗ trợ Socket ${selected.cpu.socket}`
@@ -586,10 +645,27 @@ export default function BuildPC() {
         if (cfg.id === activeConfigId) {
           const prevSel = cfg.selected || {}
           const already = prevSel[activeStep]?.id === product.id
-          const nextSel = {
+          
+          let nextSel = {
             ...prevSel,
             [activeStep]: already ? null : { ...product, quantity: prevSel[activeStep]?.quantity || 1 }
           }
+
+          // Khi chọn Mainboard mới: tự động kiểm tra & clamp số lượng RAM/VGA nếu vượt quá số khe cắm của Mainboard
+          if (activeStep === 'mainboard' && !already && product) {
+            const mbRamSlots = product.ramSlots || 4
+            const mbVgaSlots = product.vgaSlots || 2
+
+            if (prevSel.ram && prevSel.ram.quantity > mbRamSlots) {
+              nextSel.ram = { ...prevSel.ram, quantity: mbRamSlots }
+              toast.info(`ℹ️ Đã tự động điều chỉnh số lượng RAM về ${mbRamSlots} thanh theo số khe cắm của ${product.name}`, { position: 'bottom-right' })
+            }
+            if (prevSel.gpu && prevSel.gpu.quantity > mbVgaSlots) {
+              nextSel.gpu = { ...prevSel.gpu, quantity: mbVgaSlots }
+              toast.info(`ℹ️ Đã tự động điều chỉnh số lượng Card VGA về ${mbVgaSlots} card theo số khe cắm của ${product.name}`, { position: 'bottom-right' })
+            }
+          }
+
           return { ...cfg, selected: nextSel }
         }
         return cfg
@@ -604,6 +680,25 @@ export default function BuildPC() {
   }, [activeConfigId, activeStep])
 
   const handleQuantityChange = useCallback((stepId, delta) => {
+    // Kiểm tra giới hạn số lượng RAM & VGA theo Mainboard đã chọn
+    if (delta > 0) {
+      if (stepId === 'ram') {
+        const maxSlots = selected.mainboard?.ramSlots || 4
+        const currentQty = selected.ram?.quantity || 1
+        if (currentQty + delta > maxSlots) {
+          toast.warn(`⚠️ Mainboard ${selected.mainboard ? `"${selected.mainboard.name}"` : ''} chỉ có ${maxSlots} khe cắm RAM!`, { position: 'bottom-right' })
+          return
+        }
+      } else if (stepId === 'gpu') {
+        const maxSlots = selected.mainboard?.vgaSlots || 2
+        const currentQty = selected.gpu?.quantity || 1
+        if (currentQty + delta > maxSlots) {
+          toast.warn(`⚠️ Mainboard ${selected.mainboard ? `"${selected.mainboard.name}"` : ''} chỉ có ${maxSlots} khe cắm Card màn hình (VGA)!`, { position: 'bottom-right' })
+          return
+        }
+      }
+    }
+
     setBuildConfigs(prevConfigs => {
       const nextConfigs = prevConfigs.map(cfg => {
         if (cfg.id === activeConfigId) {
@@ -624,7 +719,7 @@ export default function BuildPC() {
       } catch (e) {}
       return nextConfigs
     })
-  }, [activeConfigId])
+  }, [activeConfigId, selected.mainboard, selected.ram, selected.gpu])
 
   const handleRemove = useCallback((stepId) => {
     setBuildConfigs(prevConfigs => {
@@ -1026,6 +1121,16 @@ export default function BuildPC() {
                       <div className="bp-product-info">
                         <div className="bp-product-name">{product.name}</div>
                         <div className="bp-product-specs">{product.specs}</div>
+                        {activeStep === 'mainboard' && (
+                          <div className="bp-mb-spec-badges" style={{ display: 'flex', gap: '6px', margin: '4px 0 6px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '10px', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.4)', color: '#c084fc', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>
+                              📌 {product.ramSlots} Khe RAM (Tối đa {product.maxRam}GB)
+                            </span>
+                            <span style={{ fontSize: '10px', background: 'rgba(200,230,0,0.15)', border: '1px solid rgba(200,230,0,0.4)', color: '#d4f000', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>
+                              🎮 {product.vgaSlots} Khe PCIe x16 (VGA)
+                            </span>
+                          </div>
+                        )}
                         <div className="bp-product-footer">
                           <div className="bp-product-price">{formatPrice(product.price)}</div>
                           <div className={`bp-product-stock ${product.stock ? 'in-stock' : 'out-stock'}`}>
@@ -1149,6 +1254,50 @@ export default function BuildPC() {
                   </div>
                 )}
               </div>
+
+              {/* Mainboard Slot Analysis Card */}
+              {selected.mainboard && (
+                <div className="bp-mb-slots-card">
+                  <div className="bp-mb-slots-header">
+                    <span className="bp-mb-slots-title">🔌 Khe Cắm Mainboard</span>
+                    <span className="bp-mb-slots-subtitle">{selected.mainboard.formFactor || 'ATX'} • {selected.mainboard.socket || 'AM5'}</span>
+                  </div>
+
+                  {/* RAM Slots Bar */}
+                  <div className="bp-mb-slot-row">
+                    <div className="bp-mb-slot-info">
+                      <span>🧠 RAM: {(selected.ram?.quantity || 0)} / {selected.mainboard.ramSlots || 4} thanh</span>
+                      <span className="bp-mb-slot-sub">({selected.mainboard.ramType || 'DDR5'} - Tối đa {selected.mainboard.maxRam || 128}GB)</span>
+                    </div>
+                    <div className="bp-mb-slot-visual">
+                      {Array.from({ length: selected.mainboard.ramSlots || 4 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`bp-mb-slot-chip ${(i < (selected.ram?.quantity || 0)) ? 'used-ram' : 'empty'}`}
+                          title={`Slot RAM ${i+1}: ${i < (selected.ram?.quantity || 0) ? 'Đã cắm thanh RAM' : 'Còn trống'}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* VGA Slots Bar */}
+                  <div className="bp-mb-slot-row">
+                    <div className="bp-mb-slot-info">
+                      <span>🎮 VGA: {(selected.gpu?.quantity || 0)} / {selected.mainboard.vgaSlots || 2} card</span>
+                      <span className="bp-mb-slot-sub">(PCIe x16 Slot)</span>
+                    </div>
+                    <div className="bp-mb-slot-visual">
+                      {Array.from({ length: selected.mainboard.vgaSlots || 2 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`bp-mb-slot-chip ${(i < (selected.gpu?.quantity || 0)) ? 'used-gpu' : 'empty'}`}
+                          title={`Slot PCIe x16 ${i+1}: ${i < (selected.gpu?.quantity || 0) ? 'Đã cắm Card VGA' : 'Còn trống'}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Selected items */}
               <div className="bp-summary-items">
