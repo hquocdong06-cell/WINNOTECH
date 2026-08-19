@@ -86,7 +86,10 @@ export default function Cart() {
 
   // ── Cập nhật số lượng ──────────────────────────────────────────────────
   const handleQuantityChange = async (cartItemId, newQty) => {
-    if (newQty < 1) return
+    if (newQty < 1) {
+      await handleRemoveItem(cartItemId)
+      return
+    }
 
     const item = cartItems.find(i => i.cartItem?._id === cartItemId)
     if (item && item.variant && item.variant.stock_quantity !== undefined) {
@@ -422,15 +425,19 @@ export default function Cart() {
                         <button
                           onClick={() => handleQuantityChange(cartItemId, qty - 1)}
                           className="qty-btn"
-                          disabled={isUpdating || qty <= 1}
+                          disabled={isUpdating}
                         >−</button>
                         <input
                           type="number"
                           value={qty}
-                          min="1"
+                          min="0"
                           onChange={(e) => {
                             const v = parseInt(e.target.value)
-                            if (v > 0) handleQuantityChange(cartItemId, v)
+                            if (isNaN(v) || v <= 0) {
+                              handleRemoveItem(cartItemId)
+                            } else {
+                              handleQuantityChange(cartItemId, v)
+                            }
                           }}
                           className="qty-input"
                           disabled={isUpdating}

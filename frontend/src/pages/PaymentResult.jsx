@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import DefaultLayout from '../layouts/DefaultLayout'
 import { clearCart } from '../redux/cartSlice'
+import { clearPurchasedPCBuildConfig } from '../utils/pcBuildUtils'
 
 /**
  * Trang nhận kết quả callback từ VNPay
@@ -29,8 +30,11 @@ export default function PaymentResult() {
 
   useEffect(() => {
     const t = setTimeout(() => setShow(true), 50)
-    // Nếu thanh toán thành công → xóa giỏ hàng trong Redux & localStorage
-    if (isSuccess) dispatch(clearCart())
+    // Nếu thanh toán thành công → xóa giỏ hàng trong Redux & localStorage và xóa cấu hình PC đã mua
+    if (isSuccess) {
+      dispatch(clearCart())
+      clearPurchasedPCBuildConfig()
+    }
     return () => clearTimeout(t)
   }, [])
 

@@ -605,7 +605,7 @@ export default function BuildPC() {
           } else if (stepId === 'gpu') {
             maxAllowed = mb?.vgaSlots || 4
           } else if (stepId === 'monitor') {
-            maxAllowed = 4
+            maxAllowed = 2
           } else if (stepId === 'storage') {
             maxAllowed = 10
           } else if (stepId === 'extra') {
@@ -668,9 +668,11 @@ export default function BuildPC() {
     })
   }, [activeConfigId])
 
-  const handleCTAClick = () => {
-    if (isComplete) {
-      setShowSummaryModal(true)
+  const handleCTAClick = async () => {
+    if (isComplete || selectedCount > 0) {
+      localStorage.setItem('purchasing_pc_build_config_id', activeConfigId.toString())
+      await handleAddAllToCart()
+      navigate('/checkout')
     } else if (nextStep) {
       setActiveStep(nextStep.id)
     }
@@ -795,15 +797,16 @@ export default function BuildPC() {
       toast.warn('Vui lòng chọn ít nhất 1 linh kiện trước khi thanh toán!', { position: 'bottom-right' })
       return
     }
+    localStorage.setItem('purchasing_pc_build_config_id', activeConfigId.toString())
     await handleAddAllToCart()
     navigate('/checkout')
   }
 
-  const ctaText = isComplete
-    ? 'Thêm toàn bộ vào giỏ'
+  const ctaText = (isComplete || selectedCount > 0)
+    ? 'Thanh toán'
     : nextStep
     ? `Tiếp tục chọn ${nextStep.label}`
-    : 'Hoàn thiện cấu hình'
+    : 'Thanh toán'
 
   const ctaClass = isComplete ? 'bp-cta-btn bp-cta-buy' : 'bp-cta-btn bp-cta-next'
 
@@ -1216,8 +1219,8 @@ export default function BuildPC() {
                     maxQty = 10
                     limitNotice = 'Tối đa 10 ổ cứng'
                   } else if (step.id === 'monitor') {
-                    maxQty = 4
-                    limitNotice = 'Tối đa 4 màn hình'
+                    maxQty = 2
+                    limitNotice = 'Tối đa 2 màn hình'
                   } else if (step.id === 'extra') {
                     maxQty = 10
                     limitNotice = 'Tối đa 10 phụ kiện / fan'
@@ -1269,11 +1272,7 @@ export default function BuildPC() {
                             {limitNotice}
                           </span>
                         </div>
-                      ) : (
-                        <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic', paddingLeft: '2px' }}>
-                          ✓ Nhóm cố định (Số lượng = 1)
-                        </div>
-                      )}
+                      ) : null}
                     </div>
                   )
                 })}
@@ -1394,10 +1393,7 @@ export default function BuildPC() {
             </div>
 
             <div className="bp-modal-actions">
-              <button className="bp-modal-buy" onClick={handleAddAllToCart}>
-                Thêm toàn bộ vào giỏ hàng
-              </button>
-              <button className="bp-modal-checkout" onClick={handleCheckoutNow}>
+              <button className="bp-modal-checkout" onClick={handleCheckoutNow} style={{ width: '100%' }}>
                 Thanh toán ngay
               </button>
             </div>

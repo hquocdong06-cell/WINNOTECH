@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import DefaultLayout from '../layouts/DefaultLayout'
+import { clearPurchasedPCBuildConfig } from '../utils/pcBuildUtils'
 
 export default function OrderSuccess() {
   const [searchParams] = useSearchParams()
@@ -8,6 +9,7 @@ export default function OrderSuccess() {
   const [show, setShow] = useState(false)
 
   useEffect(() => {
+    clearPurchasedPCBuildConfig()
     // Trigger animation sau khi mount
     const t = setTimeout(() => setShow(true), 50)
     return () => clearTimeout(t)
