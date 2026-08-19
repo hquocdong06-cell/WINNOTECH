@@ -1328,7 +1328,10 @@ app.get(["/api/buildpc/components", "/api/products/build-pc"], async (req, res) 
       const cat = await CategoryModel.findOne({
         $or: [
           { slug: category },
-          { slug: category === 'tan-nhiet' ? 'cooling' : category === 'cooling' ? 'tan-nhiet' : category }
+          { slug: category === 'tan-nhiet' ? 'cooling' : category === 'cooling' ? 'tan-nhiet' : category },
+          { slug: category === 'man-hinh' ? 'monitor' : category === 'monitor' ? 'man-hinh' : category },
+          { slug: category === 'phu-kien-ngoai-vi' ? 'peripheral' : category === 'peripheral' ? 'phu-kien-ngoai-vi' : category },
+          { slug: category === 'phu-kien-khac' ? 'extra' : category === 'extra' ? 'phu-kien-khac' : category },
         ]
       });
       if (cat) {

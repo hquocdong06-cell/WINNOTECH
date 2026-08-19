@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
-import { findMockProductBySlug } from '../data/mockProducts'
 import useFavorite from '../hooks/useFavorite'
 import { useAuth } from '../hooks/useAuth'
 import ProductCard from './ProductCard'
@@ -45,8 +44,7 @@ export default function RecentlyViewedSection({ currentSlug }) {
                 }
               }
             } catch (e) {}
-            const mock = findMockProductBySlug(s)
-            return mock?.product || null
+            return null
           })
         )
 

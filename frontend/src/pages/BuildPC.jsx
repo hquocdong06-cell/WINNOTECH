@@ -39,24 +39,9 @@ const STEP_TO_SLUG = {
   psu:        'psu',
   cooling:    'cooling',
   case:       'case',
-  // monitor / peripheral / extra chưa có category trong DB → dùng mock
-}
-
-// Sản phẩm mock cho các danh mục chưa có trong DB
-const STATIC_FALLBACK = {
-  monitor: [
-    { id: 'mon1', name: 'LG 27GP850-B 27" QHD 165Hz Nano IPS', price: 8490000, specs: '27" QHD 2560×1440 · 165Hz · 1ms · IPS · FreeSync', stock: true },
-    { id: 'mon2', name: 'ASUS ROG Swift 27" 4K 160Hz OLED',     price:19990000, specs: '27" 4K UHD · 160Hz · 0.03ms · OLED · G-Sync', stock: true },
-    { id: 'mon3', name: 'Samsung Odyssey G5 34" UWQHD 165Hz',   price:11990000, specs: '34" UWQHD 3440×1440 · 165Hz · VA · FreeSync', stock: true },
-  ],
-  peripheral: [
-    { id: 'per1', name: 'Logitech G Pro X Superlight 2 + G715 TKL', price: 4990000, specs: 'Chuột 60g không dây · Bàn phím TKL RGB Tactile', stock: true },
-    { id: 'per2', name: 'Razer DeathAdder V3 HyperSpeed + BlackWidow V4', price: 4290000, specs: 'Chuột không dây ergonomic · Bàn phím Green Switch', stock: true },
-  ],
-  extra: [
-    { id: 'ext1', name: 'Dây cáp Sleeved Extension Kit RGB',  price:  590000, specs: 'Bộ dây cáp nguồn bọc lưới · ATX 24pin + EPS + PCIe', stock: true },
-    { id: 'ext2', name: 'NZXT RGB Fan Controller',             price:  890000, specs: 'Hub điều khiển 8 quạt RGB · USB header', stock: true },
-  ],
+  monitor:    'monitor',
+  peripheral: 'peripheral',
+  extra:      'extra',
 }
 
 // ─── Helper lấy URL ảnh sản phẩm ─────────────────────────────────────────
@@ -593,11 +578,8 @@ export default function BuildPC() {
   const nextStep      = BUILD_STEPS.find(s => !selected[s.id])
   const progressPct   = Math.round((selectedCount / BUILD_STEPS.length) * 100)
 
-  // ── Products for current step ─────────────────────────────────────────
-  // Nếu step có slug → lấy từ cache API; ngược lại dùng static fallback
-  const rawProducts = STEP_TO_SLUG[activeStep]
-    ? (productsCache[activeStep] || [])
-    : (STATIC_FALLBACK[activeStep] || [])
+  // ── Products for current step (Lấy từ API DB) ─────────────────────────
+  const rawProducts = productsCache[activeStep] || []
   const brands      = BRAND_FILTERS[activeStep] || BRAND_FILTERS.default
 
   // Auto-filter tương thích thông minh
