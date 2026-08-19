@@ -1146,32 +1146,6 @@ export default function CPU() {
                               )}
                             </div>
                             <div className="cpu-card-actions">
-                              <button
-                                className="btn-buy-now-card"
-                                title={isOutOfStock ? 'Hết hàng' : 'Mua ngay'}
-                                disabled={isOutOfStock}
-                                onClick={async (e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  if (!isOutOfStock) {
-                                    await handleQuickAddToCart(product);
-                                    navigate('/checkout');
-                                  }
-                                }}
-                                style={{
-                                  background: isOutOfStock ? '#333' : 'var(--yellow)',
-                                  color: isOutOfStock ? '#777' : '#000',
-                                  border: 'none',
-                                  borderRadius: '6px',
-                                  padding: '5px 9px',
-                                  fontSize: '11px',
-                                  fontWeight: '800',
-                                  cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                                  whiteSpace: 'nowrap'
-                                }}
-                              >
-                                Mua ngay
-                              </button>
                               <button 
                                 className="btn-add-cart" 
                                 title={isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ'}

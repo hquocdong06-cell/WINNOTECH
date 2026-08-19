@@ -456,22 +456,22 @@
 
 .cpu-card-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  align-items: flex-end;
-  min-width: 78px;
 }
 
 .cpu-card-actions-icons {
   display: flex;
+  flex-direction: row;
+  align-items: center;
   gap: 6px;
-  width: 100%;
 }
 
 .cpu-card .btn-add-cart,
 .cpu-card .btn-wishlist {
-  flex: 1;
+  width: 32px;
   height: 32px;
   padding: 0;
   display: flex;
@@ -480,20 +480,24 @@
   border: 1px solid var(--border);
   border-radius: 6px;
   cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease, background 0.2s ease, border-color 0.2s ease;
-}
-
-.cpu-card .btn-add-cart {
   background: var(--dark2);
-  border: 1px solid var(--border);
   color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.15s ease, filter 0.15s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .cpu-card .btn-add-cart:hover {
-  border-color: rgba(200, 230, 0, 0.4);
+  border-color: rgba(212, 255, 0, 0.5);
   color: var(--yellow);
-  background: rgba(200, 230, 0, 0.08);
+  background: rgba(212, 255, 0, 0.1);
   transform: scale(1.08);
+}
+
+.cpu-card .btn-add-cart.added-active {
+  color: var(--yellow) !important;
+  border-color: var(--yellow) !important;
+  background: rgba(212, 255, 0, 0.2) !important;
+  box-shadow: 0 0 10px rgba(212, 255, 0, 0.35);
 }
 
 .cpu-card .btn-add-cart:active {
@@ -503,15 +507,9 @@
 .cpu-card .btn-add-cart svg {
   fill: currentColor;
   display: block;
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   margin: auto;
-}
-
-.cpu-card .btn-wishlist {
-  background: var(--dark2);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
 }
 
 .cpu-card .btn-wishlist:hover {
@@ -528,8 +526,8 @@
 .cpu-card .btn-wishlist svg {
   stroke: currentColor;
   display: block;
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   margin: auto;
 }
 

@@ -109,31 +109,21 @@ export default function ProductCard({ product, onAddToCart, favoriteIds, onToggl
               )}
             </div>
             <div className="product-actions-group">
-              <div className="product-actions-icons">
-                <button 
-                  className={`btn-cart ${cartActive ? 'added-active' : ''}`}
-                  onClick={handleCartClick}
-                  disabled={isOutOfStock}
-                  style={isOutOfStock ? { background: '#222', color: '#555', cursor: 'not-allowed', borderColor: '#333' } : {}}
-                  title={isOutOfStock ? 'Hết hàng' : (cartActive ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ')}
-                >
-                  <CartSVG isAdded={cartActive} />
-                </button>
-                <button 
-                  className="btn-wishlist-home" 
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite?.(product._id) }} 
-                  title="Thêm vào yêu thích"
-                >
-                  <HeartSVG isFilled={isFav} />
-                </button>
-              </div>
               <button 
-                className="btn-buy-now-card"
-                onClick={handleBuyNowClick}
+                className={`btn-cart ${cartActive ? 'added-active' : ''}`}
+                onClick={handleCartClick}
                 disabled={isOutOfStock}
-                title={isOutOfStock ? 'Hết hàng' : 'Mua ngay'}
+                style={isOutOfStock ? { background: '#222', color: '#555', cursor: 'not-allowed', borderColor: '#333' } : {}}
+                title={isOutOfStock ? 'Hết hàng' : (cartActive ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ')}
               >
-                {isOutOfStock ? 'Hết hàng' : 'Mua ngay'}
+                <CartSVG isAdded={cartActive} />
+              </button>
+              <button 
+                className="btn-wishlist-home" 
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite?.(product._id) }} 
+                title="Thêm vào yêu thích"
+              >
+                <HeartSVG isFilled={isFav} />
               </button>
             </div>
           </div>

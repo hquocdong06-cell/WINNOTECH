@@ -1108,19 +1108,6 @@ export default function BuildPC() {
                 )}
               </div>
 
-              {/* Required checklist */}
-              <div className="bp-checklist">
-                {REQUIRED_STEPS.map(id => {
-                  const step = BUILD_STEPS.find(s => s.id === id)
-                  const done = !!selected[id]
-                  return (
-                    <div key={id} className={`bp-check-item ${done ? 'done' : ''}`}>
-                      <span>{step?.label}</span>
-                    </div>
-                  )
-                })}
-              </div>
-
               {/* ── SUGGEST BUTTON ── */}
               <button
                 className="bp-suggest-btn"
