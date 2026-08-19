@@ -938,21 +938,86 @@
   box-shadow: 0 4px 20px rgba(124,58,237,.4);
 }
 
-/* "Mua ngay / Thêm vào giỏ" — yellow */
-.bp-cta-buy {
-  background: linear-gradient(135deg, var(--bp-yellow), var(--bp-yellow2));
-  color: #000;
+/* ── CHECKOUT & CART ACTION BUTTONS ── */
+.bp-sidebar-checkout-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 0;
 }
-.bp-cta-buy:hover:not(:disabled) {
+
+.bp-btn-checkout-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 16px;
+  background: var(--bp-yellow);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(212, 255, 0, 0.25);
+}
+
+.bp-btn-checkout-primary:hover:not(:disabled) {
+  background: #e5ff00;
   transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(200,230,0,.4);
+  box-shadow: 0 6px 20px rgba(212, 255, 0, 0.4);
+}
+
+.bp-btn-checkout-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.bp-btn-checkout-primary:disabled {
+  background: #2a2a2a;
+  color: #777;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.bp-btn-add-cart-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 14px;
+  background: #161b22;
+  color: #f0f6fc;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.bp-btn-add-cart-secondary:hover:not(:disabled) {
+  border-color: var(--bp-yellow);
+  color: var(--bp-yellow);
+  background: rgba(212, 255, 0, 0.08);
+}
+
+.bp-btn-add-cart-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .bp-cta-hint {
   text-align: center;
   font-size: 10px;
   color: var(--bp-muted);
-  padding: 0 12px 10px;
+  padding: 6px 12px 0;
 }
 
 /* Summary action buttons */

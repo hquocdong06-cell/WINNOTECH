@@ -790,8 +790,13 @@ export default function BuildPC() {
 
   const handleCheckoutNow = async () => {
     setShowSummaryModal(false)
+    const items = Object.values(selected).filter(Boolean)
+    if (items.length === 0) {
+      toast.warn('Vui lòng chọn ít nhất 1 linh kiện trước khi thanh toán!', { position: 'bottom-right' })
+      return
+    }
     await handleAddAllToCart()
-    navigate('/cart')
+    navigate('/checkout')
   }
 
   const ctaText = isComplete
@@ -1293,23 +1298,45 @@ export default function BuildPC() {
                 Gợi ý cấu hình tự động
               </button>
 
-              {/* ── SMART CTA ── */}
-              <button
-                className={ctaClass}
-                onClick={handleCTAClick}
-                disabled={selectedCount === 0}
-              >
-                {ctaText}
-              </button>
+              {/* ── ACTION BUTTONS: CHECKOUT & ADD TO CART ── */}
+              <div className="bp-sidebar-checkout-group">
+                <button
+                  className="bp-btn-checkout-primary"
+                  onClick={handleCheckoutNow}
+                  disabled={selectedCount === 0}
+                  title={selectedCount === 0 ? 'Vui lòng chọn linh kiện' : 'Thanh toán ngay cấu hình này'}
+                >
+                  <span>⚡</span> Thanh toán ngay
+                </button>
+                <button
+                  className="bp-btn-add-cart-secondary"
+                  onClick={handleAddAllToCart}
+                  disabled={selectedCount === 0}
+                  title="Thêm toàn bộ linh kiện đã chọn vào giỏ hàng"
+                >
+                  <span>🛒</span> Thêm vào giỏ hàng
+                </button>
+              </div>
+
+              {/* Next step helper if not complete */}
+              {!isComplete && nextStep && (
+                <button
+                  className="bp-cta-btn bp-cta-next"
+                  style={{ width: 'calc(100% - 24px)', margin: '8px 12px 0', padding: '10px 14px' }}
+                  onClick={() => setActiveStep(nextStep.id)}
+                >
+                  {`Tiếp tục chọn: ${nextStep.label}`}
+                </button>
+              )}
 
               {/* If incomplete, show missing parts */}
               {!isComplete && requiredDone && !compatibility.compatible && (
-                <div className="bp-cta-hint">
-                  Vui lòng kiểm tra lỗi tương thích trước khi mua
+                <div className="bp-cta-hint" style={{ color: '#ef4444', marginTop: '6px' }}>
+                  ⚠ Vui lòng kiểm tra lỗi tương thích trước khi mua
                 </div>
               )}
               {!requiredDone && (
-                <div className="bp-cta-hint">
+                <div className="bp-cta-hint" style={{ marginTop: '6px' }}>
                   Cần chọn thêm {REQUIRED_STEPS.filter(id => !selected[id]).length} linh kiện bắt buộc
                 </div>
               )}
