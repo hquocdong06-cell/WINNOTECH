@@ -284,7 +284,10 @@ export const buildPCAPI = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ total_price, items }),
   }),
+  suggest: (budget, purpose) =>
+    apiFetch(`/api/buildpc/suggest?budget=${budget}&purpose=${purpose}`),
 };
+
 
 // ============================================================
 // POSTS & BLOG

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import DefaultLayout from '../layouts/DefaultLayout'
@@ -59,14 +59,13 @@ const STATIC_FALLBACK = {
   ],
 }
 
-// ─── Helper lấy URL ảnh sản phẩm ─────────────────────────────────────────
+// ─── Helper lấy URL ảnh sản phẩm ───────────────────────────────────────────────────
 function getImg(product) {
   const firstImg = product.AnhSP?.[0]?.url || product.thumnail || ''
   if (!firstImg) return null
   return firstImg.startsWith('http') ? firstImg : `${API_URL}${firstImg}`
 }
 
-// ─── Normalize sản phẩm API → format BuildPC ──────────────────────────────
 function normalizeProduct(p, stepId) {
   const variant = p.Variants?.[0]
   const attrs   = variant?.Attributes || []
@@ -75,81 +74,103 @@ function normalizeProduct(p, stepId) {
     return found?.value || ''
   }
 
-  // Tính giá: ưu tiên sale_price nếu > 0
+  // Giá: ưu tiên sale_price
   const rawPrice = (variant?.sale_price > 0 ? variant.sale_price : variant?.price) || p.price || 0
 
-  // Tạo specs string từ attributes hoặc description
+  // Specs string
   const specParts = attrs.slice(0, 4).map(a => `${a.value}`).filter(Boolean)
   const specs = specParts.length > 0 ? specParts.join(' · ') : (p.description?.slice(0, 80) || p.name)
 
-  // Socket detection
+  // ── compatibility_meta từ DB (ưu tiên cao nhất) ────────────────────
+  const meta = p.compatibility_meta || {}
+
+  // Socket detection: meta > attr > name
   const socketAttr = getAttr('socket') || getAttr('Socket')
-  let socket = socketAttr
+  let socket = meta.socket || socketAttr || null
   if (!socket) {
-    if (p.name.includes('AM5') || p.name.includes('Ryzen 7000') || p.name.includes('Ryzen 9000')) socket = 'AM5'
-    else if (p.name.includes('AM4') || p.name.includes('Ryzen 5000') || p.name.includes('Ryzen 3000')) socket = 'AM4'
-    else if (p.name.includes('LGA1700') || p.name.includes('i9-1') || p.name.includes('i7-1') || p.name.includes('i5-1') || p.name.includes('i3-1')) socket = 'LGA1700'
-    else if (p.name.includes('LGA1200')) socket = 'LGA1200'
+    const n = p.name
+    if (/Core Ultra/i.test(n) && /285K|265K|245K|225K/i.test(n)) socket = 'LGA1851'
+    else if (/AM5|Ryzen\s*(5|7|9)\s*7[0-9]{3}|Ryzen\s*(5|7|9)\s*9[0-9]{3}|7800X3D/i.test(n)) socket = 'AM5'
+    else if (/AM4|Ryzen\s*(3|5|7|9)\s*5[0-9]{3}|Ryzen\s*(3|5|7|9)\s*3[0-9]{3}/i.test(n)) socket = 'AM4'
+    else if (/LGA1700|i[3579]-1[234][0-9]{3}/i.test(n)) socket = 'LGA1700'
+    else if (/LGA1200|i[3579]-1[01][0-9]{3}/i.test(n)) socket = 'LGA1200'
+    // Mainboard chipset → socket
+    else if (/\b[XAB]6[57][0-9]E?\b|\bA620\b/i.test(n)) socket = 'AM5'
+    else if (/\b[ABX]5[57][0-9]\b|\bA520\b/i.test(n)) socket = 'AM4'
+    else if (/\bZ790\b|\bB760\b|\bH770\b|\bZ690\b|\bB660\b/i.test(n)) socket = 'LGA1700'
   }
 
-  // RAM type detection
+  // RAM type: meta > attr > name
   const ramTypeAttr = getAttr('ddr') || getAttr('memory type') || getAttr('ram type')
-  let ramType = ''
-  if (ramTypeAttr) ramType = ramTypeAttr.toUpperCase().includes('DDR5') ? 'DDR5' : 'DDR4'
-  else if (p.name.includes('DDR5')) ramType = 'DDR5'
-  else if (p.name.includes('DDR4')) ramType = 'DDR4'
-
-  // Form factor (case & mainboard)
-  const ffAttr = getAttr('form') || getAttr('kích thước')
-  let formFactor = ffAttr || 'ATX'
-  let formFactorArr = ['ATX', 'mATX', 'ITX'] // default: hỗ trợ tất cả
-  if (ffAttr) {
-    if (ffAttr.toLowerCase().includes('mini-itx') || ffAttr.toLowerCase().includes('itx')) formFactorArr = ['ATX','mATX','ITX']
-    else if (ffAttr.toLowerCase().includes('matx') || ffAttr.toLowerCase().includes('micro')) formFactorArr = ['mATX','ITX']
-    else formFactorArr = ['ATX','mATX','ITX']
-    formFactor = ffAttr
+  let ramType = meta.ram_type || ''
+  if (!ramType) {
+    if (ramTypeAttr) ramType = ramTypeAttr.toUpperCase().includes('DDR5') ? 'DDR5' : 'DDR4'
+    else if (p.name.includes('DDR5') || p.name.includes('D5')) ramType = 'DDR5'
+    else if (p.name.includes('DDR4') || p.name.includes('D4')) ramType = 'DDR4'
   }
 
-  // TDP / wattage
+  // Form factor: meta > attr > name
+  const ffAttr = getAttr('form') || getAttr('kích thước')
+  let formFactor    = meta.form_factor || ffAttr || 'ATX'
+  let formFactorArr = meta.supported_ff?.length > 0 ? meta.supported_ff : ['ATX', 'mATX', 'ITX']
+  if (!meta.form_factor && !ffAttr) {
+    // Fallback: detect form factor từ tên
+    if (/M-ATX|mATX|Micro.?ATX|\b[A-Z]\d{3,4}M\b/.test(p.name)) {
+      formFactor = 'mATX'
+      formFactorArr = ['mATX', 'ITX']
+    } else if (/Mini.?ITX|mITX|NR200/i.test(p.name)) {
+      formFactor = 'ITX'
+      formFactorArr = ['ITX']
+    }
+  }
+
+  // TDP / wattage: meta > attr > name
   const tdpAttr = getAttr('tdp') || getAttr('watt') || getAttr('tpd')
-  let tdp = 65
-  let wattage = 0
-  if (tdpAttr) {
+  let tdp     = meta.tdp || 65
+  let wattage = meta.wattage || 0
+  if (!meta.tdp && !meta.wattage && tdpAttr) {
     const num = parseInt(tdpAttr)
     if (!isNaN(num)) {
       if (stepId === 'psu') wattage = num
       else tdp = num
     }
   }
-  if (stepId === 'psu') {
-    // Estimate wattage từ tên sản phẩm
+  if (!wattage && stepId === 'psu') {
     const wMatch = p.name.match(/(\d{2,4})W/i)
     if (wMatch) wattage = parseInt(wMatch[1])
   }
 
-  // GPU tier
-  let tier = 3
-  const gpuName = p.name.toLowerCase()
-  if (gpuName.includes('4090') || gpuName.includes('7900 xtx')) tier = 5
-  else if (gpuName.includes('4080') || gpuName.includes('4070 ti') || gpuName.includes('7900 xt')) tier = 4
-  else if (gpuName.includes('4070') || gpuName.includes('7800 xt') || gpuName.includes('7700 xt')) tier = 3
-  else if (gpuName.includes('4060 ti') || gpuName.includes('7600 xt')) tier = 2
-  else if (gpuName.includes('4060') || gpuName.includes('7600')) tier = 1
+  // GPU tier: meta > name detect
+  let tier = meta.gpu_tier || 3
+  if (!meta.gpu_tier) {
+    const n = p.name.toLowerCase()
+    if (/4090|7900\s*xtx/.test(n)) tier = 5
+    else if (/4080|4070\s*ti|7900\s*xt(?!x)/.test(n)) tier = 4
+    else if (/4070(?!\s*ti)|7800\s*xt|7700\s*xt/.test(n)) tier = 3
+    else if (/4060\s*ti|7600\s*xt/.test(n)) tier = 2
+    else if (/4060(?!\s*ti)|7600\b|rtx\s*5060/.test(n)) tier = 1
+  }
 
   // Brand
-  const brand = p.brand_id?.name || (p.name.includes('Intel') ? 'Intel' : p.name.includes('AMD') ? 'AMD' : p.name.includes('ASUS') ? 'ASUS' : p.name.includes('MSI') ? 'MSI' : p.name.includes('GIGABYTE') || p.name.includes('Gigabyte') ? 'GIGABYTE' : '')
+  const brand = p.brand_id?.name
+    || (p.name.includes('Intel')   ? 'Intel'
+      : p.name.includes('AMD')    ? 'AMD'
+      : p.name.includes('ASUS')   ? 'ASUS'
+      : p.name.includes('MSI')    ? 'MSI'
+      : (p.name.includes('GIGABYTE') || p.name.includes('Gigabyte')) ? 'GIGABYTE'
+      : '')
 
   return {
-    id:         p._id,          // product id (để dedup chọn trong UI)
-    _id:        p._id,
-    variantId:  variant?._id || null,  // 🔑 variant ID để addToCart
-    name:       p.name,
-    price:      rawPrice,
+    id:          p._id,
+    _id:         p._id,
+    variantId:   variant?._id || null,
+    name:        p.name,
+    price:       rawPrice,
     specs,
-    image:      getImg(p),
-    stock:      p.active !== false,
+    image:       getImg(p),
+    stock:       p.active !== false,
     brand,
-    // compatibility fields
+    // compatibility fields (ưu tiên từ DB meta)
     socket,
     ramType,
     formFactor,
@@ -159,6 +180,7 @@ function normalizeProduct(p, stepId) {
     tier,
   }
 }
+
 
 // ─── Compatibility Check Engine ───────────────────────────────────────────
 function checkCompatibility(selected) {
@@ -254,6 +276,18 @@ export default function BuildPC() {
   const [compatibility, setCompatibility] = useState({ compatible: true, issues: [], warnings: [] })
   const [showSummaryModal, setShowSummaryModal] = useState(false)
   const [addedAnimation, setAddedAnimation]     = useState(null)
+
+  // ── Suggest Modal State ────────────────────────────────────
+  const [showSuggestModal, setShowSuggestModal] = useState(false)
+  const [suggestBudget, setSuggestBudget]       = useState(20000000)
+  const [suggestPurpose, setSuggestPurpose]     = useState('gaming')
+  const [suggestResult, setSuggestResult]       = useState(null)  // { build, total }
+  const [suggestLoading, setSuggestLoading]     = useState(false)
+  const [suggestError, setSuggestError]         = useState(null)
+
+  // ── Smart Filter Override State ───────────────────────────
+  // stepId → true: user đã bấm "Xem tất cả", bỏ qua filter tương thích
+  const [filterOverrides, setFilterOverrides] = useState({})
 
   // ── 3 PC Build Configurations State (Khách & Thành viên) ───────────────
   const [buildConfigs, setBuildConfigs] = useState(() => {
@@ -366,32 +400,68 @@ export default function BuildPC() {
     }
   }
 
-  // Fetch products khi đổi step (chỉ fetch nếu chưa có trong cache)
+  // ── Smart Filter: Constraints từ linh kiện đã chọn ─────────────────
+  // CPU (socket) → Mainboard | Mainboard (ram_type) → RAM | Mainboard (ff) → Case
+  const smartConstraints = useMemo(() => {
+    const c = {}
+    const cpu = selected.cpu
+    const mb  = selected.mainboard
+    if (cpu?.socket) {
+      c.mainboard = { socket: cpu.socket }
+    }
+    if (mb?.ramType) {
+      c.ram = { ram_type: mb.ramType }
+    }
+    if (mb?.formFactor) {
+      // Case phải hỗ trợ form factor của mainboard
+      const ff = mb.formFactor.includes('ITX') ? 'ITX' : mb.formFactor.includes('mATX') ? 'mATX' : 'ATX'
+      c.case = { form_factor: ff }
+    }
+    return c
+  }, [selected.cpu, selected.mainboard])
+
+  // Reset filter overrides khi smart constraints thay đổi
+  useEffect(() => { setFilterOverrides({}) }, [smartConstraints])
+
+  // Cache key = stepId + constraints (hoặc stepId nếu bỏ qua filter)
+  const activeCacheKey = useMemo(() => {
+    const isOverridden = filterOverrides[activeStep]
+    const constraints  = isOverridden ? {} : (smartConstraints[activeStep] || {})
+    if (Object.keys(constraints).length === 0) return activeStep
+    const sorted = Object.entries(constraints).sort(([a], [b]) => a.localeCompare(b))
+    return `${activeStep}__${sorted.map(([k, v]) => `${k}=${v}`).join('&')}`
+  }, [activeStep, smartConstraints, filterOverrides])
+
+  // Fetch products ─ dùng activeCacheKey, gửi filter params lên API
   useEffect(() => {
     const slug = STEP_TO_SLUG[activeStep]
     if (!slug) return  // dùng static fallback
-    if (productsCache[activeStep]) return  // đã có cache, không fetch lại
+    if (productsCache[activeCacheKey]) return  // đã có cache
 
     setLoading(true)
     setFetchError(null)
 
-    fetch(`${API_URL}/api/buildpc/components?category=${slug}`)
+    const isOverridden = filterOverrides[activeStep]
+    const constraints  = isOverridden ? {} : (smartConstraints[activeStep] || {})
+    const params = new URLSearchParams({ category: slug, ...constraints })
+
+    fetch(`${API_URL}/api/buildpc/components?${params}`)
       .then(r => r.json())
       .then(data => {
         if (data.success && data.data?.length > 0) {
           const normalized = data.data.map(p => normalizeProduct(p, activeStep))
-          setProductsCache(prev => ({ ...prev, [activeStep]: normalized }))
+          setProductsCache(prev => ({ ...prev, [activeCacheKey]: normalized }))
         } else {
-          setProductsCache(prev => ({ ...prev, [activeStep]: [] }))
-          setFetchError(`Chưa có sản phẩm ${BUILD_STEPS.find(s => s.id === activeStep)?.label} trong hệ thống`)
+          setProductsCache(prev => ({ ...prev, [activeCacheKey]: [] }))
+          setFetchError(`Chưa có sản phẩm ${BUILD_STEPS.find(s => s.id === activeStep)?.label} phù hợp`)
         }
       })
       .catch(() => {
-        setProductsCache(prev => ({ ...prev, [activeStep]: [] }))
+        setProductsCache(prev => ({ ...prev, [activeCacheKey]: [] }))
         setFetchError('Không thể kết nối server')
       })
       .finally(() => setLoading(false))
-  }, [activeStep])
+  }, [activeCacheKey])
 
   // Re-run compatibility check whenever selection changes
   useEffect(() => {
@@ -416,11 +486,29 @@ export default function BuildPC() {
   const progressPct   = Math.round((selectedCount / BUILD_STEPS.length) * 100)
 
   // ── Products for current step ─────────────────────────────────────────
-  // Nếu step có slug → lấy từ cache API; ngược lại dùng static fallback
+  // Lấy từ cache theo activeCacheKey (bao gồm cả smart filter constraints)
   const rawProducts = STEP_TO_SLUG[activeStep]
-    ? (productsCache[activeStep] || [])
+    ? (productsCache[activeCacheKey] || [])
     : (STATIC_FALLBACK[activeStep] || [])
   const brands      = BRAND_FILTERS[activeStep] || BRAND_FILTERS.default
+
+  // Kiểm tra sản phẩm có không tương thích khi user xem tất cả (filter bị bỏ qua)
+  const getIncompatMsg = (product) => {
+    if (!filterOverrides[activeStep]) return null  // filter active, all OK
+    const c = smartConstraints[activeStep]
+    if (!c) return null
+    if (c.socket && product.socket && product.socket !== c.socket)
+      return `Socket ${product.socket} ≠ ${c.socket}`
+    if (c.ram_type && product.ramType && product.ramType !== c.ram_type)
+      return `${product.ramType} (cần ${c.ram_type})`
+    if (c.form_factor && product.formFactor && !product.formFactor.includes(c.form_factor))
+      return `Form ${product.formFactor} ≠ ${c.form_factor}`
+    return null
+  }
+
+  // Smart filter hint info
+  const activeSmartC = filterOverrides[activeStep] ? {} : (smartConstraints[activeStep] || {})
+  const hasSmartFilter = Object.keys(smartConstraints[activeStep] || {}).length > 0
 
   const filteredProducts = rawProducts
     .filter(p => brandFilter === 'Tất cả' || (p.brand && p.brand === brandFilter) ||
@@ -480,6 +568,50 @@ export default function BuildPC() {
     } else if (nextStep) {
       setActiveStep(nextStep.id)
     }
+  }
+
+  // ── Suggest Handlers ──────────────────────────────────────
+  const handleOpenSuggest = () => {
+    setSuggestResult(null)
+    setSuggestError(null)
+    setShowSuggestModal(true)
+  }
+
+  const handleRunSuggest = async () => {
+    setSuggestLoading(true)
+    setSuggestError(null)
+    setSuggestResult(null)
+    try {
+      const data = await buildPCAPI.suggest(suggestBudget, suggestPurpose)
+      if (data.success && data.build) {
+        setSuggestResult(data)
+      } else {
+        setSuggestError('Không tìm được cấu hình phù hợp. Thử tăng ngân sách hoặc đổi mục đích.')
+      }
+    } catch (err) {
+      setSuggestError('Không thể kết nối server. Vui lòng thử lại.')
+    } finally {
+      setSuggestLoading(false)
+    }
+  }
+
+  const handleApplySuggest = () => {
+    if (!suggestResult?.build) return
+    setBuildConfigs(prevConfigs => {
+      const nextConfigs = prevConfigs.map(cfg => {
+        if (cfg.id === activeConfigId) {
+          return { ...cfg, selected: { ...cfg.selected, ...suggestResult.build } }
+        }
+        return cfg
+      })
+      try {
+        localStorage.setItem('winnotech_pc_build_configs', JSON.stringify(nextConfigs))
+      } catch (e) {}
+      return nextConfigs
+    })
+    setShowSuggestModal(false)
+    setSuggestResult(null)
+    toast.success('✨ Đã áp dụng cấu hình gợi ý!', { position: 'bottom-right' })
   }
 
   const handleAddAllToCart = async () => {
@@ -808,6 +940,33 @@ export default function BuildPC() {
                 </div>
               </div>
 
+              {/* ── SMART FILTER HINT BAR ── */}
+              {hasSmartFilter && (
+                <div className={`bp-smart-filter-bar ${filterOverrides[activeStep] ? 'bp-sf-off' : ''}`}>
+                  <span className="bp-sf-icon">{filterOverrides[activeStep] ? '⚠️' : '🔍'}</span>
+                  {!filterOverrides[activeStep] ? (
+                    <>
+                      <span className="bp-sf-label">Smart Filter:</span>
+                      {activeSmartC.socket && <span className="bp-sf-tag">Socket {activeSmartC.socket}</span>}
+                      {activeSmartC.ram_type && <span className="bp-sf-tag">{activeSmartC.ram_type}</span>}
+                      {activeSmartC.form_factor && <span className="bp-sf-tag">Form {activeSmartC.form_factor}</span>}
+                      <button className="bp-sf-toggle" onClick={() => setFilterOverrides(p => ({...p, [activeStep]: true}))}
+                        title="Xem tất cả sản phẩm không lọc">
+                        Xem tất cả
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="bp-sf-label">Hiện thị tất cả — có thể có linh kiện không khớp</span>
+                      <button className="bp-sf-toggle bp-sf-restore"
+                        onClick={() => setFilterOverrides(p => { const n={...p}; delete n[activeStep]; return n })}>
+                        ← Khôi phục filter
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* Product cards */}
               <div className="bp-products">
                 {loading && (
@@ -820,12 +979,13 @@ export default function BuildPC() {
                   <div className="bp-empty">{fetchError}</div>
                 )}
                 {!loading && filteredProducts.map(product => {
-                  const isSelected = selected[activeStep]?.id === product.id
+                  const isSelected  = selected[activeStep]?.id === product.id
                   const isAnimating = addedAnimation === product.id
+                  const incompatMsg = getIncompatMsg(product)
                   return (
                     <div
                       key={product.id}
-                      className={`bp-product-card ${isSelected ? 'bp-product-selected' : ''} ${isAnimating ? 'bp-product-added' : ''}`}
+                      className={`bp-product-card ${isSelected ? 'bp-product-selected' : ''} ${isAnimating ? 'bp-product-added' : ''} ${incompatMsg ? 'bp-product-incompat' : ''}`}
                       onClick={() => handleSelect(product)}
                     >
                       <div className="bp-product-img">
@@ -837,6 +997,9 @@ export default function BuildPC() {
                           Sản phẩm
                         </div>
                         {isSelected && <div className="bp-product-check-badge">Đã chọn</div>}
+                        {incompatMsg && !isSelected && (
+                          <div className="bp-incompat-badge">⚠ {incompatMsg}</div>
+                        )}
                       </div>
                       <div className="bp-product-info">
                         <div className="bp-product-name">{product.name}</div>
@@ -958,6 +1121,16 @@ export default function BuildPC() {
                 })}
               </div>
 
+              {/* ── SUGGEST BUTTON ── */}
+              <button
+                className="bp-suggest-btn"
+                onClick={handleOpenSuggest}
+                title="Hệ thống tự gợi ý linh kiện phù hợp theo ngân sách"
+              >
+                <span className="bp-suggest-btn-icon">✨</span>
+                Gợi ý cấu hình tự động
+              </button>
+
               {/* ── SMART CTA ── */}
               <button
                 className={ctaClass}
@@ -1039,6 +1212,134 @@ export default function BuildPC() {
                 Thanh toán ngay
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── SUGGEST MODAL ── */}
+      {showSuggestModal && (
+        <div className="bp-modal-overlay" onClick={() => { setShowSuggestModal(false); setSuggestResult(null) }}>
+          <div className="bp-suggest-modal" onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="bp-suggest-modal-header">
+              <div className="bp-suggest-modal-icon">✨</div>
+              <div>
+                <h2 className="bp-suggest-modal-title">Gợi ý cấu hình tự động</h2>
+                <p className="bp-suggest-modal-sub">Hệ thống sẽ chọn linh kiện tối ưu theo ngân sách của bạn</p>
+              </div>
+              <button className="bp-modal-close" onClick={() => { setShowSuggestModal(false); setSuggestResult(null) }}>✕</button>
+            </div>
+
+            {/* Budget slider */}
+            <div className="bp-suggest-section">
+              <div className="bp-suggest-label">
+                <span>💰 Ngân sách</span>
+                <span className="bp-suggest-budget-val">{formatPrice(suggestBudget)}</span>
+              </div>
+              <input
+                id="suggest-budget-slider"
+                type="range"
+                min={5000000}
+                max={100000000}
+                step={1000000}
+                value={suggestBudget}
+                onChange={e => setSuggestBudget(Number(e.target.value))}
+                className="bp-budget-slider"
+              />
+              <div className="bp-slider-marks">
+                <span>5tr</span><span>25tr</span><span>50tr</span><span>75tr</span><span>100tr</span>
+              </div>
+            </div>
+
+            {/* Purpose pills */}
+            <div className="bp-suggest-section">
+              <div className="bp-suggest-label"><span>🎯 Mục đích sử dụng</span></div>
+              <div className="bp-purpose-pills">
+                {[
+                  { id: 'gaming',      icon: '🎮', label: 'Gaming',      sub: 'FPS · AAA · Esports' },
+                  { id: 'workstation', icon: '🖥️', label: 'Workstation', sub: '3D · Render · AI' },
+                  { id: 'office',      icon: '📄', label: 'Văn phòng',   sub: 'Word · Excel · Web' },
+                  { id: 'streaming',   icon: '📡', label: 'Streaming',   sub: 'OBS · Twitch · YT' },
+                ].map(p => (
+                  <button
+                    key={p.id}
+                    className={`bp-purpose-pill ${suggestPurpose === p.id ? 'active' : ''}`}
+                    onClick={() => setSuggestPurpose(p.id)}
+                  >
+                    <span className="bp-pill-icon">{p.icon}</span>
+                    <span className="bp-pill-label">{p.label}</span>
+                    <span className="bp-pill-sub">{p.sub}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Run button */}
+            {!suggestResult && (
+              <button
+                className="bp-suggest-run-btn"
+                onClick={handleRunSuggest}
+                disabled={suggestLoading}
+              >
+                {suggestLoading
+                  ? <><span className="bp-spin">⟳</span> Đang phân tích...
+                  </>
+                  : '🔍 Gợi ý ngay'
+                }
+              </button>
+            )}
+
+            {/* Error */}
+            {suggestError && (
+              <div className="bp-suggest-error">{suggestError}</div>
+            )}
+
+            {/* Result preview */}
+            {suggestResult && (
+              <div className="bp-suggest-result">
+                <div className="bp-suggest-result-header">
+                  <span className="bp-suggest-result-badge">✅ Cấu hình đề xuất</span>
+                  <span className="bp-suggest-result-total">{formatPrice(suggestResult.total)}</span>
+                </div>
+
+                <div className="bp-suggest-result-list">
+                  {BUILD_STEPS.map(step => {
+                    const item = suggestResult.build[step.id]
+                    if (!item) return null
+                    return (
+                      <div key={step.id} className="bp-suggest-result-item">
+                        {item.image
+                          ? <img src={item.image} alt={item.name} className="bp-suggest-item-img" onError={e => e.target.style.display='none'} />
+                          : <div className="bp-suggest-item-img-ph">{step.label[0]}</div>
+                        }
+                        <div className="bp-suggest-item-info">
+                          <div className="bp-suggest-item-cat">{step.label}</div>
+                          <div className="bp-suggest-item-name">{item.name}</div>
+                        </div>
+                        <div className="bp-suggest-item-price">{formatPrice(item.price)}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="bp-suggest-result-actions">
+                  <button
+                    className="bp-suggest-rerun-btn"
+                    onClick={() => { setSuggestResult(null); setSuggestError(null) }}
+                  >
+                    🔄 Thử lại
+                  </button>
+                  <button
+                    className="bp-suggest-apply-btn"
+                    onClick={handleApplySuggest}
+                  >
+                    ⚡ Áp dụng cấu hình này
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       )}
