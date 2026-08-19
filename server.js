@@ -1321,7 +1321,7 @@ app.put("/api/admin/flash-sale", async (req, res) => {
 // ============================================================
 app.get(["/api/buildpc/components", "/api/products/build-pc"], async (req, res) => {
   try {
-    const { category, search } = req.query;
+    const { category, search, socket, ram_type, form_factor } = req.query;
     let categoryFilter = {};
 
     if (category) {
@@ -1345,8 +1345,61 @@ app.get(["/api/buildpc/components", "/api/products/build-pc"], async (req, res) 
       searchQuery.name = { $regex: search.trim(), $options: "i" };
     }
 
+    // ── Smart Filter: socket / ram_type / form_factor ────────────
+    // Dual-source: ưu tiên compatibility_meta, fallback sang regex tên SP
+    const filterConditions = [];
+
+    if (socket && socket.trim()) {
+      const s = socket.trim().toUpperCase();
+      const SOCKET_NAME_PATTERNS = {
+        AM5:     'AM5|Ryzen\\s*(5|7|9)\\s*(7[0-9]{3}|9[0-9]{3})|7800X3D|7950X3D|A620|[XAB]6[57][0-9]',
+        AM4:     'AM4|Ryzen\\s*(3|5|7|9)\\s*(5[0-9]{3}|3[0-9]{3})|A520|[ABX]5[57][0-9]',
+        LGA1700: 'LGA1700|i[3579]-1[234][0-9]{3}|Z790|B760|H770|Z690|B660',
+        LGA1851: 'LGA1851|Core Ultra|Z890|B860',
+      };
+      const namePattern = SOCKET_NAME_PATTERNS[s] || socket.trim();
+      filterConditions.push({
+        $or: [
+          { 'compatibility_meta.socket': s },
+          { name: { $regex: namePattern, $options: 'i' } },
+        ],
+      });
+    }
+
+    if (ram_type && ram_type.trim()) {
+      const rt = ram_type.trim().toUpperCase();
+      filterConditions.push({
+        $or: [
+          { 'compatibility_meta.ram_type': rt },
+          { name: { $regex: rt, $options: 'i' } },
+        ],
+      });
+    }
+
+    if (form_factor && form_factor.trim()) {
+      const ff = form_factor.trim();
+      const FF_NAME_PATTERNS = {
+        mATX: 'M-ATX|mATX|Micro.?ATX|[A-Z]\\d{3,4}M\\b',
+        ITX:  'Mini.?ITX|mITX|NR200',
+        ATX:  'ATX',
+      };
+      const namePattern = FF_NAME_PATTERNS[ff] || ff;
+      filterConditions.push({
+        $or: [
+          { 'compatibility_meta.form_factor': ff },
+          { 'compatibility_meta.supported_ff': ff },
+          { name: { $regex: namePattern, $options: 'i' } },
+        ],
+      });
+    }
+
+    if (filterConditions.length > 0) {
+      searchQuery.$and = filterConditions;
+    }
+
     const products = await ProductModel.find(searchQuery).lean();
     const productIds = products.map((p) => p._id);
+
     const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
     const variants = await ProductVariantModel.find({ p_id: { $in: productIds } }).lean();
     const variantAttrMap = await getVariantAttributeMap(variants.map((v) => v._id));
@@ -1372,6 +1425,198 @@ app.get(["/api/buildpc/components", "/api/products/build-pc"], async (req, res) 
     });
   } catch (error) {
     console.error("Lỗi API Build PC Components:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ============================================================
+// BUILD PC — SUGGEST CONFIGURATION API
+// ============================================================
+app.get("/api/buildpc/suggest", async (req, res) => {
+  try {
+    const { budget, purpose } = req.query;
+    const totalBudget = parseInt(budget) || 20000000;
+
+    // ── Tỉ lệ phân bổ ngân sách theo mục đích ──────────────────
+    const ALLOCATIONS = {
+      gaming:      { cpu: 0.15, mainboard: 0.12, ram: 0.08, gpu: 0.38, storage: 0.08, psu: 0.08, case: 0.06, cooling: 0.05 },
+      workstation: { cpu: 0.25, mainboard: 0.15, ram: 0.15, gpu: 0.28, storage: 0.10, psu: 0.04, case: 0.03 },
+      office:      { cpu: 0.35, mainboard: 0.20, ram: 0.15, gpu: 0.00, storage: 0.20, psu: 0.06, case: 0.04 },
+      streaming:   { cpu: 0.20, mainboard: 0.13, ram: 0.10, gpu: 0.30, storage: 0.10, psu: 0.07, case: 0.05, cooling: 0.05 },
+    };
+    const alloc = ALLOCATIONS[purpose] || ALLOCATIONS.gaming;
+
+    // ── Mapping: component key → category slugs trong DB ────────
+    const CATEGORY_SLUGS = {
+      cpu:       ["cpu"],
+      mainboard: ["mainboard"],
+      ram:       ["ram"],
+      gpu:       ["gpu"],
+      storage:   ["storage", "ssd", "hdd"],
+      psu:       ["psu"],
+      case:      ["case", "vo-may-tinh"],
+      cooling:   ["cooling", "tan-nhiet"],
+    };
+
+    // ── Helper: lấy sản phẩm tốt nhất trong budget từng phần ───
+    async function pickBest(slugs, maxPrice) {
+      if (!maxPrice || maxPrice <= 0) return null;
+
+      // Tìm các category ids
+      const cats = await CategoryModel.find({ slug: { $in: slugs } }).lean();
+      if (!cats.length) return null;
+      const catIds = cats.map((c) => c._id);
+
+      // Query sản phẩm ≤ maxPrice * 1.15 (cho phép lố 15%), sort giá gần nhất
+      const priceLimit = Math.round(maxPrice * 1.15);
+      const products = await ProductModel.find({
+        status: "active",
+        cat_id: { $in: catIds },
+      }).lean();
+
+      if (!products.length) return null;
+
+      // Lấy variants để có giá chính xác
+      const productIds = products.map((p) => p._id);
+      const variants = await ProductVariantModel.find({
+        p_id: { $in: productIds },
+        status: "active",
+      }).lean();
+
+      // Build map: productId → bestVariant (giá thấp nhất còn hàng)
+      const variantMap = {};
+      for (const v of variants) {
+        const key = v.p_id.toString();
+        const price = v.sale_price > 0 ? v.sale_price : v.price;
+        if (!variantMap[key] || price < variantMap[key].price) {
+          variantMap[key] = { ...v, effectivePrice: price };
+        }
+      }
+
+      // Gắn giá vào sản phẩm và lọc theo budget
+      const priced = products
+        .map((p) => {
+          const vr = variantMap[p._id.toString()];
+          const price = vr ? vr.effectivePrice : p.price || 0;
+          return { ...p, _variant: vr, effectivePrice: price };
+        })
+        .filter((p) => p.effectivePrice > 0 && p.effectivePrice <= priceLimit);
+
+      if (!priced.length) {
+        // Nếu không có gì trong budget, lấy sản phẩm rẻ nhất
+        const cheapest = products
+          .map((p) => {
+            const vr = variantMap[p._id.toString()];
+            const price = vr ? vr.effectivePrice : p.price || 0;
+            return { ...p, _variant: vr, effectivePrice: price };
+          })
+          .filter((p) => p.effectivePrice > 0)
+          .sort((a, b) => a.effectivePrice - b.effectivePrice)[0];
+        if (!cheapest) return null;
+        return formatSuggestItem(cheapest);
+      }
+
+      // Chọn sản phẩm có giá gần maxPrice nhất (best value)
+      const best = priced.sort((a, b) => b.effectivePrice - a.effectivePrice)[0];
+      return formatSuggestItem(best);
+    }
+
+    function formatSuggestItem(p) {
+      const v = p._variant;
+      const images = []; // Images sẽ fetch riêng nếu cần
+      return {
+        _id:       p._id,
+        id:        p._id,
+        variantId: v?._id || null,
+        name:      p.name,
+        price:     p.effectivePrice,
+        specs:     p.description?.slice(0, 100) || p.name,
+        image:     null, // frontend sẽ fetch từ cache
+        stock:     true,
+        brand:     "",
+        // Compatibility hints từ tên sản phẩm
+        socket:    extractSocket(p.name),
+        ramType:   extractRamType(p.name),
+        formFactor: "ATX",
+        formFactorArr: ["ATX", "mATX", "ITX"],
+        tdp:       extractTdp(p.name),
+        wattage:   extractWattage(p.name),
+        tier:      extractGpuTier(p.name),
+      };
+    }
+
+    function extractSocket(name) {
+      if (/AM5|Ryzen\s*7[0-9]{3}|Ryzen\s*9[0-9]{3}/i.test(name)) return "AM5";
+      if (/AM4|Ryzen\s*5[0-9]{3}|Ryzen\s*3[0-9]{3}/i.test(name)) return "AM4";
+      if (/LGA1700|i[3579]-1[0-9]{4}/i.test(name)) return "LGA1700";
+      if (/LGA1200|i[3579]-10[0-9]{3}/i.test(name)) return "LGA1200";
+      return "";
+    }
+    function extractRamType(name) {
+      if (/DDR5/i.test(name)) return "DDR5";
+      if (/DDR4/i.test(name)) return "DDR4";
+      return "";
+    }
+    function extractTdp(name) {
+      const m = name.match(/(\d{2,3})\s*[Ww]/);
+      return m ? parseInt(m[1]) : 65;
+    }
+    function extractWattage(name) {
+      const m = name.match(/(\d{3,4})\s*W/i);
+      return m ? parseInt(m[1]) : 0;
+    }
+    function extractGpuTier(name) {
+      const n = name.toLowerCase();
+      if (/4090|7900\s*xtx/.test(n)) return 5;
+      if (/4080|4070\s*ti|7900\s*xt/.test(n)) return 4;
+      if (/4070|7800\s*xt|7700\s*xt/.test(n)) return 3;
+      if (/4060\s*ti|7600\s*xt/.test(n)) return 2;
+      return 1;
+    }
+
+    // ── Chạy song song tất cả components ────────────────────────
+    const components = ["cpu", "mainboard", "ram", "gpu", "storage", "psu", "case", "cooling"];
+    const results = await Promise.all(
+      components.map((key) => {
+        const ratio = alloc[key] || 0;
+        const maxPrice = Math.round(totalBudget * ratio);
+        return pickBest(CATEGORY_SLUGS[key], maxPrice).then((item) => [key, item]);
+      })
+    );
+
+    const build = {};
+    let actualTotal = 0;
+    for (const [key, item] of results) {
+      if (item) {
+        build[key] = item;
+        actualTotal += item.price;
+      }
+    }
+
+    // Fetch ảnh cho các sản phẩm được chọn
+    const chosenIds = Object.values(build).filter(Boolean).map((p) => p._id);
+    if (chosenIds.length > 0) {
+      const imgs = await ImageModel.find({ p_id: { $in: chosenIds } }).lean();
+      for (const [key, item] of Object.entries(build)) {
+        if (!item) continue;
+        const img = imgs.find((i) => i.p_id.toString() === item._id.toString());
+        if (img?.url) {
+          build[key].image = img.url.startsWith("http")
+            ? img.url
+            : `http://localhost:3000${img.url}`;
+        }
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      build,
+      total: actualTotal,
+      budget: totalBudget,
+      purpose: purpose || "gaming",
+    });
+  } catch (error) {
+    console.error("Lỗi API Build PC Suggest:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });
