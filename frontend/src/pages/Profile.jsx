@@ -21,10 +21,11 @@ export default function Profile() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [editForm, setEditForm] = useState({ name: '', phone: '' })
+  const [editForm, setEditForm] = useState({ name: '', phone: '', email: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [editSuccess, setEditSuccess] = useState(false)
   const [orderFilter, setOrderFilter] = useState('all')
+  const [orderSearchCode, setOrderSearchCode] = useState('')
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [newAddress, setNewAddress] = useState({ fullName: '', phone: '', province: '', district: '', detail: '' })
@@ -54,6 +55,10 @@ export default function Profile() {
   const [reviewForm, setReviewForm] = useState({})    // { [orderItemId]: { star: 5, content: '' } }
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
 
+  // ── Thống kê tài khoản ──
+  const [stats, setStats] = useState({ totalOrders: 0, totalSpending: 0, totalFavorites: 0 })
+  const [statsLoading, setStatsLoading] = useState(false)
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -61,7 +66,7 @@ export default function Profile() {
         const data = await res.json()
         if (data.success) {
           setUser(data.user)
-          setEditForm({ name: data.user.name || '', phone: data.user.phone || '' })
+          setEditForm({ name: data.user.name || '', phone: data.user.phone || '', email: data.user.email || '' })
         } else { navigate('/auth') }
       } catch (err) { setError('Không thể kết nối server') }
       finally { setLoading(false) }
@@ -80,6 +85,72 @@ export default function Profile() {
   }
 
   const getInitial = () => (!user || !user.name) ? '?' : user.name.charAt(0).toUpperCase()
+
+  const getAvatarUrl = (avatar) => {
+    if (!avatar) return null;
+    if (avatar.startsWith('http') || avatar.startsWith('data:')) return avatar;
+    if (avatar.startsWith('/image/avatar_user/')) return `${API_URL}${avatar}`;
+    if (avatar.startsWith('/')) return `${API_URL}${avatar}`;
+    return `${API_URL}/image/avatar_user/${avatar}`;
+  }
+
+  const avatarInputRef = React.useRef(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn file hình ảnh hợp lệ (jpg, png, webp...)', { position: 'bottom-right' })
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Dung lượng ảnh tối đa 5MB', { position: 'bottom-right' })
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    setAvatarUploading(true)
+    try {
+      const res = await fetch(`${API_URL}/profile`, {
+        method: 'PUT',
+        credentials: 'include',
+        body: formData,
+      })
+      const data = await res.json()
+      if (data.success && data.user) {
+        setUser(prev => ({ ...prev, ...data.user }))
+        toast.success('Đã cập nhật ảnh đại diện thành công!', { position: 'bottom-right' })
+      } else {
+        toast.error(data.message || 'Cập nhật ảnh đại diện thất bại', { position: 'bottom-right' })
+      }
+    } catch (err) {
+      toast.error('Lỗi khi tải ảnh đại diện lên server', { position: 'bottom-right' })
+    } finally {
+      setAvatarUploading(false)
+      if (e.target) e.target.value = ''
+    }
+  }
+
+  // ── Fetch stats ──
+  const fetchStats = async () => {
+    setStatsLoading(true)
+    try {
+      const res = await fetch(API_URL + '/profile/stats', { credentials: 'include' })
+      const data = await res.json()
+      if (data.success && data.data) {
+        setStats(data.data)
+      }
+    } catch (err) {
+      console.error('Lỗi tải thống kê:', err)
+    } finally {
+      setStatsLoading(false)
+    }
+  }
 
   // ── Fetch orders ──
   const fetchOrders = async () => {
@@ -182,10 +253,27 @@ export default function Profile() {
   // Lấy chỉ số bước hiện tại trong flow
   const getFlowStep = (status) => ORDER_FLOW.indexOf(status)
 
-  const filteredOrders = orderFilter === 'all' ? orders_for_table : orders_for_table.filter(o => o.status === orderFilter)
+  const filteredOrders = orders_for_table.filter(o => {
+    // 1. Lọc theo tab trạng thái
+    const passStatus = orderFilter === 'all' || o.status === orderFilter;
+    if (!passStatus) return false;
+
+    // 2. Tra cứu mã đơn hàng (khắt khe, phải khớp chính xác hoàn toàn từ chữ)
+    const search = orderSearchCode.trim();
+    if (!search) return true;
+
+    // Chuẩn hóa chuỗi tìm kiếm (bỏ ký tự # ở đầu nếu có)
+    const q = search.replace(/^#/, '').trim().toLowerCase();
+    const code = (o.code || '').trim().toLowerCase();
+    const rawId = (o.id || o._id || '').toString().trim().toLowerCase();
+    const shortId = rawId.slice(-8).toLowerCase();
+
+    return code === q || rawId === q || shortId === q;
+  });
 
   // Fetch data khi tab thay đổi
   useEffect(() => {
+    fetchStats()
     if (activeTab === 'wishlist') {
       setIsLoadingWishlist(true);
       fetch(`${API_URL}/favorites`, { credentials: 'include' })
@@ -196,6 +284,10 @@ export default function Profile() {
     }
     if (activeTab === 'orders' || activeTab === 'overview') {
       fetchOrders()
+      fetch(`${API_URL}/favorites`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => { if (data.success) setWishlistProducts(data.data || []) })
+        .catch(() => {});
     }
     if (activeTab === 'address') {
       fetchAddresses()
@@ -219,6 +311,7 @@ export default function Profile() {
         const data = await res.json();
         if (data.success) {
           setWishlistProducts(prev => prev.filter(p => p._id !== productId));
+          setStats(prev => ({ ...prev, totalFavorites: Math.max(0, prev.totalFavorites - 1) }));
           toast.info('Đã xóa khỏi danh sách yêu thích', { position: 'bottom-right', autoClose: 2000 });
         }
       }
@@ -270,17 +363,30 @@ export default function Profile() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ name: editForm.name, phone: editForm.phone }),
+        body: JSON.stringify({ name: editForm.name, phone: editForm.phone, email: editForm.email }),
       })
       const data = await res.json()
       if (data.success) {
         setUser(prev => ({ ...prev, ...data.user }))
+        setEditForm({ name: data.user.name || '', phone: data.user.phone || '', email: data.user.email || '' })
         setEditSuccess(true)
         setTimeout(() => setEditSuccess(false), 3000)
       } else {
+        // Nếu thông tin đã tồn tại / trùng lặp -> lập tức khôi phục dữ liệu cũ trên ô nhập
+        setEditForm({
+          name: user?.name || '',
+          phone: user?.phone || '',
+          email: user?.email || ''
+        })
         toast.error(data.message || 'Cập nhật thất bại', { position: 'bottom-right' })
       }
     } catch {
+      // Lỗi hệ thống -> khôi phục lại dữ liệu cũ trên ô nhập
+      setEditForm({
+        name: user?.name || '',
+        phone: user?.phone || '',
+        email: user?.email || ''
+      })
       toast.error('Lỗi kết nối server', { position: 'bottom-right' })
     } finally {
       setEditSaving(false)
@@ -673,6 +779,7 @@ export default function Profile() {
       )}
 
       <div className="profile-page">
+        <input type="file" ref={avatarInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleAvatarChange} />
         <div className="profile-inner">
           <div className="profile-breadcrumb">
             <Link to="/">Trang chủ</Link><span>/</span>Tài khoản của tôi
@@ -684,8 +791,8 @@ export default function Profile() {
             {/* LEFT SIDEBAR */}
             <aside className="profile-sidebar">
               <div className="profile-sidebar-user">
-                <div className="profile-avatar-sidebar">
-                  {user.avatar ? <img src={user.avatar} alt={user.name}/> : <span className="avatar-initials">{getInitial()}</span>}
+                <div className="profile-avatar-sidebar" onClick={() => avatarInputRef.current?.click()} style={{ cursor: 'pointer' }} title="Bấm để đổi ảnh đại diện">
+                  {user.avatar ? <img src={getAvatarUrl(user.avatar)} alt={user.name}/> : <span className="avatar-initials">{getInitial()}</span>}
                 </div>
                 <div className="profile-sidebar-name">{user.name}</div>
                 <div className="profile-sidebar-email">{user.email}</div>
@@ -717,12 +824,12 @@ export default function Profile() {
                   <div className="profile-card-title">THÔNG TIN CÁ NHÂN</div>
                   <div className="profile-info-layout">
                     <div className="profile-avatar-main">
-                      <div className="profile-avatar-main-img">
-                        {user.avatar ? <img src={user.avatar} alt={user.name}/> : <span className="avatar-initials">{getInitial()}</span>}
+                      <div className="profile-avatar-main-img" onClick={() => avatarInputRef.current?.click()} style={{ cursor: 'pointer' }} title="Bấm để đổi ảnh">
+                        {user.avatar ? <img src={getAvatarUrl(user.avatar)} alt={user.name}/> : <span className="avatar-initials">{getInitial()}</span>}
                       </div>
-                      <button className="btn-change-avatar">
+                      <button className="btn-change-avatar" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                        Đổi ảnh
+                        {avatarUploading ? 'Đang tải...' : 'Đổi ảnh'}
                       </button>
                     </div>
                     <div className="profile-info-fields">
@@ -793,17 +900,42 @@ export default function Profile() {
                           <div className="wishlist-name">{p.name}</div>
                           <div className="wishlist-footer">
                             <span className="wishlist-price">{formatPrice(p.price)}</span>
-                            <button 
-                              className="wishlist-cart-btn" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAddToCart(p);
-                              }}
-                            >
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
-                              </svg>
-                            </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <button
+                                className="btn-buy-now-card"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  await handleAddToCart(p);
+                                  navigate('/checkout');
+                                }}
+                                style={{
+                                  background: 'var(--yellow)',
+                                  color: '#000',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  padding: '4px 8px',
+                                  fontSize: '11px',
+                                  fontWeight: '800',
+                                  cursor: 'pointer',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                title="Mua ngay"
+                              >
+                                Mua ngay
+                              </button>
+                              <button 
+                                className="wishlist-cart-btn" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAddToCart(p);
+                                }}
+                                title="Thêm vào giỏ"
+                              >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -817,15 +949,15 @@ export default function Profile() {
                 <div className="profile-card">
                   <div className="profile-card-title">THÔNG TIN CÁ NHÂN</div>
                   <div className="profile-personal-avatar-row">
-                    <div className="profile-avatar-main-img profile-avatar-lg">
-                      {user.avatar ? <img src={user.avatar} alt={user.name}/> : <span className="avatar-initials">{getInitial()}</span>}
+                    <div className="profile-avatar-main-img profile-avatar-lg" onClick={() => avatarInputRef.current?.click()} style={{ cursor: 'pointer' }} title="Bấm để đổi ảnh đại diện">
+                      {user.avatar ? <img src={getAvatarUrl(user.avatar)} alt={user.name}/> : <span className="avatar-initials">{getInitial()}</span>}
                     </div>
                     <div className="profile-personal-avatar-info">
                       <div className="profile-personal-avatar-name">{user.name}</div>
                       <div className="profile-personal-avatar-email">{user.email}</div>
-                      <button className="btn-change-avatar">
+                      <button className="btn-change-avatar" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                        Đổi ảnh đại diện
+                        {avatarUploading ? 'Đang tải...' : 'Đổi ảnh đại diện'}
                       </button>
                     </div>
                   </div>
@@ -842,8 +974,7 @@ export default function Profile() {
 
                     <div className="profile-form-group">
                       <label className="profile-form-label">Email</label>
-                      <input className="profile-form-input profile-form-input--disabled" type="email" value={user.email} disabled/>
-                      <span className="profile-form-hint">Email không thể thay đổi</span>
+                      <input className="profile-form-input" type="email" value={editForm.email} onChange={e=>setEditForm({...editForm,email:e.target.value})} placeholder="Nhập email"/>
                     </div>
                     <div className="profile-form-group">
                       <label className="profile-form-label">Ngày tham gia</label>
@@ -857,7 +988,7 @@ export default function Profile() {
                     </div>
                   )}
                   <div className="profile-form-actions">
-                    <button className="profile-btn-cancel" onClick={()=>setEditForm({name:user.name||'',phone:user.phone||'',birthdate:user.birthdate||'',gender:user.gender||''})}>Huỷ thay đổi</button>
+                    <button className="profile-btn-cancel" onClick={()=>setEditForm({name:user.name||'',phone:user.phone||'',email:user.email||''})}>Huỷ thay đổi</button>
                     <button className="profile-btn-save" onClick={handleSavePersonal} disabled={editSaving}>
                       {editSaving ? 'Đang lưu...' : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Lưu thay đổi</>}
                     </button>
@@ -868,7 +999,29 @@ export default function Profile() {
               {/* ORDERS */}
               {activeTab === 'orders' && (
                 <div className="profile-card">
-                  <div className="profile-card-title">ĐƠN HÀNG CỦA TÔI</div>
+                  <div className="profile-orders-header-row">
+                    <div className="profile-card-title" style={{ margin: 0 }}>ĐƠN HÀNG CỦA TÔI</div>
+                    
+                    {/* Thanh Tra Cứu Đơn Hàng Khắt Khe */}
+                    <div className="profile-order-search-box">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="search-icon">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                      </svg>
+                      <input 
+                        type="text" 
+                        placeholder="Tra cứu chính xác mã đơn (VD: ORD12345)..." 
+                        value={orderSearchCode}
+                        onChange={(e) => setOrderSearchCode(e.target.value)}
+                      />
+                      {orderSearchCode && (
+                        <button className="clear-search-btn" onClick={() => setOrderSearchCode('')} title="Xóa mã tìm kiếm">
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="profile-order-filters">
                     {[
                       { key: 'all',          label: 'Tất cả',               count: orders_for_table.length },
@@ -894,9 +1047,35 @@ export default function Profile() {
                   </div>
 
                   {filteredOrders.length === 0 ? (
-                    <div className="profile-empty-state">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
-                      <p>Không có đơn hàng nào</p>
+                    <div className="profile-empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48" style={{ color: '#888', marginBottom: '12px' }}><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+                      {orderSearchCode.trim() ? (
+                        <>
+                          <p style={{ fontSize: '14px', color: '#ccc', marginBottom: '8px' }}>
+                            Không tìm thấy đơn hàng nào khớp chính xác với mã <strong style={{ color: 'var(--yellow)' }}>"{orderSearchCode}"</strong>
+                          </p>
+                          <div style={{ fontSize: '12px', color: '#888', marginBottom: '14px' }}>
+                            (Tra cứu yêu cầu nhập đúng từng ký tự của mã đơn hàng)
+                          </div>
+                          <button 
+                            onClick={() => setOrderSearchCode('')}
+                            style={{
+                              background: 'var(--yellow)',
+                              color: '#000',
+                              border: 'none',
+                              padding: '8px 18px',
+                              borderRadius: '6px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              fontSize: '13px'
+                            }}
+                          >
+                            Xóa từ khóa tìm kiếm
+                          </button>
+                        </>
+                      ) : (
+                        <p>Không có đơn hàng nào</p>
+                      )}
                     </div>
                   ) : (
                     <div className="profile-orders-list">
@@ -1270,17 +1449,17 @@ export default function Profile() {
                     <div className="profile-stat-item">
                       <div className="profile-stat-icon orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg></div>
                       <div className="profile-stat-label">Tổng đơn hàng</div>
-                      <div className="profile-stat-value">28</div>
+                      <div className="profile-stat-value">{statsLoading ? '...' : stats.totalOrders}</div>
                     </div>
                     <div className="profile-stat-item">
                       <div className="profile-stat-icon spending"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg></div>
                       <div className="profile-stat-label">Tổng chi tiêu</div>
-                      <div className="profile-stat-value small">48.760.000đ</div>
+                      <div className="profile-stat-value small">{statsLoading ? '...' : formatPrice(stats.totalSpending)}</div>
                     </div>
                     <div className="profile-stat-item">
                       <div className="profile-stat-icon wishlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
                       <div className="profile-stat-label">Sản phẩm yêu thích</div>
-                      <div className="profile-stat-value">12</div>
+                      <div className="profile-stat-value">{statsLoading ? '...' : stats.totalFavorites}</div>
                     </div>
                   </div>
                 </div>

@@ -40,6 +40,7 @@ export const authAPI = {
   }),
   logout: () => apiFetch('/logout'),
   getProfile: () => apiFetch('/profile'),
+  getProfileStats: () => apiFetch('/profile/stats'),
   forgotPassword: (identifier) => apiFetch('/api/auth/forgot-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

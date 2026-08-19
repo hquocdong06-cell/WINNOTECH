@@ -26,7 +26,7 @@ export function useAuth() {
           const data = await res.json()
           if (data.success) {
             setIsLoggedIn(true)
-            setUser(data.data || null)
+            setUser(data.user || data.data || null)
             return
           }
         }

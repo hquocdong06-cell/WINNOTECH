@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
@@ -98,6 +98,7 @@ const socketData = [
 ]
 
 export default function CategoryPage({ slug, title }) {
+  const navigate = useNavigate()
   const dispatch = useDispatch()
   const { favoriteIds, toggleFavorite } = useFavorite()
   const { compareIds, toggleCompare } = useCompare()
@@ -106,6 +107,7 @@ export default function CategoryPage({ slug, title }) {
   const [categoryName, setCategoryName] = useState(title || 'Tất cả sản phẩm')
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
+  const [addedCartIds, setAddedCartIds] = useState(new Set())
   const [selectedBrands, setSelectedBrands] = useState([])
   const [viewMode, setViewMode] = useState('grid')
 
@@ -452,57 +454,83 @@ export default function CategoryPage({ slug, title }) {
                               )}
                             </div>
                             <div className="cpu-card-actions">
-                              <button 
-                                className="btn-add-cart" 
-                                title={isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ'}
+                              <div className="cpu-card-actions-icons">
+                                <button 
+                                  className={`btn-add-cart ${addedCartIds.has(product._id) ? 'added-active' : ''}`}
+                                  title={isOutOfStock ? 'Hết hàng' : (addedCartIds.has(product._id) ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ')}
+                                  disabled={isOutOfStock}
+                                  onClick={(e) => { 
+                                    e.preventDefault(); 
+                                    e.stopPropagation();
+                                    if (!isOutOfStock) {
+                                      handleQuickAddToCart(product); 
+                                      triggerCartActive(product._id);
+                                    }
+                                  }}
+                                  style={isOutOfStock ? { background: '#222', cursor: 'not-allowed', borderColor: '#333', opacity: 0.5 } : {}}
+                                >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill={addedCartIds.has(product._id) ? "var(--yellow)" : "#fff"}>
+                                    <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+                                  </svg>
+                                </button>
+                                <button 
+                                  className="btn-wishlist" 
+                                  title={compareIds.has(String(product._id)) ? 'Bỏ so sánh' : 'So sánh'}
+                                  onClick={async (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (!isLoggedIn) { toast.warning('Vui lòng đăng nhập để sử dụng tính năng so sánh', { position: 'bottom-right' }); return; }
+                                    await toggleCompare(product._id);
+                                    if (!compareIds.has(String(product._id))) {
+                                      toast.success(
+                                        <span>Đã thêm vào so sánh! <Link to="/compare" style={{color:'#d4ff00',fontWeight:700}}>Xem ngay →</Link></span>,
+                                        { position: 'bottom-right', autoClose: 3000 }
+                                      );
+                                    }
+                                  }}
+                                  style={{ color: compareIds.has(String(product._id)) ? '#d4ff00' : undefined }}
+                                >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+                                  </svg>
+                                </button>
+                                <button 
+                                  className="btn-wishlist" 
+                                  title="Thêm vào yêu thích"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    toggleFavorite(product._id);
+                                  }}
+                                >
+                                  <svg 
+                                    width="15" 
+                                    height="15" 
+                                    viewBox="0 0 24 24" 
+                                    fill={favoriteIds.has(product._id) ? "#ef4444" : "none"} 
+                                    stroke={favoriteIds.has(product._id) ? "#ef4444" : "currentColor"} 
+                                    strokeWidth="2" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                  </svg>
+                                </button>
+                              </div>
+                              <button
+                                className="btn-buy-now-card"
+                                title={isOutOfStock ? 'Hết hàng' : 'Mua ngay'}
                                 disabled={isOutOfStock}
-                                onClick={(e) => { e.preventDefault(); handleQuickAddToCart(product); }}
-                                style={isOutOfStock ? { background: '#222', cursor: 'not-allowed', borderColor: '#333', opacity: 0.5 } : {}}
-                              >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff">
-                                  <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
-                                </svg>
-                              </button>
-                              <button 
-                                className="btn-wishlist" 
-                                title={compareIds.has(String(product._id)) ? 'Bỏ so sánh' : 'So sánh'}
                                 onClick={async (e) => {
                                   e.preventDefault();
-                                  if (!isLoggedIn) { toast.warning('Vui lòng đăng nhập để sử dụng tính năng so sánh', { position: 'bottom-right' }); return; }
-                                  await toggleCompare(product._id);
-                                  if (!compareIds.has(String(product._id))) {
-                                    toast.success(
-                                      <span>Đã thêm vào so sánh! <Link to="/compare" style={{color:'#d4ff00',fontWeight:700}}>Xem ngay →</Link></span>,
-                                      { position: 'bottom-right', autoClose: 3000 }
-                                    );
+                                  e.stopPropagation();
+                                  if (!isOutOfStock) {
+                                    await handleQuickAddToCart(product);
+                                    navigate('/checkout');
                                   }
                                 }}
-                                style={{ color: compareIds.has(String(product._id)) ? '#d4ff00' : undefined }}
                               >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
-                                </svg>
-                              </button>
-                              <button 
-                                className="btn-wishlist" 
-                                title="Thêm vào yêu thích"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  toggleFavorite(product._id);
-                                }}
-                              >
-                                <svg 
-                                  width="15" 
-                                  height="15" 
-                                  viewBox="0 0 24 24" 
-                                  fill={favoriteIds.has(product._id) ? "#ef4444" : "none"} 
-                                  stroke={favoriteIds.has(product._id) ? "#ef4444" : "currentColor"} 
-                                  strokeWidth="2" 
-                                  strokeLinecap="round" 
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                                </svg>
+                                {isOutOfStock ? 'Hết hàng' : 'Mua ngay'}
                               </button>
                             </div>
                           </div>
