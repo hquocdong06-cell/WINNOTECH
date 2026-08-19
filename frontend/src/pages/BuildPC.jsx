@@ -29,6 +29,12 @@ const BUILD_STEPS = [
 
 const REQUIRED_STEPS = BUILD_STEPS.filter(s => s.required).map(s => s.id)
 
+// Nhóm Cố định (Chỉ được phép chọn số lượng = 1)
+const FIXED_QTY_STEPS = ['cpu', 'mainboard', 'psu', 'cooling', 'case', 'peripheral']
+
+// Nhóm Tùy biến (Có thể chọn số lượng >= 1)
+const MULTI_QTY_STEPS = ['ram', 'gpu', 'storage', 'monitor', 'extra']
+
 // ─── Mapping step → category slug trong DB ────────────────────────────────
 const STEP_TO_SLUG = {
   cpu:        'cpu',
@@ -39,24 +45,9 @@ const STEP_TO_SLUG = {
   psu:        'psu',
   cooling:    'cooling',
   case:       'case',
-  // monitor / peripheral / extra chưa có category trong DB → dùng mock
-}
-
-// Sản phẩm mock cho các danh mục chưa có trong DB
-const STATIC_FALLBACK = {
-  monitor: [
-    { id: 'mon1', name: 'LG 27GP850-B 27" QHD 165Hz Nano IPS', price: 8490000, specs: '27" QHD 2560×1440 · 165Hz · 1ms · IPS · FreeSync', stock: true },
-    { id: 'mon2', name: 'ASUS ROG Swift 27" 4K 160Hz OLED',     price:19990000, specs: '27" 4K UHD · 160Hz · 0.03ms · OLED · G-Sync', stock: true },
-    { id: 'mon3', name: 'Samsung Odyssey G5 34" UWQHD 165Hz',   price:11990000, specs: '34" UWQHD 3440×1440 · 165Hz · VA · FreeSync', stock: true },
-  ],
-  peripheral: [
-    { id: 'per1', name: 'Logitech G Pro X Superlight 2 + G715 TKL', price: 4990000, specs: 'Chuột 60g không dây · Bàn phím TKL RGB Tactile', stock: true },
-    { id: 'per2', name: 'Razer DeathAdder V3 HyperSpeed + BlackWidow V4', price: 4290000, specs: 'Chuột không dây ergonomic · Bàn phím Green Switch', stock: true },
-  ],
-  extra: [
-    { id: 'ext1', name: 'Dây cáp Sleeved Extension Kit RGB',  price:  590000, specs: 'Bộ dây cáp nguồn bọc lưới · ATX 24pin + EPS + PCIe', stock: true },
-    { id: 'ext2', name: 'NZXT RGB Fan Controller',             price:  890000, specs: 'Hub điều khiển 8 quạt RGB · USB header', stock: true },
-  ],
+  monitor:    'monitor',
+  peripheral: 'peripheral',
+  extra:      'extra',
 }
 
 // ─── Helper lấy URL ảnh sản phẩm ───────────────────────────────────────────────────
@@ -160,6 +151,50 @@ function normalizeProduct(p, stepId) {
       : (p.name.includes('GIGABYTE') || p.name.includes('Gigabyte')) ? 'GIGABYTE'
       : '')
 
+  // ── Mainboard Specs Parsing (RAM slots, Max RAM GB, VGA PCIe slots) ──
+  let ramSlots = meta.ram_slots || 4
+  let maxRamGb = meta.max_ram_gb || 128
+  let vgaSlots = meta.vga_slots || 1
+
+  if (stepId === 'mainboard') {
+    const text = (p.name + ' ' + (p.description || '') + ' ' + specs).toLowerCase()
+    
+    // RAM slots
+    const ramMatch = text.match(/(\d)\s*(?:x\s*)?(?:khe|dimm|slot|x)?\s*ram/i) 
+      || text.match(/(\d)\s*x\s*ddr/i) 
+      || text.match(/(\d)\s*dimm/i)
+    if (ramMatch) {
+      ramSlots = parseInt(ramMatch[1])
+    } else if (/itx|mini-itx/i.test(text)) {
+      ramSlots = 2
+    }
+
+    // Max RAM GB
+    const maxRamMatch = text.match(/(?:max|tối đa|up to)\s*(\d{2,3})\s*gb/i) 
+      || text.match(/(\d{2,3})\s*gb\s*(?:ddr[45]|ram)/i)
+    if (maxRamMatch) {
+      maxRamGb = parseInt(maxRamMatch[1])
+    } else if (ramSlots === 2) {
+      maxRamGb = 64
+    }
+
+    // VGA slots
+    const vgaMatch = text.match(/(\d)\s*x\s*pcie(?:\s*\d\.\d)?\s*x16/i) 
+      || text.match(/(\d)\s*khe\s*(?:pcie|vga)/i)
+    if (vgaMatch) {
+      vgaSlots = parseInt(vgaMatch[1])
+    }
+  }
+
+  // ── RAM Stick Capacity Parsing ──────────────────────────────────────
+  let stickCapacity = 16
+  if (stepId === 'ram') {
+    const ramCapMatch = p.name.match(/(\d{1,3})\s*GB/i)
+    if (ramCapMatch) {
+      stickCapacity = parseInt(ramCapMatch[1])
+    }
+  }
+
   return {
     id:          p._id,
     _id:         p._id,
@@ -178,6 +213,11 @@ function normalizeProduct(p, stepId) {
     tdp,
     wattage,
     tier,
+    // Mainboard & RAM slot specs
+    ramSlots,
+    maxRamGb,
+    vgaSlots,
+    stickCapacity,
   }
 }
 
@@ -218,11 +258,11 @@ function checkCompatibility(selected) {
     }
   }
 
-  // 4. PSU Wattage vs Total TDP
+  // 4. PSU Wattage vs Total TDP (tính cả số lượng GPU)
   if (psu && psu.wattage) {
     let totalTdp = 50
     if (cpu) totalTdp += cpu.tdp || 65
-    if (gpu) totalTdp += gpu.tdp || 150
+    if (gpu) totalTdp += (gpu.tdp || 150) * (gpu.quantity || 1)
     const recommended = Math.ceil((totalTdp * 1.25) / 50) * 50
 
     if (psu.wattage < totalTdp) {
@@ -243,6 +283,29 @@ function checkCompatibility(selected) {
     }
   }
 
+  // 6. Số lượng thanh RAM & giới hạn dung lượng Mainboard
+  if (ram && mb) {
+    const ramQty = ram.quantity || 1
+    const mbSlots = mb.ramSlots || 4
+    if (ramQty > mbSlots) {
+      issues.push(`Số thanh RAM (${ramQty} thanh) vượt quá số khe cắm RAM của Mainboard (${mbSlots} khe)`)
+    }
+    const totalRamCap = (ram.stickCapacity || 16) * ramQty
+    const mbMaxCap = mb.maxRamGb || 128
+    if (totalRamCap > mbMaxCap) {
+      issues.push(`Tổng dung lượng RAM (${totalRamCap}GB) vượt quá mức tối đa Mainboard hỗ trợ (${mbMaxCap}GB)`)
+    }
+  }
+
+  // 7. Số lượng VGA / GPU & khe PCIe x16 của Mainboard
+  if (gpu && mb) {
+    const gpuQty = gpu.quantity || 1
+    const mbVgaSlots = mb.vgaSlots || 1
+    if (gpuQty > mbVgaSlots) {
+      issues.push(`Số lượng VGA (${gpuQty} card) vượt quá số khe PCIe x16 của Mainboard (${mbVgaSlots} khe)`)
+    }
+  }
+
   return { compatible: issues.length === 0, issues, warnings }
 }
 
@@ -252,9 +315,9 @@ function formatPrice(price) {
   return price.toLocaleString('vi-VN') + 'đ'
 }
 
-// ─── Tính tổng giá ────────────────────────────────────────────────────────
+// ─── Tính tổng giá (nhân với số lượng linh kiện) ──────────────────────────
 function calcTotal(selected) {
-  return Object.values(selected).reduce((sum, item) => sum + (item ? (item.price || 0) : 0), 0)
+  return Object.values(selected).reduce((sum, item) => sum + (item ? (item.price || 0) * (item.quantity || 1) : 0), 0)
 }
 
 // ─── Filter brands ────────────────────────────────────────────────────────
@@ -485,11 +548,8 @@ export default function BuildPC() {
   const nextStep      = BUILD_STEPS.find(s => !selected[s.id])
   const progressPct   = Math.round((selectedCount / BUILD_STEPS.length) * 100)
 
-  // ── Products for current step ─────────────────────────────────────────
-  // Lấy từ cache theo activeCacheKey (bao gồm cả smart filter constraints)
-  const rawProducts = STEP_TO_SLUG[activeStep]
-    ? (productsCache[activeCacheKey] || [])
-    : (STATIC_FALLBACK[activeStep] || [])
+  // ── Products for current step (Lấy từ API DB) ─────────────────────────
+  const rawProducts = productsCache[activeCacheKey] || []
   const brands      = BRAND_FILTERS[activeStep] || BRAND_FILTERS.default
 
   // Kiểm tra sản phẩm có không tương thích khi user xem tất cả (filter bị bỏ qua)
@@ -525,13 +585,59 @@ export default function BuildPC() {
     })
 
   // ── Handlers ──────────────────────────────────────────────────────────
+  const handleQuantityChange = useCallback((stepId, delta) => {
+    // Nhóm Cố định -> Không đổi số lượng, luôn giữ = 1
+    if (FIXED_QTY_STEPS.includes(stepId)) return
+
+    setBuildConfigs(prevConfigs => {
+      const nextConfigs = prevConfigs.map(cfg => {
+        if (cfg.id === activeConfigId) {
+          const prevSel = cfg.selected || {}
+          const item = prevSel[stepId]
+          if (!item) return cfg
+
+          const currentQty = item.quantity || 1
+          const mb = prevSel.mainboard
+
+          let maxAllowed = 10
+          if (stepId === 'ram') {
+            maxAllowed = mb?.ramSlots || 4
+          } else if (stepId === 'gpu') {
+            maxAllowed = mb?.vgaSlots || 4
+          } else if (stepId === 'monitor') {
+            maxAllowed = 4
+          } else if (stepId === 'storage') {
+            maxAllowed = 10
+          } else if (stepId === 'extra') {
+            maxAllowed = 10
+          }
+
+          const newQty = Math.max(1, Math.min(maxAllowed, currentQty + delta))
+          if (newQty === currentQty) return cfg
+
+          const nextSel = {
+            ...prevSel,
+            [stepId]: { ...item, quantity: newQty }
+          }
+          return { ...cfg, selected: nextSel }
+        }
+        return cfg
+      })
+      try {
+        localStorage.setItem('winnotech_pc_build_configs', JSON.stringify(nextConfigs))
+      } catch (e) {}
+      return nextConfigs
+    })
+  }, [activeConfigId])
+
   const handleSelect = useCallback((product) => {
     setBuildConfigs(prevConfigs => {
       const nextConfigs = prevConfigs.map(cfg => {
         if (cfg.id === activeConfigId) {
           const prevSel = cfg.selected || {}
           const already = prevSel[activeStep]?.id === product.id
-          const nextSel = { ...prevSel, [activeStep]: already ? null : product }
+          const selectedProduct = already ? null : { ...product, quantity: product.quantity || 1 }
+          const nextSel = { ...prevSel, [activeStep]: selectedProduct }
           return { ...cfg, selected: nextSel }
         }
         return cfg
@@ -628,13 +734,14 @@ export default function BuildPC() {
     const errors     = []
 
     for (const item of items) {
+      const qty = item.quantity || 1
       if (!item.variantId) {
         const cartPayload = {
           product_id: item._id || item.id,
           variant_id: item.id,
           name:       item.name,
           price:      item.price,
-          quantity:   1,
+          quantity:   qty,
           image:      item.image || null,
         }
         dispatch(addToCart(cartPayload))
@@ -647,7 +754,7 @@ export default function BuildPC() {
           method:      'POST',
           credentials: 'include',
           headers:     { 'Content-Type': 'application/json' },
-          body:        JSON.stringify({ variant_id: item.variantId, quantity: 1 }),
+          body:        JSON.stringify({ variant_id: item.variantId, quantity: qty }),
         })
         const data = await res.json()
 
@@ -657,7 +764,7 @@ export default function BuildPC() {
             variant_id: item.variantId,
             name:       item.name,
             price:      item.price,
-            quantity:   1,
+            quantity:   qty,
             image:      item.image || null,
           }
           dispatch(addToCart(cartPayload))
@@ -852,7 +959,7 @@ export default function BuildPC() {
                         {step.label}
                       </div>
                       {isDone
-                        ? <div className="bp-step-sel">{item.name.length > 28 ? item.name.slice(0,28)+'…' : item.name}</div>
+                        ? <div className="bp-step-sel">{(item.quantity || 1) > 1 ? `[x${item.quantity}] ` : ''}{item.name.length > 26 ? item.name.slice(0,26)+'…' : item.name}</div>
                         : <div className="bp-step-hint">{step.desc}{!step.required && ' (tuỳ chọn)'}</div>
                       }
                     </div>
@@ -1004,6 +1111,11 @@ export default function BuildPC() {
                       <div className="bp-product-info">
                         <div className="bp-product-name">{product.name}</div>
                         <div className="bp-product-specs">{product.specs}</div>
+                        {activeStep === 'mainboard' && (
+                          <div style={{ fontSize: '11px', color: '#c8e600', marginTop: '4px', fontWeight: 600 }}>
+                            ⚙ Khe cắm: {product.ramSlots} Slot RAM ({product.maxRamGb}GB Max) · {product.vgaSlots} Slot PCIe x16
+                          </div>
+                        )}
                         <div className="bp-product-footer">
                           <div className="bp-product-price">{formatPrice(product.price)}</div>
                           <div className={`bp-product-stock ${product.stock ? 'in-stock' : 'out-stock'}`}>
@@ -1083,17 +1195,80 @@ export default function BuildPC() {
                 {BUILD_STEPS.map(step => {
                   const item = selected[step.id]
                   if (!item) return null
+                  const isMulti = MULTI_QTY_STEPS.includes(step.id)
+                  const qty = isMulti ? (item.quantity || 1) : 1
+                  const mb = selected.mainboard
+
+                  let maxQty = 10
+                  let limitNotice = ''
+                  if (step.id === 'ram') {
+                    maxQty = mb?.ramSlots || 4
+                    limitNotice = `Max ${maxQty} khe RAM (${mb ? mb.maxRamGb : 128}GB)`
+                  } else if (step.id === 'gpu') {
+                    maxQty = mb?.vgaSlots || 4
+                    limitNotice = `Max ${maxQty} khe PCIe (Workstation/AI)`
+                  } else if (step.id === 'storage') {
+                    maxQty = 10
+                    limitNotice = 'Tối đa 10 ổ cứng'
+                  } else if (step.id === 'monitor') {
+                    maxQty = 4
+                    limitNotice = 'Tối đa 4 màn hình'
+                  } else if (step.id === 'extra') {
+                    maxQty = 10
+                    limitNotice = 'Tối đa 10 phụ kiện / fan'
+                  }
+
                   return (
-                    <div key={step.id} className="bp-summary-item">
-                      <div className="bp-summary-item-info">
-                        <div className="bp-summary-item-cat">{step.label}</div>
-                        <div className="bp-summary-item-name">{item.name}</div>
-                        <div className="bp-summary-item-price">{formatPrice(item.price)}</div>
+                    <div key={step.id} className="bp-summary-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div className="bp-summary-item-info">
+                          <div className="bp-summary-item-cat">{step.label}</div>
+                          <div className="bp-summary-item-name">{item.name}</div>
+                          <div className="bp-summary-item-price">
+                            {formatPrice(item.price * qty)}
+                            {qty > 1 && (
+                              <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '6px' }}>
+                                ({formatPrice(item.price)} x {qty})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          className="bp-summary-remove"
+                          onClick={() => handleRemove(step.id)}
+                        >Xóa</button>
                       </div>
-                      <button
-                        className="bp-summary-remove"
-                        onClick={() => handleRemove(step.id)}
-                      >Xóa</button>
+
+                      {/* Hiển thị điều chỉnh số lượng cho Nhóm Tùy Biến (RAM, VGA, Storage, Monitor, Extra) */}
+                      {isMulti ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0d1117', padding: '6px 10px', borderRadius: '6px', border: '1px solid #1e293b' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '11px', color: '#aaaaaa' }}>Số lượng:</span>
+                            <div style={{ display: 'flex', alignItems: 'center', background: '#161b22', border: '1px solid #30363d', borderRadius: '4px', overflow: 'hidden' }}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleQuantityChange(step.id, -1) }}
+                                disabled={qty <= 1}
+                                style={{ width: '22px', height: '22px', border: 'none', background: '#21262d', color: '#fff', cursor: qty <= 1 ? 'not-allowed' : 'pointer', opacity: qty <= 1 ? 0.4 : 1, fontWeight: 'bold' }}
+                              >-</button>
+                              <span style={{ padding: '0 8px', fontSize: '12px', color: '#c8e600', fontWeight: 700 }}>
+                                {qty}
+                              </span>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleQuantityChange(step.id, 1) }}
+                                disabled={qty >= maxQty}
+                                style={{ width: '22px', height: '22px', border: 'none', background: '#21262d', color: '#fff', cursor: qty >= maxQty ? 'not-allowed' : 'pointer', opacity: qty >= maxQty ? 0.4 : 1, fontWeight: 'bold' }}
+                              >+</button>
+                            </div>
+                          </div>
+                          <span style={{ fontSize: '10px', color: qty >= maxQty ? '#f59e0b' : '#94a3b8' }}>
+                            {limitNotice}
+                          </span>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic', paddingLeft: '2px' }}>
+                          ✓ Nhóm cố định (Số lượng = 1)
+                        </div>
+                      )}
                     </div>
                   )
                 })}

@@ -5,7 +5,6 @@ import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/product-detail.css'
-import { findMockProductBySlug, mockProducts } from '../data/mockProducts'
 import useFavorite from '../hooks/useFavorite'
 import { useAuth } from '../hooks/useAuth'
 import { reviewAPI } from '../services/apiService'
@@ -73,13 +72,13 @@ export default function ProductDetail() {
         setLoading(true)
         const res = await fetch(`${API_URL}/products/${slug}`)
         const data = await res.json()
-        if (data.success) {
+        if (data.success && data.data) {
           setProductData(data.data)
           setError(null)
           
           // Lấy sản phẩm liên quan từ cùng Category — gọi /products rồi lọc theo cat_id
           const catId = data.data.product?.cat_id?._id || data.data.product?.cat_id
-          const currentProductId = data.data.product._id
+          const currentProductId = data.data.product?._id
           if (catId) {
             try {
               const allRes = await fetch(`${API_URL}/products`)
@@ -98,40 +97,11 @@ export default function ProductDetail() {
             }
           }
         } else {
-          // Thử fallback sang mock data
-          const mockItem = findMockProductBySlug(slug)
-          if (mockItem) {
-            setProductData({
-              product: mockItem.product,
-              AnhSP: mockItem.product.AnhSP || [],
-              Variants: mockItem.product.Variants || []
-            })
-            setError(null)
-            const related = mockProducts[mockItem.category]
-              .filter(p => p.slug !== slug)
-              .slice(0, 4)
-            setRelatedProducts(related)
-          } else {
-            setError(data.message || 'Không tìm thấy sản phẩm')
-          }
+          setError(data.message || 'Không tìm thấy sản phẩm')
         }
       } catch (err) {
-        console.error('Lỗi lấy chi tiết sản phẩm, thử fallback mock data:', err)
-        const mockItem = findMockProductBySlug(slug)
-        if (mockItem) {
-          setProductData({
-            product: mockItem.product,
-            AnhSP: mockItem.product.AnhSP || [],
-            Variants: mockItem.product.Variants || []
-          })
-          setError(null)
-          const related = mockProducts[mockItem.category]
-            .filter(p => p.slug !== slug)
-            .slice(0, 4)
-          setRelatedProducts(related)
-        } else {
-          setError('Không thể tải chi tiết sản phẩm')
-        }
+        console.error('Lỗi lấy chi tiết sản phẩm từ DB:', err)
+        setError('Không thể tải chi tiết sản phẩm từ hệ thống')
       } finally {
         setLoading(false)
       }

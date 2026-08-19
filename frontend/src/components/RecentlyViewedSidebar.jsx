@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { findMockProductBySlug } from '../data/mockProducts'
 
 const API_URL = 'http://localhost:3000'
 
@@ -37,8 +36,7 @@ export default function RecentlyViewedSidebar({ currentSlug }) {
                 }
               }
             } catch (e) {}
-            const mock = findMockProductBySlug(s)
-            return mock?.product || null
+            return null
           })
         )
 
