@@ -324,6 +324,8 @@ export default function Home() {
   const [loadingFlashSale, setLoadingFlashSale] = useState(true)
 
   const [currentBanner, setCurrentBanner] = useState(0)
+  const [banners, setBanners] = useState([])
+  const [loadingBanners, setLoadingBanners] = useState(true)
 
   const formatCountdown = (totalSeconds) => {
     const s = Math.max(0, totalSeconds || 0);
@@ -392,12 +394,39 @@ export default function Home() {
     }
   }
 
+  // Fetch banners từ API (chỉ lấy active, sắp xếp theo position)
   useEffect(() => {
+    const STATIC_FALLBACK = [
+      { _id: 's1', image: '/src/assets/images/banner11.jpg', name: 'Banner 1', link: '' },
+      { _id: 's2', image: '/src/assets/images/banner22.png', name: 'Banner 2', link: '' },
+      { _id: 's3', image: '/src/assets/images/banner33.png', name: 'Banner 3', link: '' },
+      { _id: 's4', image: '/src/assets/images/banner44.png', name: 'Banner 4', link: '' },
+    ]
+    setLoadingBanners(true)
+    fetch(`${API_URL}/api/banners`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && Array.isArray(d.data) && d.data.length > 0) {
+          const active = d.data
+            .filter(b => b.status === 'active')
+            .sort((a, b) => (Number(a.position) || 0) - (Number(b.position) || 0))
+          setBanners(active.length > 0 ? active : STATIC_FALLBACK)
+        } else {
+          setBanners(STATIC_FALLBACK)
+        }
+      })
+      .catch(() => setBanners(STATIC_FALLBACK))
+      .finally(() => setLoadingBanners(false))
+  }, [])
+
+  // Auto-slide banner (dùng banners.length động)
+  useEffect(() => {
+    if (banners.length === 0) return
     const timer = setInterval(() => {
-      setCurrentBanner((prev) => (prev + 1) % 4)
+      setCurrentBanner((prev) => (prev + 1) % banners.length)
     }, 7000)
     return () => clearInterval(timer)
-  }, [])
+  }, [banners.length])
 
   const [catPage, setCatPage] = useState(0)
   const CAT_PAGE_SIZE = 4
@@ -568,39 +597,43 @@ export default function Home() {
           <div className="hero-wrapper">
         <section className="hero">
           <div className="hero-bg">
-            {[
-              '/src/assets/images/banner11.jpg',
-              '/src/assets/images/banner22.png',
-              '/src/assets/images/banner33.png',
-              '/src/assets/images/banner44.png'
-            ].map((banner, index) => (
-              <img 
-                key={index}
-                src={banner} 
-                alt={`Banner ${index + 1}`} 
-                className={currentBanner === index ? 'active' : ''}
-              />
-            ))}
+            {banners.map((banner, index) => {
+              const imgSrc = banner.image
+                ? (banner.image.startsWith('http') ? banner.image : `${API_URL}${banner.image}`)
+                : null
+              return imgSrc ? (
+                <img
+                  key={banner._id || index}
+                  src={imgSrc}
+                  alt={banner.name || `Banner ${index + 1}`}
+                  className={currentBanner === index ? 'active' : ''}
+                />
+              ) : null
+            })}
           </div>
           <div className="hero-inner">
             <div className="hero-text">
               <div className="hero-ctas">
-                <button className="btn-primary">KHÁM PHÁ NGAY →</button>
+                {banners[currentBanner]?.link ? (
+                  <a href={banners[currentBanner].link} className="btn-primary">KHÁM PHÁ NGAY →</a>
+                ) : (
+                  <button className="btn-primary">KHÁM PHÁ NGAY →</button>
+                )}
                 <button className="btn-ghost">XEM CẤU HÌNH ĐỀ XUẤT →</button>
               </div>
             </div>
           </div>
           <div className="hero-pagination">
-            {[0, 1, 2, 3].map((index) => (
-              <React.Fragment key={index}>
-                <span 
+            {banners.map((banner, index) => (
+              <React.Fragment key={banner._id || index}>
+                <span
                   className={currentBanner === index ? 'active' : ''}
                   onClick={() => setCurrentBanner(index)}
                 >
-                  {`0${index + 1}`}
+                  {String(index + 1).padStart(2, '0')}
                 </span>
                 {currentBanner === index && <div className="hero-pagination-accent"></div>}
-                {index < 3 && <div className="hero-pagination-line"></div>}
+                {index < banners.length - 1 && <div className="hero-pagination-line"></div>}
               </React.Fragment>
             ))}
           </div>
