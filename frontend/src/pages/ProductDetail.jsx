@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
@@ -11,10 +11,12 @@ import { useAuth } from '../hooks/useAuth'
 import { reviewAPI } from '../services/apiService'
 
 import RecentlyViewedSection from '../components/RecentlyViewedSection'
+import ProductCard from '../components/ProductCard'
 
 const API_URL = 'http://localhost:3000'
 
 export default function ProductDetail() {
+  const navigate = useNavigate()
   const dispatch = useDispatch()
   const { isLoggedIn } = useAuth()
   const { slug } = useParams()
@@ -277,6 +279,56 @@ export default function ProductDetail() {
     } catch (err) {
       toast.error('Không thể kết nối tới server!', { position: 'bottom-right' })
     }
+  }
+
+  const handleQuickAddToCart = async (product) => {
+    if (!product) return;
+    const variantsList = product.Variants || [];
+    const activeVar = variantsList.find(v => v.variant_name === 'Mặc định') || variantsList[0];
+    const price = activeVar && activeVar.sale_price > 0 ? activeVar.sale_price : (activeVar?.price || product.price || 0);
+
+    const cartPayload = {
+      product_id: product._id,
+      variant_id: activeVar ? activeVar._id : null,
+      name: product.name,
+      price,
+      quantity: 1,
+      image: (product.AnhSP && product.AnhSP.length > 0) ? product.AnhSP[0].url : (product.thumnail || product.image)
+    };
+
+    if (!isLoggedIn) {
+      dispatch(addToCart(cartPayload));
+      toast.success('Đã thêm vào giỏ hàng!', { position: 'bottom-right' });
+      return;
+    }
+
+    try {
+      if (activeVar) {
+        await fetch(`${API_URL}/cart/add`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variant_id: activeVar._id, quantity: 1 })
+        });
+      }
+      dispatch(addToCart(cartPayload));
+      toast.success('Đã thêm sản phẩm vào giỏ hàng!', { position: 'bottom-right' });
+    } catch (err) {
+      toast.error('Lỗi khi thêm vào giỏ hàng!', { position: 'bottom-right' });
+    }
+  }
+
+  const handleBuyNow = async () => {
+    if (!activeVariant) {
+      toast.error('Sản phẩm này hiện tại chưa có sẵn biến thể!', { position: 'bottom-right' })
+      return
+    }
+    if (activeVariant.stock_quantity !== undefined && activeVariant.stock_quantity <= 0) {
+      toast.error('Sản phẩm này đã hết hàng!', { position: 'bottom-right' })
+      return
+    }
+    await handleAddToCart()
+    navigate('/checkout')
   }
 
   // ── ReviewSection component (Purchase-check & Customer Reviews) ──
@@ -654,20 +706,62 @@ export default function ProductDetail() {
                         style={{ opacity: isOutOfStock ? 0.3 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
                       >+</button>
                     </div>
-                    <button 
-                      className="btn-add-cart" 
-                      onClick={handleAddToCart} 
-                      disabled={isOutOfStock}
-                      style={{ 
-                        background: isOutOfStock ? '#444' : 'var(--accent-color)', 
-                        color: isOutOfStock ? '#888' : '#000', 
-                        fontWeight: 'bold',
-                        cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                        border: 'none'
-                      }}
-                    >
-                      {isOutOfStock ? 'HẾT HÀNG' : 'THÊM VÀO GIỎ'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px', flex: 1, width: '100%', alignItems: 'center' }}>
+                      <button 
+                        className="btn-add-cart" 
+                        onClick={handleAddToCart} 
+                        disabled={isOutOfStock}
+                        style={{ 
+                          flex: 1,
+                          height: '48px',
+                          background: isOutOfStock ? '#333' : 'rgba(212, 255, 0, 0.12)', 
+                          color: isOutOfStock ? '#888' : 'var(--accent-color)', 
+                          border: isOutOfStock ? '1px solid #444' : '1px solid var(--accent-color)',
+                          fontWeight: 'bold',
+                          fontSize: '13px',
+                          borderRadius: '8px',
+                          cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                          <line x1="3" y1="6" x2="21" y2="6" />
+                          <path d="M16 10a4 4 0 0 1-8 0" />
+                        </svg>
+                        {isOutOfStock ? 'HẾT HÀNG' : 'THÊM VÀO GIỎ HÀNG'}
+                      </button>
+                      <button 
+                        className="btn-buy-now" 
+                        onClick={handleBuyNow} 
+                        disabled={isOutOfStock}
+                        style={{ 
+                          flex: 1,
+                          height: '48px',
+                          background: isOutOfStock ? '#444' : 'var(--accent-color)', 
+                          color: isOutOfStock ? '#888' : '#000', 
+                          border: 'none',
+                          fontWeight: 'bold',
+                          fontSize: '13px',
+                          borderRadius: '8px',
+                          cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                        </svg>
+                        {isOutOfStock ? 'HẾT HÀNG' : 'MUA NGAY'}
+                      </button>
+                    </div>
                   </div>
 
                   <button 
@@ -722,37 +816,18 @@ export default function ProductDetail() {
               {relatedProducts.length > 0 && (
                 <div className="related-products" style={{ marginTop: '50px' }}>
                   <div className="related-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h2 style={{ fontSize: '20px', color: '#fff' }}>SẢN PHẨM LIÊN QUAN</h2>
+                    <h2 style={{ fontSize: '20px', color: '#fff', margin: 0 }}>SẢN PHẨM LIÊN QUAN</h2>
                   </div>
-                  <div className="related-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
-                  {relatedProducts.map((item) => {
-                      const rawImg = item.AnhSP && item.AnhSP.length > 0
-                        ? item.AnhSP[0].url
-                        : (item.thumnail || '')
-                      const itemImg = rawImg
-                        ? (rawImg.startsWith('http') ? rawImg : `${API_URL}${rawImg}`)
-                        : null
-
-                      const firstVariant = item.Variants && item.Variants.length > 0 ? item.Variants[0] : null
-                      const itemBasePrice = firstVariant?.price || item.price || 0
-                      const itemSalePrice = firstVariant?.sale_price > 0 ? firstVariant.sale_price : itemBasePrice
-                      const displayPrice = itemSalePrice || itemBasePrice
-                      return (
-                        <Link key={item._id} to={`/product/${item.slug || item._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                          <div className="related-card" style={{ background: 'var(--dark2)', border: '1px solid #333', padding: '15px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}>
-                            <div className="related-img" style={{ height: '150px', background: 'var(--dark3)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', overflow: 'hidden' }}>
-                              <img src={itemImg || 'https://images.unsplash.com/photo-1591485121907-26859ff93e37?q=80&w=2670&auto=format&fit=crop'} alt={item.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                            </div>
-                            <div className="related-info" style={{ marginTop: '10px' }}>
-                              <div className="related-name" style={{ fontWeight: 600, fontSize: '14px', height: '40px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', color: '#fff' }}>{item.name}</div>
-                              <div className="related-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                                <div className="related-price" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{formatPrice(displayPrice)}</div>
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      )
-                    })}
+                  <div className="related-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
+                    {relatedProducts.map((item) => (
+                      <ProductCard 
+                        key={item._id} 
+                        product={item} 
+                        favoriteIds={favoriteIds} 
+                        onToggleFavorite={toggleFavorite} 
+                        onAddToCart={handleQuickAddToCart} 
+                      />
+                    ))}
                   </div>
                 </div>
               )}

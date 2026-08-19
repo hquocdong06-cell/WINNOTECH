@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
@@ -489,6 +489,7 @@ const mockCaseProducts = [
   }
 ]
 export default function Case() {
+  const navigate = useNavigate()
   const dispatch = useDispatch()
   const { favoriteIds, toggleFavorite } = useFavorite()
   const { compareIds, toggleCompare } = useCompare()
@@ -1269,6 +1270,32 @@ export default function Case() {
                           <div className="cpu-card-footer">
                             <div className="cpu-card-price-wrap"><span className="cpu-card-price">{formatPrice(price)}</span></div>
                             <div className="cpu-card-actions">
+                              <button
+                                className="btn-buy-now-card"
+                                title={isOutOfStock ? 'Hết hàng' : 'Mua ngay'}
+                                disabled={isOutOfStock}
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  if (!isOutOfStock) {
+                                    await handleQuickAddToCart(product);
+                                    navigate('/checkout');
+                                  }
+                                }}
+                                style={{
+                                  background: isOutOfStock ? '#333' : 'var(--yellow)',
+                                  color: isOutOfStock ? '#777' : '#000',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  padding: '5px 9px',
+                                  fontSize: '11px',
+                                  fontWeight: '800',
+                                  cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                Mua ngay
+                              </button>
                               <button 
                                 className="btn-add-cart" 
                                 title={isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ'}

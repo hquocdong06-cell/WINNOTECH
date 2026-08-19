@@ -62,10 +62,11 @@ export default function Auth() {
 
   const validateLoginForm = () => {
     const newErrors = {}
-    if (!loginForm.email) {
-      newErrors.email = 'Email không được để trống'
-    } else if (!validateEmail(loginForm.email)) {
-      newErrors.email = 'Email không hợp lệ'
+    const inputVal = (loginForm.email || '').trim()
+    if (!inputVal) {
+      newErrors.email = 'Email hoặc Số điện thoại không được để trống'
+    } else if (!validateEmail(inputVal) && !validatePhone(inputVal)) {
+      newErrors.email = 'Vui lòng nhập Email hoặc Số điện thoại hợp lệ'
     }
     if (!loginForm.password) {
       newErrors.password = 'Mật khẩu không được để trống'
@@ -305,18 +306,18 @@ export default function Auth() {
             <form onSubmit={handleLoginSubmit} className="auth-form">
               <h2 className="form-title">Đăng nhập</h2>
 
-              {/* Email */}
+              {/* Email hoặc Số điện thoại */}
               <div className="form-group">
-                <label>Email</label>
+                <label>Email hoặc Số điện thoại</label>
                 <div className="input-wrapper">
                   <svg className="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                    <polyline points="22,6 12,13 2,6" />
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
                   </svg>
                   <input
-                    type="email"
+                    type="text"
                     name="email"
-                    placeholder="Nhập email của bạn"
+                    placeholder="Nhập email hoặc số điện thoại"
                     value={loginForm.email}
                     onChange={handleLoginChange}
                     className={errors.email ? 'input-error' : ''}

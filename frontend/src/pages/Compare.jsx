@@ -291,11 +291,21 @@ export default function Compare() {
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
                         <button
                           className="compare-product-btn"
+                          onClick={async () => {
+                            await handleAddToCart(p);
+                            navigate('/checkout');
+                          }}
+                          style={{ fontSize: '12px', padding: '8px 14px', background: 'var(--yellow)', color: '#000', border: 'none', fontWeight: '800' }}
+                        >
+                          ⚡ Mua ngay
+                        </button>
+                        <button
+                          className="compare-product-btn"
                           onClick={() => handleAddToCart(p)}
                           disabled={addingCart === p._id}
                           style={{ fontSize: '12px', padding: '8px 14px' }}
                         >
-                          {addingCart === p._id ? 'Đang thêm...' : '🛒 Thêm giỏ hàng'}
+                          {addingCart === p._id ? 'Đang thêm...' : '🛒 Thêm giỏ'}
                         </button>
                         <Link
                           to={`/product/${p.slug || p._id}`}
@@ -354,6 +364,16 @@ export default function Compare() {
                   <div className="compare-row-label">Hành động</div>
                   {products.map(p => (
                     <div className="compare-row-val" key={p._id} style={{ flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+                      <button
+                        className="compare-product-btn"
+                        onClick={async () => {
+                          await handleAddToCart(p);
+                          navigate('/checkout');
+                        }}
+                        style={{ width: '100%', justifyContent: 'center', background: 'var(--yellow)', color: '#000', border: 'none', fontWeight: '800' }}
+                      >
+                        ⚡ Mua ngay
+                      </button>
                       <button
                         className="compare-product-btn"
                         onClick={() => handleAddToCart(p)}

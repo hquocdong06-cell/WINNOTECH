@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
@@ -8,6 +8,7 @@ import '../assets/styles/home.css'
 import useFavorite from '../hooks/useFavorite'
 import { useAuth } from '../hooks/useAuth'
 import { productAPI } from '../services/apiService'
+import ProductCard from '../components/ProductCard'
 
 const API_URL = 'http://localhost:3000'
 const PAGE_SIZE = 10
@@ -69,83 +70,7 @@ const getProductPriceInfo = (product) => {
   return { originalPrice, currentPrice, hasSale, salePercent }
 }
 
-// ============================================================
-// ProductCard — single card component
-// ============================================================
-const CartSVG = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
-  </svg>
-)
-const HeartSVG = ({ isFilled }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill={isFilled ? "#ef4444" : "none"} stroke={isFilled ? "#ef4444" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-  </svg>
-)
 
-const ProductCard = ({ product, onAddToCart, favoriteIds, onToggleFavorite }) => {
-  const imgUrl = getProductImage(product)
-  const { originalPrice, currentPrice, hasSale, salePercent } = getProductPriceInfo(product)
-  const isFav = favoriteIds?.has(product._id)
-
-  const defaultVariant = product.Variants?.find(v => v.variant_name === 'Mặc định') || product.Variants?.[0]
-  const isOutOfStock = defaultVariant && defaultVariant.stock_quantity !== undefined ? defaultVariant.stock_quantity <= 0 : false
-
-  return (
-    <Link to={`/product/${product.slug || product._id}`} className="product-link">
-      <div className="product-card" style={isOutOfStock ? { opacity: 0.85 } : {}}>
-        {isOutOfStock ? (
-          <div className="product-sale-badge" style={{ background: '#ef4444', color: '#fff' }}>Hết hàng</div>
-        ) : (
-          hasSale && <div className="product-sale-badge">-{salePercent}%</div>
-        )}
-        <div className="item-visual-box">
-          {imgUrl
-            ? <img src={imgUrl} alt={product.name} />
-            : <div className="no-image">No Image</div>
-          }
-        </div>
-        <div className="product-info">
-          <div className="product-name">{product.name}</div>
-          <div className="product-cat">{product.cat_id?.name || product.brand_id?.name || 'Linh kiện PC'}</div>
-          <div className="product-footer">
-            <div className="product-price-container">
-              {hasSale ? (
-                <>
-                  <span className="product-price sale-price">{formatPrice(currentPrice)}</span>
-                  <span className="original-price">{formatPrice(originalPrice)}</span>
-                </>
-              ) : (
-                <span className="product-price">{formatPrice(currentPrice)}</span>
-              )}
-            </div>
-            <div className="product-actions">
-              <button 
-                className="btn-cart" 
-                onClick={(e) => { 
-                  e.preventDefault(); 
-                  if (!isOutOfStock) onAddToCart?.(); 
-                }}
-                disabled={isOutOfStock}
-                style={isOutOfStock ? { background: '#222', color: '#555', cursor: 'not-allowed', borderColor: '#333' } : {}}
-                title={isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ'}
-              >
-                <CartSVG />
-              </button>
-              <button 
-                className="btn-wishlist-home" 
-                onClick={(e) => { e.preventDefault(); onToggleFavorite?.(product._id) }} 
-                title="Thêm vào yêu thích"
-              >
-                <HeartSVG isFilled={isFav} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Link>
-  )
-}
 
 // ============================================================
 // usePageFlip — hook quản lý pagination + animation
@@ -209,7 +134,8 @@ const ProductSection = ({
   className = '',
   favoriteIds,
   onToggleFavorite,
-  onAddToCart
+  onAddToCart,
+  showSold = false
 }) => {
   const { shownPage, currentItems, totalPages, goPage, animClass, isAnimating } = usePageFlip(products)
 
@@ -258,7 +184,7 @@ const ProductSection = ({
               <div className="products-empty" style={{ gridColumn: '1/-1' }}>{emptyMsg}</div>
             ) : (
               currentItems.map(product => (
-                <ProductCard key={product._id} product={product} favoriteIds={favoriteIds} onToggleFavorite={onToggleFavorite} onAddToCart={() => onAddToCart?.(product)} />
+                <ProductCard key={product._id} product={product} favoriteIds={favoriteIds} onToggleFavorite={onToggleFavorite} onAddToCart={() => onAddToCart?.(product)} showSold={showSold} />
               ))
             )}
           </div>
@@ -812,7 +738,7 @@ export default function Home() {
         products={filterBySearch(featuredProducts)}
         loading={loadingProducts}
         emptyMsg="Chưa có sản phẩm nổi bật nào"
-        sectionLabel="🔥 BÁN CHẠY NHẤT"
+        sectionLabel="BÁN CHẠY NHẤT"
         sectionLabelStyle={{ color: 'var(--purple2)' }}
         titleLine1="TOP SẢN PHẨM"
         titleLine2="ĐANG BÁN CHẠY"
@@ -821,6 +747,7 @@ export default function Home() {
         favoriteIds={favoriteIds}
         onToggleFavorite={toggleFavorite}
         onAddToCart={handleQuickAddToCart}
+        showSold={true}
       />
 
       {/* ── HÀNG MỚI VỀ ── */}

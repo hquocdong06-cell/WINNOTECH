@@ -395,9 +395,10 @@ function slugify(text) {
 // ============================================================
 app.post("/register", async (req, res) => {
   try {
-    const { phone, email, password, confirmPassword } = req.body;
+    const trimmedEmail = (email || "").trim();
+    const trimmedPhone = (phone || "").trim();
 
-    if (!phone || !email || !password || !confirmPassword) {
+    if (!trimmedPhone || !trimmedEmail || !password || !confirmPassword) {
       return res
         .status(400)
         .json({ success: false, message: "Vui lòng điền đầy đủ thông tin" });
@@ -409,24 +410,26 @@ app.post("/register", async (req, res) => {
         .json({ success: false, message: "Mật khẩu xác nhận không khớp" });
     }
 
-    const existingUser = await UserModel.findOne({
-      $or: [{ email: email }, { phone: phone }],
+    // Kiểm tra xem Email có bị trùng với Email hoặc SĐT của tài khoản nào đã có trên hệ thống không
+    const existingEmailMatch = await UserModel.findOne({
+      $or: [{ email: trimmedEmail }, { phone: trimmedEmail }]
     });
+    if (existingEmailMatch) {
+      return res.status(409).json({
+        success: false,
+        message: "Email này đã được sử dụng trên hệ thống"
+      });
+    }
 
-    if (existingUser) {
-      if (existingUser.email === email) {
-        return res
-          .status(409)
-          .json({ success: false, message: "Email này đã được sử dụng" });
-      }
-      if (existingUser.phone === phone) {
-        return res
-          .status(409)
-          .json({
-            success: false,
-            message: "Số điện thoại này đã được sử dụng",
-          });
-      }
+    // Kiểm tra xem Số điện thoại có bị trùng với SĐT hoặc Email của tài khoản nào đã có trên hệ thống không
+    const existingPhoneMatch = await UserModel.findOne({
+      $or: [{ email: trimmedPhone }, { phone: trimmedPhone }]
+    });
+    if (existingPhoneMatch) {
+      return res.status(409).json({
+        success: false,
+        message: "Số điện thoại này đã được sử dụng trên hệ thống"
+      });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -471,31 +474,34 @@ app.post("/register", async (req, res) => {
 passport.use(
   new LocalStrategy(
     {
-      usernameField: "email", // Khai báo web mình dùng 'email' làm tài khoản
-      passwordField: "password", // Khai báo trường chứa mật khẩu
+      usernameField: "email", // Hứng email hoặc sđt từ req.body.email
+      passwordField: "password",
     },
     async function (email, password, done) {
       try {
-        // 1. Chui vào DB tìm xem có user nào khớp email không
-        const user = await UserModel.findOne({ email: email });
+        const input = (email || "").trim();
+
+        // Tìm xem có user nào trùng email hoặc số điện thoại không
+        const user = await UserModel.findOne({
+          $or: [{ email: input }, { phone: input }]
+        });
 
         // Nếu không tìm thấy
         if (!user) {
-          return done(null, false, { message: "Tài khoản không tồn tại!" });
+          return done(null, false, { message: "Email hoặc số điện thoại không tồn tại!" });
         }
 
-        // 2. So sánh mật khẩu bằng bcrypt (vì đăng ký đã hash password)
+        // So sánh mật khẩu bằng bcrypt
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
           return done(null, false, { message: "Mật khẩu không chính xác!" });
         }
 
-        // 3. Kiểm tra xem tài khoản có bị khóa không (Dựa theo ERD)
+        // Kiểm tra xem tài khoản có bị khóa không
         if (user.status !== "active") {
           return done(null, false, { message: "Tài khoản đã bị khóa!" });
         }
 
-        // 4. Nếu mọi thứ xanh chín, ném user vào hàm done để đi tiếp sang API /login
         return done(null, user);
       } catch (err) {
         return done(err);
@@ -732,6 +738,49 @@ app.get("/profile", checklogin, async (req, res) => {
 });
 
 // ============================================================
+// GET /profile/stats — Thống kê tài khoản (tổng đơn hàng, tổng chi tiêu, sản phẩm yêu thích)
+// ============================================================
+app.get("/profile/stats", checklogin, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // 1. Tổng đơn hàng của user
+    const totalOrders = await Order.countDocuments({ user_id: userId });
+
+    // 2. Tổng chi tiêu (đơn hàng đã thanh toán thành công hoặc đã hoàn thành)
+    const paidOrders = await Order.find({
+      user_id: userId,
+      $or: [
+        { payment_status: "paid" },
+        { status: "completed" },
+        { status: "done" }
+      ]
+    }).select("total_amount");
+
+    const totalSpending = paidOrders.reduce((sum, ord) => sum + (ord.total_amount || 0), 0);
+
+    // 3. Đơn hàng / sản phẩm đã yêu thích của user
+    const totalFavorites = await Favorite.countDocuments({ user_id: userId });
+
+    return res.status(200).json({
+      success: true,
+      message: "Lấy thống kê tài khoản thành công",
+      data: {
+        totalOrders,
+        totalSpending,
+        totalFavorites
+      }
+    });
+  } catch (error) {
+    console.error("Lỗi API Profile Stats:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server"
+    });
+  }
+});
+
+// ============================================================
 // PUT /profile & POST /profile/update — Cập nhật thông tin cá nhân (Profile)
 // - Hứng thông tin người dùng gửi lên
 // - So sánh với DB: nếu trùng thì không thay thế, nếu ô nào để trống thì giữ nguyên DB
@@ -764,18 +813,30 @@ const handleUpdateProfile = async (req, res) => {
 
           // "nếu thông tin trùng thì ko thay thế thông tin đó" -> Chỉ cập nhật nếu thông tin khác với DB
           if (newVal !== currentVal) {
-            // Kiểm tra trùng email nếu người dùng đổi email mới
+            // Kiểm tra trùng email với Email hoặc SĐT của tài khoản khác
             if (key === "email") {
-              const existingEmail = await UserModel.findOne({ email: newVal, _id: { $ne: user._id } });
-              if (existingEmail) {
-                return res.status(409).json({ success: false, message: "Email này đã được sử dụng bởi tài khoản khác" });
+              const existingEmailMatch = await UserModel.findOne({
+                _id: { $ne: user._id },
+                $or: [{ email: newVal }, { phone: newVal }]
+              });
+              if (existingEmailMatch) {
+                return res.status(409).json({
+                  success: false,
+                  message: "Email này đã được sử dụng bởi tài khoản khác trên hệ thống"
+                });
               }
             }
-            // Kiểm tra trùng số điện thoại nếu người dùng đổi số điện thoại mới
+            // Kiểm tra trùng số điện thoại với SĐT hoặc Email của tài khoản khác
             if (key === "phone") {
-              const existingPhone = await UserModel.findOne({ phone: newVal, _id: { $ne: user._id } });
-              if (existingPhone) {
-                return res.status(409).json({ success: false, message: "Số điện thoại này đã được sử dụng bởi tài khoản khác" });
+              const existingPhoneMatch = await UserModel.findOne({
+                _id: { $ne: user._id },
+                $or: [{ email: newVal }, { phone: newVal }]
+              });
+              if (existingPhoneMatch) {
+                return res.status(409).json({
+                  success: false,
+                  message: "Số điện thoại này đã được sử dụng bởi tài khoản khác trên hệ thống"
+                });
               }
             }
             user[key] = newVal;
@@ -932,15 +993,38 @@ app.get("/products/home/newest", async (req, res) => {
       Attributes: variantAttrMap[v._id.toString()] || [],
     }));
 
-    const finalProducts = newestProducts.map((product) => ({
-      ...product,
-      AnhSP: images.filter(
-        (img) => img.p_id.toString() === product._id.toString(),
-      ),
-      Variants: variantsWithAttributes.filter(
-        (v) => v.p_id.toString() === product._id.toString(),
-      ),
-    }));
+    // Tính tổng lượt bán từ DB
+    const { OrderItem } = require("./models/Order");
+    const orderItemsNewest = await OrderItem.find({}).lean();
+    const variantToProductNewest = {};
+    variants.forEach(v => {
+      if (v.p_id) variantToProductNewest[v._id.toString()] = v.p_id.toString();
+    });
+    const productSalesMapNewest = {};
+    orderItemsNewest.forEach(item => {
+      if (item.variants_id) {
+        const pId = variantToProductNewest[item.variants_id.toString()];
+        if (pId) {
+          productSalesMapNewest[pId] = (productSalesMapNewest[pId] || 0) + (item.Quantity || 0);
+        }
+      }
+    });
+
+    const finalProducts = newestProducts.map((product) => {
+      const pIdStr = product._id.toString();
+      const soldCount = productSalesMapNewest[pIdStr] || product.sold_quantity || product.buyturn || 0;
+      return {
+        ...product,
+        sold_count: soldCount,
+        sold_quantity: soldCount,
+        AnhSP: images.filter(
+          (img) => img.p_id.toString() === pIdStr,
+        ),
+        Variants: variantsWithAttributes.filter(
+          (v) => v.p_id.toString() === pIdStr,
+        ),
+      };
+    });
 
     return res.json({ success: true, data: finalProducts });
   } catch (error) {
@@ -953,8 +1037,8 @@ app.get("/products/home/newest", async (req, res) => {
 });
 
 // ============================================================
-// GET /products/home/featured — 10 sản phẩm nổi bật (sale cao nhất)
-// FIX: dùng getVariantAttributeMap thay vì Attribute.find({ id_variants })
+// GET /products/home/featured — 10 sản phẩm nổi bật (bán chạy / sale cao)
+// FIX: dùng getVariantAttributeMap và tính lượt bán thực tế từ DB
 // ============================================================
 app.get("/products/home/featured", async (req, res) => {
   try {
@@ -968,7 +1052,6 @@ app.get("/products/home/featured", async (req, res) => {
       p_id: { $in: productIds },
     }).lean();
 
-    // FIX: dùng helper
     const variantAttrMap = await getVariantAttributeMap(
       variants.map((v) => v._id),
     );
@@ -978,15 +1061,38 @@ app.get("/products/home/featured", async (req, res) => {
       Attributes: variantAttrMap[v._id.toString()] || [],
     }));
 
-    const finalProducts = featuredProducts.map((product) => ({
-      ...product,
-      AnhSP: images.filter(
-        (img) => img.p_id.toString() === product._id.toString(),
-      ),
-      Variants: variantsWithAttributes.filter(
-        (v) => v.p_id.toString() === product._id.toString(),
-      ),
-    }));
+    // Tính lượt bán thực tế từ DB
+    const { OrderItem } = require("./models/Order");
+    const orderItemsFeatured = await OrderItem.find({}).lean();
+    const variantToProductFeatured = {};
+    variants.forEach(v => {
+      if (v.p_id) variantToProductFeatured[v._id.toString()] = v.p_id.toString();
+    });
+    const productSalesMapFeatured = {};
+    orderItemsFeatured.forEach(item => {
+      if (item.variants_id) {
+        const pId = variantToProductFeatured[item.variants_id.toString()];
+        if (pId) {
+          productSalesMapFeatured[pId] = (productSalesMapFeatured[pId] || 0) + (item.Quantity || 0);
+        }
+      }
+    });
+
+    const finalProducts = featuredProducts.map((product) => {
+      const pIdStr = product._id.toString();
+      const soldCount = productSalesMapFeatured[pIdStr] || product.sold_quantity || product.buyturn || 0;
+      return {
+        ...product,
+        sold_count: soldCount,
+        sold_quantity: soldCount,
+        AnhSP: images.filter(
+          (img) => img.p_id.toString() === pIdStr,
+        ),
+        Variants: variantsWithAttributes.filter(
+          (v) => v.p_id.toString() === pIdStr,
+        ),
+      };
+    });
 
     return res.json({ success: true, data: finalProducts });
   } catch (error) {

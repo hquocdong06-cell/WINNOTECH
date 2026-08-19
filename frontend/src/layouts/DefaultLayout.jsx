@@ -9,6 +9,20 @@ import { useAuth } from '../hooks/useAuth'
 
 const API_URL = 'http://localhost:3000'
 
+const getUserDisplayName = (u) => {
+  if (!u) return 'Tài khoản'
+  if (u.name && u.name.trim()) {
+    return u.name.trim()
+  }
+  if (u.email && u.email.trim()) {
+    return u.email.trim().replace(/@gmail\.com$/i, '').split('@')[0]
+  }
+  if (u.phone && u.phone.trim()) {
+    return u.phone.trim()
+  }
+  return 'Tài khoản'
+}
+
 export default function DefaultLayout({ children }) {
   const { isLoggedIn, user } = useAuth()
   const [isCartOpen, setIsCartOpen] = useState(false)
@@ -152,7 +166,7 @@ export default function DefaultLayout({ children }) {
                 to={isLoggedIn ? "/profile" : "/login"} 
                 className="nav-action-btn" 
                 style={{ textDecoration: 'none' }}
-                title={isLoggedIn ? `Tài khoản: ${user?.email}` : "Đăng ký / Đăng nhập"}
+                title={isLoggedIn && user ? `Tài khoản: ${getUserDisplayName(user)}` : "Đăng ký / Đăng nhập"}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -160,7 +174,7 @@ export default function DefaultLayout({ children }) {
                 </svg>
                 <span>
                   {isLoggedIn && user
-                    ? (user.email ? user.email.replace(/@gmail\.com$/i, '').replace(/@.*/, '') : (user.name || 'Tài khoản'))
+                    ? getUserDisplayName(user)
                     : 'Đăng ký/Đăng nhập'}
                 </span>
               </Link>

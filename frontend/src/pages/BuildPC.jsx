@@ -12,19 +12,19 @@ const API_URL = 'http://localhost:3000'
 // ─── SVG Step Icons Styled with Neon Green ──────────────────────────────
 const StepIcon = () => null
 
-// ─── Danh sách bước build ─────────────────────────────────────────────────
+// ─── Danh sách bước build (Nhóm Cố định = 1 vs Nhóm Tùy biến >= 1) ───────────
 const BUILD_STEPS = [
-  { id: 'cpu',      label: 'CPU',            required: true,  desc: 'Bộ vi xử lý' },
-  { id: 'mainboard',label: 'Mainboard',      required: true,  desc: 'Bo mạch chủ' },
-  { id: 'ram',      label: 'RAM',            required: true,  desc: 'Bộ nhớ trong' },
-  { id: 'gpu',      label: 'VGA / GPU',      required: true,  desc: 'Card đồ họa' },
-  { id: 'storage',  label: 'Ổ cứng',         required: true,  desc: 'SSD / HDD' },
-  { id: 'psu',      label: 'PSU',            required: true,  desc: 'Nguồn máy tính' },
-  { id: 'cooling',  label: 'Tản nhiệt',      required: false, desc: 'CPU Cooler / AIO' },
-  { id: 'case',     label: 'Vỏ case',        required: true,  desc: 'Thùng máy' },
-  { id: 'monitor',  label: 'Màn hình',       required: false, desc: 'Màn hình LCD/OLED' },
-  { id: 'peripheral',label:'Bàn phím • Chuột',required: false, desc: 'Phụ kiện ngoại vi' },
-  { id: 'extra',    label: 'Phụ kiện khác',  required: false, desc: 'Dây LED, hub, quạt...' },
+  { id: 'cpu',        label: 'CPU',              required: true,  allowMultiple: false, desc: 'Bộ vi xử lý (Nhóm Cố định = 1)' },
+  { id: 'mainboard',  label: 'Mainboard',        required: true,  allowMultiple: false, desc: 'Bo mạch chủ (Nhóm Cố định = 1)' },
+  { id: 'ram',        label: 'RAM',              required: true,  allowMultiple: true,  desc: 'Bộ nhớ trong (2 hoặc 4 thanh)' },
+  { id: 'gpu',        label: 'VGA / GPU',        required: true,  allowMultiple: true,  desc: 'Card đồ họa (Cắm 1-4 card)' },
+  { id: 'storage',    label: 'Ổ cứng',           required: true,  allowMultiple: true,  desc: 'SSD M.2 / SATA (Chọn nhiều ổ)' },
+  { id: 'psu',        label: 'PSU',              required: true,  allowMultiple: false, desc: 'Nguồn máy tính (Nhóm Cố định = 1)' },
+  { id: 'cooling',    label: 'Tản nhiệt',        required: false, allowMultiple: false, desc: 'CPU Cooler / AIO (Nhóm Cố định = 1)' },
+  { id: 'case',       label: 'Vỏ case',          required: true,  allowMultiple: false, desc: 'Thùng máy (Nhóm Cố định = 1)' },
+  { id: 'monitor',    label: 'Màn hình',         required: false, allowMultiple: true,  desc: 'Màn hình LCD/OLED (Setup 1-3 màn)' },
+  { id: 'peripheral', label: 'Bàn phím • Chuột', required: false, allowMultiple: false, desc: 'Phụ kiện ngoại vi (Nhóm Cố định = 1)' },
+  { id: 'extra',      label: 'Phụ kiện khác',    required: false, allowMultiple: true,  desc: 'Quạt case, LED... (Chọn 1-9 cái)' },
 ]
 
 const REQUIRED_STEPS = BUILD_STEPS.filter(s => s.required).map(s => s.id)
@@ -67,6 +67,7 @@ function getImg(product) {
 }
 
 // ─── Normalize sản phẩm API → format BuildPC ──────────────────────────────
+// ─── Normalize sản phẩm API → format BuildPC ──────────────────────────────
 function normalizeProduct(p, stepId) {
   const variant = p.Variants?.[0]
   const attrs   = variant?.Attributes || []
@@ -77,90 +78,137 @@ function normalizeProduct(p, stepId) {
 
   // Tính giá: ưu tiên sale_price nếu > 0
   const rawPrice = (variant?.sale_price > 0 ? variant.sale_price : variant?.price) || p.price || 0
+  const name = p.name || ''
+  const nameLower = name.toLowerCase()
 
   // Tạo specs string từ attributes hoặc description
   const specParts = attrs.slice(0, 4).map(a => `${a.value}`).filter(Boolean)
-  const specs = specParts.length > 0 ? specParts.join(' · ') : (p.description?.slice(0, 80) || p.name)
+  const specs = specParts.length > 0 ? specParts.join(' · ') : (p.description?.slice(0, 80) || name)
 
-  // Socket detection
-  const socketAttr = getAttr('socket') || getAttr('Socket')
-  let socket = socketAttr
+  // 1. Socket detection
+  let socket = getAttr('socket') || getAttr('Socket')
   if (!socket) {
-    if (p.name.includes('AM5') || p.name.includes('Ryzen 7000') || p.name.includes('Ryzen 9000')) socket = 'AM5'
-    else if (p.name.includes('AM4') || p.name.includes('Ryzen 5000') || p.name.includes('Ryzen 3000')) socket = 'AM4'
-    else if (p.name.includes('LGA1700') || p.name.includes('i9-1') || p.name.includes('i7-1') || p.name.includes('i5-1') || p.name.includes('i3-1')) socket = 'LGA1700'
-    else if (p.name.includes('LGA1200')) socket = 'LGA1200'
+    if (nameLower.includes('am5') || nameLower.includes('ryzen 7000') || nameLower.includes('ryzen 9000') || nameLower.includes('b650') || nameLower.includes('x670') || nameLower.includes('x870') || nameLower.includes('b850')) socket = 'AM5'
+    else if (nameLower.includes('am4') || nameLower.includes('ryzen 5000') || nameLower.includes('ryzen 3000') || nameLower.includes('b550') || nameLower.includes('x570') || nameLower.includes('b450')) socket = 'AM4'
+    else if (nameLower.includes('lga1700') || nameLower.includes('lga 1700') || nameLower.includes('i9-1') || nameLower.includes('i7-1') || nameLower.includes('i5-1') || nameLower.includes('i3-1') || nameLower.includes('12th') || nameLower.includes('13th') || nameLower.includes('14th') || nameLower.includes('b760') || nameLower.includes('z790') || nameLower.includes('b660') || nameLower.includes('z690') || nameLower.includes('h610')) socket = 'LGA1700'
+    else if (nameLower.includes('lga1200') || nameLower.includes('b560') || nameLower.includes('z490')) socket = 'LGA1200'
   }
 
-  // RAM type detection
-  const ramTypeAttr = getAttr('ddr') || getAttr('memory type') || getAttr('ram type')
+  // 2. RAM type detection (DDR4 vs DDR5)
   let ramType = ''
+  const ramTypeAttr = getAttr('ddr') || getAttr('memory type') || getAttr('ram type') || getAttr('loại ram')
   if (ramTypeAttr) ramType = ramTypeAttr.toUpperCase().includes('DDR5') ? 'DDR5' : 'DDR4'
-  else if (p.name.includes('DDR5')) ramType = 'DDR5'
-  else if (p.name.includes('DDR4')) ramType = 'DDR4'
+  else if (nameLower.includes('ddr5')) ramType = 'DDR5'
+  else if (nameLower.includes('ddr4')) ramType = 'DDR4'
 
-  // Form factor (case & mainboard)
+  // 3. RAM Capacity
+  let capacity = 16
+  const capMatch = name.match(/(\d{1,3})\s*(gb|g)/i)
+  if (capMatch) capacity = parseInt(capMatch[1])
+
+  // 4. Form Factor (Mainboard & Case)
   const ffAttr = getAttr('form') || getAttr('kích thước')
-  let formFactor = ffAttr || 'ATX'
-  let formFactorArr = ['ATX', 'mATX', 'ITX'] // default: hỗ trợ tất cả
-  if (ffAttr) {
-    if (ffAttr.toLowerCase().includes('mini-itx') || ffAttr.toLowerCase().includes('itx')) formFactorArr = ['ATX','mATX','ITX']
-    else if (ffAttr.toLowerCase().includes('matx') || ffAttr.toLowerCase().includes('micro')) formFactorArr = ['mATX','ITX']
-    else formFactorArr = ['ATX','mATX','ITX']
-    formFactor = ffAttr
+  let formFactor = 'ATX'
+  let formFactorArr = ['ATX', 'mATX', 'ITX']
+  if (nameLower.includes('mini-itx') || nameLower.includes('itx')) {
+    formFactor = 'ITX'
+    formFactorArr = ['ITX']
+  } else if (nameLower.includes('matx') || nameLower.includes('m-atx') || nameLower.includes('micro-atx')) {
+    formFactor = 'mATX'
+    formFactorArr = ['mATX', 'ITX']
+  } else {
+    formFactor = 'ATX'
+    formFactorArr = ['ATX', 'mATX', 'ITX']
   }
 
-  // TDP / wattage
-  const tdpAttr = getAttr('tdp') || getAttr('watt') || getAttr('tpd')
-  let tdp = 65
-  let wattage = 0
-  if (tdpAttr) {
-    const num = parseInt(tdpAttr)
-    if (!isNaN(num)) {
-      if (stepId === 'psu') wattage = num
-      else tdp = num
+  // 5. iGPU check (Intel/AMD F-series without integrated graphics)
+  let hasIGPU = true
+  if (stepId === 'cpu') {
+    if (name.match(/\b\d{4,5}[kK]?[fF]\b/) || nameLower.includes('7500f') || nameLower.includes('f-series') || nameLower.includes('kf')) {
+      hasIGPU = false
     }
   }
-  if (stepId === 'psu') {
-    // Estimate wattage từ tên sản phẩm
-    const wMatch = p.name.match(/(\d{2,4})W/i)
+
+  // 6. TDP & Recommended Wattage
+  let tdp = 65
+  let wattage = 0
+  let recommendedPsu = 550
+
+  if (stepId === 'cpu') {
+    if (nameLower.includes('i9') || nameLower.includes('ryzen 9')) tdp = 125
+    else if (nameLower.includes('i7') || nameLower.includes('ryzen 7')) tdp = 105
+    else if (nameLower.includes('i5') || nameLower.includes('ryzen 5')) tdp = 65
+    else tdp = 65
+  } else if (stepId === 'gpu') {
+    if (nameLower.includes('4090')) { tdp = 450; recommendedPsu = 850 }
+    else if (nameLower.includes('4080')) { tdp = 320; recommendedPsu = 750 }
+    else if (nameLower.includes('4070 ti')) { tdp = 285; recommendedPsu = 750 }
+    else if (nameLower.includes('4070')) { tdp = 200; recommendedPsu = 650 }
+    else if (nameLower.includes('4060 ti')) { tdp = 160; recommendedPsu = 600 }
+    else if (nameLower.includes('4060')) { tdp = 115; recommendedPsu = 550 }
+    else if (nameLower.includes('7900 xtx')) { tdp = 355; recommendedPsu = 850 }
+    else if (nameLower.includes('7900 xt')) { tdp = 315; recommendedPsu = 750 }
+    else if (nameLower.includes('7800 xt')) { tdp = 263; recommendedPsu = 700 }
+    else if (nameLower.includes('7700 xt')) { tdp = 245; recommendedPsu = 700 }
+    else if (nameLower.includes('7600')) { tdp = 165; recommendedPsu = 550 }
+    else { tdp = 150; recommendedPsu = 550 }
+  } else if (stepId === 'psu') {
+    const wMatch = name.match(/(\d{3,4})\s*w/i)
     if (wMatch) wattage = parseInt(wMatch[1])
+    else wattage = 650
   }
 
-  // GPU tier
-  let tier = 3
-  const gpuName = p.name.toLowerCase()
-  if (gpuName.includes('4090') || gpuName.includes('7900 xtx')) tier = 5
-  else if (gpuName.includes('4080') || gpuName.includes('4070 ti') || gpuName.includes('7900 xt')) tier = 4
-  else if (gpuName.includes('4070') || gpuName.includes('7800 xt') || gpuName.includes('7700 xt')) tier = 3
-  else if (gpuName.includes('4060 ti') || gpuName.includes('7600 xt')) tier = 2
-  else if (gpuName.includes('4060') || gpuName.includes('7600')) tier = 1
+  // 7. GPU Length & Case Clearance
+  let gpuLength = 300
+  if (nameLower.includes('strix') || nameLower.includes('suprim') || nameLower.includes('3 fan') || nameLower.includes('tuf')) gpuLength = 330
+  else if (nameLower.includes('dual') || nameLower.includes('2 fan') || nameLower.includes('compact')) gpuLength = 240
+
+  let maxGpuLength = 350
+  if (nameLower.includes('mini') || nameLower.includes('itx')) maxGpuLength = 300
+
+  // 8. Cooler spec
+  let coolerType = nameLower.includes('aio') || nameLower.includes('liquid') || nameLower.includes('nước') ? 'AIO' : 'Air'
+  let height = 155
+  let radSize = '240mm'
+  if (nameLower.includes('360')) radSize = '360mm'
+  else if (nameLower.includes('240')) radSize = '240mm'
+  else if (nameLower.includes('120')) radSize = '120mm'
+  else if (nameLower.includes('280')) radSize = '280mm'
+
+  let supportedSockets = ['LGA1700', 'AM5', 'AM4', 'LGA1200']
 
   // Brand
-  const brand = p.brand_id?.name || (p.name.includes('Intel') ? 'Intel' : p.name.includes('AMD') ? 'AMD' : p.name.includes('ASUS') ? 'ASUS' : p.name.includes('MSI') ? 'MSI' : p.name.includes('GIGABYTE') || p.name.includes('Gigabyte') ? 'GIGABYTE' : '')
+  const brand = p.brand_id?.name || (nameLower.includes('intel') ? 'Intel' : nameLower.includes('amd') ? 'AMD' : nameLower.includes('asus') ? 'ASUS' : nameLower.includes('msi') ? 'MSI' : nameLower.includes('gigabyte') ? 'GIGABYTE' : '')
 
   return {
-    id:         p._id,          // product id (để dedup chọn trong UI)
+    id:         p._id,
     _id:        p._id,
-    variantId:  variant?._id || null,  // 🔑 variant ID để addToCart
+    variantId:  variant?._id || null,
     name:       p.name,
     price:      rawPrice,
     specs,
     image:      getImg(p),
     stock:      p.active !== false,
     brand,
-    // compatibility fields
     socket,
     ramType,
+    capacity,
     formFactor,
     formFactorArr,
+    hasIGPU,
     tdp,
     wattage,
-    tier,
+    recommendedPsu,
+    gpuLength,
+    maxGpuLength,
+    coolerType,
+    height,
+    radSize,
+    supportedSockets,
   }
 }
 
-// ─── Compatibility Check Engine ───────────────────────────────────────────
+// ─── Compatibility Check Engine (13 Validation Rules) ─────────────────────
 function checkCompatibility(selected) {
   const issues = []
   const warnings = []
@@ -171,57 +219,131 @@ function checkCompatibility(selected) {
   const gpu = selected.gpu
   const psu = selected.psu
   const cse = selected.case
+  const clr = selected.cooling
 
-  // 1. Socket CPU ↔ Mainboard
+  // 1. CPU ↔ Mainboard Socket
   if (cpu && mb && cpu.socket && mb.socket) {
     if (cpu.socket !== mb.socket) {
-      issues.push(`Socket không khớp: CPU ${cpu.socket} ≠ Mainboard ${mb.socket}`)
+      issues.push(`CPU này không cắm vừa Mainboard này (Khác Socket: CPU ${cpu.socket} ≠ Mainboard ${mb.socket}).`)
     }
   }
 
-  // 2. RAM Type ↔ Mainboard
+  // 2. CPU ↔ Mainboard Chipset / Gen
+  if (cpu && mb) {
+    if (cpu.socket === 'LGA1700' && mb.name.includes('B660') && (cpu.name.includes('13') || cpu.name.includes('14'))) {
+      warnings.push('Mainboard cần update BIOS hoặc kiểm tra hỗ trợ trước khi lắp CPU thế hệ 13/14.')
+    }
+  }
+
+  // 3. Mainboard ↔ RAM Standard
   if (ram && mb && ram.ramType && mb.ramType) {
     if (ram.ramType !== mb.ramType) {
-      issues.push(`RAM type không khớp: RAM ${ram.ramType} ≠ Mainboard hỗ trợ ${mb.ramType}`)
+      issues.push(`Mainboard chỉ hỗ trợ RAM ${mb.ramType}, bạn đang chọn RAM ${ram.ramType}.`)
     }
   }
 
-  // 3. Form Factor Case ↔ Mainboard
-  if (cse && mb) {
-    const caseFF  = cse.formFactorArr || cse.formFactor || []
-    const mbFF    = mb.formFactor || ''
-    const arr     = Array.isArray(caseFF) ? caseFF : [caseFF]
-    if (mbFF && arr.length > 0 && !arr.some(f => mbFF.includes(f) || f.includes(mbFF))) {
-      issues.push(`Form factor không khớp: Case hỗ trợ ${arr.join('/')} nhưng Mainboard là ${mbFF}`)
+  // 4. Mainboard ↔ RAM Max Capacity (Tính tổng dung lượng theo số lượng RAM)
+  if (ram && mb) {
+    const ramQty = ram.quantity || 1
+    const ramCap = (ram.capacity || 16) * ramQty
+    const maxMbRam = mb.maxRam || 128
+    if (ramCap > maxMbRam) {
+      issues.push(`Tổng dung lượng RAM (${ramCap}GB từ ${ramQty} thanh) vượt quá giới hạn của Mainboard (${maxMbRam}GB).`)
     }
   }
 
-  // 4. PSU Wattage vs Total TDP
+  // 5. CPU (F-series / No iGPU) ↔ GPU requirement
+  if (cpu && cpu.hasIGPU === false && !gpu) {
+    warnings.push(`CPU ${cpu.name} không có GPU tích hợp (dòng F), bắt buộc phải chọn Card đồ họa rời để xuất hình.`)
+  }
+
+  // 6. CPU & Main ↔ VGA Bottleneck / PCIe
+  if (mb && gpu) {
+    if (mb.name.includes('B450') || mb.name.includes('H310') || mb.name.includes('PCIe 3.0')) {
+      if (gpu.name.includes('4070') || gpu.name.includes('4080') || gpu.name.includes('4090')) {
+        warnings.push('Mainboard PCIe cũ có thể làm giảm nhẹ hiệu năng Card đồ họa cao cấp này.')
+      }
+    }
+  }
+
+  // 7. VGA ↔ PSU Recommended Wattage
+  if (gpu && psu && psu.wattage) {
+    const recPsu = gpu.recommendedPsu || 550
+    if (psu.wattage < recPsu) {
+      issues.push(`Nguồn điện (${psu.wattage}W) không đủ công suất khuyến nghị cho Card màn hình này (Cần ≥ ${recPsu}W).`)
+    }
+  }
+
+  // 8. Total System TDP ↔ PSU Wattage (Tính theo số lượng GPU)
+  let totalTdp = 100 // 100W base overhead
+  if (cpu) totalTdp += cpu.tdp || 65
+  if (gpu) {
+    const gpuQty = gpu.quantity || 1
+    totalTdp += (gpu.tdp || 150) * gpuQty
+  }
+  const recommendedPsuWattage = Math.ceil((totalTdp + 100) / 50) * 50
+
   if (psu && psu.wattage) {
-    let totalTdp = 50
-    if (cpu) totalTdp += cpu.tdp || 65
-    if (gpu) totalTdp += gpu.tdp || 150
-    const recommended = Math.ceil((totalTdp * 1.25) / 50) * 50
-
     if (psu.wattage < totalTdp) {
-      issues.push(`PSU ${psu.wattage}W không đủ cho hệ thống cần ~${totalTdp}W tổng TDP`)
-    } else if (psu.wattage < recommended) {
-      warnings.push(`PSU ${psu.wattage}W hơi sát công suất. Khuyên dùng ≥${recommended}W`)
+      issues.push(`Cần nâng cấp Nguồn. Tổng công suất tiêu thụ (${totalTdp}W) vượt quá công suất Nguồn (${psu.wattage}W).`)
+    } else if (psu.wattage < recommendedPsuWattage) {
+      warnings.push(`PSU (${psu.wattage}W) hơi sát mức tiêu thụ hệ thống. Khuyên dùng Nguồn ≥ ${recommendedPsuWattage}W.`)
     }
   }
 
-  // 5. Bottleneck CPU ↔ GPU
-  if (cpu && gpu) {
-    const gpuTier = gpu.tier || 3
-    const cpuTier = cpu.tier || 3
-    const diff = Math.abs(cpuTier - gpuTier)
-    if (diff >= 2) {
-      if (cpuTier < gpuTier) warnings.push(`CPU có thể bị bottleneck bởi GPU mạnh hơn ~${diff * 20}%`)
-      else warnings.push(`GPU có thể không phát huy hết sức mạnh của CPU`)
+  // 9. VGA ↔ Case GPU Length Clearance
+  if (gpu && cse) {
+    const gpuLen = gpu.gpuLength || 300
+    const maxLen = cse.maxGpuLength || 350
+    if (gpuLen > maxLen) {
+      issues.push(`Card màn hình quá dài (${gpuLen}mm), không lắp vừa vỏ Case này (Tối đa ${maxLen}mm).`)
     }
   }
 
-  return { compatible: issues.length === 0, issues, warnings }
+  // 10. Mainboard ↔ Case Form Factor
+  if (mb && cse) {
+    const caseFF = cse.formFactorArr || cse.formFactor || ['ATX', 'mATX', 'ITX']
+    const mbFF   = mb.formFactor || 'ATX'
+    const supportedArr = Array.isArray(caseFF) ? caseFF : [caseFF]
+
+    if (mbFF === 'ATX' && !supportedArr.includes('ATX')) {
+      issues.push(`Bo mạch chủ (${mbFF}) lớn hơn kích thước hỗ trợ của Vỏ Case.`)
+    }
+  }
+
+  // 11. Cooler ↔ CPU Socket Support
+  if (clr && cpu && cpu.socket) {
+    const suppSockets = clr.supportedSockets || ['LGA1700', 'AM5', 'AM4', 'LGA1200']
+    if (!suppSockets.includes(cpu.socket)) {
+      issues.push(`Tản nhiệt không có gàm bắt ốc cho Socket CPU ${cpu.socket} này.`)
+    }
+  }
+
+  // 12. Air Cooler ↔ Case Height Clearance
+  if (clr && cse && clr.coolerType === 'Air') {
+    const coolerH = clr.height || 155
+    const caseMaxH = cse.maxCoolerHeight || 165
+    if (coolerH > caseMaxH) {
+      issues.push(`Tản nhiệt khí quá cao (${coolerH}mm), sẽ bị cấn nắp hông của Vỏ Case.`)
+    }
+  }
+
+  // 13. AIO Radiator ↔ Case Support
+  if (clr && cse && clr.coolerType === 'AIO') {
+    const radSize = clr.radSize || '240mm'
+    const suppRads = cse.supportedRadSizes || ['240mm', '360mm']
+    if (!suppRads.includes(radSize)) {
+      issues.push(`Vỏ Case không có vị trí lắp vừa Radiator tản nước ${radSize} này.`)
+    }
+  }
+
+  return {
+    compatible: issues.length === 0,
+    issues,
+    warnings,
+    totalTdp,
+    recommendedPsuWattage
+  }
 }
 
 // ─── Format số tiền ───────────────────────────────────────────────────────
@@ -230,9 +352,9 @@ function formatPrice(price) {
   return price.toLocaleString('vi-VN') + 'đ'
 }
 
-// ─── Tính tổng giá ────────────────────────────────────────────────────────
+// ─── Tính tổng giá (nhân với số lượng linh kiện) ───────────────────────────
 function calcTotal(selected) {
-  return Object.values(selected).reduce((sum, item) => sum + (item ? (item.price || 0) : 0), 0)
+  return Object.values(selected).reduce((sum, item) => sum + (item ? (item.price || 0) * (item.quantity || 1) : 0), 0)
 }
 
 // ─── Filter brands ────────────────────────────────────────────────────────
@@ -251,7 +373,8 @@ export default function BuildPC() {
   const [brandFilter, setBrandFilter]   = useState('Tất cả')
   const [searchQuery, setSearchQuery]   = useState('')
   const [sortOrder, setSortOrder]       = useState('price-desc')
-  const [compatibility, setCompatibility] = useState({ compatible: true, issues: [], warnings: [] })
+  const [autoFilterEnabled, setAutoFilterEnabled] = useState(true)
+  const [compatibility, setCompatibility] = useState({ compatible: true, issues: [], warnings: [], totalTdp: 100, recommendedPsuWattage: 550 })
   const [showSummaryModal, setShowSummaryModal] = useState(false)
   const [addedAnimation, setAddedAnimation]     = useState(null)
 
@@ -422,7 +545,27 @@ export default function BuildPC() {
     : (STATIC_FALLBACK[activeStep] || [])
   const brands      = BRAND_FILTERS[activeStep] || BRAND_FILTERS.default
 
-  const filteredProducts = rawProducts
+  // Auto-filter tương thích thông minh
+  let activeAutoFilterDescription = null
+  let autoFilteredRaw = rawProducts
+
+  if (autoFilterEnabled) {
+    if (activeStep === 'mainboard' && selected.cpu?.socket) {
+      autoFilteredRaw = rawProducts.filter(p => !p.socket || p.socket === selected.cpu.socket)
+      activeAutoFilterDescription = `Đang tự động lọc Mainboard Socket ${selected.cpu.socket} phù hợp với ${selected.cpu.name}`
+    } else if (activeStep === 'ram' && selected.mainboard?.ramType) {
+      autoFilteredRaw = rawProducts.filter(p => !p.ramType || p.ramType === selected.mainboard.ramType)
+      activeAutoFilterDescription = `Đang tự động lọc RAM ${selected.mainboard.ramType} tương thích với ${selected.mainboard.name}`
+    } else if (activeStep === 'cooling' && selected.cpu?.socket) {
+      autoFilteredRaw = rawProducts.filter(p => !p.supportedSockets || p.supportedSockets.includes(selected.cpu.socket))
+      activeAutoFilterDescription = `Đang tự động lọc Tản nhiệt hỗ trợ Socket ${selected.cpu.socket}`
+    } else if (activeStep === 'case' && selected.mainboard?.formFactor) {
+      autoFilteredRaw = rawProducts.filter(p => !p.formFactorArr || p.formFactorArr.includes(selected.mainboard.formFactor))
+      activeAutoFilterDescription = `Đang tự động lọc Vỏ Case vừa với Mainboard kích thước ${selected.mainboard.formFactor}`
+    }
+  }
+
+  const filteredProducts = autoFilteredRaw
     .filter(p => brandFilter === 'Tất cả' || (p.brand && p.brand === brandFilter) ||
       (brandFilter === 'NVIDIA' && (p.name.includes('RTX') || p.name.includes('GTX'))) ||
       (brandFilter === 'AMD'    && (p.name.includes('Radeon') || p.name.includes('AMD'))) ||
@@ -443,7 +586,10 @@ export default function BuildPC() {
         if (cfg.id === activeConfigId) {
           const prevSel = cfg.selected || {}
           const already = prevSel[activeStep]?.id === product.id
-          const nextSel = { ...prevSel, [activeStep]: already ? null : product }
+          const nextSel = {
+            ...prevSel,
+            [activeStep]: already ? null : { ...product, quantity: prevSel[activeStep]?.quantity || 1 }
+          }
           return { ...cfg, selected: nextSel }
         }
         return cfg
@@ -456,6 +602,29 @@ export default function BuildPC() {
     setAddedAnimation(product.id)
     setTimeout(() => setAddedAnimation(null), 600)
   }, [activeConfigId, activeStep])
+
+  const handleQuantityChange = useCallback((stepId, delta) => {
+    setBuildConfigs(prevConfigs => {
+      const nextConfigs = prevConfigs.map(cfg => {
+        if (cfg.id === activeConfigId) {
+          const prevSel = cfg.selected || {}
+          const currentItem = prevSel[stepId]
+          if (!currentItem) return cfg
+          const newQty = Math.max(1, (currentItem.quantity || 1) + delta)
+          const nextSel = {
+            ...prevSel,
+            [stepId]: { ...currentItem, quantity: newQty }
+          }
+          return { ...cfg, selected: nextSel }
+        }
+        return cfg
+      })
+      try {
+        localStorage.setItem('winnotech_pc_build_configs', JSON.stringify(nextConfigs))
+      } catch (e) {}
+      return nextConfigs
+    })
+  }, [activeConfigId])
 
   const handleRemove = useCallback((stepId) => {
     setBuildConfigs(prevConfigs => {
@@ -744,6 +913,22 @@ export default function BuildPC() {
 
             {/* CENTER: Product list */}
             <main className="bp-content">
+              {/* Auto-filter Banner */}
+              {activeAutoFilterDescription && (
+                <div className="bp-autofilter-banner">
+                  <div className="bp-autofilter-text">
+                    <span style={{ fontSize: '14px' }}>⚡</span>
+                    <span>{activeAutoFilterDescription}</span>
+                  </div>
+                  <button
+                    className="bp-autofilter-toggle-btn"
+                    onClick={() => setAutoFilterEnabled(!autoFilterEnabled)}
+                  >
+                    {autoFilterEnabled ? 'Tắt lọc tự động' : 'Bật lại bộ lọc'}
+                  </button>
+                </div>
+              )}
+
               <div className="bp-content-header">
                 <div className="bp-content-title">
                   {BUILD_STEPS.find(s => s.id === activeStep)?.label}
@@ -848,12 +1033,34 @@ export default function BuildPC() {
                           </div>
                         </div>
                       </div>
-                      <button
-                        className={`bp-product-select-btn ${isSelected ? 'selected' : ''}`}
-                        onClick={e => { e.stopPropagation(); handleSelect(product) }}
-                      >
-                        {isSelected ? 'Đã chọn' : 'Chọn'}
-                      </button>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }} onClick={e => e.stopPropagation()}>
+                        <button
+                          className={`bp-product-select-btn ${isSelected ? 'selected' : ''}`}
+                          onClick={() => handleSelect(product)}
+                        >
+                          {isSelected ? 'Đã chọn' : 'Chọn'}
+                        </button>
+
+                        {isSelected && (
+                          BUILD_STEPS.find(s => s.id === activeStep)?.allowMultiple ? (
+                            <div className="bp-qty-stepper">
+                              <button
+                                className="bp-qty-btn"
+                                onClick={() => handleQuantityChange(activeStep, -1)}
+                                disabled={(selected[activeStep]?.quantity || 1) <= 1}
+                              >-</button>
+                              <span className="bp-qty-val">{selected[activeStep]?.quantity || 1}</span>
+                              <button
+                                className="bp-qty-btn"
+                                onClick={() => handleQuantityChange(activeStep, 1)}
+                              >+</button>
+                            </div>
+                          ) : (
+                            <span className="bp-qty-fixed-tag">Số lượng = 1 (Cố định)</span>
+                          )
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -915,18 +1122,65 @@ export default function BuildPC() {
                 </div>
               )}
 
+              {/* Estimated Wattage Card */}
+              <div className="bp-wattage-card">
+                <div className="bp-wattage-header">
+                  <div className="bp-wattage-title">
+                    <span>⚡ Công suất ước tính</span>
+                  </div>
+                  <div className="bp-wattage-value">~{compatibility.totalTdp || 100} W</div>
+                </div>
+                <div className="bp-wattage-rec">
+                  Nguồn khuyên dùng: <strong>≥ {compatibility.recommendedPsuWattage || 550} W</strong>
+                </div>
+                {selected.psu ? (
+                  selected.psu.wattage >= (compatibility.totalTdp || 100) ? (
+                    <div className="bp-wattage-psu-status bp-wattage-psu-ok">
+                      ✅ Nguồn {selected.psu.wattage}W Đạt yêu cầu hệ thống
+                    </div>
+                  ) : (
+                    <div className="bp-wattage-psu-status bp-wattage-psu-warn">
+                      ⚠️ Nguồn {selected.psu.wattage}W Không đủ cho ~{compatibility.totalTdp}W!
+                    </div>
+                  )
+                ) : (
+                  <div style={{ marginTop: '6px', fontSize: '10px', color: '#888' }}>
+                    💡 Gợi ý chọn Nguồn phù hợp ở Bước 6 (PSU)
+                  </div>
+                )}
+              </div>
+
               {/* Selected items */}
               <div className="bp-summary-items">
                 {BUILD_STEPS.map(step => {
                   const item = selected[step.id]
                   if (!item) return null
+                  const qty = item.quantity || 1
                   return (
                     <div key={step.id} className="bp-summary-item">
                       <div className="bp-summary-item-info">
                         <div className="bp-summary-item-cat">{step.label}</div>
                         <div className="bp-summary-item-name">{item.name}</div>
-                        <div className="bp-summary-item-price">{formatPrice(item.price)}</div>
+                        <div className="bp-summary-item-price">{formatPrice(item.price * qty)}</div>
                       </div>
+                      
+                      {step.allowMultiple ? (
+                        <div className="bp-qty-stepper" style={{ marginRight: '6px' }}>
+                          <button
+                            className="bp-qty-btn"
+                            onClick={() => handleQuantityChange(step.id, -1)}
+                            disabled={qty <= 1}
+                          >-</button>
+                          <span className="bp-qty-val">{qty}</span>
+                          <button
+                            className="bp-qty-btn"
+                            onClick={() => handleQuantityChange(step.id, 1)}
+                          >+</button>
+                        </div>
+                      ) : (
+                        <span className="bp-qty-fixed-tag" style={{ marginRight: '6px' }}>x1</span>
+                      )}
+
                       <button
                         className="bp-summary-remove"
                         onClick={() => handleRemove(step.id)}
@@ -1014,13 +1268,14 @@ export default function BuildPC() {
               {BUILD_STEPS.map(step => {
                 const item = selected[step.id]
                 if (!item) return null
+                const qty = item.quantity || 1
                 return (
                   <div key={step.id} className="bp-modal-item">
                     <div className="bp-modal-item-info">
-                      <div className="bp-modal-item-cat">{step.label}</div>
+                      <div className="bp-modal-item-cat">{step.label} {qty > 1 ? `(x${qty})` : ''}</div>
                       <div className="bp-modal-item-name">{item.name}</div>
                     </div>
-                    <div className="bp-modal-item-price">{formatPrice(item.price)}</div>
+                    <div className="bp-modal-item-price">{formatPrice(item.price * qty)}</div>
                   </div>
                 )
               })}
