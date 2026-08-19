@@ -29,6 +29,12 @@ const BUILD_STEPS = [
 
 const REQUIRED_STEPS = BUILD_STEPS.filter(s => s.required).map(s => s.id)
 
+// Nhóm Cố định (Chỉ được phép chọn số lượng = 1)
+const FIXED_QTY_STEPS = ['cpu', 'mainboard', 'psu', 'cooling', 'case', 'peripheral']
+
+// Nhóm Tùy biến (Có thể chọn số lượng >= 1)
+const MULTI_QTY_STEPS = ['ram', 'gpu', 'storage', 'monitor', 'extra']
+
 // ─── Mapping step → category slug trong DB ────────────────────────────────
 const STEP_TO_SLUG = {
   cpu:        'cpu',
@@ -580,6 +586,9 @@ export default function BuildPC() {
 
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleQuantityChange = useCallback((stepId, delta) => {
+    // Nhóm Cố định -> Không đổi số lượng, luôn giữ = 1
+    if (FIXED_QTY_STEPS.includes(stepId)) return
+
     setBuildConfigs(prevConfigs => {
       const nextConfigs = prevConfigs.map(cfg => {
         if (cfg.id === activeConfigId) {
@@ -590,11 +599,17 @@ export default function BuildPC() {
           const currentQty = item.quantity || 1
           const mb = prevSel.mainboard
 
-          let maxAllowed = 4
+          let maxAllowed = 10
           if (stepId === 'ram') {
             maxAllowed = mb?.ramSlots || 4
           } else if (stepId === 'gpu') {
-            maxAllowed = mb?.vgaSlots || 1
+            maxAllowed = mb?.vgaSlots || 4
+          } else if (stepId === 'monitor') {
+            maxAllowed = 4
+          } else if (stepId === 'storage') {
+            maxAllowed = 10
+          } else if (stepId === 'extra') {
+            maxAllowed = 10
           }
 
           const newQty = Math.max(1, Math.min(maxAllowed, currentQty + delta))
@@ -1180,11 +1195,28 @@ export default function BuildPC() {
                 {BUILD_STEPS.map(step => {
                   const item = selected[step.id]
                   if (!item) return null
-                  const qty = item.quantity || 1
+                  const isMulti = MULTI_QTY_STEPS.includes(step.id)
+                  const qty = isMulti ? (item.quantity || 1) : 1
                   const mb = selected.mainboard
-                  const isRam = step.id === 'ram'
-                  const isGpu = step.id === 'gpu'
-                  const maxQty = isRam ? (mb?.ramSlots || 4) : isGpu ? (mb?.vgaSlots || 1) : 4
+
+                  let maxQty = 10
+                  let limitNotice = ''
+                  if (step.id === 'ram') {
+                    maxQty = mb?.ramSlots || 4
+                    limitNotice = `Max ${maxQty} khe RAM (${mb ? mb.maxRamGb : 128}GB)`
+                  } else if (step.id === 'gpu') {
+                    maxQty = mb?.vgaSlots || 4
+                    limitNotice = `Max ${maxQty} khe PCIe (Workstation/AI)`
+                  } else if (step.id === 'storage') {
+                    maxQty = 10
+                    limitNotice = 'Tối đa 10 ổ cứng'
+                  } else if (step.id === 'monitor') {
+                    maxQty = 4
+                    limitNotice = 'Tối đa 4 màn hình'
+                  } else if (step.id === 'extra') {
+                    maxQty = 10
+                    limitNotice = 'Tối đa 10 phụ kiện / fan'
+                  }
 
                   return (
                     <div key={step.id} className="bp-summary-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
@@ -1207,37 +1239,36 @@ export default function BuildPC() {
                         >Xóa</button>
                       </div>
 
-                      {/* Quantity selector & Mainboard slot constraints */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0d1117', padding: '6px 10px', borderRadius: '6px', border: '1px solid #1e293b' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '11px', color: '#aaaaaa' }}>Số lượng:</span>
-                          <div style={{ display: 'flex', alignItems: 'center', background: '#161b22', border: '1px solid #30363d', borderRadius: '4px', overflow: 'hidden' }}>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleQuantityChange(step.id, -1) }}
-                              disabled={qty <= 1}
-                              style={{ width: '22px', height: '22px', border: 'none', background: '#21262d', color: '#fff', cursor: qty <= 1 ? 'not-allowed' : 'pointer', opacity: qty <= 1 ? 0.4 : 1, fontWeight: 'bold' }}
-                            >-</button>
-                            <span style={{ padding: '0 8px', fontSize: '12px', color: '#c8e600', fontWeight: 700 }}>
-                              {qty}
-                            </span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleQuantityChange(step.id, 1) }}
-                              disabled={qty >= maxQty}
-                              style={{ width: '22px', height: '22px', border: 'none', background: '#21262d', color: '#fff', cursor: qty >= maxQty ? 'not-allowed' : 'pointer', opacity: qty >= maxQty ? 0.4 : 1, fontWeight: 'bold' }}
-                            >+</button>
+                      {/* Hiển thị điều chỉnh số lượng cho Nhóm Tùy Biến (RAM, VGA, Storage, Monitor, Extra) */}
+                      {isMulti ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0d1117', padding: '6px 10px', borderRadius: '6px', border: '1px solid #1e293b' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '11px', color: '#aaaaaa' }}>Số lượng:</span>
+                            <div style={{ display: 'flex', alignItems: 'center', background: '#161b22', border: '1px solid #30363d', borderRadius: '4px', overflow: 'hidden' }}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleQuantityChange(step.id, -1) }}
+                                disabled={qty <= 1}
+                                style={{ width: '22px', height: '22px', border: 'none', background: '#21262d', color: '#fff', cursor: qty <= 1 ? 'not-allowed' : 'pointer', opacity: qty <= 1 ? 0.4 : 1, fontWeight: 'bold' }}
+                              >-</button>
+                              <span style={{ padding: '0 8px', fontSize: '12px', color: '#c8e600', fontWeight: 700 }}>
+                                {qty}
+                              </span>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleQuantityChange(step.id, 1) }}
+                                disabled={qty >= maxQty}
+                                style={{ width: '22px', height: '22px', border: 'none', background: '#21262d', color: '#fff', cursor: qty >= maxQty ? 'not-allowed' : 'pointer', opacity: qty >= maxQty ? 0.4 : 1, fontWeight: 'bold' }}
+                              >+</button>
+                            </div>
                           </div>
+                          <span style={{ fontSize: '10px', color: qty >= maxQty ? '#f59e0b' : '#94a3b8' }}>
+                            {limitNotice}
+                          </span>
                         </div>
-                        {isRam && (
-                          <span style={{ fontSize: '10px', color: qty >= maxQty ? '#f59e0b' : '#94a3b8' }}>
-                            Max {maxQty} khe RAM ({mb ? mb.maxRamGb : 128}GB)
-                          </span>
-                        )}
-                        {isGpu && (
-                          <span style={{ fontSize: '10px', color: qty >= maxQty ? '#f59e0b' : '#94a3b8' }}>
-                            Max {maxQty} khe PCIe
-                          </span>
-                        )}
-                      </div>
+                      ) : (
+                        <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic', paddingLeft: '2px' }}>
+                          ✓ Nhóm cố định (Số lượng = 1)
+                        </div>
+                      )}
                     </div>
                   )
                 })}
