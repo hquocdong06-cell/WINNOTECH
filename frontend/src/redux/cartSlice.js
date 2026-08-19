@@ -122,11 +122,17 @@ const cartSlice = createSlice({
     },
     updateQuantity: (state, action) => {
       const { product_id, variant_id, quantity } = action.payload;
-      const existingItem = state.items.find(
-        (i) => i.product_id === product_id && i.variant_id === variant_id
-      );
-      if (existingItem && quantity > 0) {
-        existingItem.quantity = quantity;
+      if (quantity <= 0) {
+        state.items = state.items.filter(
+          (i) => !(i.product_id === product_id && i.variant_id === variant_id)
+        );
+      } else {
+        const existingItem = state.items.find(
+          (i) => i.product_id === product_id && i.variant_id === variant_id
+        );
+        if (existingItem) {
+          existingItem.quantity = quantity;
+        }
       }
       localStorage.setItem('cartItems', JSON.stringify(state.items));
     },

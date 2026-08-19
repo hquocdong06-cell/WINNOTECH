@@ -5,6 +5,7 @@ import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/checkout.css'
 import { voucherAPI } from '../services/apiService'
 import { clearCart, selectCartItems } from '../redux/cartSlice'
+import { clearPurchasedPCBuildConfig } from '../utils/pcBuildUtils'
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const API_URL = 'http://localhost:3000'
@@ -623,6 +624,7 @@ if (v.min_order > 0 && subtotal < v.min_order) {
 
       if (data.success) {
         dispatch(clearCart())
+        clearPurchasedPCBuildConfig()
         navigate(`/order-success?code=${data.order?.code || ''}`)
       } else {
         setSubmitError(data.message || 'Đặt hàng thất bại, vui lòng thử lại!')

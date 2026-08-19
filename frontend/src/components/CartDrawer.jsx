@@ -24,7 +24,10 @@ export default function CartDrawer({ isOpen, onClose }) {
   };
 
   const handleUpdateQuantity = async (item, newQuantity) => {
-    if (newQuantity <= 0) return;
+    if (newQuantity <= 0) {
+      handleRemove(item);
+      return;
+    }
     // Cập nhật Redux local ngay để UX mượt
     dispatch(updateQuantity({
       product_id: item.product_id,
