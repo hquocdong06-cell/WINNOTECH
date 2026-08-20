@@ -2156,6 +2156,7 @@ app.post("/products", async (req, res) => {
       short_desc,
       stock,
       status,
+      compatibility_meta,
     } = req.body;
     if (!name) {
       return res
@@ -2181,6 +2182,7 @@ app.post("/products", async (req, res) => {
       status: status || "active",
       cat_id: cat_id || null,
       brand_id: brand_id || null,
+      compatibility_meta: compatibility_meta || {},
     });
 
     if (thumnail) {
@@ -2256,6 +2258,7 @@ app.put("/products/:id", async (req, res) => {
     if (status) product.status = status;
     if (cat_id) product.cat_id = cat_id;
     if (brand_id) product.brand_id = brand_id;
+    if (compatibility_meta !== undefined) product.compatibility_meta = compatibility_meta;
 
     if (name) {
       let slug = slugify(name);
@@ -4366,7 +4369,7 @@ app.get("/admin/products", checklogin, checkAdmin, async (req, res) => {
 // POST /admin/products — Thêm mới sản phẩm (Kiểm tra trùng tên/slug trước khi thêm)
 app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { name, price, sale, stock, short_desc, cat_id, brand_id, thumnail, description, status, sub_images, subImages } = req.body;
+    const { name, price, sale, stock, short_desc, cat_id, brand_id, thumnail, description, status, sub_images, subImages, compatibility_meta } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, message: "Vui lòng nhập tên sản phẩm" });
@@ -4401,7 +4404,8 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
       brand_id: brand_id || null,
       thumnail: thumnail || "",
       description: description || "",
-      status: status || "active"
+      status: status || "active",
+      compatibility_meta: compatibility_meta || {},
     });
 
     // TẠO ẢNH TRONG ImageModel
@@ -4444,7 +4448,7 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
 app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, price, sale, stock, short_desc, cat_id, brand_id, thumnail, description, status, slug, sub_images, subImages } = req.body;
+    const { name, price, sale, stock, short_desc, cat_id, brand_id, thumnail, description, status, slug, sub_images, subImages, compatibility_meta } = req.body;
 
     const product = await ProductModel.findById(id);
     if (!product) {
@@ -4480,6 +4484,7 @@ app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
     if (thumnail !== undefined) product.thumnail = thumnail;
     if (description !== undefined) product.description = description;
     if (status !== undefined) product.status = status;
+    if (compatibility_meta !== undefined) product.compatibility_meta = compatibility_meta;
 
     await product.save();
 
@@ -7179,6 +7184,17 @@ const paymentReturn = async (req, res) => {
             if (variantId && item.Quantity) {
               await ProductVariantModel.findByIdAndUpdate(variantId, {
                 $inc: { stock_quantity: -item.Quantity }
+              });
+            }
+          }
+
+          // Xóa các sản phẩm đã mua khỏi giỏ hàng DB
+          if (order.user_id) {
+            const orderVariantIds = orderItems.map(i => i.variants_id || i.variant_id).filter(Boolean);
+            if (orderVariantIds.length > 0) {
+              await CartItemModel.deleteMany({
+                u_id: order.user_id,
+                variant_id: { $in: orderVariantIds }
               });
             }
           }

@@ -413,10 +413,22 @@ export default function Checkout() {
       .catch(() => {})
   }, [])
 
-  // ── Submit state ──
+  // ── Submit state & Cooldown rate limit (1 phút = 60s) ──
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const lastSubmitTimeRef = React.useRef(0)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
+
+  useEffect(() => {
+    let timer = null
+    if (cooldownSeconds > 0) {
+      timer = setInterval(() => {
+        setCooldownSeconds((prev) => (prev <= 1 ? 0 : prev - 1))
+      }, 1000)
+    }
+    return () => { if (timer) clearInterval(timer) }
+  }, [cooldownSeconds])
 
   // ── VNPay QR state ──
   const [vnpayQR, setVnpayQR] = useState(null)       // base64 QR image
@@ -495,20 +507,16 @@ const voucherCalc = voucherInfo?.rawVoucher
       .finally(() => setAuthLoading(false))
   }, [])
 
-  // ── Fetch cart từ API thật (fallback về Redux khi chưa đăng nhập hoặc API trả rỗng) ──
-  useEffect(() => {
+  // ── Fetch cart từ API thật ──
+  const loadCartData = useCallback(() => {
     setCartLoading(true)
     fetch(API_URL + '/cart', { credentials: 'include' })
       .then((r) => r.json())
       .then((data) => {
         if (data.success && data.data && data.data.length > 0) {
-          // Đã đăng nhập và có hàng trong DB → dùng DB
           setCartItems(data.data)
         } else {
-          // Chưa đăng nhập (401) hoặc giỏ trống trong DB
-          // → fallback về Redux/localStorage
           if (localCartItems && localCartItems.length > 0) {
-            // Chuyển định dạng Redux items sang format Checkout cần
             const mapped = localCartItems.map((item) => ({
               cartItem: {
                 _id:        item.variant_id,
@@ -526,7 +534,6 @@ const voucherCalc = voucherInfo?.rawVoucher
                 name: item.name,
               },
               AnhSP: item.image ? [{ url: item.image }] : [],
-              // flag để getOrderItems biết đây là local item
               _isLocal: true,
               _localPrice: item.price || 0,
               _variantId:  item.variant_id,
@@ -538,7 +545,6 @@ const voucherCalc = voucherInfo?.rawVoucher
         }
       })
       .catch(() => {
-        // Lỗi mạng → dùng Redux
         if (localCartItems && localCartItems.length > 0) {
           const mapped = localCartItems.map((item) => ({
             cartItem: { _id: item.variant_id, variant_id: item.variant_id, quantity: item.quantity || 1, price: item.price || 0 },
@@ -555,11 +561,53 @@ const voucherCalc = voucherInfo?.rawVoucher
         }
       })
       .finally(() => setCartLoading(false))
+  }, [localCartItems])
+
+  useEffect(() => {
+    loadCartData()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])  // chỉ chạy 1 lần khi mount; localCartItems được đọc tại thời điểm mount
+  }, [])
+
+  // ── XÓA SẢN PHẨM TỨC THÌ: Lắng nghe Redux localCartItems thay đổi ──
+  useEffect(() => {
+    setCartItems((prevItems) => {
+      if (!prevItems || prevItems.length === 0) return prevItems
+      const activeVariantIds = new Set((localCartItems || []).map((i) => String(i.variant_id)))
+      const filtered = prevItems.filter((item) => {
+        const vid = String(item._variantId || item.cartItem?.variant_id || item.variant?._id || '')
+        return activeVariantIds.has(vid)
+      })
+      return filtered.length === prevItems.length ? prevItems : filtered
+    })
+  }, [localCartItems])
+
+  // ── Lắng nghe sự kiện cartUpdated (CartDrawer/Cart) & storage (tab khác) ──
+  useEffect(() => {
+    const handleCartChange = () => {
+      loadCartData()
+    }
+    window.addEventListener('cartUpdated', handleCartChange)
+    window.addEventListener('storage', handleCartChange)
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartChange)
+      window.removeEventListener('storage', handleCartChange)
+    }
+  }, [loadCartData])
 
   // ── Trực tiếp gọi API khi người dùng đã xác nhận trên modal ──
   const executeOrderSubmission = async () => {
+    const now = Date.now()
+    const elapsed = now - lastSubmitTimeRef.current
+    if (elapsed < 60000 && lastSubmitTimeRef.current > 0) {
+      const remainingSec = Math.ceil((60000 - elapsed) / 1000)
+      setSubmitError(`Hệ thống đang xử lý hoặc bạn vừa gửi yêu cầu. Vui lòng chờ ${remainingSec} giây trước khi thử lại!`)
+      setCooldownSeconds(remainingSec)
+      setShowConfirmModal(false)
+      return
+    }
+
+    lastSubmitTimeRef.current = now
+    setCooldownSeconds(60)
     setSubmitting(true)
     setSubmitError('')
     setShowConfirmModal(false)
@@ -622,6 +670,8 @@ const voucherCalc = voucherInfo?.rawVoucher
       if (data.success) {
         dispatch(clearCart())
         clearPurchasedPCBuildConfig()
+        setCartItems([])
+        window.dispatchEvent(new CustomEvent('cartUpdated'))
         navigate(`/order-success?code=${data.order?.code || ''}`)
       } else {
         setSubmitError(data.message || 'Đặt hàng thất bại, vui lòng thử lại!')
@@ -637,6 +687,15 @@ const voucherCalc = voucherInfo?.rawVoucher
   const handleSubmit = (e) => {
     e.preventDefault()
     setSubmitError('')
+
+    const now = Date.now()
+    const elapsed = now - lastSubmitTimeRef.current
+    if (elapsed < 60000 && lastSubmitTimeRef.current > 0) {
+      const remainingSec = Math.ceil((60000 - elapsed) / 1000)
+      setSubmitError(`Bạn vừa gửi yêu cầu thanh toán. Vui lòng chờ ${remainingSec} giây trước khi thực hiện thao tác tiếp theo!`)
+      setCooldownSeconds(remainingSec)
+      return
+    }
 
     if (cartItems.length === 0) {
       setSubmitError('Giỏ hàng trống, không thể đặt hàng!')
@@ -1109,9 +1168,19 @@ const voucherCalc = voucherInfo?.rawVoucher
 
             {/* Submit */}
             <div className="co-submit-wrap">
-              <button type="submit" className="co-btn-submit" disabled={submitting || cartLoading}>
+              <button
+                type="submit"
+                className="co-btn-submit"
+                disabled={submitting || cartLoading || cartItems.length === 0 || cooldownSeconds > 0}
+                style={{
+                  opacity: (submitting || cartLoading || cartItems.length === 0 || cooldownSeconds > 0) ? 0.6 : 1,
+                  cursor: (submitting || cartLoading || cartItems.length === 0 || cooldownSeconds > 0) ? 'not-allowed' : 'pointer'
+                }}
+              >
                 {submitting ? (
                   'Đang đặt hàng...'
+                ) : cooldownSeconds > 0 ? (
+                  `Vui lòng chờ (${cooldownSeconds}s)`
                 ) : (
                   <>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5">
@@ -1187,6 +1256,7 @@ const voucherCalc = voucherInfo?.rawVoucher
               <button
                 type="button"
                 onClick={() => setShowConfirmModal(false)}
+                disabled={submitting}
                 style={{
                   flex: 1, padding: '12px', background: '#1c1c1c', border: '1px solid #2d2d2d',
                   color: '#ccc', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
@@ -1200,15 +1270,20 @@ const voucherCalc = voucherInfo?.rawVoucher
               <button
                 type="button"
                 onClick={executeOrderSubmission}
+                disabled={submitting || cooldownSeconds > 0}
                 style={{
-                  flex: 1, padding: '12px', background: '#c8e600', border: 'none',
-                  color: '#000', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 700,
+                  flex: 1, padding: '12px',
+                  background: (submitting || cooldownSeconds > 0) ? '#555' : '#c8e600',
+                  border: 'none',
+                  color: (submitting || cooldownSeconds > 0) ? '#aaa' : '#000',
+                  borderRadius: '6px',
+                  cursor: (submitting || cooldownSeconds > 0) ? 'not-allowed' : 'pointer',
+                  fontSize: '13px', fontWeight: 700,
+                  opacity: (submitting || cooldownSeconds > 0) ? 0.6 : 1,
                   transition: 'opacity 0.2s'
                 }}
-                onMouseOver={(e) => e.target.style.opacity = 0.9}
-                onMouseOut={(e) => e.target.style.opacity = 1}
               >
-                Xác nhận mua
+                {submitting ? 'Đang gửi...' : cooldownSeconds > 0 ? `Chờ (${cooldownSeconds}s)` : 'Xác nhận mua'}
               </button>
             </div>
           </div>

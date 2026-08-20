@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UploadCloud, X, Loader2 } from 'lucide-react';
+import { UploadCloud, X, Loader2, Cpu } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
   createProduct, updateProduct, uploadImage, fetchCategories, fetchBrands,
@@ -7,11 +7,22 @@ import {
 
 import { API_BASE } from '../../services/apiService';
 
+const defaultCompatMeta = {
+  socket: '',
+  ram_type: '',
+  form_factor: '',
+  supported_ff: [],
+  tdp: '',
+  wattage: '',
+  gpu_tier: '',
+};
+
 const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp, onSuccess }) => {
   const [form, setForm] = useState({
     name: '', description: '', short_desc: '',
     status: 'active', cat_id: '', brand_id: '',
     price: '', sale: '', stock: '', thumnail: '',
+    compatibility_meta: defaultCompatMeta,
   });
   const [previewUrl, setPreviewUrl] = useState('');
   const [subImages, setSubImages] = useState([]); // mảng động chứa URL các ảnh phụ
@@ -64,11 +75,20 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
         sale: product.sale || '',
         stock: defaultVariant?.stock_quantity !== undefined ? defaultVariant.stock_quantity : (product.stock || ''),
         thumnail: imgUrl,
+        compatibility_meta: {
+          socket: product.compatibility_meta?.socket || '',
+          ram_type: product.compatibility_meta?.ram_type || '',
+          form_factor: product.compatibility_meta?.form_factor || '',
+          supported_ff: Array.isArray(product.compatibility_meta?.supported_ff) ? product.compatibility_meta.supported_ff : [],
+          tdp: product.compatibility_meta?.tdp !== null && product.compatibility_meta?.tdp !== undefined ? product.compatibility_meta.tdp : '',
+          wattage: product.compatibility_meta?.wattage !== null && product.compatibility_meta?.wattage !== undefined ? product.compatibility_meta.wattage : '',
+          gpu_tier: product.compatibility_meta?.gpu_tier !== null && product.compatibility_meta?.gpu_tier !== undefined ? product.compatibility_meta.gpu_tier : '',
+        },
       });
       setPreviewUrl(imgUrl ? getFullUrl(imgUrl) : '');
       setSubImages(secondaryImgs.slice(0, 4));
     } else {
-      setForm({ name: '', description: '', short_desc: '', status: 'active', cat_id: '', brand_id: '', price: '', sale: '', stock: '', thumnail: '' });
+      setForm({ name: '', description: '', short_desc: '', status: 'active', cat_id: '', brand_id: '', price: '', sale: '', stock: '', thumnail: '', compatibility_meta: defaultCompatMeta });
       setPreviewUrl('');
       setSubImages([]);
     }
@@ -78,8 +98,35 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
 
   const setField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
+  const setCompatField = (field, value) => {
+    setForm(prev => ({
+      ...prev,
+      compatibility_meta: {
+        ...(prev.compatibility_meta || defaultCompatMeta),
+        [field]: value,
+      },
+    }));
+  };
+
+  const toggleSupportedFF = (ff) => {
+    setForm(prev => {
+      const current = prev.compatibility_meta?.supported_ff || [];
+      const updated = current.includes(ff)
+        ? current.filter(item => item !== ff)
+        : [...current, ff];
+      return {
+        ...prev,
+        compatibility_meta: {
+          ...(prev.compatibility_meta || defaultCompatMeta),
+          supported_ff: updated,
+        },
+      };
+    });
+  };
+
   // Upload ảnh chính
   const handleMainFileChange = async (e) => {
+  const handleFileChange = handleMainFileChange;
     const file = e.target.files?.[0];
     if (!file) return;
     setPreviewUrl(URL.createObjectURL(file));
@@ -167,6 +214,15 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
     setIsSaving(true);
     try {
       const validSubImages = subImages.filter(url => url && typeof url === 'string' && url.trim() !== '');
+      const compatMeta = {
+        socket: form.compatibility_meta?.socket?.trim() || null,
+        ram_type: form.compatibility_meta?.ram_type || null,
+        form_factor: form.compatibility_meta?.form_factor || null,
+        supported_ff: form.compatibility_meta?.supported_ff || [],
+        tdp: form.compatibility_meta?.tdp !== '' && form.compatibility_meta?.tdp !== null && !isNaN(form.compatibility_meta?.tdp) ? Number(form.compatibility_meta.tdp) : null,
+        wattage: form.compatibility_meta?.wattage !== '' && form.compatibility_meta?.wattage !== null && !isNaN(form.compatibility_meta?.wattage) ? Number(form.compatibility_meta.wattage) : null,
+        gpu_tier: form.compatibility_meta?.gpu_tier !== '' && form.compatibility_meta?.gpu_tier !== null && !isNaN(form.compatibility_meta?.gpu_tier) ? Number(form.compatibility_meta.gpu_tier) : null,
+      };
       const payload = {
         name: form.name.trim(),
         description: form.description,
@@ -179,6 +235,7 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
         stock: Number(form.stock) || 0,
         thumnail: form.thumnail,
         sub_images: validSubImages,
+        compatibility_meta: compatMeta,
       };
 
       if (product) {
@@ -418,6 +475,133 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
                   </div>
                 </div>
 
+              </div>
+
+              {/* Thông số tương thích (Build PC) */}
+              <div className="bg-[#1e1e1e] border border-[#333] rounded-lg p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-[15px] flex items-center gap-2 text-[#d4ff00]">
+                    <Cpu className="w-4 h-4" /> Thông số tương thích (Build PC)
+                  </h3>
+                  <span className="text-[11px] text-gray-400 bg-[#141414] px-2 py-0.5 rounded border border-[#333]">
+                    Smart Filter Meta
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Socket */}
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Socket (CPU / Mainboard)</label>
+                    <input
+                      type="text"
+                      list="socket-options"
+                      value={form.compatibility_meta?.socket || ''}
+                      onChange={(e) => setCompatField('socket', e.target.value)}
+                      placeholder="VD: LGA1700, AM5, LGA1851..."
+                      className="w-full bg-[#141414] border border-[#333] rounded-md px-3 py-2 text-xs focus:border-[#d4ff00] outline-none text-white"
+                    />
+                    <datalist id="socket-options">
+                      <option value="LGA1700" />
+                      <option value="LGA1851" />
+                      <option value="AM4" />
+                      <option value="AM5" />
+                    </datalist>
+                  </div>
+
+                  {/* RAM Type */}
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Chuẩn RAM (RAM / Mainboard)</label>
+                    <select
+                      value={form.compatibility_meta?.ram_type || ''}
+                      onChange={(e) => setCompatField('ram_type', e.target.value)}
+                      className="w-full bg-[#141414] border border-[#333] rounded-md px-3 py-2 text-xs focus:border-[#d4ff00] outline-none text-white"
+                    >
+                      <option value="">-- Không chọn --</option>
+                      <option value="DDR4">DDR4</option>
+                      <option value="DDR5">DDR5</option>
+                    </select>
+                  </div>
+
+                  {/* Form Factor */}
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Kích thước Mainboard</label>
+                    <select
+                      value={form.compatibility_meta?.form_factor || ''}
+                      onChange={(e) => setCompatField('form_factor', e.target.value)}
+                      className="w-full bg-[#141414] border border-[#333] rounded-md px-3 py-2 text-xs focus:border-[#d4ff00] outline-none text-white"
+                    >
+                      <option value="">-- Không chọn --</option>
+                      <option value="ATX">ATX</option>
+                      <option value="mATX">mATX (Micro-ATX)</option>
+                      <option value="ITX">ITX (Mini-ITX)</option>
+                    </select>
+                  </div>
+
+                  {/* GPU Tier */}
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Bậc Card đồ họa (GPU Tier)</label>
+                    <select
+                      value={form.compatibility_meta?.gpu_tier !== null && form.compatibility_meta?.gpu_tier !== undefined ? form.compatibility_meta.gpu_tier : ''}
+                      onChange={(e) => setCompatField('gpu_tier', e.target.value)}
+                      className="w-full bg-[#141414] border border-[#333] rounded-md px-3 py-2 text-xs focus:border-[#d4ff00] outline-none text-white"
+                    >
+                      <option value="">-- Không chọn --</option>
+                      <option value="1">Tier 1 (Nhập môn)</option>
+                      <option value="2">Tier 2 (Tầm trung)</option>
+                      <option value="3">Tier 3 (Cận cao cấp)</option>
+                      <option value="4">Tier 4 (Cao cấp)</option>
+                      <option value="5">Tier 5 (Flagship)</option>
+                    </select>
+                  </div>
+
+                  {/* TDP (CPU) */}
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">TDP (CPU - Watts)</label>
+                    <input
+                      type="number"
+                      value={form.compatibility_meta?.tdp !== null && form.compatibility_meta?.tdp !== undefined ? form.compatibility_meta.tdp : ''}
+                      onChange={(e) => setCompatField('tdp', e.target.value)}
+                      placeholder="VD: 65, 125, 253"
+                      className="w-full bg-[#141414] border border-[#333] rounded-md px-3 py-2 text-xs focus:border-[#d4ff00] outline-none text-white"
+                    />
+                  </div>
+
+                  {/* Wattage (PSU) */}
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Công suất Nguồn (PSU - Watts)</label>
+                    <input
+                      type="number"
+                      value={form.compatibility_meta?.wattage !== null && form.compatibility_meta?.wattage !== undefined ? form.compatibility_meta.wattage : ''}
+                      onChange={(e) => setCompatField('wattage', e.target.value)}
+                      placeholder="VD: 650, 750, 850, 1000"
+                      className="w-full bg-[#141414] border border-[#333] rounded-md px-3 py-2 text-xs focus:border-[#d4ff00] outline-none text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Supported FF (Case) */}
+                <div>
+                  <label className="block text-xs text-gray-400 mb-2">Form Factor hỗ trợ (Hộp máy / Vỏ Case)</label>
+                  <div className="flex items-center gap-4">
+                    {['ATX', 'mATX', 'ITX'].map(ff => {
+                      const isSelected = form.compatibility_meta?.supported_ff?.includes(ff);
+                      return (
+                        <button
+                          key={ff}
+                          type="button"
+                          onClick={() => toggleSupportedFF(ff)}
+                          className={`px-3 py-1.5 text-xs font-semibold rounded-md border transition-all ${
+                            isSelected
+                              ? 'bg-[#d4ff00]/15 border-[#d4ff00] text-[#d4ff00]'
+                              : 'bg-[#141414] border-[#333] text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          {isSelected ? '✓ ' : ''}{ff}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
 

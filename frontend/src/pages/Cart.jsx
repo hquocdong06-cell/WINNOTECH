@@ -160,6 +160,7 @@ export default function Cart() {
             image:      getProductImage(d),
           }))
         ))
+        window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { action: 'remove', cartItemId } }))
       }
     } catch {
       // ignore

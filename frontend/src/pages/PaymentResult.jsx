@@ -34,6 +34,7 @@ export default function PaymentResult() {
     if (isSuccess) {
       dispatch(clearCart())
       clearPurchasedPCBuildConfig()
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
     }
     return () => clearTimeout(t)
   }, [])

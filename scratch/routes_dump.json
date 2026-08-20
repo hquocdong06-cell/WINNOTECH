@@ -1,0 +1,806 @@
+[
+  {
+    "lineNum": 407,
+    "method": "POST",
+    "rawEndpoint": "\"/register\"",
+    "fullLine": "app.post(\"/register\", async (req, res) => {"
+  },
+  {
+    "lineNum": 524,
+    "method": "POST",
+    "rawEndpoint": "\"/login\"",
+    "fullLine": "app.post(\"/login\", function (req, res, next) {"
+  },
+  {
+    "lineNum": 580,
+    "method": "GET",
+    "rawEndpoint": "\"/logout\"",
+    "fullLine": "app.get(\"/logout\", function (req, res) {"
+  },
+  {
+    "lineNum": 596,
+    "method": "POST",
+    "rawEndpoint": "[\"/api/auth/google\", \"/auth/google\"]",
+    "fullLine": "app.post([\"/api/auth/google\", \"/auth/google\"], async (req, res) => {"
+  },
+  {
+    "lineNum": 735,
+    "method": "GET",
+    "rawEndpoint": "\"/profile\"",
+    "fullLine": "app.get(\"/profile\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 754,
+    "method": "GET",
+    "rawEndpoint": "\"/profile/stats\"",
+    "fullLine": "app.get(\"/profile/stats\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 900,
+    "method": "PUT",
+    "rawEndpoint": "\"/profile\"",
+    "fullLine": "app.put(\"/profile\", checklogin, uploadAvatar.single(\"avatar\"), handleUpdateProfile);"
+  },
+  {
+    "lineNum": 901,
+    "method": "POST",
+    "rawEndpoint": "\"/profile/update\"",
+    "fullLine": "app.post(\"/profile/update\", checklogin, uploadAvatar.single(\"avatar\"), handleUpdateProfile);"
+  },
+  {
+    "lineNum": 908,
+    "method": "GET",
+    "rawEndpoint": "\"/auth/me\"",
+    "fullLine": "app.get(\"/auth/me\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 926,
+    "method": "GET",
+    "rawEndpoint": "\"/products\"",
+    "fullLine": "app.get(\"/products\", async (req, res, next) => {"
+  },
+  {
+    "lineNum": 975,
+    "method": "GET",
+    "rawEndpoint": "\"/products/home/newest\"",
+    "fullLine": "app.get(\"/products/home/newest\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1054,
+    "method": "GET",
+    "rawEndpoint": "\"/products/home/featured\"",
+    "fullLine": "app.get(\"/products/home/featured\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1138,
+    "method": "GET",
+    "rawEndpoint": "[\"/products/home/flash-sale\", \"/api/products/flash-sale\"]",
+    "fullLine": "app.get([\"/products/home/flash-sale\", \"/api/products/flash-sale\"], async (req, res) => {"
+  },
+  {
+    "lineNum": 1261,
+    "method": "GET",
+    "rawEndpoint": "\"/api/admin/flash-sale\"",
+    "fullLine": "app.get(\"/api/admin/flash-sale\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1282,
+    "method": "PUT",
+    "rawEndpoint": "\"/api/admin/flash-sale\"",
+    "fullLine": "app.put(\"/api/admin/flash-sale\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1333,
+    "method": "GET",
+    "rawEndpoint": "[\"/api/buildpc/components\", \"/api/products/build-pc\"]",
+    "fullLine": "app.get([\"/api/buildpc/components\", \"/api/products/build-pc\"], async (req, res) => {"
+  },
+  {
+    "lineNum": 1446,
+    "method": "GET",
+    "rawEndpoint": "\"/api/buildpc/suggest\"",
+    "fullLine": "app.get(\"/api/buildpc/suggest\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1635,
+    "method": "GET",
+    "rawEndpoint": "\"/products/home/Newest\"",
+    "fullLine": "app.get(\"/products/home/Newest\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1679,
+    "method": "GET",
+    "rawEndpoint": "\"/products/home/Sale\"",
+    "fullLine": "app.get(\"/products/home/Sale\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1738,
+    "method": "GET",
+    "rawEndpoint": "\"/products/search\"",
+    "fullLine": "app.get(\"/products/search\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1815,
+    "method": "GET",
+    "rawEndpoint": "\"/products/:slug\"",
+    "fullLine": "app.get(\"/products/:slug\", async (req, res, next) => {"
+  },
+  {
+    "lineNum": 1866,
+    "method": "GET",
+    "rawEndpoint": "\"/categories\"",
+    "fullLine": "app.get(\"/categories\", async (req, res, next) => {"
+  },
+  {
+    "lineNum": 1887,
+    "method": "POST",
+    "rawEndpoint": "\"/categories/upload\"",
+    "fullLine": "app.post(\"/categories/upload\", uploadCategory.single(\"image\"), (req, res) => {"
+  },
+  {
+    "lineNum": 1908,
+    "method": "GET",
+    "rawEndpoint": "\"/categories/:id\"",
+    "fullLine": "app.get(\"/categories/:id\", async (req, res, next) => {"
+  },
+  {
+    "lineNum": 1930,
+    "method": "POST",
+    "rawEndpoint": "\"/categories\"",
+    "fullLine": "app.post(\"/categories\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1990,
+    "method": "PUT",
+    "rawEndpoint": "\"/categories/:id\"",
+    "fullLine": "app.put(\"/categories/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2064,
+    "method": "PATCH",
+    "rawEndpoint": "\"/categories/:id/status\"",
+    "fullLine": "app.patch(\"/categories/:id/status\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2102,
+    "method": "DELETE",
+    "rawEndpoint": "\"/categories/:id\"",
+    "fullLine": "app.delete(\"/categories/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2125,
+    "method": "GET",
+    "rawEndpoint": "\"/brands\"",
+    "fullLine": "app.get(\"/brands\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2144,
+    "method": "POST",
+    "rawEndpoint": "\"/products\"",
+    "fullLine": "app.post(\"/products\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2226,
+    "method": "PUT",
+    "rawEndpoint": "\"/products/:id\"",
+    "fullLine": "app.put(\"/products/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2323,
+    "method": "DELETE",
+    "rawEndpoint": "\"/products/:id\"",
+    "fullLine": "app.delete(\"/products/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2359,
+    "method": "PATCH",
+    "rawEndpoint": "\"/products/:id/status\"",
+    "fullLine": "app.patch(\"/products/:id/status\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2393,
+    "method": "GET",
+    "rawEndpoint": "\"/categories/:slug\"",
+    "fullLine": "app.get(\"/categories/:slug\", async (req, res, next) => {"
+  },
+  {
+    "lineNum": 2461,
+    "method": "POST",
+    "rawEndpoint": "\"/cart/add\"",
+    "fullLine": "app.post(\"/cart/add\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2597,
+    "method": "GET",
+    "rawEndpoint": "\"/cart\"",
+    "fullLine": "app.get(\"/cart\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 2661,
+    "method": "PUT",
+    "rawEndpoint": "\"/cart/:cartItemId\"",
+    "fullLine": "app.put(\"/cart/:cartItemId\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 2719,
+    "method": "DELETE",
+    "rawEndpoint": "\"/cart/:cartItemId\"",
+    "fullLine": "app.delete(\"/cart/:cartItemId\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 2759,
+    "method": "POST",
+    "rawEndpoint": "\"/orders\"",
+    "fullLine": "app.post(\"/orders\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 2902,
+    "method": "GET",
+    "rawEndpoint": "\"/orders\"",
+    "fullLine": "app.get(\"/orders\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3000,
+    "method": "GET",
+    "rawEndpoint": "\"/orders/:orderId\"",
+    "fullLine": "app.get(\"/orders/:orderId\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3330,
+    "method": "GET",
+    "rawEndpoint": "\"/orders/export-pdf/:id\"",
+    "fullLine": "app.get(\"/orders/export-pdf/:id\", checklogin, exportOrderPdfHandler);"
+  },
+  {
+    "lineNum": 3331,
+    "method": "GET",
+    "rawEndpoint": "\"/orders/:orderId/export-pdf\"",
+    "fullLine": "app.get(\"/orders/:orderId/export-pdf\", checklogin, exportOrderPdfHandler);"
+  },
+  {
+    "lineNum": 3332,
+    "method": "POST",
+    "rawEndpoint": "\"/orders/export-pdf\"",
+    "fullLine": "app.post(\"/orders/export-pdf\", checklogin, exportOrderPdfHandler);"
+  },
+  {
+    "lineNum": 3333,
+    "method": "GET",
+    "rawEndpoint": "\"/api/orders/export-pdf/:id\"",
+    "fullLine": "app.get(\"/api/orders/export-pdf/:id\", checklogin, exportOrderPdfHandler);"
+  },
+  {
+    "lineNum": 3334,
+    "method": "POST",
+    "rawEndpoint": "\"/api/orders/export-pdf\"",
+    "fullLine": "app.post(\"/api/orders/export-pdf\", checklogin, exportOrderPdfHandler);"
+  },
+  {
+    "lineNum": 3340,
+    "method": "POST",
+    "rawEndpoint": "\"/reviews\"",
+    "fullLine": "app.post(\"/reviews\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3395,
+    "method": "POST",
+    "rawEndpoint": "\"/favorites\"",
+    "fullLine": "app.post(\"/favorites\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3421,
+    "method": "DELETE",
+    "rawEndpoint": "\"/favorites/:productId\"",
+    "fullLine": "app.delete(\"/favorites/:productId\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3441,
+    "method": "GET",
+    "rawEndpoint": "\"/delivery-addresses\"",
+    "fullLine": "app.get(\"/delivery-addresses\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3457,
+    "method": "POST",
+    "rawEndpoint": "\"/delivery-addresses\"",
+    "fullLine": "app.post(\"/delivery-addresses\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3485,
+    "method": "DELETE",
+    "rawEndpoint": "\"/delivery-addresses/:id\"",
+    "fullLine": "app.delete(\"/delivery-addresses/:id\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3508,
+    "method": "GET",
+    "rawEndpoint": "\"/vouchers/check/:code\"",
+    "fullLine": "app.get(\"/vouchers/check/:code\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3554,
+    "method": "GET",
+    "rawEndpoint": "\"/api/cart/:u_id\"",
+    "fullLine": "app.get(\"/api/cart/:u_id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3578,
+    "method": "POST",
+    "rawEndpoint": "\"/api/cart\"",
+    "fullLine": "app.post(\"/api/cart\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3627,
+    "method": "PUT",
+    "rawEndpoint": "\"/api/cart/:id\"",
+    "fullLine": "app.put(\"/api/cart/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3659,
+    "method": "DELETE",
+    "rawEndpoint": "\"/api/cart/:id\"",
+    "fullLine": "app.delete(\"/api/cart/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3669,
+    "method": "DELETE",
+    "rawEndpoint": "\"/api/cart/clear/:u_id\"",
+    "fullLine": "app.delete(\"/api/cart/clear/:u_id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3693,
+    "method": "POST",
+    "rawEndpoint": "\"/upload\"",
+    "fullLine": "app.post(\"/upload\", upload.single(\"image\"), (req, res) => {"
+  },
+  {
+    "lineNum": 3713,
+    "method": "POST",
+    "rawEndpoint": "\"/categories\"",
+    "fullLine": "app.post(\"/categories\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3762,
+    "method": "PUT",
+    "rawEndpoint": "\"/categories/:id\"",
+    "fullLine": "app.put(\"/categories/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3820,
+    "method": "DELETE",
+    "rawEndpoint": "\"/categories/:id\"",
+    "fullLine": "app.delete(\"/categories/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3852,
+    "method": "GET",
+    "rawEndpoint": "\"/favorites/ids\"",
+    "fullLine": "app.get(\"/favorites/ids\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3864,
+    "method": "GET",
+    "rawEndpoint": "\"/favorites\"",
+    "fullLine": "app.get(\"/favorites\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3915,
+    "method": "POST",
+    "rawEndpoint": "\"/favorites/:productId\"",
+    "fullLine": "app.post(\"/favorites/:productId\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3949,
+    "method": "DELETE",
+    "rawEndpoint": "\"/favorites/:productId\"",
+    "fullLine": "app.delete(\"/favorites/:productId\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3992,
+    "method": "GET",
+    "rawEndpoint": "\"/admin/products\"",
+    "fullLine": "app.get(\"/admin/products\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4006,
+    "method": "POST",
+    "rawEndpoint": "\"/admin/products\"",
+    "fullLine": "app.post(\"/admin/products\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4068,
+    "method": "PUT",
+    "rawEndpoint": "\"/admin/products/:id\"",
+    "fullLine": "app.put(\"/admin/products/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4148,
+    "method": "PUT",
+    "rawEndpoint": "\"/admin/products/:id/status\"",
+    "fullLine": "app.put(\"/admin/products/:id/status\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4163,
+    "method": "DELETE",
+    "rawEndpoint": "\"/admin/products/:id\"",
+    "fullLine": "app.delete(\"/admin/products/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4181,
+    "method": "GET",
+    "rawEndpoint": "\"/admin/brands\"",
+    "fullLine": "app.get(\"/admin/brands\", async (req, res) => {"
+  },
+  {
+    "lineNum": 4191,
+    "method": "POST",
+    "rawEndpoint": "\"/admin/brands\"",
+    "fullLine": "app.post(\"/admin/brands\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4217,
+    "method": "PUT",
+    "rawEndpoint": "\"/admin/brands/:id\"",
+    "fullLine": "app.put(\"/admin/brands/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4244,
+    "method": "DELETE",
+    "rawEndpoint": "\"/admin/brands/:id\"",
+    "fullLine": "app.delete(\"/admin/brands/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4262,
+    "method": "GET",
+    "rawEndpoint": "\"/admin/users\"",
+    "fullLine": "app.get(\"/admin/users\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4272,
+    "method": "POST",
+    "rawEndpoint": "\"/admin/users\"",
+    "fullLine": "app.post(\"/admin/users\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4306,
+    "method": "PUT",
+    "rawEndpoint": "\"/admin/users/:id/status\"",
+    "fullLine": "app.put(\"/admin/users/:id/status\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4321,
+    "method": "DELETE",
+    "rawEndpoint": "\"/admin/users/:id\"",
+    "fullLine": "app.delete(\"/admin/users/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4339,
+    "method": "GET",
+    "rawEndpoint": "\"/admin/orders\"",
+    "fullLine": "app.get(\"/admin/orders\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4359,
+    "method": "PUT",
+    "rawEndpoint": "\"/admin/orders/:id/status\"",
+    "fullLine": "app.put(\"/admin/orders/:id/status\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4374,
+    "method": "DELETE",
+    "rawEndpoint": "\"/admin/orders/:id\"",
+    "fullLine": "app.delete(\"/admin/orders/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4392,
+    "method": "GET",
+    "rawEndpoint": "\"/admin/revenue/stats\"",
+    "fullLine": "app.get(\"/admin/revenue/stats\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4448,
+    "method": "GET",
+    "rawEndpoint": "\"/admin/revenue/export-excel\"",
+    "fullLine": "app.get(\"/admin/revenue/export-excel\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4567,
+    "method": "GET",
+    "rawEndpoint": "\"/post-categories\"",
+    "fullLine": "app.get(\"/post-categories\", async (req, res) => {"
+  },
+  {
+    "lineNum": 4578,
+    "method": "GET",
+    "rawEndpoint": "\"/posts\"",
+    "fullLine": "app.get(\"/posts\", async (req, res) => {"
+  },
+  {
+    "lineNum": 4604,
+    "method": "GET",
+    "rawEndpoint": "\"/posts/:slug\"",
+    "fullLine": "app.get(\"/posts/:slug\", async (req, res) => {"
+  },
+  {
+    "lineNum": 4624,
+    "method": "POST",
+    "rawEndpoint": "\"/admin/posts\"",
+    "fullLine": "app.post(\"/admin/posts\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4674,
+    "method": "PUT",
+    "rawEndpoint": "\"/admin/posts/:id\"",
+    "fullLine": "app.put(\"/admin/posts/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4738,
+    "method": "DELETE",
+    "rawEndpoint": "\"/admin/posts/:id\"",
+    "fullLine": "app.delete(\"/admin/posts/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4763,
+    "method": "POST",
+    "rawEndpoint": "\"/admin/post-categories\"",
+    "fullLine": "app.post(\"/admin/post-categories\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4799,
+    "method": "PUT",
+    "rawEndpoint": "\"/admin/post-categories/:id\"",
+    "fullLine": "app.put(\"/admin/post-categories/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4830,
+    "method": "PUT",
+    "rawEndpoint": "\"/admin/post-categories/:id/status\"",
+    "fullLine": "app.put(\"/admin/post-categories/:id/status\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4852,
+    "method": "PUT",
+    "rawEndpoint": "\"/admin/reviews/:id/status\"",
+    "fullLine": "app.put(\"/admin/reviews/:id/status\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5027,
+    "method": "GET",
+    "rawEndpoint": "\"/profile/deliver\"",
+    "fullLine": "app.get(\"/profile/deliver\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5045,
+    "method": "POST",
+    "rawEndpoint": "\"/profile/deliver\"",
+    "fullLine": "app.post(\"/profile/deliver\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5085,
+    "method": "PUT",
+    "rawEndpoint": "\"/profile/deliver/:id\"",
+    "fullLine": "app.put(\"/profile/deliver/:id\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5142,
+    "method": "POST",
+    "rawEndpoint": "\"/contact\"",
+    "fullLine": "app.post(\"/contact\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5194,
+    "method": "PUT",
+    "rawEndpoint": "\"/profile/change-password\"",
+    "fullLine": "app.put(\"/profile/change-password\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5241,
+    "method": "POST",
+    "rawEndpoint": "\"/api/auth/forgot-password\"",
+    "fullLine": "app.post(\"/api/auth/forgot-password\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5311,
+    "method": "POST",
+    "rawEndpoint": "\"/api/auth/reset-password\"",
+    "fullLine": "app.post(\"/api/auth/reset-password\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5374,
+    "method": "POST",
+    "rawEndpoint": "\"/favorites/add\"",
+    "fullLine": "app.post(\"/favorites/add\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5420,
+    "method": "GET",
+    "rawEndpoint": "\"/favorites/list\"",
+    "fullLine": "app.get(\"/favorites/list\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5441,
+    "method": "POST",
+    "rawEndpoint": "\"/compare/toggle\"",
+    "fullLine": "app.post(\"/compare/toggle\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5506,
+    "method": "GET",
+    "rawEndpoint": "\"/compare/my-list\"",
+    "fullLine": "app.get(\"/compare/my-list\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5546,
+    "method": "GET",
+    "rawEndpoint": "\"/api/compare/guest\"",
+    "fullLine": "app.get(\"/api/compare/guest\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5613,
+    "method": "GET",
+    "rawEndpoint": "\"/api/buildpc/components\"",
+    "fullLine": "app.get(\"/api/buildpc/components\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5661,
+    "method": "POST",
+    "rawEndpoint": "\"/api/buildpc/save\"",
+    "fullLine": "app.post(\"/api/buildpc/save\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5697,
+    "method": "GET",
+    "rawEndpoint": "\"/api/vouchers\"",
+    "fullLine": "app.get(\"/api/vouchers\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5708,
+    "method": "GET",
+    "rawEndpoint": "\"/api/vouchers/valid\"",
+    "fullLine": "app.get(\"/api/vouchers/valid\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5724,
+    "method": "GET",
+    "rawEndpoint": "\"/api/vouchers/:idOrCode\"",
+    "fullLine": "app.get(\"/api/vouchers/:idOrCode\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5745,
+    "method": "POST",
+    "rawEndpoint": "\"/api/vouchers\"",
+    "fullLine": "app.post(\"/api/vouchers\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5781,
+    "method": "PUT",
+    "rawEndpoint": "\"/api/vouchers/:id\"",
+    "fullLine": "app.put(\"/api/vouchers/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5799,
+    "method": "DELETE",
+    "rawEndpoint": "\"/api/vouchers/:id\"",
+    "fullLine": "app.delete(\"/api/vouchers/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5816,
+    "method": "POST",
+    "rawEndpoint": "\"/api/vouchers/apply\"",
+    "fullLine": "app.post(\"/api/vouchers/apply\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5901,
+    "method": "POST",
+    "rawEndpoint": "\"/api/user-vouchers/save\"",
+    "fullLine": "app.post(\"/api/user-vouchers/save\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5953,
+    "method": "GET",
+    "rawEndpoint": "\"/api/user-vouchers/my-vouchers\"",
+    "fullLine": "app.get(\"/api/user-vouchers/my-vouchers\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5984,
+    "method": "POST",
+    "rawEndpoint": "\"/api/user-vouchers/apply\"",
+    "fullLine": "app.post(\"/api/user-vouchers/apply\", async (req, res) => {"
+  },
+  {
+    "lineNum": 6110,
+    "method": "POST",
+    "rawEndpoint": "\"/api/user-vouchers/use\"",
+    "fullLine": "app.post(\"/api/user-vouchers/use\", async (req, res) => {"
+  },
+  {
+    "lineNum": 6261,
+    "method": "POST",
+    "rawEndpoint": "\"/reviews/by-order-item\"",
+    "fullLine": "app.post(\"/reviews/by-order-item\", handleGetReviews);"
+  },
+  {
+    "lineNum": 6264,
+    "method": "POST",
+    "rawEndpoint": "\"/reviews/filter\"",
+    "fullLine": "app.post(\"/reviews/filter\", handleGetReviews);"
+  },
+  {
+    "lineNum": 6267,
+    "method": "POST",
+    "rawEndpoint": "\"/reviews\"",
+    "fullLine": "app.post(\"/reviews\", async (req, res, next) => {"
+  },
+  {
+    "lineNum": 6331,
+    "method": "GET",
+    "rawEndpoint": "\"/api/products/:productId/reviews\"",
+    "fullLine": "app.get(\"/api/products/:productId/reviews\", async (req, res) => {"
+  },
+  {
+    "lineNum": 6404,
+    "method": "GET",
+    "rawEndpoint": "\"/api/products/:productId/review-eligibility\"",
+    "fullLine": "app.get(\"/api/products/:productId/review-eligibility\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 6775,
+    "method": "POST",
+    "rawEndpoint": "\"/create_payment_url\"",
+    "fullLine": "app.post(\"/create_payment_url\", payment);"
+  },
+  {
+    "lineNum": 6776,
+    "method": "POST",
+    "rawEndpoint": "\"/order/create_payment_url\"",
+    "fullLine": "app.post(\"/order/create_payment_url\", payment);"
+  },
+  {
+    "lineNum": 6777,
+    "method": "POST",
+    "rawEndpoint": "\"/api/create-qr\"",
+    "fullLine": "app.post(\"/api/create-qr\", payment);"
+  },
+  {
+    "lineNum": 6778,
+    "method": "GET",
+    "rawEndpoint": "\"/order/vnpay_return\"",
+    "fullLine": "app.get(\"/order/vnpay_return\", paymentReturn);"
+  },
+  {
+    "lineNum": 6779,
+    "method": "GET",
+    "rawEndpoint": "\"/vnpay_return\"",
+    "fullLine": "app.get(\"/vnpay_return\", paymentReturn);"
+  },
+  {
+    "lineNum": 6787,
+    "method": "POST",
+    "rawEndpoint": "\"/admin/banners/upload\"",
+    "fullLine": "app.post(\"/admin/banners/upload\", uploadBanner.single(\"image\"), (req, res) => {"
+  },
+  {
+    "lineNum": 6800,
+    "method": "GET",
+    "rawEndpoint": "[\"/admin/banners\", \"/api/banners\"]",
+    "fullLine": "app.get([\"/admin/banners\", \"/api/banners\"], async (req, res) => {"
+  },
+  {
+    "lineNum": 6810,
+    "method": "POST",
+    "rawEndpoint": "\"/admin/banners\"",
+    "fullLine": "app.post(\"/admin/banners\", uploadBanner.single(\"imageFile\"), async (req, res) => {"
+  },
+  {
+    "lineNum": 6849,
+    "method": "PUT",
+    "rawEndpoint": "\"/admin/banners/:id\"",
+    "fullLine": "app.put(\"/admin/banners/:id\", uploadBanner.single(\"imageFile\"), async (req, res) => {"
+  },
+  {
+    "lineNum": 6899,
+    "method": "PATCH",
+    "rawEndpoint": "[\"/admin/banners/:id/status\", \"/api/banners/:id/status\"]",
+    "fullLine": "app.patch([\"/admin/banners/:id/status\", \"/api/banners/:id/status\"], async (req, res) => {"
+  }
+]
