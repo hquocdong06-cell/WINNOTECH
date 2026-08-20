@@ -34,6 +34,24 @@ export default function Profile() {
   const [pwError, setPwError] = useState('')
   const [pwSuccess, setPwSuccess] = useState(false)
 
+  // ── States cho Quên mật khẩu qua OTP ──
+  const [isOtpMode, setIsOtpMode] = useState(false)
+  const [otpForm, setOtpForm] = useState({ otp: '', newPw: '', confirm: '' })
+  const [showOtpPw, setShowOtpPw] = useState({ newPw: false, confirm: false })
+  const [sendingOtp, setSendingOtp] = useState(false)
+  const [resettingPw, setResettingPw] = useState(false)
+  const [otpCountdown, setOtpCountdown] = useState(0)
+
+  useEffect(() => {
+    let timer
+    if (otpCountdown > 0) {
+      timer = setInterval(() => {
+        setOtpCountdown((prev) => prev - 1)
+      }, 1000)
+    }
+    return () => clearInterval(timer)
+  }, [otpCountdown])
+
   // ── Orders ──
   const [orders, setOrders] = useState([])
   const [ordersLoading, setOrdersLoading] = useState(false)
@@ -411,6 +429,74 @@ export default function Profile() {
         setPwSuccess(true); setPwForm({ current: '', newPw: '', confirm: '' }); setTimeout(() => setPwSuccess(false), 3000)
       } else { setPwError(data.message || 'Đổi mật khẩu thất bại') }
     } catch { setPwError('Lỗi kết nối server') }
+  }
+
+  // ── Yêu cầu gửi OTP quên mật khẩu ──
+  const handleRequestOtp = async () => {
+    setPwError('')
+    if (!user?.email) {
+      setPwError('Tài khoản của bạn chưa đăng ký email để nhận mã OTP!')
+      return
+    }
+    setSendingOtp(true)
+    try {
+      const res = await fetch(API_URL + '/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: user.email })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setIsOtpMode(true)
+        setOtpCountdown(60)
+        setOtpForm({ otp: '', newPw: '', confirm: '' }) // Đảm bảo tất cả các ô đều trống khi hiện bảng đổi mật khẩu
+        toast.success(data.message || 'Mã OTP đã được gửi tới email của bạn!', { position: 'bottom-right' })
+      } else {
+        setPwError(data.message || 'Gửi OTP thất bại!')
+      }
+    } catch {
+      setPwError('Lỗi kết nối server, không thể gửi mã OTP')
+    } finally {
+      setSendingOtp(false)
+    }
+  }
+
+  // ── Đổi mật khẩu bằng mã OTP ──
+  const handleResetPasswordWithOtp = async () => {
+    setPwError('')
+    if (!otpForm.otp.trim()) { setPwError('Vui lòng nhập mã OTP (6 chữ số)'); return }
+    if (otpForm.newPw.length < 6) { setPwError('Mật khẩu mới tối thiểu 6 ký tự'); return }
+    if (otpForm.newPw !== otpForm.confirm) { setPwError('Mật khẩu xác nhận không khớp'); return }
+
+    setResettingPw(true)
+    try {
+      const res = await fetch(API_URL + '/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: user.email,
+          otp: otpForm.otp.trim(),
+          newPassword: otpForm.newPw,
+          confirmPassword: otpForm.confirm
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPwSuccess(true)
+        toast.success(data.message || 'Đổi mật khẩu thành công!', { position: 'bottom-right' })
+        setOtpForm({ otp: '', newPw: '', confirm: '' })
+        setTimeout(() => {
+          setPwSuccess(false)
+          setIsOtpMode(false)
+        }, 2500)
+      } else {
+        setPwError(data.message || 'Đổi mật khẩu thất bại!')
+      }
+    } catch {
+      setPwError('Lỗi kết nối server khi xác nhận OTP')
+    } finally {
+      setResettingPw(false)
+    }
   }
 
   // ── Địa chỉ: Lưu thêm/sửa ──
@@ -1341,44 +1427,161 @@ export default function Profile() {
               {/* PASSWORD */}
               {activeTab === 'password' && (
                 <div className="profile-card">
-                  <div className="profile-card-title">ĐỔI MẬT KHẨU</div>
-                  <div className="profile-pw-intro">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    <span>Để bảo vệ tài khoản, hãy sử dụng mật khẩu mạnh với ít nhất 6 ký tự gồm chữ và số.</span>
+                  <div className="profile-card-title">
+                    {isOtpMode ? 'ĐẶT LẠI MẬT KHẨU QUA OTP' : 'ĐỔI MẬT KHẨU'}
                   </div>
-                  <div className="profile-pw-form">
-                    {[{field:'current',label:'Mật khẩu hiện tại',placeholder:'Nhập mật khẩu hiện tại'},{field:'newPw',label:'Mật khẩu mới',placeholder:'Nhập mật khẩu mới (tối thiểu 6 ký tự)'},{field:'confirm',label:'Xác nhận mật khẩu mới',placeholder:'Nhập lại mật khẩu mới'}].map(({field,label,placeholder}) => (
-                      <div key={field} className="profile-form-group">
-                        <label className="profile-form-label">{label}</label>
-                        <div className="profile-pw-input-wrap">
-                          <input
-                            className={'profile-form-input' + (field==='confirm' && pwForm.confirm && pwForm.newPw!==pwForm.confirm?' profile-form-input--error':'')}
-                            type={showPw[field] ? 'text' : 'password'} placeholder={placeholder}
-                            value={pwForm[field]} onChange={e=>setPwForm({...pwForm,[field]:e.target.value})}
-                          />
-                          <button className="profile-pw-toggle" onClick={()=>setShowPw({...showPw,[field]:!showPw[field]})}>
-                            {showPw[field] ? <EyeOff/> : <EyeOn/>}
-                          </button>
-                        </div>
-                        {field==='newPw' && pwForm.newPw && (
-                          <div className="profile-pw-strength">
-                            <div className={'profile-pw-strength-bar ' + (pwForm.newPw.length>=10?'strong':pwForm.newPw.length>=6?'medium':'weak')}/>
-                            <span className={pwForm.newPw.length>=10?'strong':pwForm.newPw.length>=6?'medium':'weak'}>{pwForm.newPw.length>=10?'Mạnh':pwForm.newPw.length>=6?'Trung bình':'Yếu'}</span>
-                          </div>
-                        )}
-                        {field==='confirm' && pwForm.confirm && pwForm.newPw!==pwForm.confirm && <span className="profile-form-error">Mật khẩu không khớp</span>}
+
+                  {!isOtpMode ? (
+                    <>
+                      <div className="profile-pw-intro">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <span>Để bảo vệ tài khoản, hãy sử dụng mật khẩu mạnh với ít nhất 6 ký tự gồm chữ và số.</span>
                       </div>
-                    ))}
-                  </div>
-                  {pwError && <div className="profile-alert profile-alert--error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{pwError}</div>}
-                  {pwSuccess && <div className="profile-alert profile-alert--success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Đổi mật khẩu thành công!</div>}
-                  <div className="profile-form-actions">
-                    <button className="profile-btn-cancel" onClick={()=>{setPwForm({current:'',newPw:'',confirm:''});setPwError('')}}>Huỷ</button>
-                    <button className="profile-btn-save" onClick={handleChangePassword}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                      Đổi mật khẩu
-                    </button>
-                  </div>
+                      <div className="profile-pw-form">
+                        {[{field:'current',label:'Mật khẩu hiện tại',placeholder:'Nhập mật khẩu hiện tại'},{field:'newPw',label:'Mật khẩu mới',placeholder:'Nhập mật khẩu mới (tối thiểu 6 ký tự)'},{field:'confirm',label:'Xác nhận mật khẩu mới',placeholder:'Nhập lại mật khẩu mới'}].map(({field,label,placeholder}) => (
+                          <div key={field} className="profile-form-group">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <label className="profile-form-label">{label}</label>
+                              {field === 'current' && (
+                                <button
+                                  type="button"
+                                  className="profile-pw-forgot-btn"
+                                  onClick={handleRequestOtp}
+                                  disabled={sendingOtp}
+                                >
+                                  {sendingOtp ? 'Đang gửi OTP...' : 'Quên mật khẩu?'}
+                                </button>
+                              )}
+                            </div>
+                            <div className="profile-pw-input-wrap">
+                              <input
+                                className={'profile-form-input' + (field==='confirm' && pwForm.confirm && pwForm.newPw!==pwForm.confirm?' profile-form-input--error':'')}
+                                type={showPw[field] ? 'text' : 'password'} placeholder={placeholder}
+                                value={pwForm[field]} onChange={e=>setPwForm({...pwForm,[field]:e.target.value})}
+                              />
+                              <button type="button" className="profile-pw-toggle" onClick={()=>setShowPw({...showPw,[field]:!showPw[field]})}>
+                                {showPw[field] ? <EyeOff/> : <EyeOn/>}
+                              </button>
+                            </div>
+                            {field==='newPw' && pwForm.newPw && (
+                              <div className="profile-pw-strength">
+                                <div className={'profile-pw-strength-bar ' + (pwForm.newPw.length>=10?'strong':pwForm.newPw.length>=6?'medium':'weak')}/>
+                                <span className={pwForm.newPw.length>=10?'strong':pwForm.newPw.length>=6?'medium':'weak'}>{pwForm.newPw.length>=10?'Mạnh':pwForm.newPw.length>=6?'Trung bình':'Yếu'}</span>
+                              </div>
+                            )}
+                            {field==='confirm' && pwForm.confirm && pwForm.newPw!==pwForm.confirm && <span className="profile-form-error">Mật khẩu không khớp</span>}
+                          </div>
+                        ))}
+                      </div>
+                      {pwError && <div className="profile-alert profile-alert--error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{pwError}</div>}
+                      {pwSuccess && <div className="profile-alert profile-alert--success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Đổi mật khẩu thành công!</div>}
+                      <div className="profile-form-actions">
+                        <button type="button" className="profile-btn-cancel" onClick={()=>{setPwForm({current:'',newPw:'',confirm:''});setPwError('')}}>Huỷ</button>
+                        <button type="button" className="profile-btn-save" onClick={handleChangePassword}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          Đổi mật khẩu
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* GIAO DIỆN NHẬP OTP XÁC THỰC */}
+                      <div className="profile-otp-banner">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        <div>
+                          <strong style={{ color: '#e2e8f0' }}>Mã OTP đã được gửi đến email!</strong>
+                          <div style={{ fontSize: '12px', marginTop: '2px', color: 'var(--text-muted)' }}>
+                            Vui lòng kiểm tra email <span style={{ color: '#d4ff00', fontWeight: 600 }}>{user?.email}</span> (kể cả thư rác/Spam) và nhập mã OTP 6 chữ số bên dưới.
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="profile-pw-form">
+                        {/* OTP Field */}
+                        <div className="profile-form-group">
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label className="profile-form-label">Mã OTP (6 chữ số)</label>
+                            <button
+                              type="button"
+                              className="profile-otp-resend-btn"
+                              onClick={handleRequestOtp}
+                              disabled={sendingOtp || otpCountdown > 0}
+                            >
+                              {otpCountdown > 0 ? `Gửi lại OTP (${otpCountdown}s)` : (sendingOtp ? 'Đang gửi...' : 'Gửi lại OTP')}
+                            </button>
+                          </div>
+                          <div className="profile-pw-input-wrap">
+                            <input
+                              className="profile-form-input"
+                              type="text"
+                              name="profile_otp_code"
+                              autoComplete="off"
+                              maxLength="6"
+                              placeholder="Nhập 6 chữ số mã OTP"
+                              value={otpForm.otp}
+                              onChange={e => setOtpForm({ ...otpForm, otp: e.target.value })}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Mật khẩu mới */}
+                        <div className="profile-form-group">
+                          <label className="profile-form-label">Mật khẩu mới</label>
+                          <div className="profile-pw-input-wrap">
+                            <input
+                              className="profile-form-input"
+                              type={showOtpPw.newPw ? 'text' : 'password'}
+                              name="profile_new_password"
+                              autoComplete="new-password"
+                              placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                              value={otpForm.newPw}
+                              onChange={e => setOtpForm({ ...otpForm, newPw: e.target.value })}
+                            />
+                            <button type="button" className="profile-pw-toggle" onClick={() => setShowOtpPw({ ...showOtpPw, newPw: !showOtpPw.newPw })}>
+                              {showOtpPw.newPw ? <EyeOff/> : <EyeOn/>}
+                            </button>
+                          </div>
+                          {otpForm.newPw && (
+                            <div className="profile-pw-strength">
+                              <div className={'profile-pw-strength-bar ' + (otpForm.newPw.length>=10?'strong':otpForm.newPw.length>=6?'medium':'weak')}/>
+                              <span className={otpForm.newPw.length>=10?'strong':otpForm.newPw.length>=6?'medium':'weak'}>{otpForm.newPw.length>=10?'Mạnh':otpForm.newPw.length>=6?'Trung bình':'Yếu'}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Xác nhận mật khẩu mới */}
+                        <div className="profile-form-group">
+                          <label className="profile-form-label">Xác nhận mật khẩu mới</label>
+                          <div className="profile-pw-input-wrap">
+                            <input
+                              className={'profile-form-input' + (otpForm.confirm && otpForm.newPw !== otpForm.confirm ? ' profile-form-input--error' : '')}
+                              type={showOtpPw.confirm ? 'text' : 'password'}
+                              name="profile_confirm_password"
+                              autoComplete="new-password"
+                              placeholder="Nhập lại mật khẩu mới"
+                              value={otpForm.confirm}
+                              onChange={e => setOtpForm({ ...otpForm, confirm: e.target.value })}
+                            />
+                            <button type="button" className="profile-pw-toggle" onClick={() => setShowOtpPw({ ...showOtpPw, confirm: !showOtpPw.confirm })}>
+                              {showOtpPw.confirm ? <EyeOff/> : <EyeOn/>}
+                            </button>
+                          </div>
+                          {otpForm.confirm && otpForm.newPw !== otpForm.confirm && <span className="profile-form-error">Mật khẩu không khớp</span>}
+                        </div>
+                      </div>
+
+                      {pwError && <div className="profile-alert profile-alert--error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{pwError}</div>}
+                      {pwSuccess && <div className="profile-alert profile-alert--success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Đổi mật khẩu bằng OTP thành công!</div>}
+
+                      <div className="profile-form-actions">
+                        <button type="button" className="profile-btn-cancel" onClick={() => { setIsOtpMode(false); setPwError(''); }}>Quay lại</button>
+                        <button type="button" className="profile-btn-save" onClick={handleResetPasswordWithOtp} disabled={resettingPw}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+                          {resettingPw ? 'Đang cập nhật...' : 'Xác nhận đổi mật khẩu'}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 

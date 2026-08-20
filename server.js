@@ -5177,89 +5177,179 @@ app.post("/contact", async (req, res) => {
   }
 });
 
-//API quên mật khẩu (chưa login)
 // ========================================================
-// API gửi mail (quên mật khẩu)
+// API Đổi mật khẩu trong Profile (dành cho người dùng đã đăng nhập)
 // ========================================================
-app.post("/api/auth/forgot-password", async (req, res) => {
+app.put("/profile/change-password", checklogin, async (req, res) => {
   try {
-    const { identifier } = req.body;
-    
-    if (!identifier) return res.status(400).json({ success: false, message: "Thiếu thông tin!" });
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+    const userId = req.user._id;
 
-    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
-    const query = isEmail ? { email: identifier } : { phone: identifier };
-
-    const user = await UserModel.findOne(query).select('_id name email').lean();
-    
-    if (!user) return res.status(404).json({ success: false, message: "Tài khoản không tồn tại." });
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = Date.now() + 5 * 60 * 1000;
-
-    await UserModel.updateOne(
-      { _id: user._id },
-      { $set: { resetPasswordOTP: otp, resetPasswordExpires: expires } }
-    );
-
-    const mailOptions = {
-      from: `"WINNOTech Support" <${process.env.EMAIL_USER}>`,
-      to: user.email,
-      subject: "[WINNOTech] Mã xác nhận khôi phục",
-      html: `<h3>Chào ${user.name},</h3><p>Mã OTP của bạn là: <b style="font-size: 24px; color: blue;">${otp}</b> (Hết hạn sau 5 phút).</p>`
-    };
-    await transporter.sendMail(mailOptions);
-
-    return res.status(200).json({ success: true, message: "Đã gửi OTP qua Email!" });
-  } catch (error) {
-    console.error("Lỗi:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
-  }
-});
-
-// ========================================================
-// API đổi mật khẩu (sau khi có OTP)
-// ========================================================
-app.post("/api/auth/reset-password", async (req, res) => {
-  try {
-    const { identifier, otp, newPassword, confirmPassword } = req.body;
-
-    if (!identifier || !otp || !newPassword || !confirmPassword) {
-      return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ các trường mật khẩu!" });
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ Mật khẩu hiện tại, Mật khẩu mới và Xác nhận mật khẩu!" });
     }
     if (newPassword !== confirmPassword) {
-      return res.status(400).json({ success: false, message: "Mật khẩu xác nhận không khớp!" });
+      return res.status(400).json({ success: false, message: "Mật khẩu mới và Mật khẩu xác nhận không khớp!" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: "Mật khẩu mới tối thiểu phải có 6 ký tự!" });
     }
     if (oldPassword === newPassword) {
-      return res.status(400).json({ success: false, message: "Mật khẩu mới không được trùng với mật khẩu cũ!" });
+      return res.status(400).json({ success: false, message: "Mật khẩu mới không được giống với mật khẩu hiện tại!" });
     }
 
-
-    const user = await UserModel.findById(userId).select('password').lean();
-    
+    const user = await UserModel.findById(userId);
     if (!user) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy tài khoản!" });
+      return res.status(404).json({ success: false, message: "Tài khoản không tồn tại." });
     }
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
-      return res.status(400).json({ success: false, message: "Mật khẩu cũ không chính xác!" });
+      return res.status(400).json({ success: false, message: "Mật khẩu hiện tại không chính xác!" });
+    }
+
+    const isSameAsOld = await bcrypt.compare(newPassword, user.password);
+    if (isSameAsOld) {
+      return res.status(400).json({ success: false, message: "Mật khẩu mới không được trùng với mật khẩu cũ!" });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
 
-    await UserModel.updateOne(
-      { _id: userId },
-      { $set: { password: hashedPassword } }
-    );
+    return res.status(200).json({ success: true, message: "Đổi mật khẩu thành công!" });
+  } catch (error) {
+    console.error("Lỗi API đổi mật khẩu:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server, không thể đổi mật khẩu lúc này." });
+  }
+});
+
+// ========================================================
+// API gửi mail mã OTP khôi phục / đổi mật khẩu (chỉ nhận Email)
+// ========================================================
+app.post("/api/auth/forgot-password", async (req, res) => {
+  try {
+    let { identifier, email } = req.body;
+    const targetEmail = (email || identifier || '').trim();
+    
+    if (!targetEmail) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập địa chỉ Email!" });
+    }
+
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail);
+    if (!isEmail) {
+      return res.status(400).json({ success: false, message: "Định dạng Email không hợp lệ! Vui lòng chỉ nhập địa chỉ Email (không nhập Số điện thoại)." });
+    }
+
+    const user = await UserModel.findOne({ email: targetEmail });
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Email này chưa được đăng ký tài khoản trên hệ thống." });
+    }
+
+    // Tạo OTP 6 chữ số và Hạn sử dụng (5 phút)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = Date.now() + 5 * 60 * 1000;
+
+    user.resetPasswordOTP = otp;
+    user.resetPasswordExpires = expires;
+    await user.save();
+
+    console.log(`[WINNOTech OTP] Mã OTP quên mật khẩu cho ${user.email} là: ${otp}`);
+
+    const mailOptions = {
+      from: `"WINNOTech Support" <${process.env.EMAIL_USER || "winnotech@gmail.com"}>`,
+      to: user.email,
+      subject: "[WINNOTech] Mã xác thực khôi phục mật khẩu",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #333; background: #0f1015; color: #e2e8f0; border-radius: 12px;">
+          <h2 style="color: #d4ff00; margin-top: 0; text-align: center; border-bottom: 1px solid #222; padding-bottom: 12px;">WINNOTech Support</h2>
+          <p style="font-size: 15px;">Xin chào <b>${user.name || 'Quý khách'}</b>,</p>
+          <p style="color: #a0aec0; font-size: 14px;">Bạn vừa yêu cầu mã OTP để khôi phục / đổi mật khẩu tài khoản WINNOTech.</p>
+          <p style="font-size: 14px; margin-bottom: 6px;">Mã OTP của bạn là:</p>
+          <div style="text-align: center; margin: 18px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #d4ff00; background: #1a1c23; padding: 12px 24px; border-radius: 8px; border: 1px dashed #d4ff00; display: inline-block;">${otp}</span>
+          </div>
+          <p style="color: #718096; font-size: 13px;">⚠️ Mã này có hiệu lực trong vòng <b>5 phút</b>. Vui lòng tuyệt đối không chia sẻ mã này cho người khác.</p>
+          <hr style="border: 0; border-top: 1px solid #2d3748; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #718096; text-align: center;">Đây là email tự động, vui lòng không phản hồi lại email này.</p>
+        </div>
+      `
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+    } catch (mailErr) {
+      console.error("Lỗi gửi email OTP:", mailErr.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã gửi mã OTP đến email ${user.email}! Vui lòng kiểm tra hộp thư.`,
+      email: user.email
+    });
+  } catch (error) {
+    console.error("Lỗi API gửi OTP quên mật khẩu:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server, không thể gửi mã OTP lúc này." });
+  }
+});
+
+// ========================================================
+// API Xác thực OTP & Đổi mật khẩu mới (chỉ nhận Email)
+// ========================================================
+app.post("/api/auth/reset-password", async (req, res) => {
+  try {
+    const { identifier, email, otp, newPassword, confirmPassword } = req.body;
+    const targetEmail = (email || identifier || '').trim();
+
+    if (!targetEmail || !otp || !newPassword || !confirmPassword) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ Email, mã OTP, mật khẩu mới và xác nhận mật khẩu!" });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, message: "Mật khẩu mới và mật khẩu xác nhận không khớp!" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: "Mật khẩu mới tối thiểu phải có 6 ký tự!" });
+    }
+
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail);
+    if (!isEmail) {
+      return res.status(400).json({ success: false, message: "Định dạng Email không hợp lệ! Vui lòng chỉ nhập Email." });
+    }
+
+    const user = await UserModel.findOne({ email: targetEmail });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy tài khoản tương ứng với Email này!" });
+    }
+
+    if (!user.resetPasswordOTP || user.resetPasswordOTP.trim() !== otp.toString().trim()) {
+      return res.status(400).json({ success: false, message: "Mã OTP không chính xác!" });
+    }
+
+    if (!user.resetPasswordExpires || Date.now() > new Date(user.resetPasswordExpires).getTime()) {
+      return res.status(400).json({ success: false, message: "Mã OTP đã hết hạn (5 phút)! Vui lòng bấm 'Gửi lại OTP'." });
+    }
+
+    if (user.password) {
+      const isSameAsOld = await bcrypt.compare(newPassword, user.password);
+      if (isSameAsOld) {
+        return res.status(400).json({ success: false, message: "Mật khẩu mới không được trùng với mật khẩu cũ!" });
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.resetPasswordOTP = null;
+    user.resetPasswordExpires = null;
+    await user.save();
 
     return res.status(200).json({ 
       success: true, 
-      message: "Cập nhật mật khẩu mới thành công!" 
+      message: "Đổi mật khẩu mới qua OTP thành công!" 
     });
 
   } catch (error) {
-    console.error("Lỗi đổi mật khẩu trực tiếp:", error);
+    console.error("Lỗi API đổi mật khẩu qua OTP:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server, không thể đổi mật khẩu lúc này." });
   }
 });

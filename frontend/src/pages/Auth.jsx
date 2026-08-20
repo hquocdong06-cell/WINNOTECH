@@ -18,6 +18,14 @@ export default function Auth() {
   const [errors, setErrors]                           = useState({})
   const [googleLoading, setGoogleLoading]             = useState(false)
 
+  // Forgot password modal states
+  const [showForgotModal, setShowForgotModal]        = useState(false)
+  const [forgotStep, setForgotStep]                  = useState(1) // 1: enter email, 2: enter OTP & new password
+  const [forgotForm, setForgotForm]                  = useState({ identifier: '', otp: '', newPassword: '', confirmPassword: '' })
+  const [forgotLoading, setForgotLoading]            = useState(false)
+  const [forgotError, setForgotError]                = useState('')
+  const [forgotSuccess, setForgotSuccess]            = useState('')
+
   // Form states
   const [loginForm, setLoginForm] = useState({
     email: '',
@@ -108,6 +116,87 @@ export default function Auth() {
       }
     } catch (error) {
       setErrors({ general: 'Không thể kết nối server. Vui lòng thử lại!' })
+    }
+  }
+
+  // Forgot password handlers
+  const handleForgotSendOtp = async (e) => {
+    e.preventDefault()
+    setForgotError('')
+    setForgotSuccess('')
+    const inputEmail = forgotForm.identifier.trim()
+    if (!inputEmail) {
+      setForgotError('Vui lòng nhập địa chỉ Email')
+      return
+    }
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputEmail)
+    if (!isEmail) {
+      setForgotError('Vui lòng nhập đúng định dạng Email (Ví dụ: account@gmail.com). Hệ thống không hỗ trợ số điện thoại.')
+      return
+    }
+    setForgotLoading(true)
+    try {
+      const res = await fetch('http://localhost:3000/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: forgotForm.identifier.trim() })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setForgotSuccess(data.message)
+        setForgotStep(2)
+        // Reset các ô nhập ở bước 2 để đảm bảo các ô đều trống
+        setForgotForm(prev => ({ ...prev, otp: '', newPassword: '', confirmPassword: '' }))
+      } else {
+        setForgotError(data.message || 'Lỗi gửi mã OTP')
+      }
+    } catch {
+      setForgotError('Không thể kết nối tới server')
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
+  const handleForgotResetPassword = async (e) => {
+    e.preventDefault()
+    setForgotError('')
+    setForgotSuccess('')
+    if (!forgotForm.otp.trim() || !forgotForm.newPassword || !forgotForm.confirmPassword) {
+      setForgotError('Vui lòng nhập đầy đủ thông tin')
+      return
+    }
+    if (forgotForm.newPassword !== forgotForm.confirmPassword) {
+      setForgotError('Mật khẩu xác nhận không khớp')
+      return
+    }
+    setForgotLoading(true)
+    try {
+      const res = await fetch('http://localhost:3000/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: forgotForm.identifier.trim(),
+          otp: forgotForm.otp.trim(),
+          newPassword: forgotForm.newPassword,
+          confirmPassword: forgotForm.confirmPassword
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setForgotSuccess(data.message || 'Đổi mật khẩu thành công!')
+        setTimeout(() => {
+          setShowForgotModal(false)
+          setForgotStep(1)
+          setForgotForm({ identifier: '', otp: '', newPassword: '', confirmPassword: '' })
+          setForgotSuccess('')
+        }, 2000)
+      } else {
+        setForgotError(data.message || 'Đặt lại mật khẩu thất bại')
+      }
+    } catch {
+      setForgotError('Lỗi kết nối server')
+    } finally {
+      setForgotLoading(false)
     }
   }
 
@@ -374,7 +463,20 @@ export default function Auth() {
                   />
                   <span>Ghi nhớ đăng nhập</span>
                 </label>
-                <a href="#" className="forgot-link">Quên mật khẩu?</a>
+                <button
+                  type="button"
+                  className="forgot-link"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  onClick={() => {
+                    setShowForgotModal(true)
+                    setForgotStep(1)
+                    setForgotForm({ identifier: '', otp: '', newPassword: '', confirmPassword: '' })
+                    setForgotError('')
+                    setForgotSuccess('')
+                  }}
+                >
+                  Quên mật khẩu?
+                </button>
               </div>
 
               {/* Submit */}
@@ -588,6 +690,124 @@ export default function Auth() {
           )}
         </div>
       </div>
+      {/* MODAL QUÊN MẬT KHẨU VIA OTP */}
+      {showForgotModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+        }}>
+          <div style={{
+            background: '#161821', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px',
+            width: '100%', maxWidth: '440px', padding: '28px', color: '#fff', position: 'relative'
+          }}>
+            <button
+              onClick={() => setShowForgotModal(false)}
+              style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: '#888', fontSize: '20px', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+            <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#d4ff00', marginBottom: '8px' }}>
+              KHÔI PHỤC MẬT KHẨU
+            </h3>
+            <p style={{ fontSize: '13px', color: '#a0aec0', marginBottom: '20px' }}>
+              {forgotStep === 1
+                ? 'Nhập địa chỉ Email đăng ký để nhận mã OTP khôi phục.'
+                : `Nhập mã OTP vừa gửi tới ${forgotForm.identifier} và tạo mật khẩu mới.`}
+            </p>
+
+            {forgotError && (
+              <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px' }}>
+                {forgotError}
+              </div>
+            )}
+            {forgotSuccess && (
+              <div style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px' }}>
+                {forgotSuccess}
+              </div>
+            )}
+
+            {forgotStep === 1 ? (
+              <form onSubmit={handleForgotSendOtp} autoComplete="off">
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>Địa chỉ Email (*)</label>
+                  <input
+                    type="email"
+                    name="forgot_email"
+                    autoComplete="off"
+                    placeholder="Nhập email đăng ký (Ví dụ: name@example.com)"
+                    value={forgotForm.identifier}
+                    onChange={e => setForgotForm({ ...forgotForm, identifier: e.target.value })}
+                    style={{ width: '100%', background: '#0f1015', border: '1px solid rgba(255,255,255,0.15)', padding: '12px', borderRadius: '8px', color: '#fff', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={forgotLoading}
+                  style={{ width: '100%', background: '#d4ff00', color: '#000', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px', opacity: forgotLoading ? 0.6 : 1 }}
+                >
+                  {forgotLoading ? 'ĐANG GỬI OTP...' : 'GỬI MÃ OTP VIA EMAIL'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleForgotResetPassword} autoComplete="off">
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>Mã OTP (6 chữ số)</label>
+                  <input
+                    type="text"
+                    name="forgot_otp_code"
+                    maxLength="6"
+                    autoComplete="off"
+                    placeholder="Nhập mã OTP 6 chữ số"
+                    value={forgotForm.otp}
+                    onChange={e => setForgotForm({ ...forgotForm, otp: e.target.value })}
+                    style={{ width: '100%', background: '#0f1015', border: '1px solid rgba(255,255,255,0.15)', padding: '12px', borderRadius: '8px', color: '#fff', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>Mật khẩu mới</label>
+                  <input
+                    type="password"
+                    name="forgot_new_password"
+                    autoComplete="new-password"
+                    placeholder="Tối thiểu 6 ký tự"
+                    value={forgotForm.newPassword}
+                    onChange={e => setForgotForm({ ...forgotForm, newPassword: e.target.value })}
+                    style={{ width: '100%', background: '#0f1015', border: '1px solid rgba(255,255,255,0.15)', padding: '12px', borderRadius: '8px', color: '#fff', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>Xác nhận mật khẩu mới</label>
+                  <input
+                    type="password"
+                    name="forgot_confirm_password"
+                    autoComplete="new-password"
+                    placeholder="Nhập lại mật khẩu mới"
+                    value={forgotForm.confirmPassword}
+                    onChange={e => setForgotForm({ ...forgotForm, confirmPassword: e.target.value })}
+                    style={{ width: '100%', background: '#0f1015', border: '1px solid rgba(255,255,255,0.15)', padding: '12px', borderRadius: '8px', color: '#fff', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setForgotStep(1)}
+                    style={{ flex: 1, background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '12px', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    Quay lại
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    style={{ flex: 2, background: '#d4ff00', color: '#000', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer', opacity: forgotLoading ? 0.6 : 1 }}
+                  >
+                    {forgotLoading ? 'ĐANG ĐỔI...' : 'ĐỔI MẬT KHẨU'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
