@@ -53,6 +53,7 @@ export default function CartDrawer({ isOpen, onClose }) {
       product_id: item.product_id,
       variant_id: item.variant_id
     }));
+    window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { action: 'remove', item } }));
     // Nếu có cartItemId → gọi API DELETE lên DB để tránh item xuất hiện lại khi F5
     if (item.cartItemId) {
       setRemovingId(item.cartItemId);

@@ -7161,6 +7161,17 @@ const paymentReturn = async (req, res) => {
             }
           }
 
+          // Xóa các sản phẩm đã mua khỏi giỏ hàng DB
+          if (order.user_id) {
+            const orderVariantIds = orderItems.map(i => i.variants_id || i.variant_id).filter(Boolean);
+            if (orderVariantIds.length > 0) {
+              await CartItemModel.deleteMany({
+                u_id: order.user_id,
+                variant_id: { $in: orderVariantIds }
+              });
+            }
+          }
+
           await order.save();
 
           // Gửi email thông tin đơn hàng đã đặt
