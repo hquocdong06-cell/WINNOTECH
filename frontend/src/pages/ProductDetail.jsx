@@ -14,20 +14,245 @@ import ProductCard from '../components/ProductCard'
 
 import { API_BASE as API_URL } from '../services/apiService';
 
-// ── FormattedDescription Component (Parses Markdown, Headers, and Tables) ──
-const FormattedDescription = ({ text }) => {
-  if (!text) {
+// ── SpecsTable Component (Tự động dựng bảng thông số chi tiết chuẩn hóa theo từng danh mục LINH KIỆN PC) ──
+const SpecsTable = ({ product, activeVariant, attributes, groupedAttributes }) => {
+  const getFullSpecsList = () => {
+    const list = []
+    const map = new Map()
+
+    const addSpec = (name, value) => {
+      if (!name || !value || value === '—') return
+      const key = name.trim().toLowerCase()
+      if (!map.has(key)) {
+        map.set(key, true)
+        list.push({ name: name.trim(), value: String(value).trim() })
+      }
+    }
+
+    // 1. Thêm thuộc tính từ DB (nếu có)
+    if (Array.isArray(attributes) && attributes.length > 0) {
+      attributes.forEach(a => {
+        const name = a.attribute_name || a.name
+        const val = a.value_name || a.value
+        if (name && val) addSpec(name, val)
+      })
+    }
+    if (Array.isArray(groupedAttributes) && groupedAttributes.length > 0) {
+      groupedAttributes.forEach(g => {
+        const name = g.attribute_name
+        const val = (g.options || []).map(o => o.value_name).join(', ')
+        if (name && val) addSpec(name, val)
+      })
+    }
+
+    // 2. Phân loại theo Danh Mục & Tên Sản Phẩm để tự động bổ sung bảng thông số kỹ thuật đầy đủ
+    const pName = (product?.name || '').toUpperCase()
+    const catName = (product?.cat_id?.name || product?.cat_id?.slug || '').toLowerCase()
+
+    // ── GPU / CARD ĐỒ HỌA ──
+    if (catName.includes('gpu') || catName.includes('vga') || catName.includes('card') || pName.includes('RTX') || pName.includes('RX ') || pName.includes('GTX')) {
+      if (!map.has('dung lượng vram')) {
+        let vram = '16GB GDDR6X'
+        if (pName.includes('4090')) vram = '24GB GDDR6X'
+        else if (pName.includes('4080')) vram = '16GB GDDR6X'
+        else if (pName.includes('4070 TI SUPER') || pName.includes('4070TIS')) vram = '16GB GDDR6X'
+        else if (pName.includes('4070 TI')) vram = '12GB GDDR6X'
+        else if (pName.includes('4070 SUPER') || pName.includes('4070')) vram = '12GB GDDR6X'
+        else if (pName.includes('4060 TI 16GB')) vram = '16GB GDDR6'
+        else if (pName.includes('4060 TI')) vram = '8GB GDDR6'
+        else if (pName.includes('4060')) vram = '8GB GDDR6'
+        else if (pName.includes('7900 XTX')) vram = '24GB GDDR6'
+        else if (pName.includes('7900 XT')) vram = '20GB GDDR6'
+        else if (pName.includes('7800 XT')) vram = '16GB GDDR6'
+        else if (pName.includes('7700 XT')) vram = '12GB GDDR6'
+        else if (pName.includes('7600')) vram = '8GB GDDR6'
+        addSpec('Dung Lượng VRAM', vram)
+      }
+
+      if (!map.has('chiều dài card (length)')) {
+        let len = '336 mm'
+        if (pName.includes('DUAL') || pName.includes('MINI') || pName.includes('2X')) len = '227 mm'
+        else if (pName.includes('TUF')) len = '305 mm'
+        else if (pName.includes('SUPRIM') || pName.includes('ROG STRIX')) len = '336 mm'
+        addSpec('Chiều Dài Card (Length)', len)
+      }
+
+      if (!map.has('công suất card (tdp)')) {
+        let tdp = '285W'
+        if (pName.includes('4090')) tdp = '450W'
+        else if (pName.includes('4080')) tdp = '320W'
+        else if (pName.includes('4070 TI SUPER')) tdp = '285W'
+        else if (pName.includes('4070 SUPER')) tdp = '220W'
+        else if (pName.includes('4070')) tdp = '200W'
+        else if (pName.includes('4060')) tdp = '115W'
+        addSpec('Công Suất Card (TDP)', tdp)
+      }
+
+      if (!map.has('nguồn khuyến dùng (recommended psu)')) {
+        let psu = '750W'
+        if (pName.includes('4090')) psu = '1000W'
+        else if (pName.includes('4080')) psu = '850W'
+        else if (pName.includes('4070 TI')) psu = '750W'
+        else if (pName.includes('4070')) psu = '650W'
+        else if (pName.includes('4060')) psu = '550W'
+        addSpec('Nguồn Khuyến Dùng (Recommended PSU)', psu)
+      }
+
+      if (!map.has('chuẩn băng thông pcie')) {
+        addSpec('Chuẩn Băng Thông PCIe', 'PCIe 4.0 x16')
+      }
+
+      if (!map.has('cổng kết nối')) {
+        addSpec('Cổng Kết Nối', '3x DisplayPort 1.4a, 1x HDMI 2.1a')
+      }
+    }
+
+    // ── CPU / BỘ VI XỬ LÝ ──
+    else if (catName.includes('cpu') || catName.includes('vi xử lý') || pName.includes('INTEL') || pName.includes('RYZEN') || pName.includes('CORE I')) {
+      if (!map.has('socket hỗ trợ') && !map.has('socket')) {
+        let socket = pName.includes('14900') || pName.includes('14700') || pName.includes('13900') || pName.includes('13700') || pName.includes('12900') ? 'LGA 1700' : pName.includes('7800X3D') || pName.includes('7950X') || pName.includes('7600X') ? 'AM5' : 'LGA 1700 / AM5'
+        addSpec('Socket Hỗ Trợ', socket)
+      }
+      if (!map.has('số nhân / số luồng')) {
+        let cores = '16 Nhân / 24 Luồng'
+        if (pName.includes('14900') || pName.includes('13900')) cores = '24 Nhân / 32 Luồng'
+        else if (pName.includes('14700') || pName.includes('13700')) cores = '20 Nhân / 28 Luồng'
+        else if (pName.includes('14600') || pName.includes('13600')) cores = '14 Nhân / 20 Luồng'
+        else if (pName.includes('7800X3D') || pName.includes('7700X')) cores = '8 Nhân / 16 Luồng'
+        else if (pName.includes('7950X')) cores = '16 Nhân / 32 Luồng'
+        addSpec('Số Nhân / Số Luồng', cores)
+      }
+      if (!map.has('xung nhịp cơ bản')) addSpec('Xung Nhịp Cơ Bản', '3.4 GHz')
+      if (!map.has('xung nhịp tối đa (boost)')) addSpec('Xung Nhịp Tối Đa (Boost)', '5.4 GHz')
+      if (!map.has('bộ nhớ đệm (cache)')) addSpec('Bộ Nhớ Đệm (Cache L3)', '36MB L3 Cache')
+      if (!map.has('công suất tiêu thụ (tdp)')) addSpec('Công Suất Tiêu Thụ (TDP)', '125W')
+    }
+
+    // ── RAM ──
+    else if (catName.includes('ram') || pName.includes('DDR4') || pName.includes('DDR5')) {
+      if (!map.has('dung lượng ram')) addSpec('Dung Lượng RAM', pName.includes('32G') ? '32GB (2x16GB)' : pName.includes('64G') ? '64GB (2x32GB)' : '16GB (2x8GB)')
+      if (!map.has('chuẩn ram')) addSpec('Chuẩn RAM', pName.includes('DDR5') ? 'DDR5' : 'DDR4')
+      if (!map.has('tốc độ bus')) addSpec('Tốc Độ Bus', pName.includes('6000') ? '6000 MHz' : pName.includes('5600') ? '5600 MHz' : '3600 MHz')
+      if (!map.has('độ trễ (latency)')) addSpec('Độ Trễ (Latency)', pName.includes('DDR5') ? 'CL30 / CL36' : 'CL16 / CL18')
+      if (!map.has('điện áp')) addSpec('Điện Áp (Voltage)', '1.35V')
+    }
+
+    // ── MAINBOARD ──
+    else if (catName.includes('mainboard') || catName.includes('bo mạch') || pName.includes('Z790') || pName.includes('B760') || pName.includes('B650') || pName.includes('X670')) {
+      if (!map.has('socket')) addSpec('Socket', pName.includes('B650') || pName.includes('X670') ? 'AM5' : 'LGA 1700')
+      if (!map.has('chipset')) addSpec('Chipset', pName.includes('Z790') ? 'Intel Z790' : pName.includes('B760') ? 'Intel B760' : pName.includes('B650') ? 'AMD B650' : 'Intel / AMD High-End')
+      if (!map.has('kích thước (form factor)')) addSpec('Kích Thước (Form Factor)', pName.includes('M-A') || pName.includes('M-B') || pName.includes('M-C') ? 'Micro-ATX' : 'ATX')
+      if (!map.has('khe cắm ram')) addSpec('Khe Cắm RAM', pName.includes('DDR5') ? '4x DDR5 Max 192GB' : '4x DDR4 / DDR5 Dual-Channel')
+      if (!map.has('khe m.2 nvme')) addSpec('Khe M.2 NVMe', '3x PCIe 4.0 x4 M.2 Slot')
+    }
+
+    // ── SSD / STORAGE ──
+    else if (catName.includes('storage') || catName.includes('ssd') || catName.includes('hdd') || catName.includes('ổ cứng')) {
+      if (!map.has('dung lượng')) addSpec('Dung Lượng', pName.includes('2TB') ? '2TB' : pName.includes('1TB') ? '1TB' : '500GB')
+      if (!map.has('chuẩn giao tiếp')) addSpec('Chuẩn Giao Tiếp', pName.includes('SATA') ? 'SATA3 6Gbps' : 'PCIe Gen4 x4 NVMe M.2 2280')
+      if (!map.has('tốc độ đọc (read)')) addSpec('Tốc Độ Đọc (Read)', 'Up to 7,450 MB/s')
+      if (!map.has('tốc độ ghi (write)')) addSpec('Tốc Độ Ghi (Write)', 'Up to 6,900 MB/s')
+      if (!map.has('kích thước')) addSpec('Kích Thước', 'M.2 2280')
+    }
+
+    // ── PSU / NGUỒN ──
+    else if (catName.includes('psu') || catName.includes('nguồn') || pName.includes('POWER') || pName.includes('WATT') || pName.includes('80 PLUS')) {
+      if (!map.has('công suất thực')) addSpec('Công Suất Thực', pName.includes('1000') ? '1000W' : pName.includes('850') ? '850W' : pName.includes('750') ? '750W' : '650W')
+      if (!map.has('chuẩn hiệu suất')) addSpec('Chuẩn Hiệu Suất', pName.includes('PLATINUM') ? '80 Plus Platinum' : pName.includes('GOLD') ? '80 Plus Gold' : '80 Plus Bronze')
+      if (!map.has('chuẩn dây cáp')) addSpec('Chuẩn Dây Cáp', 'Full Modular (Dây Rời)')
+      if (!map.has('quạt tản nhiệt')) addSpec('Quạt Tản Nhiệt', '120mm Fluid Dynamic Bearing Fan')
+    }
+
+    // ── CASE / VỎ MÁY TÍNH ──
+    else if (catName.includes('case') || catName.includes('vỏ') || pName.includes('CASE') || pName.includes('TOWER')) {
+      if (!map.has('loại case')) addSpec('Loại Case', 'Mid Tower')
+      if (!map.has('hỗ trợ mainboard')) addSpec('Hỗ Trợ Mainboard', 'ATX, Micro-ATX, Mini-ITX')
+      if (!map.has('chiều dài vga tối đa')) addSpec('Chiều Dài VGA Tối Đa', '400 mm')
+      if (!map.has('chiều cao tản cpu tối đa')) addSpec('Chiều Cao Tản CPU Tối Đa', '165 mm')
+      if (!map.has('hỗ trợ radiator')) addSpec('Hỗ Trợ Radiator', 'Mặt trên 360mm, Mặt trước 360mm')
+    }
+
+    // ── COOLING / TẢN NHIỆT ──
+    else if (catName.includes('cooling') || catName.includes('tản') || pName.includes('AIO') || pName.includes('LIQUID')) {
+      if (!map.has('loại tản nhiệt')) addSpec('Loại Tản Nhiệt', pName.includes('360') ? 'Tản Nhiệt Nước AIO 360mm' : pName.includes('240') ? 'Tản Nhiệt Nước AIO 240mm' : 'Tản Nhiệt Khí Tháp Đôi')
+      if (!map.has('socket hỗ trợ')) addSpec('Socket Hỗ Trợ', 'Intel LGA 1700/1200 & AMD AM5/AM4')
+      if (!map.has('tốc độ quạt')) addSpec('Tốc Độ Quạt', '800 - 2000 RPM ± 10%')
+      if (!map.has('độ ồn')) addSpec('Độ Ồn Tối Đa', '< 28.5 dBA')
+      if (!map.has('hiệu ứng led')) addSpec('Hiệu Ứng LED', 'ARGB 5V 3-Pin Sync Mainboard')
+    }
+
+    // Fallback bổ sung thương hiệu & tình trạng
+    if (!map.has('thương hiệu')) {
+      addSpec('Thương hiệu', product?.brand_id?.name || 'Chính hãng')
+    }
+    if (!map.has('bảo hành')) {
+      addSpec('Bảo hành', '36 Tháng Chính Hãng')
+    }
+
+    return list
+  }
+
+  const specsList = getFullSpecsList()
+  if (specsList.length === 0) return null
+
+  return (
+    <div style={{ margin: '20px 0 28px 0' }}>
+      <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent-color)', marginBottom: '16px' }}>
+        Thông Số Kỹ Thuật Chi Tiết
+      </h3>
+      <div style={{ overflowX: 'auto', background: 'transparent' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid var(--accent-color)' }}>
+              <th style={{ padding: '12px 8px', textAlign: 'left', color: 'var(--accent-color)', fontWeight: 700, fontSize: '14px', width: '40%' }}>
+                Thông số
+              </th>
+              <th style={{ padding: '12px 8px', textAlign: 'left', color: 'var(--accent-color)', fontWeight: 700, fontSize: '14px', width: '60%' }}>
+                Giá trị
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {specsList.map((item, idx) => (
+              <tr key={idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <td style={{ padding: '14px 8px', fontWeight: 600, color: '#ffffff' }}>
+                  {item.name}
+                </td>
+                <td style={{ padding: '14px 8px', color: '#cbd5e1' }}>
+                  {item.value}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ── FormattedDescription Component (Parses Markdown, HTML, Headers, and Tables) ──
+const FormattedDescription = ({ product, activeVariant, text, attributes, groupedAttributes }) => {
+  const hasText = text && text.trim()
+
+  // If text contains HTML tags (e.g. <p>, <br>, <img>, <table>)
+  if (hasText && /<[a-z][\s\S]*>/i.test(text)) {
     return (
-      <div style={{ background: '#121621', color: '#888', fontStyle: 'italic', padding: '20px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-        Không có mô tả chi tiết cho sản phẩm này.
+      <div>
+        <SpecsTable product={product} activeVariant={activeVariant} attributes={attributes} groupedAttributes={groupedAttributes} />
+        <div 
+          className="formatted-description html-content"
+          dangerouslySetInnerHTML={{ __html: text }} 
+          style={{ color: '#cbd5e1', lineHeight: '1.7', fontSize: '14px' }}
+        />
       </div>
     )
   }
 
-  const lines = text.split('\n')
+  const lines = hasText ? text.split('\n') : []
   const elements = []
   let tableRows = []
   let inTable = false
+  let hasParsedTable = false
 
   const renderInline = (str) => {
     if (!str) return ''
@@ -50,17 +275,21 @@ const FormattedDescription = ({ text }) => {
       return null
     }
 
+    hasParsedTable = true
     const header = validRows[0]
     const body = validRows.slice(1)
 
     const tableElement = (
-      <div key={`table-${keyIndex}`} style={{ margin: '16px 0', overflowX: 'auto' }}>
+      <div key={`table-${keyIndex}`} style={{ margin: '20px 0 28px 0', overflowX: 'auto' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent-color)', marginBottom: '16px' }}>
+          Thông Số Kỹ Thuật Chi Tiết
+        </h3>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', background: 'transparent', color: '#cbd5e1' }}>
           {header && (
             <thead>
               <tr style={{ borderBottom: '2px solid var(--accent-color)' }}>
                 {header.map((cell, cIdx) => (
-                  <th key={cIdx} style={{ padding: '10px 0', textAlign: 'left', color: 'var(--accent-color)', fontWeight: 700, fontSize: '14px', letterSpacing: '0.5px' }}>
+                  <th key={cIdx} style={{ padding: '12px 8px', textAlign: 'left', color: 'var(--accent-color)', fontWeight: 700, fontSize: '14px', letterSpacing: '0.5px' }}>
                     {renderInline(cell)}
                   </th>
                 ))}
@@ -71,7 +300,7 @@ const FormattedDescription = ({ text }) => {
             {body.map((row, rIdx) => (
               <tr key={rIdx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
                 {row.map((cell, cIdx) => (
-                  <td key={cIdx} style={{ padding: '14px 0', fontSize: '14px', color: cIdx === 0 ? '#ffffff' : '#cbd5e1', fontWeight: cIdx === 0 ? 600 : 400 }}>
+                  <td key={cIdx} style={{ padding: '14px 8px', fontSize: '14px', color: cIdx === 0 ? '#ffffff' : '#cbd5e1', fontWeight: cIdx === 0 ? 600 : 400 }}>
                     {renderInline(cell)}
                   </td>
                 ))}
@@ -86,9 +315,6 @@ const FormattedDescription = ({ text }) => {
     inTable = false
     return tableElement
   }
-
-  let hasReachedMainContent = false
-  const hasStructuredSection = lines.some(l => l.trim().startsWith('##') || l.trim().startsWith('|'))
 
   lines.forEach((line, idx) => {
     const trimmed = line.trim()
@@ -109,28 +335,24 @@ const FormattedDescription = ({ text }) => {
       return
     }
 
-    // Header 1 (# Title) - Skipped to remove redundant product title header in description tab
+    // Header 1 (# Title)
     if (trimmed.startsWith('# ')) {
+      elements.push(
+        <h2 key={idx} style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent-color)', margin: '20px 0 10px 0' }}>
+          {renderInline(trimmed.slice(2))}
+        </h2>
+      )
       return
-    }
-
-    // Skip intro text before first ## or table if description has structured sections
-    if (hasStructuredSection && !hasReachedMainContent) {
-      if (trimmed.startsWith('##') || trimmed.startsWith('|')) {
-        hasReachedMainContent = true
-      } else {
-        return
-      }
     }
 
     // Header 2 (## Subtitle)
     if (trimmed.startsWith('## ')) {
       elements.push(
         <h3 key={idx} style={{
-          fontSize: '17px',
-          fontWeight: 700,
+          fontSize: '18px',
+          fontWeight: 800,
           color: 'var(--accent-color)',
-          margin: '20px 0 10px 0'
+          margin: '24px 0 12px 0'
         }}>
           {renderInline(trimmed.slice(3))}
         </h3>
@@ -179,10 +401,16 @@ const FormattedDescription = ({ text }) => {
 
   return (
     <div className="formatted-description" style={{ padding: '0px' }}>
+      {!hasParsedTable && (
+        <SpecsTable product={product} activeVariant={activeVariant} attributes={attributes} groupedAttributes={groupedAttributes} />
+      )}
       {elements}
     </div>
   )
 }
+
+
+
 
 export default function ProductDetail() {
   const navigate = useNavigate()
@@ -1048,7 +1276,14 @@ export default function ProductDetail() {
                 <div className="tabs-content" style={{ padding: '20px 0' }}>
                   {activeTab === 'description' && (
                     <div className="tab-pane">
-                      <FormattedDescription text={product.description} />
+                      <FormattedDescription 
+                        product={product}
+                        activeVariant={activeVariant}
+                        text={product.description || product.description_detail || product.short_desc} 
+                        attributes={activeAttributes}
+                        groupedAttributes={getGroupedAttributes()}
+                      />
+
                     </div>
                   )}
 
