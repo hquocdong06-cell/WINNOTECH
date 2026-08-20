@@ -260,6 +260,290 @@ async function runMasterSeed() {
 
   // 5.1 Định nghĩa cấu hình tạo sản phẩm cho các danh mục
   const newCategoryDefinitions = {
+    // --- CPU (Bộ vi xử lý) ---
+    cpu: Array.from({ length: 25 }, (_, i) => {
+      const items = [
+        { name: 'Intel Core i9-14900K', brand: 'intel', price: 14890000, socket: 'LGA1700', cores: '24 Nhân 32 Luồng', clock: '5.8GHz' },
+        { name: 'Intel Core i7-14700K', brand: 'intel', price: 10490000, socket: 'LGA1700', cores: '20 Nhân 28 Luồng', clock: '5.6GHz' },
+        { name: 'Intel Core i5-14600K', brand: 'intel', price: 7890000, socket: 'LGA1700', cores: '14 Nhân 20 Luồng', clock: '5.3GHz' },
+        { name: 'Intel Core i5-13400F', brand: 'intel', price: 4690000, socket: 'LGA1700', cores: '10 Nhân 16 Luồng', clock: '4.6GHz' },
+        { name: 'AMD Ryzen 7 7800X3D', brand: 'amd', price: 9890000, socket: 'AM5', cores: '8 Nhân 16 Luồng', clock: '5.0GHz 96MB Cache 3D' },
+        { name: 'AMD Ryzen 9 7950X3D', brand: 'amd', price: 15490000, socket: 'AM5', cores: '16 Nhân 32 Luồng', clock: '5.7GHz' },
+        { name: 'AMD Ryzen 5 7600X', brand: 'amd', price: 5490000, socket: 'AM5', cores: '6 Nhân 12 Luồng', clock: '5.3GHz' },
+        { name: 'Intel Core Ultra 7 265K', brand: 'intel', price: 11290000, socket: 'LGA1851', cores: '20 Nhân 20 Luồng', clock: '5.5GHz' }
+      ];
+      const base = items[i % items.length];
+      const imgIdx = (i % 5) + 1;
+      return {
+        name: `${base.name} Box Chính Hãng V${i + 1}`,
+        brand_slug: base.brand,
+        basePrice: base.price + (i % 3) * 100000,
+        short_desc: `${base.cores}, Xung nhịp ${base.clock}, Socket ${base.socket}, Bảo hành 36 Tháng`,
+        desc: `Bộ vi xử lý ${base.name} mang lại hiệu năng tính toán mạnh mẽ cho các tác vụ chơi game AAA, dựng hình 3D và làm việc đa nhiệm cường độ cao.`,
+        socket: base.socket,
+        images: [
+          `/public/images/anh_cpu_intel/image_${imgIdx}.png`,
+          `/public/images/anh_cpu_intel/image_${(imgIdx % 5) + 1}.png`,
+          `/public/images/anh_cpu_intel/image_${((imgIdx + 1) % 5) + 1}.png`
+        ]
+      };
+    }),
+
+    // --- GPU (Card màn hình) ---
+    gpu: Array.from({ length: 25 }, (_, i) => {
+      const items = [
+        { name: 'ASUS ROG Strix GeForce RTX 4090 OC 24GB', brand: 'asus', price: 56900000, tier: 5 },
+        { name: 'MSI GeForce RTX 4080 Super 16GB Gaming X Slim', brand: 'msi', price: 29900000, tier: 5 },
+        { name: 'Gigabyte GeForce RTX 4070 Ti Super EAGLE OC 16GB', brand: 'gigabyte', price: 23900000, tier: 5 },
+        { name: 'ASUS TUF Gaming GeForce RTX 4070 Super 12GB', brand: 'asus', price: 18490000, tier: 4 },
+        { name: 'MSI GeForce RTX 4060 Ti Ventus 2X BLACK 8GB', brand: 'msi', price: 10890000, tier: 3 },
+        { name: 'Gigabyte GeForce RTX 4060 EAGLE OC 8GB', brand: 'gigabyte', price: 8390000, tier: 2 },
+        { name: 'ASUS Dual Radeon RX 7800 XT OC 16GB', brand: 'asus', price: 14990000, tier: 4 }
+      ];
+      const base = items[i % items.length];
+      const imgIdx = (i % 5) + 1;
+      return {
+        name: `${base.name} V${i + 1}`,
+        brand_slug: base.brand,
+        basePrice: base.price + (i % 3) * 200000,
+        short_desc: `Card màn hình đồ họa chuyên nghiệp, Kiến trúc Ray Tracing & DLSS 3.5, Tản nhiệt 3 quạt siêu mát`,
+        desc: `Card màn hình cao cấp giúp trải nghiệm các tựa game AAA ở độ phân giải 2K / 4K mượt mà trên 100 FPS và hỗ trợ tăng tốc AI, render đồ họa ấn tượng.`,
+        gpu_tier: base.tier,
+        images: [
+          `/public/images/anh_card_man_hinh/image_${imgIdx}.png`,
+          `/public/images/anh_card_man_hinh/image_${(imgIdx % 5) + 1}.png`,
+          `/public/images/anh_card_man_hinh/image_${((imgIdx + 1) % 5) + 1}.png`
+        ]
+      };
+    }),
+
+    // --- MAINBOARD (Bo mạch chủ) ---
+    mainboard: Array.from({ length: 25 }, (_, i) => {
+      const items = [
+        { name: 'ASUS ROG MAXIMUS Z790 HERO', brand: 'asus', price: 16890000, socket: 'LGA1700', ff: 'ATX', ram: 'DDR5' },
+        { name: 'MSI MAG B760M MORTAR WIFI', brand: 'msi', price: 4390000, socket: 'LGA1700', ff: 'mATX', ram: 'DDR5' },
+        { name: 'Gigabyte B650 AORUS ELITE AX', brand: 'gigabyte', price: 5890000, socket: 'AM5', ff: 'ATX', ram: 'DDR5' },
+        { name: 'ASUS TUF GAMING B760M-PLUS WIFI', brand: 'asus', price: 4690000, socket: 'LGA1700', ff: 'mATX', ram: 'DDR5' },
+        { name: 'MSI PRO Z790-A MAX WIFI', brand: 'msi', price: 7290000, socket: 'LGA1700', ff: 'ATX', ram: 'DDR5' },
+        { name: 'Gigabyte Z790 AORUS ELITE AX ICE', brand: 'gigabyte', price: 7990000, socket: 'LGA1700', ff: 'ATX', ram: 'DDR5' }
+      ];
+      const base = items[i % items.length];
+      const imgIdx = (i % 5) + 1;
+      return {
+        name: `${base.name} V${i + 1}`,
+        brand_slug: base.brand,
+        basePrice: base.price + (i % 3) * 150000,
+        short_desc: `Bo mạch chủ Socket ${base.socket}, Kích thước ${base.ff}, Hỗ trợ RAM ${base.ram}, PCIe 5.0, WiFi 6E`,
+        desc: `Bo mạch chủ cao cấp được trang bị hệ thống VRM mạnh mẽ, giáp tản nhiệt M.2 dày dặn cùng đầy đủ kết nối tốc độ cao cho dàn máy dàn chuẩn cao cấp.`,
+        socket: base.socket,
+        ram_type: base.ram,
+        form_factor: base.ff,
+        images: [
+          `/public/images/anh_mainboard/image_${imgIdx}.png`,
+          `/public/images/anh_mainboard/image_${(imgIdx % 5) + 1}.png`,
+          `/public/images/anh_mainboard/image_${((imgIdx + 1) % 5) + 1}.png`
+        ]
+      };
+    }),
+
+    // --- RAM ---
+    ram: Array.from({ length: 25 }, (_, i) => {
+      const items = [
+        { name: 'Corsair Vengeance RGB 32GB (2x16GB) DDR5 6000MHz Black', brand: 'corsair', price: 3450000, cap: '32GB', ram_type: 'DDR5' },
+        { name: 'G.Skill Trident Z5 RGB 32GB (2x16GB) DDR5 6000MHz White', brand: 'gskill', price: 3650000, cap: '32GB', ram_type: 'DDR5' },
+        { name: 'Kingston FURY Beast RGB 16GB (1x16GB) DDR5 5600MHz', brand: 'kingston', price: 1690000, cap: '16GB', ram_type: 'DDR5' },
+        { name: 'Corsair Dominator Titanium 64GB (2x32GB) DDR5 6600MHz', brand: 'corsair', price: 8990000, cap: '64GB', ram_type: 'DDR5' },
+        { name: 'G.Skill Ripjaws S5 32GB (2x16GB) DDR5 5200MHz', brand: 'gskill', price: 2790000, cap: '32GB', ram_type: 'DDR5' }
+      ];
+      const base = items[i % items.length];
+      const imgIdx = (i % 5) + 1;
+      return {
+        name: `${base.name} Gen${i + 1}`,
+        brand_slug: base.brand,
+        basePrice: base.price + (i % 3) * 50000,
+        short_desc: `Bộ nhớ RAM ${base.cap} ${base.ram_type}, Tốc độ bus cao, Hỗ trợ Intel XMP 3.0 & AMD EXPO`,
+        desc: `Thanh bộ nhớ RAM trang bị chip nhớ chất lượng cao, tản nhiệt nhôm đúc nguyên khối cá tính cùng dải LED RGB tùy biến linh hoạt qua phần mềm.`,
+        ram_type: base.ram_type,
+        images: [
+          `/public/images/anh_ram_corsair/image_${imgIdx}.png`,
+          `/public/images/anh_ram_corsair/image_${(imgIdx % 5) + 1}.png`,
+          `/public/images/anh_ram_corsair/image_${((imgIdx + 1) % 5) + 1}.png`
+        ]
+      };
+    }),
+
+    // --- STORAGE (SSD) ---
+    storage: Array.from({ length: 25 }, (_, i) => {
+      const items = [
+        { name: 'SSD Samsung 990 PRO 1TB PCIe NVMe 4.0 x4', brand: 'samsung', price: 2990000, cap: '1TB' },
+        { name: 'SSD Samsung 990 PRO 2TB PCIe NVMe 4.0 x4', brand: 'samsung', price: 4990000, cap: '2TB' },
+        { name: 'SSD Western Digital Black SN850X 1TB NVMe', brand: 'western-digital', price: 2690000, cap: '1TB' },
+        { name: 'SSD Kingston NV2 1TB PCIe 4.0 NVMe', brand: 'kingston', price: 1590000, cap: '1TB' },
+        { name: 'SSD Kingston NV2 512GB PCIe 4.0 NVMe', brand: 'kingston', price: 990000, cap: '512GB' }
+      ];
+      const base = items[i % items.length];
+      const imgIdx = (i % 5) + 1;
+      return {
+        name: `${base.name} V${i + 1}`,
+        brand_slug: base.brand,
+        basePrice: base.price + (i % 3) * 50000,
+        short_desc: `Ổ cứng SSD NVMe M.2 chuẩn PCIe Gen4, Tốc độ đọc lên tới 7450MB/s, Bảo hành 5 năm`,
+        desc: `Ổ cứng SSD dung lượng ${base.cap} giúp khởi động Windows trong vài giây, tải game cực nhanh và xử lý dữ liệu nặng mượt mà không bị nghẽn.`,
+        images: [
+          `/public/images/anh_ssd/image_${imgIdx}.png`,
+          `/public/images/anh_ssd/image_${(imgIdx % 5) + 1}.png`,
+          `/public/images/anh_ssd/image_${((imgIdx + 1) % 5) + 1}.png`
+        ]
+      };
+    }),
+
+    // --- PSU (Nguồn máy tính) ---
+    psu: Array.from({ length: 25 }, (_, i) => {
+      const items = [
+        { name: 'Nguồn Corsair RM850x 850W 80 Plus Gold Full Modular', brand: 'corsair', price: 3490000, watt: 850 },
+        { name: 'Nguồn MSI MAG A750GL PCIE5 750W 80 Plus Gold', brand: 'msi', price: 2690000, watt: 750 },
+        { name: 'Nguồn ASUS TUF Gaming 750W 80 Plus Bronze', brand: 'asus', price: 1990000, watt: 750 },
+        { name: 'Nguồn Cooler Master MWE Gold 850 V2 Full Modular', brand: 'cooler-master', price: 2890000, watt: 850 },
+        { name: 'Nguồn Corsair RM1000x Shift 1000W 80 Plus Gold ATX 3.0', brand: 'corsair', price: 5190000, watt: 1000 }
+      ];
+      const base = items[i % items.length];
+      const imgIdx = (i % 5) + 1;
+      return {
+        name: `${base.name} V${i + 1}`,
+        brand_slug: base.brand,
+        basePrice: base.price + (i % 3) * 50000,
+        short_desc: `Công suất thực ${base.watt}W, Chuẩn hiệu suất 80 Plus, Cáp rời Full Modular, Hỗ trợ chuẩn PCIe 5.0 ATX 3.0`,
+        desc: `Bộ nguồn công suất cao chuyển đổi điện năng hiệu quả, hoạt động êm ái với quạt thông minh và bảo vệ toàn diện mạch điện cho hệ thống PC.`,
+        wattage: base.watt,
+        images: [
+          `/public/images/anh_nguon_may_tinh/image_${imgIdx}.png`,
+          `/public/images/anh_nguon_may_tinh/image_${(imgIdx % 5) + 1}.png`,
+          `/public/images/anh_nguon_may_tinh/image_${((imgIdx + 1) % 5) + 1}.png`
+        ]
+      };
+    }),
+
+    // --- CASE (Vỏ máy tính) ---
+    case: Array.from({ length: 25 }, (_, i) => {
+      const items = [
+        { name: 'Vỏ Case NZXT H9 Flow Dual-Chamber Mid-Tower Black', brand: 'nzxt', price: 4390000, ff: 'ATX' },
+        { name: 'Vỏ Case NZXT H6 RGB Compact Dual-Chamber White', brand: 'nzxt', price: 3490000, ff: 'ATX' },
+        { name: 'Vỏ Case Corsair 4000D AIRFLOW Tempered Glass Black', brand: 'corsair', price: 2190000, ff: 'ATX' },
+        { name: 'Vỏ Case ASUS TUF Gaming GT502 White Dual Chamber', brand: 'asus', price: 3890000, ff: 'ATX' },
+        { name: 'Vỏ Case Cooler Master MasterBox TD500 Mesh V2 ARGB', brand: 'cooler-master', price: 2290000, ff: 'ATX' }
+      ];
+      const base = items[i % items.length];
+      const imgIdx = (i % 5) + 1;
+      return {
+        name: `${base.name} V${i + 1}`,
+        brand_slug: base.brand,
+        basePrice: base.price + (i % 3) * 50000,
+        short_desc: `Vỏ case thiết kế bể kính cao cấp Kính cường lực, Hỗ trợ Mainboard ${base.ff}, Luồng khí thông thoáng`,
+        desc: `Vỏ case máy tính thiết kế hiện đại mang lại góc nhìn khoang linh kiện 360 độ cực đẹp, đi kèm sẵn các hệ thống đi dây và khay lắp quạt tản nhiệt đa dạng.`,
+        form_factor: base.ff,
+        supported_ff: ['ATX', 'mATX', 'ITX'],
+        images: [
+          `/public/images/anh_case/image_${imgIdx}.png`,
+          `/public/images/anh_case/image_${(imgIdx % 5) + 1}.png`,
+          `/public/images/anh_case/image_${((imgIdx + 1) % 5) + 1}.png`
+        ]
+      };
+    }),
+
+    // --- MÀN HÌNH ---
+    'man-hinh': Array.from({ length: 25 }, (_, i) => {
+      const items = [
+        { name: 'Màn hình Gaming ASUS ROG Swift OLED PG27AQDM 27" 2K 240Hz', brand: 'asus', price: 21900000 },
+        { name: 'Màn hình Gaming LG UltraGear 27GR75Q-B 27" 2K IPS 165Hz', brand: 'lg', price: 6490000 },
+        { name: 'Màn hình Dell UltraSharp U2724D 27" 2K IPS Black 120Hz', brand: 'dell', price: 9290000 },
+        { name: 'Màn hình Gaming Samsung Odyssey G5 G55C 27" 2K Cong 165Hz', brand: 'samsung', price: 4990000 },
+        { name: 'Màn hình MSI G274F 27" FHD Rapid IPS 180Hz 1ms', brand: 'msi', price: 3890000 }
+      ];
+      const base = items[i % items.length];
+      const imgIdx = (i % 5) + 1;
+      return {
+        name: `${base.name} V${i + 1}`,
+        brand_slug: base.brand,
+        basePrice: base.price + (i % 3) * 100000,
+        short_desc: `Tấm nền cao cấp màu sắc chuẩn xác, Tần số quét siêu nhanh, Tốc độ phản hồi 1ms, Viền mỏng`,
+        desc: `Màn hình máy tính thiết kế viền mỏng hiện đại mang lại không gian hiển thị sống động, màu sắc chân thực sắc nét hỗ trợ tối đa cho trải nghiệm làm việc và giải trí.`,
+        images: [
+          `/public/images/anh_case/image_${imgIdx}.png`,
+          `/public/images/anh_case/image_${(imgIdx % 5) + 1}.png`,
+          `/public/images/anh_case/image_${((imgIdx + 1) % 5) + 1}.png`
+        ]
+      };
+    }),
+
+    // --- BÀN PHÍM ---
+    'ban-phim': Array.from({ length: 25 }, (_, i) => {
+      const items = [
+        { name: 'Bàn phím cơ Corsair K70 RGB PRO Mechanical Gaming Keychron Switch', brand: 'corsair', price: 3890000 },
+        { name: 'Bàn phím cơ Razer BlackWidow V4 Pro Mechanical RGB', brand: 'razer', price: 5490000 },
+        { name: 'Bàn phím cơ không dây Logitech G PRO X TKL LIGHTSPEED', brand: 'logitech', price: 4290000 },
+        { name: 'Bàn phím cơ ASUS ROG Strix Scope II 96 Wireless', brand: 'asus', price: 3990000 }
+      ];
+      const base = items[i % items.length];
+      return {
+        name: `${base.name} V${i + 1}`,
+        brand_slug: base.brand,
+        basePrice: base.price + (i % 3) * 50000,
+        short_desc: `Switch cơ học độ bền 100 triệu lần nhấn, LED RGB 16.8 triệu màu, Keycap PBT gõ êm mượt`,
+        desc: `Bàn phím cơ chuyên nghiệp trang bị Switch cơ học cao cấp mang lại cảm giác gõ phản hồi chuẩn xác, kết cấu khung nhôm đúc đầm chắc và hệ thống LED RGB rực rỡ.`,
+        images: [
+          `/public/images/anh_tan_nhiet/image_${(i % 5) + 1}.png`,
+          `/public/images/anh_tan_nhiet/image_${((i + 1) % 5) + 1}.png`,
+          `/public/images/anh_tan_nhiet/image_${((i + 2) % 5) + 1}.png`
+        ]
+      };
+    }),
+
+    // --- CHUỘT GAMING ---
+    'chuot-gaming': Array.from({ length: 25 }, (_, i) => {
+      const items = [
+        { name: 'Chuột Gaming không dây Logitech G Pro X Superlight 2 Wireless Black', brand: 'logitech', price: 3490000 },
+        { name: 'Chuột Gaming không dây Razer Viper V3 Pro Ultra-lightweight', brand: 'razer', price: 3890000 },
+        { name: 'Chuột Gaming không dây ASUS ROG Harpe Ace Aim Lab Edition', brand: 'asus', price: 2990000 },
+        { name: 'Chuột Gaming Logitech G502 X LIGHTSPEED Wireless', brand: 'logitech', price: 2890000 }
+      ];
+      const base = items[i % items.length];
+      return {
+        name: `${base.name} V${i + 1}`,
+        brand_slug: base.brand,
+        basePrice: base.price + (i % 3) * 30000,
+        short_desc: `Cảm biến mắt đọc chuẩn xác cao DPI, Trọng lượng siêu nhẹ dưới 60g, Kết nối không dây tốc độ cao`,
+        desc: `Chuột chơi game cao cấp sở hữu thiết kế công phu chuẩn Esport, mắt đọc độ phân giải cao và mắt cuộn mượt mà giúp bạn làm chủ mọi trận đấu khốc liệt.`,
+        images: [
+          `/public/images/anh_nguon_may_tinh/image_${(i % 5) + 1}.png`,
+          `/public/images/anh_nguon_may_tinh/image_${((i + 1) % 5) + 1}.png`,
+          `/public/images/anh_nguon_may_tinh/image_${((i + 2) % 5) + 1}.png`
+        ]
+      };
+    }),
+
+    // --- TAI NGHE ---
+    'tai-nghe': Array.from({ length: 25 }, (_, i) => {
+      const items = [
+        { name: 'Tai nghe Gaming không dây HyperX Cloud III Wireless Black', brand: 'logitech', price: 3690000 },
+        { name: 'Tai nghe Gaming Corsair Virtuoso RGB Wireless SE High-Fidelity', brand: 'corsair', price: 4890000 },
+        { name: 'Tai nghe Gaming không dây Razer BlackShark V2 Pro 2023', brand: 'razer', price: 4490000 },
+        { name: 'Tai nghe Gaming ASUS ROG Delta S Wireless dual-mode', brand: 'asus', price: 4290000 }
+      ];
+      const base = items[i % items.length];
+      return {
+        name: `${base.name} V${i + 1}`,
+        brand_slug: base.brand,
+        basePrice: base.price + (i % 3) * 40000,
+        short_desc: `Âm thanh vòm 7.1 chân thực, Micro lọc tiếng ồn chuẩn đàm thoại, Đệm tai da Memory Foam êm ái`,
+        desc: `Tai nghe chơi game chuyên nghiệp sở hữu màng loa cao cấp mang đến chất âm trầm ấm chi tiết, giúp nhận diện chính xác tiếng bước chân đối thủ.`,
+        images: [
+          `/public/images/anh_ram_corsair/image_${(i % 5) + 1}.png`,
+          `/public/images/anh_ram_corsair/image_${((i + 1) % 5) + 1}.png`,
+          `/public/images/anh_ram_corsair/image_${((i + 2) % 5) + 1}.png`
+        ]
+      };
+    }),
+
     // --- PC ĐỒ HỌA (PC Đồ họa / Workstation) ---
     'pc-do-hoa': Array.from({ length: 25 }, (_, i) => {
       const ranks = ['Studio Master', 'Render Beast', 'Architect Pro', 'Vision Creator', 'Workstation Extreme', 'DeepLearning AI'];
@@ -288,9 +572,9 @@ async function runMasterSeed() {
         wattage: parseInt(cfg.psu),
         gpu_tier: cfg.gpu_tier,
         images: [
-          `http://localhost:3000/public/images/anh_case/image_${imgIdx}.png`,
-          `http://localhost:3000/public/images/anh_case/image_${((imgIdx + 1) % 43) + 1}.png`,
-          `http://localhost:3000/public/images/anh_case/image_${((imgIdx + 2) % 43) + 1}.png`
+          `/public/images/anh_case/image_${imgIdx}.png`,
+          `/public/images/anh_case/image_${((imgIdx + 1) % 43) + 1}.png`,
+          `/public/images/anh_case/image_${((imgIdx + 2) % 43) + 1}.png`
         ]
       };
     }),
@@ -318,9 +602,9 @@ async function runMasterSeed() {
         desc: `Hệ thống tản nhiệt cao cấp với bơm công suất mạnh mẽ, rad nhôm tản nhiệt dày và quạt vòng bi FDB chống rung, giúp CPU luôn duy trì nhiệt độ mát mẻ dưới 65 độ C ngay cả khi full tải nặng.`,
         tdp: base.tdp,
         images: [
-          `http://localhost:3000/public/images/anh_tan_nhiet/image_${imgIdx}.png`,
-          `http://localhost:3000/public/images/anh_tan_nhiet/image_${imgIdx + 1}.png`,
-          `http://localhost:3000/public/images/anh_tan_nhiet/image_${imgIdx + 2}.png`
+          `/public/images/anh_tan_nhiet/image_${imgIdx}.png`,
+          `/public/images/anh_tan_nhiet/image_${imgIdx + 1}.png`,
+          `/public/images/anh_tan_nhiet/image_${imgIdx + 2}.png`
         ]
       };
     }),
@@ -347,9 +631,9 @@ async function runMasterSeed() {
         short_desc: `${base.type}, Chuẩn linh kiện cao cấp, Tương thích hoàn hảo mọi hệ thống PC`,
         desc: `Phụ kiện trang trí và nâng cấp hệ thống PC chuyên nghiệp, giúp góc máy tính của bạn trở nên gọn gàng, đẹp mắt và cá tính hơn bao giờ hết.`,
         images: [
-          `http://localhost:3000/public/images/anh_tan_nhiet/image_${imgIdx}.png`,
-          `http://localhost:3000/public/images/anh_nguon_may_tinh/image_${imgIdx}.png`,
-          `http://localhost:3000/public/images/anh_ram_corsair/image_${(i % 5) + 14}.png`
+          `/public/images/anh_tan_nhiet/image_${imgIdx}.png`,
+          `/public/images/anh_nguon_may_tinh/image_${imgIdx}.png`,
+          `/public/images/anh_ram_corsair/image_${(i % 5) + 14}.png`
         ]
       };
     })
