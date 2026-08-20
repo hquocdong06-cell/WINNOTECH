@@ -1397,7 +1397,7 @@ app.get(["/api/buildpc/components", "/api/products/build-pc"], async (req, res) 
       searchQuery.$and = filterConditions;
     }
 
-    const products = await ProductModel.find(searchQuery).lean();
+    const products = await ProductModel.find(searchQuery).populate('brand_id', 'name slug').lean();
     const productIds = products.map((p) => p._id);
 
     const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
@@ -4570,7 +4570,11 @@ app.get("/posts", async (req, res) => {
     const query = {};
     if (categoryId) query.categories_post_id = categoryId;
     if (status) {
-      query.status = status;
+      if (status === 'published' || status === 'active') {
+        query.status = { $in: ['published', 'active'] };
+      } else {
+        query.status = status;
+      }
     }
 
     const posts = await PostModel.find(query)
@@ -6236,7 +6240,7 @@ app.get("/api/products/:productId/reviews", async (req, res) => {
     }
 
     // Lấy tất cả variants của sản phẩm này
-    const variants = await Variant.find({ p_id: targetProductId }).select("_id").lean();
+    const variants = await ProductVariantModel.find({ p_id: targetProductId }).select("_id").lean();
     const variantIds = variants.map(v => v._id);
 
     // Lấy các OrderItem thuộc các variant đó
@@ -6318,7 +6322,7 @@ app.get("/api/products/:productId/review-eligibility", checklogin, async (req, r
     }
 
     // Lấy các variants của sản phẩm này
-    const variants = await Variant.find({ p_id: targetProductId }).select("_id").lean();
+    const variants = await ProductVariantModel.find({ p_id: targetProductId }).select("_id").lean();
     const variantIds = variants.map(v => v._id);
 
     // Lấy order items của user thuộc về sản phẩm này

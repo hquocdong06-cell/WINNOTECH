@@ -7,7 +7,7 @@ import DefaultLayout from '../layouts/DefaultLayout'
 import useFavorite from '../hooks/useFavorite'
 import useCompare from '../hooks/useCompare'
 import { useAuth } from '../hooks/useAuth'
-import RecentlyViewedSidebar from '../components/RecentlyViewedSidebar'
+
 
 const API_URL = 'http://localhost:3000'
 
@@ -261,78 +261,121 @@ export default function CPU() {
     const nameLower = product.name.toLowerCase()
     const descLower = (product.description || '').toLowerCase()
     const specsLower = (product.short_desc || '').toLowerCase()
+    // compatibility_meta có socket chính xác nhất
+    const metaSocket = (product.compatibility_meta?.socket || '').toUpperCase()
 
-    // 1. Thương hiệu (Brand)
+    // 1. Thương hiệu (Brand) — dùng brand_id.slug đã được populate
     if (filters.brands.length > 0) {
-      const brandSlug = product.brand_id?.slug || ''
-      if (!filters.brands.includes(brandSlug.toLowerCase())) return false
+      const brandSlug = (product.brand_id?.slug || '').toLowerCase()
+      if (!filters.brands.includes(brandSlug)) return false
     }
 
-
-    // 3. Nhu cầu (Use Case)
+    // 2. Nhu cầu (Use Case) — dựa theo tên + mô tả + đặc điểm CPU
     if (filters.useCase.length > 0) {
       const match = filters.useCase.some(uc => {
-        if (uc === 'gaming') return nameLower.includes('gaming') || descLower.includes('chơi game') || descLower.includes('gaming')
-        if (uc === 'van-phong') return nameLower.includes('office') || descLower.includes('văn phòng')
-        if (uc === 'hoc-sinh-sinh-vien') return descLower.includes('học sinh') || descLower.includes('sinh viên') || descLower.includes('học tập')
-        if (uc === 'do-hoa-ky-thuat') return descLower.includes('đồ họa') || descLower.includes('kỹ thuật') || descLower.includes('render') || descLower.includes('3d')
-        if (uc === 'doanh-nghiep') return descLower.includes('doanh nghiệp') || descLower.includes('server') || descLower.includes('máy chủ')
+        if (uc === 'gaming')
+          return nameLower.includes('gaming') || nameLower.includes('x3d') ||
+                 descLower.includes('chơi game') || descLower.includes('gaming') ||
+                 /\bi7[-\s]/i.test(product.name) || /\bi9[-\s]/i.test(product.name) ||
+                 /ryzen\s*7\s+\d/i.test(product.name) || /ryzen\s*9\s+\d/i.test(product.name)
+        if (uc === 'van-phong')
+          return nameLower.includes('office') || descLower.includes('văn phòng') ||
+                 /\bi3[-\s]/i.test(product.name) || /\bi5[-\s]/i.test(product.name) ||
+                 nameLower.includes('pentium') || nameLower.includes('celeron') ||
+                 /ryzen\s*3\s+\d/i.test(product.name) || /ryzen\s*5\s+\d/i.test(product.name)
+        if (uc === 'hoc-sinh-sinh-vien')
+          return descLower.includes('học sinh') || descLower.includes('sinh viên') ||
+                 descLower.includes('học tập') ||
+                 /\bi3[-\s]/i.test(product.name) || nameLower.includes('pentium') ||
+                 /ryzen\s*3\s+\d/i.test(product.name)
+        if (uc === 'do-hoa-ky-thuat')
+          return descLower.includes('đồ họa') || descLower.includes('kỹ thuật') ||
+                 descLower.includes('render') || descLower.includes('workstation') ||
+                 nameLower.includes('threadripper') ||
+                 /\bi9[-\s]/i.test(product.name) || /ryzen\s*9\s+\d/i.test(product.name) ||
+                 /ultra\s*9/i.test(product.name)
+        if (uc === 'doanh-nghiep')
+          return descLower.includes('doanh nghiệp') || descLower.includes('server') ||
+                 descLower.includes('máy chủ') || nameLower.includes('threadripper') ||
+                 nameLower.includes('xeon')
         return false
       })
       if (!match) return false
     }
 
-    // 4. Series CPU
+    // 3. Series CPU — regex chính xác theo tên sản phẩm
     if (filters.series.length > 0) {
       const match = filters.series.some(s => {
-        const query = s.replace('-', ' ') // e.g. "core i3" or "ryzen 3"
-        return nameLower.includes(query) || descLower.includes(query)
-      })
-      if (!match) return false
-    }
-
-    // 5. Thế hệ (Generation)
-    if (filters.generation.length > 0) {
-      const match = filters.generation.some(gen => {
-        if (gen === 'intel-core-14') return nameLower.includes('14900') || nameLower.includes('14700') || nameLower.includes('14600') || nameLower.includes('14500') || nameLower.includes('14400') || nameLower.includes('14100') || nameLower.includes('14th') || descLower.includes('thế hệ 14')
-        if (gen === 'intel-core-13') return nameLower.includes('13900') || nameLower.includes('13700') || nameLower.includes('13600') || nameLower.includes('13500') || nameLower.includes('13400') || nameLower.includes('13th') || descLower.includes('thế hệ 13')
-        if (gen === 'intel-core-12') return nameLower.includes('12900') || nameLower.includes('12700') || nameLower.includes('12600') || nameLower.includes('12500') || nameLower.includes('12400') || nameLower.includes('12th') || descLower.includes('thế hệ 12')
-        if (gen === 'intel-core-11') return nameLower.includes('11900') || nameLower.includes('11700') || nameLower.includes('11600') || nameLower.includes('11400') || nameLower.includes('11th') || descLower.includes('thế hệ 11')
-        if (gen === 'intel-core-10') return nameLower.includes('10900') || nameLower.includes('10700') || nameLower.includes('10600') || nameLower.includes('10400') || nameLower.includes('10th') || descLower.includes('thế hệ 10')
-        if (gen === 'amd-ryzen-5000') return nameLower.includes('5600') || nameLower.includes('5700') || nameLower.includes('5800') || nameLower.includes('5900') || nameLower.includes('5000 series')
-        if (gen === 'amd-ryzen-9') return nameLower.includes('9950x') || nameLower.includes('9900x') || nameLower.includes('9700x') || nameLower.includes('9600x') || nameLower.includes('thế hệ thứ 9') || nameLower.includes('ryzen 9000')
-        if (gen === 'amd-ryzen-8') return nameLower.includes('8700g') || nameLower.includes('8600g') || nameLower.includes('8500g') || nameLower.includes('thế hệ thứ 8')
-        if (gen === 'amd-ryzen-7') return nameLower.includes('7800x3d') || nameLower.includes('7950x') || nameLower.includes('7900x') || nameLower.includes('7700') || nameLower.includes('7600') || nameLower.includes('thế hệ thứ 7')
-        if (gen === 'amd-ryzen-5') return nameLower.includes('5600') || nameLower.includes('5500') || nameLower.includes('thế hệ thứ 5')
-        if (gen === 'amd-ryzen-4') return nameLower.includes('4650g') || nameLower.includes('4500') || nameLower.includes('thế hệ thứ 4')
-        if (gen === 'amd-ryzen-3') return nameLower.includes('3600') || nameLower.includes('3700') || nameLower.includes('thế hệ thứ 3')
-        if (gen === 'amd-ryzen-2') return nameLower.includes('2600') || nameLower.includes('2700') || nameLower.includes('thế hệ thứ 2')
-        if (gen === 'amd-ryzen-1') return nameLower.includes('1600') || nameLower.includes('1700') || nameLower.includes('thế hệ thứ 1')
-        if (gen === 'intel-ultra-2') return nameLower.includes('ultra 9 2') || nameLower.includes('ultra 7 2') || nameLower.includes('ultra 5 2') || nameLower.includes('series 2')
-        if (gen === 'intel-pentium-g') return nameLower.includes('pentium g')
-        if (gen === 'intel-pentium-gold') return nameLower.includes('pentium gold')
-        if (gen === 'amd-threadripper') return nameLower.includes('threadripper') && !nameLower.includes('9000')
-        if (gen === 'ryzen-threadripper-9000') return nameLower.includes('threadripper pro 9') || nameLower.includes('9995wx') || nameLower.includes('9000 wx')
+        if (s === 'core-i3') return /\bi3[-\s]/i.test(product.name) || nameLower.includes('core i3')
+        if (s === 'core-i5') return /\bi5[-\s]/i.test(product.name) || nameLower.includes('core i5')
+        if (s === 'core-i7') return /\bi7[-\s]/i.test(product.name) || nameLower.includes('core i7')
+        if (s === 'core-i9') return /\bi9[-\s]/i.test(product.name) || nameLower.includes('core i9')
+        if (s === 'pentium') return nameLower.includes('pentium')
+        if (s === 'ryzen-3') return /ryzen\s*3\s+\d/i.test(product.name)
+        if (s === 'ryzen-5') return /ryzen\s*5\s+\d/i.test(product.name)
+        if (s === 'ryzen-7') return /ryzen\s*7\s+\d/i.test(product.name)
+        if (s === 'ryzen-9') return /ryzen\s*9\s+\d/i.test(product.name)
+        if (s === 'ryzen-threadripper') return nameLower.includes('threadripper')
+        if (s === 'ultra-5') return /ultra\s*5\s+\d/i.test(product.name)
+        if (s === 'ultra-7') return /ultra\s*7\s+\d/i.test(product.name)
+        if (s === 'ultra-9') return /ultra\s*9\s+\d/i.test(product.name)
         return false
       })
       if (!match) return false
     }
 
-    // 6. Số nhân thực (Cores)
-    if (filters.cores.length > 0) {
-      const match = filters.cores.some(c => {
-        const pattern1 = `${c}c`
-        const pattern2 = `${c} cores`
-        const pattern3 = `${c} nhân`
-        return specsLower.includes(pattern1) || specsLower.includes(pattern2) || specsLower.includes(pattern3) || descLower.includes(pattern3)
+    // 4. Thế hệ (Generation) — dùng regex số model trong tên sản phẩm
+    if (filters.generation.length > 0) {
+      const match = filters.generation.some(gen => {
+        // Intel: i*-14xxx, 13xxx...
+        if (gen === 'intel-core-14') return /i[3579]-1[34][0-9]{3}/i.test(product.name) || nameLower.includes('14th') || specsLower.includes('14th')
+        if (gen === 'intel-core-13') return /i[3579]-13[0-9]{3}/i.test(product.name) || nameLower.includes('13th') || specsLower.includes('13th')
+        if (gen === 'intel-core-12') return /i[3579]-12[0-9]{3}/i.test(product.name) || nameLower.includes('12th') || specsLower.includes('12th')
+        if (gen === 'intel-core-11') return /i[3579]-11[0-9]{3}/i.test(product.name) || nameLower.includes('11th')
+        if (gen === 'intel-core-10') return /i[3579]-10[0-9]{3}/i.test(product.name) || nameLower.includes('10th')
+        // AMD Ryzen: số đầu của model number
+        if (gen === 'amd-ryzen-9') return /ryzen\s*[579]\s+9[0-9]{3}/i.test(product.name)
+        if (gen === 'amd-ryzen-8') return /ryzen\s*[357]\s+8[0-9]{3}/i.test(product.name) || /8[567]00[gG]/.test(product.name)
+        if (gen === 'amd-ryzen-7') return /ryzen\s*[579]\s+7[0-9]{3}/i.test(product.name)
+        if (gen === 'amd-ryzen-5000') return /ryzen\s*[357]\s+5[0-9]{3}/i.test(product.name)
+        if (gen === 'amd-ryzen-4') return /ryzen\s*[357]\s+4[0-9]{3}/i.test(product.name)
+        if (gen === 'amd-ryzen-3') return /ryzen\s*[357]\s+3[0-9]{3}/i.test(product.name)
+        if (gen === 'amd-ryzen-2') return /ryzen\s*[357]\s+2[0-9]{3}/i.test(product.name)
+        if (gen === 'amd-ryzen-1') return /ryzen\s*[357]\s+1[0-9]{3}/i.test(product.name)
+        if (gen === 'intel-ultra-2') return /ultra\s*[579]\s+2[0-9]{2}/i.test(product.name) || nameLower.includes('series 2')
+        if (gen === 'intel-pentium-g') return /pentium\s+g\d+/i.test(product.name)
+        if (gen === 'intel-pentium-gold') return nameLower.includes('pentium gold')
+        if (gen === 'amd-threadripper') return nameLower.includes('threadripper') && !/threadripper.*pro.*9/i.test(product.name)
+        if (gen === 'ryzen-threadripper-9000') return /threadripper.*pro.*9[0-9]{3}/i.test(product.name)
+        return false
       })
       if (!match) return false
     }
 
-    // 7. Socket
+    // 5. Số nhân thực (Cores) — parse từ short_desc format "8C/16T" hoặc "8c/16t"
+    if (filters.cores.length > 0) {
+      // short_desc format: "8C/16T, 5.0GHz, ..." hoặc "24C/32T"
+      const coreMatch = specsLower.match(/^(\d+)[c\/]/) || specsLower.match(/(\d+)c\//)
+      const coreCount = coreMatch ? coreMatch[1] : null
+      const match = filters.cores.some(c => {
+        if (coreCount && coreCount === c) return true
+        // Fallback: tìm "Xc" hoặc "X cores" hoặc "X nhân"
+        return specsLower.includes(`${c}c/`) || specsLower.includes(`${c} cores`) ||
+               specsLower.includes(`${c} nhân`) || descLower.includes(`${c} nhân`)
+      })
+      if (!match) return false
+    }
+
+    // 6. Socket — ưu tiên compatibility_meta.socket (chính xác nhất), fallback short_desc
     if (filters.socket.length > 0) {
       const match = filters.socket.some(sock => {
-        return specsLower.includes(sock.toLowerCase()) || descLower.includes(sock.toLowerCase()) || nameLower.includes(sock.toLowerCase())
+        const sockUpper = sock.toUpperCase()
+        // So sánh với compatibility_meta trước
+        if (metaSocket && metaSocket === sockUpper) return true
+        // Fallback: tìm trong short_desc, tên, mô tả
+        return specsLower.includes(sock.toLowerCase()) ||
+               nameLower.includes(sock.toLowerCase()) ||
+               descLower.includes(sock.toLowerCase())
       })
       if (!match) return false
     }
@@ -654,8 +697,7 @@ export default function CPU() {
                 )}
               </div>
 
-              {/* SẢN PHẨM ĐÃ XEM WIDGET */}
-              <RecentlyViewedSidebar />
+
             </aside>
 
             {/* MAIN CONTENT - PRODUCTS */}
