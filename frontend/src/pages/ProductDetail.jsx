@@ -348,16 +348,11 @@ export default function ProductDetail() {
 
   // Price calculations
   const hasVariants = Variants && Variants.length > 0
-<<<<<<< Updated upstream
-  const activeVariant = Variants?.find(v => v._id === selectedVariantId) || (hasVariants ? Variants[0] : null)
-  const activeAttributes = activeVariant?.Attributes || activeVariant?.attributes || []
-  const originalPrice = activeVariant ? activeVariant.price : (product.price || 0)
-  const currentPrice = activeVariant && activeVariant.sale_price > 0 ? activeVariant.sale_price : originalPrice
-=======
   const activeVariant = Variants?.find(v => v._id === selectedVariantId) || (hasVariants ? Variants.find(v => v.price > 0) || Variants[0] : null)
+  const activeAttributes = activeVariant?.Attributes || activeVariant?.attributes || []
   const originalPrice = (activeVariant && activeVariant.price > 0) ? activeVariant.price : (product.price || 0)
   const currentPrice = (activeVariant && activeVariant.sale_price > 0) ? activeVariant.sale_price : (product.sale > 0 && originalPrice > 0 ? Math.round(originalPrice * (1 - product.sale / 100)) : originalPrice)
->>>>>>> Stashed changes
+
   const hasSale = product.sale > 0 || (activeVariant && activeVariant.sale_price > 0)
   const salePercent = product.sale || (activeVariant && activeVariant.price > 0 ? Math.round((1 - activeVariant.sale_price / activeVariant.price) * 100) : 0)
 
