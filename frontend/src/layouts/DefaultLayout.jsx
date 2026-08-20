@@ -97,6 +97,7 @@ export default function DefaultLayout({ children }) {
             </span>
           </div>
           <div className="topbar-right">
+            <Link to="/uu-dai" style={{ color: '#FFE500', fontWeight: 'bold' }}>🎟️ Mã giảm giá</Link>
             <Link to="/contact">Hỗ trợ</Link>
             <Link to="/blog">Blog</Link>
             <Link to="/contact">FAQ</Link>
@@ -117,7 +118,7 @@ export default function DefaultLayout({ children }) {
               className="nav-search" 
               onSubmit={(e) => {
                 e.preventDefault();
-                window.location.href = `/?search=${e.target.search.value}`;
+                window.location.href = `/home?search=${encodeURIComponent(e.target.search.value)}`;
               }}
             >
               <select className="search-select">
@@ -246,6 +247,9 @@ export default function DefaultLayout({ children }) {
               </div>
             </div>
             <div className="catbar-links">
+              <Link to="/uu-dai" style={{ color: '#FFE500', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                🎟️ Ưu đãi
+              </Link>
               <Link to="/cpu">CPU</Link>
               <Link to="/gpu">GPU</Link>
               <Link to="/ram">RAM</Link>

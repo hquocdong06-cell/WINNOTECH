@@ -36,6 +36,8 @@ import BlogPostDetail from './pages/BlogPostDetail'
 import AdminPosts from './admin/pages/Posts'
 import Contact from './pages/Contact'
 import Compare from './pages/Compare'
+import UuDai from './pages/UuDai'
+import ViVoucherCuaToi from './pages/ViVoucherCuaToi'
 
 import IntroPage from './pages/IntroPage'
 import AdminGuard from './admin/components/AdminGuard'
@@ -78,6 +80,9 @@ function App() {
         <Route path="/blog/:slug" element={<BlogPostDetail />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/compare" element={<Compare />} />
+        <Route path="/uu-dai" element={<UuDai />} />
+        <Route path="/vouchers" element={<UuDai />} />
+        <Route path="/tai-khoan/voucher-cua-toi" element={<ViVoucherCuaToi />} />
 
         {/* Auth routes */}
         <Route path="/auth" element={<Navigate to="/login" replace />} />

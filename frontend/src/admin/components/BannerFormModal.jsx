@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, UploadCloud, Loader2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { createAdminBanner, updateAdminBanner, uploadImage } from '../services/adminService';
+import { API_BASE } from '../../services/apiService';
 
 const BannerFormModal = ({ isOpen, onClose, banner, onSuccess }) => {
   const [name, setName] = useState('');
@@ -26,7 +27,7 @@ const BannerFormModal = ({ isOpen, onClose, banner, onSuccess }) => {
       const imgUrl = banner?.image || '';
       setUploadedImageUrl(imgUrl);
       setSelectedFile(null);
-      setPreviewUrl(imgUrl ? (imgUrl.startsWith('http') ? imgUrl : `http://localhost:3000${imgUrl}`) : '');
+      setPreviewUrl(imgUrl ? (imgUrl.startsWith('http') ? imgUrl : `${API_BASE}${imgUrl}`) : '');
     }
   }, [isOpen, banner]);
 

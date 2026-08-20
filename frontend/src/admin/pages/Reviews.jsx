@@ -62,7 +62,8 @@ const Reviews = () => {
 
   const getProductImage = (r) => {
     try {
-      const img = r.id_oderitems?.variants_id?.p_id?.image;
+      const p = r.id_oderitems?.variants_id?.p_id;
+      const img = p?.thumnail || p?.image || r.id_oderitems?.variants_id?.image;
       if (!img) return 'https://placehold.co/80';
       return img.startsWith('http') ? img : `${API_BASE}${img}`;
     } catch {

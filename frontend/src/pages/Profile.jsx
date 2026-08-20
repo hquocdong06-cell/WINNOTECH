@@ -73,6 +73,11 @@ export default function Profile() {
   const [reviewForm, setReviewForm] = useState({})    // { [orderItemId]: { star: 5, content: '' } }
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
 
+  // ── Cancel confirm modal ──
+  const [cancelModal, setCancelModal] = useState(null) // { orderId, orderCode }
+  const [cancelReason, setCancelReason] = useState('')
+  const [cancelSubmitting, setCancelSubmitting] = useState(false)
+
   // ── Thống kê tài khoản ──
   const [stats, setStats] = useState({ totalOrders: 0, totalSpending: 0, totalFavorites: 0 })
   const [statsLoading, setStatsLoading] = useState(false)
@@ -253,23 +258,32 @@ export default function Profile() {
   const [isLoadingWishlist, setIsLoadingWishlist] = useState(false);
 
   const statusMap = {
-    pending:      'Chờ xác nhận',
-    preparing:    'Đang chuẩn bị hàng',
-    handover:     'Bàn giao vận chuyển',
-    shipped:      'Đang vận chuyển',
-    delivering:   'Đang giao hàng',
-    completed:    'Đã giao hàng',
-    done:         'Hoàn thành',
-    cancelled:    'Đã hủy',
-    delivery_fail:'Giao không thành công',
-    refund:       'Trả hàng / Hoàn tiền'
+    pending:       'Chờ xác nhận',
+    preparing:     'Đang chuẩn bị hàng',
+    handover:      'Bàn giao vận chuyển',
+    handed_over:   'Bàn giao vận chuyển',
+    shipped:       'Đang vận chuyển',
+    shipping:      'Đang vận chuyển',
+    delivering:    'Đang giao hàng',
+    delivered:     'Đã giao hàng',
+    completed:     'Hoàn thành',
+    done:          'Hoàn thành',
+    cancelled:     'Đã hủy',
+    delivery_fail: 'Giao không thành công',
+    refund:        'Trả hàng / Hoàn tiền'
   }
 
   // Thứ tự các bước trong flow chính
-  const ORDER_FLOW = ['pending','preparing','handover','shipped','delivering','completed','done']
+  const ORDER_FLOW = ['pending','preparing','handover','shipped','delivering','delivered','completed']
 
   // Lấy chỉ số bước hiện tại trong flow
-  const getFlowStep = (status) => ORDER_FLOW.indexOf(status)
+  const getFlowStep = (status) => {
+    let s = status;
+    if (s === 'handed_over') s = 'handover';
+    if (s === 'shipping') s = 'shipped';
+    if (s === 'done') s = 'completed';
+    return ORDER_FLOW.indexOf(s);
+  }
 
   const filteredOrders = orders_for_table.filter(o => {
     // 1. Lọc theo tab trạng thái
@@ -791,44 +805,96 @@ export default function Profile() {
     <DefaultLayout>
       {selectedOrder && <OrderDetailModal detail={getOrderDetail(selectedOrder)} onClose={() => setSelectedOrder(null)} />}
 
-      {/* ── REVIEW MODAL ── */}
+      {/* ── REVIEW MODAL (Shopee Style) ── */}
       {reviewModal && (
-        <div style={{ position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px' }}>
-          <div style={{ background:'#fff',borderRadius:'16px',padding:'28px',width:'100%',maxWidth:'520px',maxHeight:'80vh',overflowY:'auto' }}>
-            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px' }}>
-              <h3 style={{ fontSize:'18px',fontWeight:700,margin:0 }}>⭐ Đánh giá sản phẩm</h3>
-              <button onClick={() => setReviewModal(null)} style={{ background:'none',border:'none',fontSize:'20px',cursor:'pointer',color:'#888' }}>✕</button>
+        <div style={{ position:'fixed',inset:0,zIndex:99999,background:'rgba(0,0,0,0.8)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px' }}>
+          <div style={{ background:'#181824',border:'1px solid #3b3b4f',borderRadius:'20px',padding:'28px',width:'100%',maxWidth:'580px',maxHeight:'85vh',overflowY:'auto',color:'#fff',boxShadow:'0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            
+            {/* Modal Header */}
+            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingBottom:'16px',borderBottom:'1px solid #2d2d3f',marginBottom:'20px' }}>
+              <div>
+                <h3 style={{ fontSize:'20px',fontWeight:700,margin:0,color:'#fff',display:'flex',alignItems:'center',gap:'8px' }}>
+                  ⭐ Đánh giá sản phẩm
+                </h3>
+                <span style={{ fontSize:'12px',color:'#aaa',marginTop:'2px',display:'block' }}>
+                  Chia sẻ trải nghiệm sử dụng để nhận voucher ưu đãi từ WINNOTECH!
+                </span>
+              </div>
+              <button onClick={() => setReviewModal(null)} style={{ background:'#252536',border:'none',borderRadius:'50%',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'16px',cursor:'pointer',color:'#aaa' }}>✕</button>
             </div>
+
             {reviewModal.items.length === 0 ? (
-              <p style={{ color:'#888',textAlign:'center' }}>Không có sản phẩm để đánh giá.</p>
+              <p style={{ color:'#aaa',textAlign:'center',padding:'20px 0' }}>Không tìm thấy sản phẩm trong đơn hàng này để đánh giá.</p>
             ) : (
-              reviewModal.items.map(item => (
-                <div key={item.orderItemId} style={{ marginBottom:'20px',padding:'16px',border:'1px solid #eee',borderRadius:'12px' }}>
-                  <div style={{ fontWeight:600,marginBottom:'10px',fontSize:'14px' }}>{item.name}</div>
-                  {/* Star rating */}
-                  <div style={{ display:'flex',gap:'6px',marginBottom:'10px' }}>
-                    {[1,2,3,4,5].map(star => (
-                      <button key={star} onClick={() => setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], star } }))}
-                        style={{ background:'none',border:'none',fontSize:'24px',cursor:'pointer',color: (reviewForm[item.orderItemId]?.star || 5) >= star ? '#f5a623' : '#ddd' }}>
-                        ★
-                      </button>
-                    ))}
-                    <span style={{ alignSelf:'center',fontSize:'13px',color:'#666',marginLeft:'4px' }}>
-                      {reviewForm[item.orderItemId]?.star || 5}/5 sao
-                    </span>
+              reviewModal.items.map(item => {
+                const itemState = reviewForm[item.orderItemId] || { star: 5, content: '' }
+                const starLabels = ['', '1★ Rất không hài lòng 😞', '2★ Không hài lòng 🙁', '3★ Bình thường 😐', '4★ Hài lòng 😊', '5★ Tuyệt vời! 🌟']
+                const quickTags = ['🚀 Giao hàng siêu nhanh', '📦 Đóng gói cẩn thận', '⭐ Sản phẩm chính hãng', '💬 Tư vấn nhiệt tình']
+
+                return (
+                  <div key={item.orderItemId} style={{ marginBottom:'24px',padding:'18px',background:'#20202e',border:'1px solid #33334d',borderRadius:'14px' }}>
+                    <div style={{ fontWeight:700,marginBottom:'12px',fontSize:'14px',color:'#fff' }}>
+                      🛒 {item.name}
+                    </div>
+
+                    {/* Star rating */}
+                    <div style={{ display:'flex',alignItems:'center',gap:'8px',marginBottom:'12px',background:'#161622',padding:'10px 14px',borderRadius:'10px' }}>
+                      <div style={{ display:'flex',gap:'4px' }}>
+                        {[1,2,3,4,5].map(star => (
+                          <button 
+                            key={star} 
+                            type="button"
+                            onClick={() => setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], star } }))}
+                            style={{ background:'none',border:'none',fontSize:'26px',cursor:'pointer',color: (itemState.star || 5) >= star ? '#f5a623' : '#444',transition:'transform 0.1s' }}
+                            onMouseOver={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                            onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </div>
+                      <span style={{ fontSize:'13px',fontWeight:700,color:'#f5a623',marginLeft:'8px' }}>
+                        {starLabels[itemState.star || 5]}
+                      </span>
+                    </div>
+
+                    {/* Quick Tags */}
+                    <div style={{ display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'12px' }}>
+                      {quickTags.map(tag => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => {
+                            const curText = itemState.content || ''
+                            const newText = curText ? `${curText} - ${tag}` : tag
+                            setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], content: newText } }))
+                          }}
+                          style={{ fontSize:'11px',padding:'4px 10px',background:'#2a2a3d',border:'1px solid #444460',borderRadius:'20px',color:'#ddd',cursor:'pointer' }}
+                        >
+                          + {tag}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Review text */}
+                    <textarea
+                      placeholder="Hãy chia sẻ cảm nhận của bạn về chất lượng sản phẩm, dịch vụ giao hàng..."
+                      rows={3}
+                      value={itemState.content || ''}
+                      onChange={e => setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], content: e.target.value } }))}
+                      style={{ width:'100%',padding:'12px',background:'#161622',border:'1px solid #3d3d56',borderRadius:'10px',fontSize:'13px',color:'#fff',resize:'vertical',boxSizing:'border-box',outline:'none' }}
+                    />
                   </div>
-                  <textarea
-                    placeholder="Nhận xét của bạn về sản phẩm..."
-                    rows={3}
-                    value={reviewForm[item.orderItemId]?.content || ''}
-                    onChange={e => setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], content: e.target.value } }))}
-                    style={{ width:'100%',padding:'10px',border:'1px solid #ddd',borderRadius:'8px',fontSize:'13px',resize:'vertical',boxSizing:'border-box' }}
-                  />
-                </div>
-              ))
+                )
+              })
             )}
-            <div style={{ display:'flex',gap:'12px',justifyContent:'flex-end',marginTop:'8px' }}>
-              <button onClick={() => setReviewModal(null)} style={{ padding:'8px 20px',border:'1px solid #ddd',borderRadius:'8px',background:'#fff',cursor:'pointer',fontSize:'14px' }}>
+
+            {/* Modal Actions */}
+            <div style={{ display:'flex',gap:'12px',justifyContent:'flex-end',marginTop:'16px',paddingTop:'16px',borderTop:'1px solid #2d2d3f' }}>
+              <button 
+                onClick={() => setReviewModal(null)} 
+                style={{ padding:'10px 20px',border:'1px solid #444',borderRadius:'10px',background:'#252536',color:'#ddd',cursor:'pointer',fontSize:'13px',fontWeight:600 }}
+              >
                 Hủy
               </button>
               <button
@@ -838,10 +904,11 @@ export default function Profile() {
                   let successCount = 0, failCount = 0
                   for (const item of reviewModal.items) {
                     const { star, content } = reviewForm[item.orderItemId] || { star: 5, content: '' }
-                    if (!content.trim()) { failCount++; continue }
+                    if (!content || !content.trim()) { failCount++; continue }
                     try {
                       const res = await fetch(API_URL + '/reviews', {
-                        method: 'POST', credentials: 'include',
+                        method: 'POST', 
+                        credentials: 'include',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ order_item_id: item.orderItemId, star_number: star, content })
                       })
@@ -851,13 +918,109 @@ export default function Profile() {
                     } catch { failCount++ }
                   }
                   setReviewSubmitting(false)
-                  setReviewModal(null)
-                  if (successCount > 0) toast.success(`Đã gửi ${successCount} đánh giá thành công!`, { position: 'bottom-right' })
+                  if (successCount > 0) {
+                    toast.success(`🎉 Đã gửi ${successCount} đánh giá sản phẩm thành công!`, { position: 'bottom-right' })
+                    if (reviewModal?.orderId) {
+                      setOrders(prev => prev.map(o => (o._id === reviewModal.orderId || o.code === reviewModal.orderId || o.id === reviewModal.orderId) ? { ...o, status: 'completed', isReviewed: true } : o))
+                    }
+                  }
                   if (failCount > 0) toast.warn(`${failCount} sản phẩm chưa gửi được (có thể đã đánh giá hoặc chưa nhập nội dung)`, { position: 'bottom-right' })
+                  setReviewModal(null)
                 }}
-                style={{ padding:'8px 24px',border:'none',borderRadius:'8px',background: reviewSubmitting ? '#ccc' : '#d4ff00',cursor: reviewSubmitting ? 'not-allowed' : 'pointer',fontWeight:700,fontSize:'14px' }}
+                style={{ 
+                  padding:'10px 28px',
+                  border:'none',
+                  borderRadius:'10px',
+                  background: reviewSubmitting ? '#555' : '#d4ff00',
+                  color: reviewSubmitting ? '#aaa' : '#000',
+                  cursor: reviewSubmitting ? 'not-allowed' : 'pointer',
+                  fontWeight:800,
+                  fontSize:'14px',
+                  boxShadow:'0 0 15px rgba(212,255,0,0.3)'
+                }}
               >
-                {reviewSubmitting ? 'Đang gửi...' : 'Gửi đánh giá'}
+                {reviewSubmitting ? 'Đang gửi...' : 'Gửi Đánh Giá'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CANCEL CONFIRM MODAL ── */}
+      {cancelModal && (
+        <div style={{ position:'fixed',inset:0,zIndex:99999,background:'rgba(0,0,0,0.8)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px' }}>
+          <div style={{ background:'#181824',border:'1px solid #3b3b4f',borderRadius:'20px',padding:'28px',width:'100%',maxWidth:'480px',color:'#fff',boxShadow:'0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            
+            {/* Header */}
+            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingBottom:'16px',borderBottom:'1px solid #2d2d3f',marginBottom:'20px' }}>
+              <div>
+                <h3 style={{ fontSize:'18px',fontWeight:700,margin:0,color:'#ef4444',display:'flex',alignItems:'center',gap:'8px' }}>
+                  ⚠️ Xác nhận hủy đơn hàng
+                </h3>
+                <span style={{ fontSize:'12px',color:'#aaa',marginTop:'2px',display:'block' }}>
+                  #{cancelModal.orderCode} — Hành động này không thể hoàn tác
+                </span>
+              </div>
+              <button onClick={() => setCancelModal(null)} style={{ background:'#252536',border:'none',borderRadius:'50%',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'16px',cursor:'pointer',color:'#aaa' }}>✕</button>
+            </div>
+
+            {/* Reason */}
+            <div style={{ marginBottom:'20px' }}>
+              <label style={{ fontSize:'13px',color:'#aaa',display:'block',marginBottom:'8px' }}>Lý do hủy đơn (không bắt buộc)</label>
+              <div style={{ display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'10px' }}>
+                {['Đặt nhầm sản phẩm', 'Muốn thay đổi địa chỉ', 'Tìm được giá rẻ hơn', 'Không có nhu cầu nữa'].map(r => (
+                  <button key={r} type="button"
+                    onClick={() => setCancelReason(r)}
+                    style={{ fontSize:'11px',padding:'4px 10px',background: cancelReason===r ? '#ef4444' : '#2a2a3d',border:`1px solid ${cancelReason===r ? '#ef4444' : '#444460'}`,borderRadius:'20px',color:'#fff',cursor:'pointer' }}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                placeholder="Hoặc nhập lý do khác..."
+                rows={2}
+                value={cancelReason}
+                onChange={e => setCancelReason(e.target.value)}
+                style={{ width:'100%',padding:'10px',background:'#161622',border:'1px solid #3d3d56',borderRadius:'10px',fontSize:'13px',color:'#fff',resize:'none',boxSizing:'border-box',outline:'none' }}
+              />
+            </div>
+
+            {/* Actions */}
+            <div style={{ display:'flex',gap:'12px',justifyContent:'flex-end' }}>
+              <button
+                onClick={() => setCancelModal(null)}
+                style={{ padding:'10px 20px',border:'1px solid #444',borderRadius:'10px',background:'#252536',color:'#ddd',cursor:'pointer',fontSize:'13px',fontWeight:600 }}
+              >
+                Giữ đơn hàng
+              </button>
+              <button
+                disabled={cancelSubmitting}
+                onClick={async () => {
+                  setCancelSubmitting(true)
+                  try {
+                    const res = await fetch(`${API_URL}/orders/${cancelModal.orderId}/cancel`, {
+                      method: 'PUT',
+                      credentials: 'include',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ reason: cancelReason })
+                    })
+                    const data = await res.json()
+                    if (data.success) {
+                      toast.success(data.message || 'Đã hủy đơn hàng thành công!', { position: 'bottom-right' })
+                      setOrders(prev => prev.map(o => (o._id === cancelModal.orderId || o.id === cancelModal.orderId) ? { ...o, status: 'cancelled' } : o))
+                      setCancelModal(null)
+                    } else {
+                      toast.error(data.message || 'Không thể hủy đơn hàng', { position: 'bottom-right' })
+                    }
+                  } catch {
+                    toast.error('Lỗi kết nối, vui lòng thử lại', { position: 'bottom-right' })
+                  }
+                  setCancelSubmitting(false)
+                }}
+                style={{ padding:'10px 24px',border:'none',borderRadius:'10px',background: cancelSubmitting ? '#555' : '#ef4444',color:'#fff',cursor: cancelSubmitting ? 'not-allowed' : 'pointer',fontWeight:700,fontSize:'13px' }}
+              >
+                {cancelSubmitting ? 'Đang hủy...' : '🗑 Xác nhận hủy đơn'}
               </button>
             </div>
           </div>
@@ -1113,11 +1276,11 @@ export default function Profile() {
                       { key: 'all',          label: 'Tất cả',               count: orders_for_table.length },
                       { key: 'pending',      label: 'Chờ xác nhận',         count: orders_for_table.filter(o=>o.status==='pending').length },
                       { key: 'preparing',   label: 'Chuẩn bị hàng',        count: orders_for_table.filter(o=>o.status==='preparing').length },
-                      { key: 'handover',    label: 'Bàn giao VC',          count: orders_for_table.filter(o=>o.status==='handover').length },
-                      { key: 'shipped',     label: 'Đang vận chuyển',      count: orders_for_table.filter(o=>o.status==='shipped').length },
+                      { key: 'handover',    label: 'Bàn giao VC',          count: orders_for_table.filter(o=>o.status==='handover'||o.status==='handed_over').length },
+                      { key: 'shipped',     label: 'Đang vận chuyển',      count: orders_for_table.filter(o=>o.status==='shipped'||o.status==='shipping').length },
                       { key: 'delivering',  label: 'Đang giao',            count: orders_for_table.filter(o=>o.status==='delivering').length },
-                      { key: 'completed',   label: 'Đã giao hàng',         count: orders_for_table.filter(o=>o.status==='completed').length },
-                      { key: 'done',        label: 'Hoàn thành',           count: orders_for_table.filter(o=>o.status==='done').length },
+                      { key: 'delivered',   label: 'Đã giao hàng',         count: orders_for_table.filter(o=>o.status==='delivered').length },
+                      { key: 'completed',   label: 'Hoàn thành',           count: orders_for_table.filter(o=>o.status==='completed'||o.status==='done').length },
                       { key: 'cancelled',   label: 'Đã hủy',               count: orders_for_table.filter(o=>o.status==='cancelled').length },
                       { key: 'delivery_fail',label: 'Giao thất bại',       count: orders_for_table.filter(o=>o.status==='delivery_fail').length },
                       { key: 'refund',      label: 'Hoàn tiền',            count: orders_for_table.filter(o=>o.status==='refund').length },
@@ -1223,13 +1386,16 @@ export default function Profile() {
 
                             {/* Action buttons */}
                             <div className="profile-order-item-actions">
-                              {(order.status === 'done' || order.status === 'completed') &&
+                              {(order.status === 'done' || order.status === 'completed' || order.status === 'delivered') &&
                                 <button className="profile-order-btn profile-order-btn--rebuy">
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.53"/></svg>Mua lại
                                 </button>
                               }
-                              {order.status === 'pending' &&
-                                <button className="profile-order-btn profile-order-btn--cancel">
+                              {(order.status === 'pending' || order.status === 'preparing') &&
+                                <button
+                                  className="profile-order-btn profile-order-btn--cancel"
+                                  onClick={() => { setCancelModal({ orderId: order.id, orderCode: order.code }); setCancelReason('') }}
+                                >
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Hủy đơn
                                 </button>
                               }
@@ -1238,15 +1404,16 @@ export default function Profile() {
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.53"/></svg>Yêu cầu hoàn tiền
                                 </button>
                               }
-                              {(order.status === 'done') &&
+                              {order.status === 'delivered' && !order.isReviewed && (
                                 <button
                                   className="profile-order-btn profile-order-btn--review"
+                                  style={{ background: '#d4ff00', color: '#000', fontWeight: 700, border: 'none' }}
                                   onClick={() => {
-                                    // Lấy items của đơn hàng tương ứng từ danh sách orders
-                                    const fullOrder = orders.find(o => o._id === order.id || o.code === order.code)
-                                    const items = (fullOrder?.items || []).map(oi => ({
+                                    const fullOrder = orders.find(o => o._id === order.id || o.code === order.code || o._id === order.rawOrder?._id) || order.rawOrder || {}
+                                    const rawItems = fullOrder?.items || order.rawOrder?.items || []
+                                    const items = rawItems.map(oi => ({
                                       orderItemId: oi._id,
-                                      name: oi.product?.name || oi.variant?.variant_name || 'Sản phẩm'
+                                      name: oi.variants_id?.p_id?.name || oi.product?.name || oi.variants_id?.variant_name || oi.variant?.variant_name || 'Sản phẩm'
                                     }))
                                     setReviewModal({ orderId: order.id, items })
                                     const initForm = {}
@@ -1254,9 +1421,15 @@ export default function Profile() {
                                     setReviewForm(initForm)
                                   }}
                                 >
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Đánh giá
+                                  <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                  Đánh giá
                                 </button>
-                              }
+                              )}
+                              {(order.isReviewed || order.status === 'completed' || order.status === 'done') && (
+                                <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', background: 'rgba(16,185,129,0.1)', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.2)' }}>
+                                  ✓ Đã hoàn thành
+                                </span>
+                              )}
                               <button className="profile-order-btn profile-order-btn--detail" onClick={() => handleViewOrder(order.id)}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết
                               </button>

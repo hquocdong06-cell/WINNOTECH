@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X, Trash2, Save, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
-
-const API_URL = 'http://localhost:3000';
+import { API_BASE as API_URL } from '../../services/apiService';
 
 const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
   const [variants, setVariants] = useState([]);

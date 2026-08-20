@@ -321,15 +321,15 @@ export default function ProductDetail() {
   // Gallery images list
   const getProductImages = () => {
     const list = []
+    if (product.thumnail) {
+      const thumb = product.thumnail.startsWith('http') ? product.thumnail : `${API_URL}${product.thumnail}`
+      list.push(thumb)
+    }
     if (AnhSP && AnhSP.length > 0) {
       AnhSP.forEach(img => {
         const url = img.url.startsWith('http') ? img.url : `${API_URL}${img.url}`
-        list.push(url)
+        if (!list.includes(url)) list.push(url)
       })
-    }
-    if (list.length === 0 && product.thumnail) {
-      const thumb = product.thumnail.startsWith('http') ? product.thumnail : `${API_URL}${product.thumnail}`
-      list.push(thumb)
     }
     if (list.length === 0) {
       list.push('https://images.unsplash.com/photo-1591485121907-26859ff93e37?q=80&w=2670&auto=format&fit=crop')
@@ -348,12 +348,18 @@ export default function ProductDetail() {
 
   // Price calculations
   const hasVariants = Variants && Variants.length > 0
+<<<<<<< Updated upstream
   const activeVariant = Variants?.find(v => v._id === selectedVariantId) || (hasVariants ? Variants[0] : null)
   const activeAttributes = activeVariant?.Attributes || activeVariant?.attributes || []
   const originalPrice = activeVariant ? activeVariant.price : (product.price || 0)
   const currentPrice = activeVariant && activeVariant.sale_price > 0 ? activeVariant.sale_price : originalPrice
+=======
+  const activeVariant = Variants?.find(v => v._id === selectedVariantId) || (hasVariants ? Variants.find(v => v.price > 0) || Variants[0] : null)
+  const originalPrice = (activeVariant && activeVariant.price > 0) ? activeVariant.price : (product.price || 0)
+  const currentPrice = (activeVariant && activeVariant.sale_price > 0) ? activeVariant.sale_price : (product.sale > 0 && originalPrice > 0 ? Math.round(originalPrice * (1 - product.sale / 100)) : originalPrice)
+>>>>>>> Stashed changes
   const hasSale = product.sale > 0 || (activeVariant && activeVariant.sale_price > 0)
-  const salePercent = product.sale || (activeVariant ? Math.round((1 - activeVariant.sale_price / activeVariant.price) * 100) : 0)
+  const salePercent = product.sale || (activeVariant && activeVariant.price > 0 ? Math.round((1 - activeVariant.sale_price / activeVariant.price) * 100) : 0)
 
   const isOutOfStock = activeVariant && activeVariant.stock_quantity !== undefined ? activeVariant.stock_quantity <= 0 : false
   const availableStock = activeVariant && activeVariant.stock_quantity !== undefined ? activeVariant.stock_quantity : 999

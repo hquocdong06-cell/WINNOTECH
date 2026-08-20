@@ -400,6 +400,18 @@ export default function Checkout() {
   const [voucherInfo, setVoucherInfo] = useState(null)
   const [voucherError, setVoucherError] = useState('')
   const [voucherChecking, setVoucherChecking] = useState(false)
+  const [mySavedVouchers, setMySavedVouchers] = useState([])
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/vouchers/my-vouchers`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data?.available) {
+          setMySavedVouchers(data.data.available)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   // ── Submit state ──
   const [submitting, setSubmitting] = useState(false)
@@ -437,49 +449,34 @@ const voucherCalc = voucherInfo?.rawVoucher
 
   // ── Áp dụng voucher ──
   const handleApplyVoucher = async () => {
-    if (!voucherCode.trim()) { setVoucherError('Vui lòng nhập mã giảm giá'); return }
+    if (!voucherCode.trim()) { setVoucherError('Vui lòng nhập hoặc chọn mã giảm giá'); return }
     setVoucherChecking(true)
     setVoucherError('')
     setVoucherInfo(null)
     try {
-      const data = await voucherAPI.check(voucherCode.trim())
+      const res = await fetch(`${API_URL}/api/vouchers/apply`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: voucherCode.trim(), cartTotal: subtotal })
+      })
+      const data = await res.json()
       if (data.success && data.data) {
-        const v = data.data
-if (v.min_order > 0 && subtotal < v.min_order) {
-          setVoucherError(`Đơn hàng tối thiểu ${v.min_order.toLocaleString('vi-VN')}đ để dùng mã này`)
-          setVoucherInfo(null)
-          return
-        }
-
-        const code = (v.code || voucherCode).toUpperCase()
-        const isFRS = code.includes('FRS')
-        const isSHIP = !isFRS && (code.includes('SHIP') || code.includes('FREESHIP'))
-
+        const v = data.data.rawVoucher || data.data
         const calc = calculateVoucherDiscount(v, subtotal, 30000)
-        let msg = ''
-        if (calc.voucherType === 'frs') {
-          msg = `Áp dụng thành công — Miễn phí ship & Giảm ${calc.productDiscount.toLocaleString('vi-VN')}đ tiền hàng`
-        } else if (calc.voucherType === 'ship') {
-          msg = `Áp dụng thành công — Giảm ${calc.shippingDiscount.toLocaleString('vi-VN')}đ phí vận chuyển`
-        } else {
-          msg = `Áp dụng thành công — Giảm ${calc.productDiscount.toLocaleString('vi-VN')}đ tiền hàng`
-        }
-
         setVoucherInfo({
-          code,
+          code: data.data.code,
           discount: calc.totalDiscount,
           productDiscount: calc.productDiscount,
           shippingDiscount: calc.shippingDiscount,
           rawVoucher: v,
-          isFRS,
-          isSHIP,
-          msg,
+          msg: data.message || `Áp dụng mã ${data.data.code} thành công!`,
         })
       } else {
-        setVoucherError(data.message || 'Mã không hợp lệ')
+        setVoucherError(data.message || 'Mã giảm giá không hợp lệ')
       }
     } catch (err) {
-      setVoucherError(err.message || 'Không thể kiểm tra mã giảm giá')
+      setVoucherError(err.message || 'Lỗi khi kiểm tra mã giảm giá')
     } finally {
       setVoucherChecking(false)
     }
@@ -925,13 +922,58 @@ if (v.min_order > 0 && subtotal < v.min_order) {
 
             {/* Voucher */}
             <div className="co-voucher" style={{ padding: '12px 16px', borderTop: '1px solid #222' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>
-                MÃ GIẢM GIÁ
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>MÃ GIẢM GIÁ</span>
+                {mySavedVouchers.length > 0 && (
+                  <span style={{ fontSize: '11px', color: '#d4ff00' }}>Ví có {mySavedVouchers.length} mã</span>
+                )}
               </div>
+
+              {/* Saved Vouchers Dropdown */}
+              {mySavedVouchers.length > 0 && (
+                <select
+                  onChange={(e) => {
+                    const selected = e.target.value;
+                    if (selected) {
+                      setVoucherCode(selected);
+                      setVoucherInfo(null);
+                      setVoucherError('');
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    background: '#161622',
+                    border: '1px solid #3d3d56',
+                    borderRadius: '6px',
+                    color: '#FFE500',
+                    padding: '8px 10px',
+                    fontSize: '12px',
+                    marginBottom: '8px',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="">-- Chọn mã từ Ví Voucher của bạn --</option>
+                  {mySavedVouchers.map((uv, idx) => {
+                    const v = uv?.voucher || {};
+                    if (!v.code) return null;
+                    const isPct = (v.discountType || v.discount_type) === 'percent';
+                    const val = v.discountValue || v.discount_value || 0;
+                    const minVal = v.minOrderValue || v.min_order || 0;
+                    const valText = isPct ? `${val}%` : `${(val / 1000)}K`;
+                    return (
+                      <option key={uv.userVoucherId || v._id || idx} value={v.code}>
+                        🎟 [{v.code}] - Giảm {valText} (Đơn từ {minVal ? (minVal/1000)+'K' : '0đ'})
+                      </option>
+                    );
+                  })}
+                </select>
+              )}
+
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   type="text"
-                  placeholder="Nhập mã giảm giá"
+                  placeholder="Hoặc nhập mã giảm giá"
                   value={voucherCode}
                   onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherInfo(null); setVoucherError('') }}
                   style={{

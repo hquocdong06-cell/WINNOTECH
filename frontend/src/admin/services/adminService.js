@@ -203,11 +203,23 @@ export async function fetchAdminOrders() {
   return data;
 }
 
-export async function updateAdminOrderStatus(id, status) {
+export async function fetchAdminOrderDetail(id) {
+  return apiFetch(`/admin/orders/${id}`);
+}
+
+export async function updateAdminOrderStatus(id, status, note = '') {
   return apiFetch(`/admin/orders/${id}/status`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, note }),
+  });
+}
+
+export async function addAdminOrderNote(id, content) {
+  return apiFetch(`/admin/orders/${id}/note`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
   });
 }
 

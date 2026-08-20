@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { LogOut, User, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE } from '../../services/apiService';
 
 const Header = () => {
   const [adminUser, setAdminUser] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('http://localhost:3000/auth/me', { credentials: 'include' })
+    fetch(`${API_BASE}/auth/me`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (data.success && data.user) {
@@ -19,7 +20,7 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:3000/logout', { credentials: 'include' });
+      await fetch(`${API_BASE}/logout`, { credentials: 'include' });
       navigate('/login');
     } catch {
       navigate('/login');

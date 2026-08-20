@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldAlert, LogIn, Home } from 'lucide-react';
+import { API_BASE } from '../../services/apiService';
 
 export default function AdminGuard({ children }) {
   const [checking, setChecking] = useState(true);
@@ -10,7 +11,7 @@ export default function AdminGuard({ children }) {
   useEffect(() => {
     const checkAdminAuth = async () => {
       try {
-        const res = await fetch('http://localhost:3000/auth/me', {
+        const res = await fetch(`${API_BASE}/auth/me`, {
           method: 'GET',
           credentials: 'include',
         });

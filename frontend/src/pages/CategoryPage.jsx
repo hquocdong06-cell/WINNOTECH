@@ -492,7 +492,7 @@ export default function CategoryPage({ slug: propSlug, title: propTitle }) {
     if (product.thumnail) {
       return product.thumnail.startsWith('http') ? product.thumnail : `${API_URL}${product.thumnail}`
     }
-    return 'http://localhost:3000/public/images/anh_case/image_40.png'
+    return `${API_URL}/public/images/anh_case/image_40.png`
   }
 
   const formatPrice = (price) => {

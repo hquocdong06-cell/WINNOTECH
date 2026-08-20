@@ -1,7 +1,8 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, UploadCloud, Loader2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { createCategory, updateCategory, uploadImage } from '../services/adminService';
+import { API_BASE } from '../../services/apiService';
 
 const CategoryFormModal = ({ isOpen, onClose, category, onSuccess }) => {
   const [name, setName] = useState('');
@@ -19,7 +20,7 @@ const CategoryFormModal = ({ isOpen, onClose, category, onSuccess }) => {
       setName(category?.name || '');
       const imgUrl = category?.image || '';
       setUploadedImageUrl(imgUrl);
-      setPreviewUrl(imgUrl ? (imgUrl.startsWith('http') ? imgUrl : `http://localhost:3000${imgUrl}`) : '');
+      setPreviewUrl(imgUrl ? (imgUrl.startsWith('http') ? imgUrl : `${API_BASE}${imgUrl}`) : '');
     }
   }, [isOpen, category]);
 

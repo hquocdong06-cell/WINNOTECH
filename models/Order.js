@@ -7,7 +7,7 @@ const OrderSchema = new mongoose.Schema({
     status: {
     type: String,
     enum: [
-        'pending', 'preparing', 'handed_over', 'shipping', 'delivering', 'completed', 'canceled'
+        'pending', 'preparing', 'handed_over', 'shipping', 'delivering', 'completed', 'canceled', 'cancelled'
     ],
     default: 'pending',
 },
@@ -19,6 +19,18 @@ const OrderSchema = new mongoose.Schema({
     voucher_code: { type: String },
     voucher_value: { type: Number, default: 0 },
     payment_status: { type: String, default: 'unpaid' },
+    cancel_reason: { type: String },
+    admin_notes: [{
+        content: { type: String, required: true },
+        author: { type: String, default: 'Admin' },
+        createdAt: { type: Date, default: Date.now }
+    }],
+    statusHistory: [{
+        status: { type: String, required: true },
+        note: { type: String },
+        changedBy: { type: String, default: 'Hệ thống' },
+        changedAt: { type: Date, default: Date.now }
+    }],
     date: { type: Date, default: Date.now }
 }, { timestamps: true });
 

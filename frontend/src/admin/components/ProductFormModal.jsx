@@ -1,9 +1,11 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UploadCloud, X, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
   createProduct, updateProduct, uploadImage, fetchCategories, fetchBrands,
 } from '../services/adminService';
+
+import { API_BASE } from '../../services/apiService';
 
 const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp, onSuccess }) => {
   const [form, setForm] = useState({
@@ -31,7 +33,7 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
 
     // Điền dữ liệu nếu là edit
     if (product) {
-      const defaultVariant = product.Variants?.find(v => v.variant_name === 'Mặc định') || product.Variants?.[0];
+      const defaultVariant = product.Variants?.find(v => v.price > 0) || product.Variants?.find(v => v.variant_name === 'Mặc định') || product.Variants?.[0];
       const imgUrl = product.thumnail || product.AnhSP?.find(i => i.is_main)?.url || product.AnhSP?.[0]?.url || '';
       setForm({
         name: product.name || '',
@@ -40,12 +42,12 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
         status: product.status || 'active',
         cat_id: product.cat_id?._id || product.cat_id || '',
         brand_id: product.brand_id?._id || product.brand_id || '',
-        price: defaultVariant?.price || '',
+        price: defaultVariant?.price || product.price || '',
         sale: product.sale || '',
-        stock: defaultVariant?.stock_quantity || '',
+        stock: defaultVariant?.stock_quantity !== undefined ? defaultVariant.stock_quantity : (product.stock || ''),
         thumnail: imgUrl,
       });
-      setPreviewUrl(imgUrl ? (imgUrl.startsWith('http') ? imgUrl : `http://localhost:3000${imgUrl}`) : '');
+      setPreviewUrl(imgUrl ? (imgUrl.startsWith('http') ? imgUrl : `${API_BASE}${imgUrl}`) : '');
     } else {
       setForm({ name: '', description: '', short_desc: '', status: 'active', cat_id: '', brand_id: '', price: '', sale: '', stock: '', thumnail: '' });
       setPreviewUrl('');
