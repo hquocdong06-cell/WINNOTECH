@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Edit, Eye, EyeOff, Loader2, Image as ImageIcon, ExternalLink, RefreshCw } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchAdminBanners, toggleAdminBannerStatus } from '../services/adminService';
+import { fetchAdminBanners, toggleAdminBannerStatus, API_BASE } from '../services/adminService';
 import BannerFormModal from '../components/BannerFormModal';
 
 const Banners = () => {
@@ -74,7 +74,7 @@ const Banners = () => {
   const getImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
-    return `http://localhost:3000${url}`;
+    return `${API_BASE}${url}`;
   };
 
   const activeCount = banners.filter(b => b.status === 'active').length;

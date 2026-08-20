@@ -6,7 +6,7 @@ import { compareAPI } from '../services/apiService'
 import { cartAPI } from '../services/apiService'
 import '../assets/styles/compare.css'
 
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 
 const fmt = (n) => {
   if (!n && n !== 0) return 'Liên hệ'

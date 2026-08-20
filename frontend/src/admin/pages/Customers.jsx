@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, UserCheck, UserX, Trash2, Lock, Unlock, RefreshCw, AlertTriangle, ShieldCheck, Mail, Phone, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchAdminUsers, createAdminUser, updateAdminUserStatus, deleteAdminUser } from '../services/adminService';
+import { fetchAdminUsers, createAdminUser, updateAdminUserStatus, deleteAdminUser, API_BASE } from '../services/adminService';
 
 // Modal Thêm User mới
 const UserFormModal = ({ isOpen, onClose, onSuccess }) => {
@@ -250,7 +250,7 @@ const Customers = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <img
-                          src={u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `http://localhost:3000${u.avatar}`) : `https://api.dicebear.com/7.x/bottts/svg?seed=${u.email}`}
+                          src={u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `${API_BASE}${u.avatar}`) : `https://api.dicebear.com/7.x/bottts/svg?seed=${u.email}`}
                           alt={u.name || u.email}
                           className="w-10 h-10 rounded-full object-cover border border-[#444]"
                         />

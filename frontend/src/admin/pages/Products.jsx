@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Plus, Search, Settings2, Edit, Eye, EyeOff, Trash2, Loader2, AlertTriangle, Award } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchAdminProducts, fetchCategories, deleteProduct, toggleProductStatus } from '../services/adminService';
+import { fetchAdminProducts, fetchCategories, deleteProduct, toggleProductStatus, API_BASE } from '../services/adminService';
 import ProductFormModal from '../components/ProductFormModal';
 import VariantManagementModal from '../components/VariantManagementModal';
 import BrandManagementModal from '../components/BrandManagementModal';
@@ -105,8 +105,8 @@ const Products = () => {
 
   const getImageUrl = (product) => {
     const mainImg = product.AnhSP?.find((img) => img.is_main) || product.AnhSP?.[0];
-    if (mainImg?.url) return mainImg.url.startsWith('http') ? mainImg.url : `http://localhost:3000${mainImg.url}`;
-    if (product.thumnail) return product.thumnail.startsWith('http') ? product.thumnail : `http://localhost:3000${product.thumnail}`;
+    if (mainImg?.url) return mainImg.url.startsWith('http') ? mainImg.url : `${API_BASE}${mainImg.url}`;
+    if (product.thumnail) return product.thumnail.startsWith('http') ? product.thumnail : `${API_BASE}${product.thumnail}`;
     return null;
   };
 

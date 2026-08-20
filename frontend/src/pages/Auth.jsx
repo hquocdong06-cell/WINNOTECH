@@ -5,7 +5,7 @@ import '../assets/styles/auth.css'
 // ✅ THAY "YOUR_GOOGLE_CLIENT_ID" bằng Client ID thật từ Google Cloud Console
 //    https://console.cloud.google.com/apis/credentials
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID'
-const API_BASE = 'http://localhost:3000'
+import { API_BASE } from '../services/apiService';
 
 export default function Auth() {
   const navigate   = useNavigate()
@@ -93,7 +93,7 @@ export default function Auth() {
     }
 
     try {
-      const res = await fetch('http://localhost:3000/login', {
+      const res = await fetch(`${API_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // gửi/nhận cookie
@@ -136,7 +136,7 @@ export default function Auth() {
     }
     setForgotLoading(true)
     try {
-      const res = await fetch('http://localhost:3000/api/auth/forgot-password', {
+      const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: forgotForm.identifier.trim() })
@@ -171,7 +171,7 @@ export default function Auth() {
     }
     setForgotLoading(true)
     try {
-      const res = await fetch('http://localhost:3000/api/auth/reset-password', {
+      const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -249,7 +249,7 @@ export default function Auth() {
     }
 
     try {
-      const res = await fetch('http://localhost:3000/register', {
+      const res = await fetch(`${API_BASE}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

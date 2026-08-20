@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 
 export default function RecentlyViewedSidebar({ currentSlug }) {
   const [recentlyViewed, setRecentlyViewed] = useState([])

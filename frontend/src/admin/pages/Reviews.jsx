@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, RefreshCw, Star, MessageSquare, User, Package, Calendar, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchReviewsFilter, toggleReviewStatus } from '../services/adminService';
+import { fetchReviewsFilter, toggleReviewStatus, API_BASE } from '../services/adminService';
 
 const Reviews = () => {
   const [reviews, setReviews] = useState([]);
@@ -64,7 +64,7 @@ const Reviews = () => {
     try {
       const img = r.id_oderitems?.variants_id?.p_id?.image;
       if (!img) return 'https://placehold.co/80';
-      return img.startsWith('http') ? img : `http://localhost:3000${img}`;
+      return img.startsWith('http') ? img : `${API_BASE}${img}`;
     } catch {
       return 'https://placehold.co/80';
     }

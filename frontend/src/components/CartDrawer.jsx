@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { selectCartItems, selectCartTotalPrice, removeFromCart, updateQuantity } from '../redux/cartSlice';
 import '../assets/styles/cart-drawer.css'; // CSS riêng cho drawer mini cart
 
-const API_URL = 'http://localhost:3000';
+import { API_BASE as API_URL } from '../services/apiService';
 
 export default function CartDrawer({ isOpen, onClose }) {
   const dispatch = useDispatch();

@@ -12,7 +12,7 @@ const formatPrice = (price) => {
   return price.toLocaleString('vi-VN') + 'đ'
 }
 
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 
 export default function Profile() {
   const navigate = useNavigate()

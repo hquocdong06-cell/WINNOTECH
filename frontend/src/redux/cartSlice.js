@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-
-const API_BASE = 'http://localhost:3000';
+import { API_BASE } from '../services/apiService';
 
 // Lấy hoặc tạo guestId duy nhất lưu trong localStorage
 export function getGuestId() {

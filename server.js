@@ -289,16 +289,27 @@ var privatekey = fs.readFileSync("./key/privatekey.pem");
 
 connectDB();
 
-// CORS — cho phép FE (localhost:5173, 5174, 5175...) gọi API & ảnh
+// CORS — cho phép FE (localhost & winnotech.io.vn / 103.106.104.186) gọi API & ảnh
+const allowedOrigins = [
+  'https://winnotech.io.vn',
+  'http://winnotech.io.vn',
+  'https://www.winnotech.io.vn',
+  'http://www.winnotech.io.vn',
+  'http://103.106.104.186',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:3000',
+  process.env.CLIENT_URL
+].filter(Boolean);
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Cho phép requests không có origin (ví dụ từ Postman, mobile)
-      // và mọi cổng localhost 5173–5179 (Vite dev server)
-      if (!origin || /^http:\/\/localhost:(517[0-9])$/.test(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:(517[0-9])$/.test(origin) || (origin && origin.includes('winnotech.io.vn'))) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        callback(null, true);
       }
     },
     credentials: true, // bắt buộc để cookie hoạt động
@@ -6679,8 +6690,10 @@ const paymentReturn = async (req, res) => {
             }
           }
 
+          const clientBaseUrl = process.env.CLIENT_URL || (req.headers.host && req.headers.host.includes('localhost') ? 'http://localhost:5173' : 'https://winnotech.io.vn');
+
           if (req.headers['accept']?.includes('text/html') || !req.xhr) {
-            return res.redirect(`http://localhost:5173/payment-result?${querystring.stringify(req.query)}`);
+            return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
           }
           return res.status(200).json("Thanh toán online thành công, chi tiết đơn hàng đã gửi qua mail");
         } catch (error) {
@@ -6705,8 +6718,9 @@ const paymentReturn = async (req, res) => {
           order.payment_status = "canceled";
           await order.save();
 
+          const clientBaseUrl = process.env.CLIENT_URL || (req.headers.host && req.headers.host.includes('localhost') ? 'http://localhost:5173' : 'https://winnotech.io.vn');
           if (req.headers['accept']?.includes('text/html') || !req.xhr) {
-            return res.redirect(`http://localhost:5173/payment-result?${querystring.stringify(req.query)}`);
+            return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
           }
           // Trả về kết quả cho client
           return res.status(200).json("Hủy thanh toán thành công");
@@ -6732,8 +6746,9 @@ const paymentReturn = async (req, res) => {
           order.payment_status = "failed";
           await order.save();
 
+          const clientBaseUrl = process.env.CLIENT_URL || (req.headers.host && req.headers.host.includes('localhost') ? 'http://localhost:5173' : 'https://winnotech.io.vn');
           if (req.headers['accept']?.includes('text/html') || !req.xhr) {
-            return res.redirect(`http://localhost:5173/payment-result?${querystring.stringify(req.query)}`);
+            return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
           }
           // Trả về kết quả cho VNPAY
           return res.status(500).json("Thanh toán online không thành công, xin mời bạn đặt hàng lại ");
@@ -6745,8 +6760,9 @@ const paymentReturn = async (req, res) => {
 
     } else {
       console.error("Chữ ký VNPay không khớp!");
+      const clientBaseUrl = process.env.CLIENT_URL || (req.headers.host && req.headers.host.includes('localhost') ? 'http://localhost:5173' : 'https://winnotech.io.vn');
       if (req.headers['accept']?.includes('text/html') || !req.xhr) {
-        return res.redirect(`http://localhost:5173/payment-result?vnp_ResponseCode=97&vnp_TxnRef=${vnp_Params['vnp_TxnRef'] || ''}`);
+        return res.redirect(`${clientBaseUrl}/payment-result?vnp_ResponseCode=97&vnp_TxnRef=${vnp_Params['vnp_TxnRef'] || ''}`);
       }
       return res.status(400).json({ code: '97', message: "Chữ ký không hợp lệ" });
     }

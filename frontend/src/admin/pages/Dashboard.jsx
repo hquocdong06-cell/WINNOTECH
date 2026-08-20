@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { DollarSign, ShoppingCart, Users, Package, TrendingUp, Download, RefreshCw, Eye } from 'lucide-react';
-import { fetchRevenueStats, getRevenueExcelExportUrl, fetchAdminUsers, fetchAdminProducts, fetchAdminOrders } from '../services/adminService';
+import { fetchRevenueStats, getRevenueExcelExportUrl, fetchAdminUsers, fetchAdminProducts, fetchAdminOrders, API_BASE } from '../services/adminService';
 import { Link } from 'react-router-dom';
 
 const STATUS_LABELS = {
@@ -251,7 +251,7 @@ const Dashboard = () => {
             {bestSellers.map((prod) => (
               <div key={prod._id} className="flex items-center gap-3 p-3 bg-[#1a1a24] rounded-xl border border-[#2b2b36]">
                 <img
-                  src={prod.image ? (prod.image.startsWith('http') ? prod.image : `http://localhost:3000${prod.image}`) : 'https://placehold.co/100'}
+                  src={prod.image ? (prod.image.startsWith('http') ? prod.image : `${API_BASE}${prod.image}`) : 'https://placehold.co/100'}
                   alt={prod.name}
                   className="w-12 h-12 object-cover rounded-lg border border-[#333]"
                 />

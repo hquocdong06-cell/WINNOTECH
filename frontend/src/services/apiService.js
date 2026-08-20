@@ -3,7 +3,7 @@
 // Base URL: http://localhost:3000
 // ============================================================
 
-export const API_BASE = 'http://localhost:3000';
+export const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && !window.location.origin.includes('localhost') ? window.location.origin : 'http://localhost:3000');
 
 // Helper fetch (gửi kèm cookie)
 async function apiFetch(endpoint, options = {}) {

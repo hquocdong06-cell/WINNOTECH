@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import DefaultLayout from '../layouts/DefaultLayout'
 
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 
 export default function Blog() {
   const [posts, setPosts] = useState([])

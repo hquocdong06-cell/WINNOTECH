@@ -12,7 +12,8 @@
  * const product = await productService.getById(productId);
  */
 
-const API_URL = 'http://localhost:3000/api/product';
+import { API_BASE } from './apiService';
+const API_URL = `${API_BASE}/api/product`;
 
 const productService = {
     // Lấy tất cả sản phẩm

@@ -9,9 +9,9 @@
 }
 
 .cpu-section-inner {
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 0 40px;
+  padding: 0 32px;
 }
 
 /* ── BREADCRUMB ── */
@@ -21,7 +21,7 @@
   gap: 8px;
   font-size: 12px;
   color: var(--text-muted);
-  margin-bottom: 32px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
 }
 
@@ -47,8 +47,8 @@
 /* ── MAIN LAYOUT ── */
 .cpu-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 32px;
+  grid-template-columns: 260px 1fr;
+  gap: 24px;
 }
 
 /* ════════════════════════════════════════ */
@@ -227,6 +227,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-width: 0;
 }
 
 .cpu-main-header {
@@ -313,11 +314,54 @@
   box-shadow: inset 0 0 2px rgba(255,255,255,0.05);
 }
 
-/* ── PRODUCTS GRID ── */
+/* Range slider styling */
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  background: transparent;
+}
+
+input[type=range]:focus {
+  outline: none;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  background: #11141a;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+input[type=range]::-webkit-slider-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: var(--yellow);
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -6px;
+  box-shadow: 0 0 10px rgba(212, 255, 0, 0.6);
+  border: 2px solid #000;
+}
+
+input[type=range]::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: var(--yellow);
+  cursor: pointer;
+  border: 2px solid #000;
+  box-shadow: 0 0 10px rgba(212, 255, 0, 0.6);
+}
+
+/* ── PRODUCTS GRID (4 ITEMS PER ROW) ── */
 .cpu-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
   margin-bottom: 24px;
 }
 
@@ -332,6 +376,7 @@
   flex-direction: column;
   position: relative;
   cursor: pointer;
+  min-width: 0;
 }
 
 .cpu-card:hover {
@@ -624,22 +669,51 @@
   border-color: var(--yellow);
 }
 
+.page-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 36px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 700;
+  user-select: none;
+  letter-spacing: 1px;
+}
+
 /* ════════════════════════════════════════ */
 /* ──  RESPONSIVE - TABLET (768-1024px)  ── */
 /* ════════════════════════════════════════ */
 
+@media (max-width: 1320px) {
+  .cpu-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+}
+
 @media (max-width: 1024px) {
   .cpu-section-inner {
-    padding: 0 24px;
+    padding: 0 20px;
   }
 
   .cpu-layout {
-    grid-template-columns: 240px 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 24px;
   }
 
+  .cpu-sidebar {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
   .cpu-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
   }
 
   .cpu-main-header {
@@ -658,22 +732,22 @@
 
 @media (max-width: 768px) {
   .cpu-section {
-    padding: 24px 0;
+    padding: 20px 0;
   }
 
   .cpu-section-inner {
-    padding: 0 16px;
+    padding: 0 14px;
   }
 
   .cpu-layout {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 20px;
   }
 
   .cpu-sidebar {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    gap: 12px;
     order: 2;
   }
 
@@ -700,7 +774,7 @@
   }
 
   .cpu-card-img {
-    height: 120px;
+    height: 130px;
   }
 
   .cpu-card-info {
@@ -723,37 +797,6 @@
     width: 32px;
     height: 32px;
     font-size: 11px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .cpu-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  .cpu-sidebar {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-  .cpu-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-  }
-}
-
-@media (max-width: 768px) {
-  .cpu-section {
-    padding: 20px 0;
-  }
-  .cpu-section-inner {
-    padding: 0 14px;
-  }
-  .cpu-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
   }
 }
 

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/contact.css'
 
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 
 // ── FAQ Data ──────────────────────────────────────────────────
 const FAQ_LIST = [

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Search, Eye, Edit, RefreshCw, FileText, Trash2, X, Check, Clock, Truck, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchAdminOrders, updateAdminOrderStatus, deleteAdminOrder, getOrderPdfUrl } from '../services/adminService';
+import { fetchAdminOrders, updateAdminOrderStatus, deleteAdminOrder, getOrderPdfUrl, API_BASE } from '../services/adminService';
 
 const STATUS_LABELS = {
   pending:      'Chờ xác nhận',
@@ -64,7 +64,7 @@ const OrderDetailModal = ({ isOpen, onClose, order }) => {
               return (
                 <div key={idx} className="flex items-center gap-3 p-3 bg-[#1e1e2d] rounded-xl border border-[#333] text-xs">
                   <img
-                    src={product.image ? (product.image.startsWith('http') ? product.image : `http://localhost:3000${product.image}`) : 'https://placehold.co/80'}
+                    src={product.image ? (product.image.startsWith('http') ? product.image : `${API_BASE}${product.image}`) : 'https://placehold.co/80'}
                     alt={product.name || 'Sản phẩm'}
                     className="w-12 h-12 object-cover rounded-lg border border-[#444]"
                   />
