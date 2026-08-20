@@ -4,20 +4,20 @@ const ProductSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     sale: { type: Number, default: 0 },
-    thumnail: { type: String }, // Giữ nguyên chính tả từ ERD
+    thumnail: { type: String },
     slug: { type: String, required: true, unique: true },
     description: { type: String },
     short_desc: { type: String },
     status: { type: String, default: "active" },
     // ── Compatibility metadata (Smart Filter Build PC) ─────────
     compatibility_meta: {
-      socket:       { type: String, default: null },   // AM4 | AM5 | LGA1700 | LGA1851
-      ram_type:     { type: String, default: null },   // DDR4 | DDR5
-      form_factor:  { type: String, default: null },   // ATX | mATX | ITX (mainboard)
-      supported_ff: { type: [String], default: [] },   // Case: form factors được hỗ trợ
-      tdp:          { type: Number, default: null },    // CPU watts
-      wattage:      { type: Number, default: null },    // PSU watts
-      gpu_tier:     { type: Number, default: null },    // GPU tier 1-5
+      socket:       { type: String, default: null },   
+      ram_type:     { type: String, default: null },  
+      form_factor:  { type: String, default: null },   
+      supported_ff: { type: [String], default: [] },   
+      tdp:          { type: Number, default: null },    
+      wattage:      { type: Number, default: null },    
+      gpu_tier:     { type: Number, default: null },    
     },
     // Foreign Keys
     cat_id:   { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
