@@ -9,7 +9,7 @@ import useCompare from '../hooks/useCompare'
 import { useAuth } from '../hooks/useAuth'
 import '../assets/styles/cpu.css' // Reuse the sidebar layout styles
 
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 
 // --- FILTER OPTIONS DATA MATCHING USER'S MAINBOARD IMAGE ---
 const brandsData = [
@@ -340,11 +340,18 @@ export default function Mainboard() {
     return 0
   })
 
-  // Pagination
-  const itemsPerPage = 9
+  // Pagination (12 SP / trang)
+  const itemsPerPage = 12
   const totalPages = Math.ceil(sortedProducts.length / itemsPerPage) || 1
   const startIdx = (currentPage - 1) * itemsPerPage
   const visibleProducts = sortedProducts.slice(startIdx, startIdx + itemsPerPage)
+
+  const paginationPages = (() => {
+    if (totalPages <= 6) return Array.from({ length: totalPages }, (_, i) => i + 1)
+    if (currentPage <= 4) return [1, 2, 3, 4, 5, '...', totalPages]
+    if (currentPage >= totalPages - 3) return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
+    return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages]
+  })()
 
   return (
     <DefaultLayout>
@@ -825,30 +832,39 @@ export default function Mainboard() {
 
               {/* FOOTER / PAGINATION AREA */}
               {totalPages > 1 && (
-                <div className="cpu-footer-row">
-                  <button className="btn-show-more" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}>Show More</button>
+                <div className="cpu-footer-row" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    Trang <span style={{ color: '#fff', fontWeight: 700 }}>{currentPage}</span> / {totalPages} (Hiển thị {startIdx + 1} - {Math.min(startIdx + itemsPerPage, sortedProducts.length)} trên {sortedProducts.length} sản phẩm)
+                  </div>
+
                   <div className="cpu-pagination-right">
-                    <span className="pagination-label">Products</span>
                     <button 
                       className="page-nav-btn" 
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
+                      title="Trang trước"
                     >
                       &lt;
                     </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                      <button
-                        key={page}
-                        className={`page-btn ${currentPage === page ? 'active' : ''}`}
-                        onClick={() => setCurrentPage(page)}
-                      >
-                        {page}
-                      </button>
-                    ))}
+                    {paginationPages.map((item, idx) => {
+                      if (item === '...') {
+                        return <span key={`ellipsis-${idx}`} className="page-ellipsis">...</span>
+                      }
+                      return (
+                        <button
+                          key={item}
+                          className={`page-btn ${currentPage === item ? 'active' : ''}`}
+                          onClick={() => setCurrentPage(item)}
+                        >
+                          {item}
+                        </button>
+                      )
+                    })}
                     <button 
                       className="page-nav-btn"
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
+                      title="Trang tiếp theo"
                     >
                       &gt;
                     </button>

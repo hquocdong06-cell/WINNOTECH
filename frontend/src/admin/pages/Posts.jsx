@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Edit, Trash2, Loader2, AlertTriangle, FileText } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchPosts, fetchPostCategories, createPost, updatePost, deletePost, uploadImage } from '../services/adminService';
+import { fetchPosts, fetchPostCategories, createPost, updatePost, deletePost, uploadImage, API_BASE } from '../services/adminService';
 
 // ——— Component Dialog xác nhận xóa (Soft Delete) ———
 const ConfirmDeleteDialog = ({ isOpen, postTitle, onConfirm, onCancel, isLoading }) => {
@@ -224,7 +224,7 @@ const PostFormModal = ({ isOpen, onClose, onSuccess, post, categories }) => {
                 {formData.image && (
                   <div className="relative w-10 h-10 border border-[#333] rounded overflow-hidden">
                     <img 
-                      src={formData.image.startsWith('http') ? formData.image : `http://localhost:3000${formData.image}`} 
+                      src={formData.image.startsWith('http') ? formData.image : `${API_BASE}${formData.image}`} 
                       alt="Preview" 
                       className="w-full h-full object-cover" 
                     />

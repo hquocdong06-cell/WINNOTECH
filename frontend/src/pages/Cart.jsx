@@ -6,7 +6,7 @@ import { setCart, clearCart, removeFromCart, selectCartItems } from '../redux/ca
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/cart.css'
 
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 
 function formatPrice(price) {
   if (!price && price !== 0) return '0đ'

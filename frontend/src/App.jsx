@@ -52,6 +52,15 @@ function App() {
         <Route path="/gpu" element={<GPU />} />
         <Route path="/products" element={<CategoryPage slug="all" title="Tất cả sản phẩm" />} />
         <Route path="/categories" element={<CategoryPage slug="all" title="Tất cả sản phẩm" />} />
+        <Route path="/category/:slug" element={<CategoryPage />} />
+        <Route path="/pc-gaming" element={<CategoryPage slug="pc-gaming" title="PC Gaming Trọn Bộ" />} />
+        <Route path="/pc-do-hoa" element={<CategoryPage slug="pc-do-hoa" title="PC Đồ Họa - Render 3D - Workstation" />} />
+        <Route path="/pc-van-phong" element={<CategoryPage slug="pc-van-phong" title="PC Văn Phòng - Doanh Nghiệp" />} />
+        <Route path="/man-hinh" element={<CategoryPage slug="man-hinh" title="Màn Hình Máy Tính" />} />
+        <Route path="/ban-phim" element={<CategoryPage slug="ban-phim" title="Bàn Phím Cơ Gaming" />} />
+        <Route path="/chuot-gaming" element={<CategoryPage slug="chuot-gaming" title="Chuột Chơi Game" />} />
+        <Route path="/tai-nghe" element={<CategoryPage slug="tai-nghe" title="Tai Nghe Gaming" />} />
+        <Route path="/extra" element={<CategoryPage slug="extra" title="Phụ Kiện PC & Gaming Gear" />} />
         <Route path="/ram" element={<RAM />} />
         <Route path="/storage" element={<SSD />} />
         <Route path="/mainboard" element={<Mainboard />} />

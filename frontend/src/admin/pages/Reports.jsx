@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { DollarSign, ShoppingCart, TrendingUp, AlertTriangle, Package, Activity, Download, RefreshCw } from 'lucide-react';
-import { fetchRevenueStats, getRevenueExcelExportUrl, fetchAdminProducts } from '../services/adminService';
+import { fetchRevenueStats, getRevenueExcelExportUrl, fetchAdminProducts, API_BASE } from '../services/adminService';
 
 const Reports = () => {
   const [period, setPeriod] = useState('month'); // 'day' | 'week' | 'month' | 'year'
@@ -177,7 +177,7 @@ const Reports = () => {
               <div key={p._id} className="flex items-center justify-between p-3 bg-[#1a1a24] rounded-xl border border-red-500/20 text-xs">
                 <div className="flex items-center gap-3 min-w-0">
                   <img
-                    src={p.image ? (p.image.startsWith('http') ? p.image : `http://localhost:3000${p.image}`) : 'https://placehold.co/80'}
+                    src={p.image ? (p.image.startsWith('http') ? p.image : `${API_BASE}${p.image}`) : 'https://placehold.co/80'}
                     alt={p.name}
                     className="w-10 h-10 object-cover rounded-lg border border-[#444]"
                   />
@@ -210,7 +210,7 @@ const Reports = () => {
                     {idx + 1}
                   </div>
                   <img
-                    src={p.image ? (p.image.startsWith('http') ? p.image : `http://localhost:3000${p.image}`) : 'https://placehold.co/80'}
+                    src={p.image ? (p.image.startsWith('http') ? p.image : `${API_BASE}${p.image}`) : 'https://placehold.co/80'}
                     alt={p.name}
                     className="w-10 h-10 object-cover rounded-lg border border-[#444]"
                   />

@@ -9,6 +9,8 @@ import { useNavigate } from 'react-router-dom'
  *  - Nếu đã đăng nhập (success: true) → redirect sang trang chủ
  *  - Nếu chưa đăng nhập (401) → cho hiện children (form login/register)
  */
+import { API_BASE } from '../services/apiService';
+
 export default function GuestGuard({ children }) {
   const navigate = useNavigate()
   const [checking, setChecking] = useState(true) // đang check thì chưa render gì
@@ -16,7 +18,7 @@ export default function GuestGuard({ children }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch('http://localhost:3000/auth/me', {
+        const res = await fetch(`${API_BASE}/auth/me`, {
           method: 'GET',
           credentials: 'include', // gửi cookie lên BE
         })

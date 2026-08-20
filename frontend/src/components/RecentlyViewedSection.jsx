@@ -6,7 +6,7 @@ import useFavorite from '../hooks/useFavorite'
 import { useAuth } from '../hooks/useAuth'
 import ProductCard from './ProductCard'
 
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 
 export default function RecentlyViewedSection({ currentSlug }) {
   const dispatch = useDispatch()

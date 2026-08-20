@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Edit, Trash2, Image as ImageIcon, Loader2, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchCategories, deleteCategory, toggleCategoryStatus } from '../services/adminService';
+import { fetchCategories, deleteCategory, toggleCategoryStatus, API_BASE } from '../services/adminService';
 import CategoryFormModal from '../components/CategoryFormModal';
 
 // ——— Component Dialog xác nhận xóa ———
@@ -64,7 +64,7 @@ const Categories = () => {
     try {
       const [cats, products] = await Promise.all([
         fetchCategories(),
-        fetch('http://localhost:3000/products').then(r => r.json()).then(d => d.data || []),
+        fetch(`${API_BASE}/products`).then(r => r.json()).then(d => d.data || []),
       ]);
       setCategories(cats);
       // Đếm số sản phẩm theo cat_id
@@ -137,7 +137,7 @@ const Categories = () => {
   const getImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
-    return `http://localhost:3000${url}`;
+    return `${API_BASE}${url}`;
   };
 
   return (

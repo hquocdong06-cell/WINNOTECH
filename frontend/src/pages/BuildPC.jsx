@@ -7,7 +7,7 @@ import { buildPCAPI } from '../services/apiService'
 import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
 
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 
 // ─── SVG Step Icons Styled with Neon Green ──────────────────────────────
 const StepIcon = () => null

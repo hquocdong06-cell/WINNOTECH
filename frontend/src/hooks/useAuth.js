@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 
 /**
  * useAuth — Hook kiểm tra trạng thái đăng nhập qua cookie JWT

@@ -7,7 +7,7 @@ import AIChatbot from '../components/AIChatbot'
 import { compareAPI } from '../services/apiService'
 import { useAuth } from '../hooks/useAuth'
 
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 
 const getUserDisplayName = (u) => {
   if (!u) return 'Tài khoản'
@@ -226,20 +226,20 @@ export default function DefaultLayout({ children }) {
                   <div className="mega-menu-col">
                     <div className="mega-menu-title">PC Nguyên Bộ</div>
                     <ul className="mega-menu-links">
-                      <li><a href="#">PC Gaming</a></li>
-                      <li><a href="#">PC Đồ họa / Workstation</a></li>
-                      <li><a href="#">PC Văn phòng / Học tập</a></li>
+                      <li><Link to="/pc-gaming">PC Gaming</Link></li>
+                      <li><Link to="/pc-do-hoa">PC Đồ họa / Workstation</Link></li>
+                      <li><Link to="/pc-van-phong">PC Văn phòng / Học tập</Link></li>
                       <li><Link to="/build-pc" style={{ color: 'var(--yellow)', fontWeight: 600 }}>⚡ Tự Build PC</Link></li>
                     </ul>
                   </div>
                   <div className="mega-menu-col">
                     <div className="mega-menu-title">Gaming Gear & Màn hình</div>
                     <ul className="mega-menu-links">
-                      <li><a href="#">Màn hình máy tính</a></li>
-                      <li><a href="#">Bàn phím cơ</a></li>
-                      <li><a href="#">Chuột chơi game</a></li>
-                      <li><a href="#">Tai nghe Gaming</a></li>
-                      <li><a href="#">Ghế Gaming</a></li>
+                      <li><Link to="/man-hinh">Màn hình máy tính</Link></li>
+                      <li><Link to="/ban-phim">Bàn phím cơ</Link></li>
+                      <li><Link to="/chuot-gaming">Chuột chơi game</Link></li>
+                      <li><Link to="/tai-nghe">Tai nghe Gaming</Link></li>
+                      <li><Link to="/extra">Phụ kiện khác</Link></li>
                     </ul>
                   </div>
                 </div>
@@ -254,6 +254,7 @@ export default function DefaultLayout({ children }) {
               <Link to="/psu">Nguồn</Link>
               <Link to="/cooling">Tản nhiệt PC</Link>
               <Link to="/case">Case</Link>
+              <Link to="/blog">Bài viết</Link>
             </div>
           </div>
         </div>

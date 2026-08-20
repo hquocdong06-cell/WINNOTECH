@@ -8,7 +8,7 @@ import { clearCart, selectCartItems } from '../redux/cartSlice'
 import { clearPurchasedPCBuildConfig } from '../utils/pcBuildUtils'
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + 'đ'
 
 // ═══════════════════════════════════════════════════════════════════════════

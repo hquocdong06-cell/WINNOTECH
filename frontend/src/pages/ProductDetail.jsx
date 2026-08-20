@@ -12,7 +12,7 @@ import { reviewAPI } from '../services/apiService'
 import RecentlyViewedSection from '../components/RecentlyViewedSection'
 import ProductCard from '../components/ProductCard'
 
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 
 export default function ProductDetail() {
   const navigate = useNavigate()

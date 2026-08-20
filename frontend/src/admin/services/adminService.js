@@ -2,7 +2,8 @@
 // adminService.js — Tập trung toàn bộ API call cho Admin
 // ============================================================
 
-export const API_BASE = 'http://localhost:3000';
+import { API_BASE as CLIENT_API_BASE } from '../../services/apiService';
+export const API_BASE = CLIENT_API_BASE;
 
 // ——— Hàm helper fetch ———
 async function apiFetch(endpoint, options = {}) {

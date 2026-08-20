@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
 
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/adminService';
 
 export default function AdminFlashSale() {
   const [loading, setLoading] = useState(true)

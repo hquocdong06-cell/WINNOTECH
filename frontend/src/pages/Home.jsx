@@ -10,7 +10,7 @@ import { useAuth } from '../hooks/useAuth'
 import { productAPI } from '../services/apiService'
 import ProductCard from '../components/ProductCard'
 
-const API_URL = 'http://localhost:3000'
+import { API_BASE as API_URL } from '../services/apiService';
 const PAGE_SIZE = 10
 
 // ============================================================

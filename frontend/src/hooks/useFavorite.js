@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 
-const API_URL = 'http://localhost:3000';
+import { API_BASE as API_URL } from '../services/apiService';
 
 export default function useFavorite() {
   const [favoriteIds, setFavoriteIds] = useState(new Set());
