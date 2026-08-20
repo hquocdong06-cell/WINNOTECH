@@ -14,6 +14,176 @@ import ProductCard from '../components/ProductCard'
 
 import { API_BASE as API_URL } from '../services/apiService';
 
+// ── FormattedDescription Component (Parses Markdown, Headers, and Tables) ──
+const FormattedDescription = ({ text }) => {
+  if (!text) {
+    return (
+      <div style={{ background: '#121621', color: '#888', fontStyle: 'italic', padding: '20px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        Không có mô tả chi tiết cho sản phẩm này.
+      </div>
+    )
+  }
+
+  const lines = text.split('\n')
+  const elements = []
+  let tableRows = []
+  let inTable = false
+
+  const renderInline = (str) => {
+    if (!str) return ''
+    const parts = str.split(/(\*\*.*?\*\*)/g)
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} style={{ color: '#ffffff', fontWeight: 700 }}>{part.slice(2, -2)}</strong>
+      }
+      return part
+    })
+  }
+
+  const flushTable = (keyIndex) => {
+    if (tableRows.length === 0) return null
+
+    const validRows = tableRows.filter(row => !row.every(cell => /^[:\-\s]+$/.test(cell)))
+    if (validRows.length === 0) {
+      tableRows = []
+      inTable = false
+      return null
+    }
+
+    const header = validRows[0]
+    const body = validRows.slice(1)
+
+    const tableElement = (
+      <div key={`table-${keyIndex}`} style={{ margin: '16px 0', overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', background: 'transparent', color: '#cbd5e1' }}>
+          {header && (
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--accent-color)' }}>
+                {header.map((cell, cIdx) => (
+                  <th key={cIdx} style={{ padding: '10px 0', textAlign: 'left', color: 'var(--accent-color)', fontWeight: 700, fontSize: '14px', letterSpacing: '0.5px' }}>
+                    {renderInline(cell)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          )}
+          <tbody>
+            {body.map((row, rIdx) => (
+              <tr key={rIdx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                {row.map((cell, cIdx) => (
+                  <td key={cIdx} style={{ padding: '14px 0', fontSize: '14px', color: cIdx === 0 ? '#ffffff' : '#cbd5e1', fontWeight: cIdx === 0 ? 600 : 400 }}>
+                    {renderInline(cell)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+
+    tableRows = []
+    inTable = false
+    return tableElement
+  }
+
+  let hasReachedMainContent = false
+  const hasStructuredSection = lines.some(l => l.trim().startsWith('##') || l.trim().startsWith('|'))
+
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim()
+
+    // Table line check
+    if (trimmed.startsWith('|') || (trimmed.includes('|') && trimmed.endsWith('|'))) {
+      inTable = true
+      const cells = trimmed.split('|').map(c => c.trim()).filter((c, i, a) => !(i === 0 && c === '') && !(i === a.length - 1 && c === ''))
+      tableRows.push(cells)
+      return
+    } else if (inTable) {
+      const tableEl = flushTable(idx)
+      if (tableEl) elements.push(tableEl)
+    }
+
+    if (!trimmed) {
+      elements.push(<div key={`blank-${idx}`} style={{ height: '8px' }} />)
+      return
+    }
+
+    // Header 1 (# Title) - Skipped to remove redundant product title header in description tab
+    if (trimmed.startsWith('# ')) {
+      return
+    }
+
+    // Skip intro text before first ## or table if description has structured sections
+    if (hasStructuredSection && !hasReachedMainContent) {
+      if (trimmed.startsWith('##') || trimmed.startsWith('|')) {
+        hasReachedMainContent = true
+      } else {
+        return
+      }
+    }
+
+    // Header 2 (## Subtitle)
+    if (trimmed.startsWith('## ')) {
+      elements.push(
+        <h3 key={idx} style={{
+          fontSize: '17px',
+          fontWeight: 700,
+          color: 'var(--accent-color)',
+          margin: '20px 0 10px 0'
+        }}>
+          {renderInline(trimmed.slice(3))}
+        </h3>
+      )
+      return
+    }
+
+    // Header 3 (### Subtitle)
+    if (trimmed.startsWith('### ')) {
+      elements.push(
+        <h4 key={idx} style={{
+          fontSize: '15px',
+          fontWeight: 600,
+          color: '#ffffff',
+          margin: '16px 0 8px 0'
+        }}>
+          {renderInline(trimmed.slice(4))}
+        </h4>
+      )
+      return
+    }
+
+    // List item (- or *)
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      elements.push(
+        <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '6px 0', paddingLeft: '8px' }}>
+          <span style={{ color: 'var(--accent-color)', fontWeight: 700 }}>•</span>
+          <span style={{ color: '#cbd5e1', lineHeight: '1.6', fontSize: '14px' }}>{renderInline(trimmed.slice(2))}</span>
+        </div>
+      )
+      return
+    }
+
+    // Regular paragraph
+    elements.push(
+      <p key={idx} style={{ margin: '6px 0', lineHeight: '1.7', color: '#cbd5e1', fontSize: '14px' }}>
+        {renderInline(trimmed)}
+      </p>
+    )
+  })
+
+  if (inTable) {
+    const tableEl = flushTable('end')
+    if (tableEl) elements.push(tableEl)
+  }
+
+  return (
+    <div className="formatted-description" style={{ padding: '0px' }}>
+      {elements}
+    </div>
+  )
+}
+
 export default function ProductDetail() {
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -179,6 +349,7 @@ export default function ProductDetail() {
   // Price calculations
   const hasVariants = Variants && Variants.length > 0
   const activeVariant = Variants?.find(v => v._id === selectedVariantId) || (hasVariants ? Variants[0] : null)
+  const activeAttributes = activeVariant?.Attributes || activeVariant?.attributes || []
   const originalPrice = activeVariant ? activeVariant.price : (product.price || 0)
   const currentPrice = activeVariant && activeVariant.sale_price > 0 ? activeVariant.sale_price : originalPrice
   const hasSale = product.sale > 0 || (activeVariant && activeVariant.sale_price > 0)
@@ -186,6 +357,48 @@ export default function ProductDetail() {
 
   const isOutOfStock = activeVariant && activeVariant.stock_quantity !== undefined ? activeVariant.stock_quantity <= 0 : false
   const availableStock = activeVariant && activeVariant.stock_quantity !== undefined ? activeVariant.stock_quantity : 999
+
+  // Group attributes by Attribute Name (Attribute table) and collect AttributeValue options (AttributeValue table)
+  const getGroupedAttributes = () => {
+    if (!Variants || Variants.length === 0) return []
+
+    const hasExplicitAttributes = Variants.some(v => (v.Attributes && v.Attributes.length > 0))
+
+    if (hasExplicitAttributes) {
+      const groups = {}
+      Variants.forEach(v => {
+        const attrs = v.Attributes || []
+        attrs.forEach(a => {
+          const groupName = a.attribute_name || a.name || 'Thuộc tính'
+          const valName = a.value_name || a.value
+          if (!groupName || !valName) return
+
+          if (!groups[groupName]) {
+            groups[groupName] = { attribute_name: groupName, options: [] }
+          }
+          if (!groups[groupName].options.some(o => o.value_name === valName)) {
+            groups[groupName].options.push({
+              value_name: valName,
+              variant_id: v._id
+            })
+          }
+        })
+      })
+      return Object.values(groups)
+    }
+
+    if (Variants.length > 1) {
+      return [{
+        attribute_name: 'Phiên bản / Biến thể',
+        options: Variants.map(v => ({
+          value_name: v.variant_name,
+          variant_id: v._id
+        }))
+      }]
+    }
+
+    return []
+  }
 
   const handleQuantityChange = (e) => {
     const value = parseInt(e.target.value)
@@ -580,37 +793,44 @@ export default function ProductDetail() {
                 {/* RIGHT: PRODUCT INFO */}
                 <div className="product-info-section">
                   <div className="product-header-info">
-                    <span className="product-brand" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{product.brand_id?.name || 'Chính hãng'}</span>
-                    <h1 className="product-title" style={{ fontSize: '24px', margin: '8px 0', color: '#fff' }}>{product.name}</h1>
-                  </div>
-
-                  <div className="product-meta">
-                    <span className="status-badge" style={{ 
-                      background: isOutOfStock ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)', 
-                      color: isOutOfStock ? '#ef4444' : '#22c55e', 
-                      padding: '4px 8px', 
-                      borderRadius: '4px', 
-                      fontSize: '12px' 
-                    }}>
-                      {isOutOfStock ? 'Hết hàng' : (activeVariant && activeVariant.stock_quantity !== undefined ? `Còn hàng (${availableStock} sản phẩm)` : 'Còn hàng')}
-                    </span>
-                    <div className="rating">
-                      <span className="stars">⭐⭐⭐⭐⭐</span>
-                      <span className="rating-value" style={{ marginLeft: '4px' }}>5.0</span>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      Thương hiệu: <span style={{ color: 'var(--accent-color)', fontWeight: 600, cursor: 'pointer' }}>{product.brand_id?.name || 'Chính hãng'}</span>
+                    </div>
+                    <h1 className="product-title" style={{ fontSize: '22px', fontWeight: 700, margin: '4px 0 10px 0', color: '#fff', lineHeight: '1.4' }}>
+                      {product.name}
+                    </h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                      <span>SKU: {activeVariant?.sku || product.sku || String(product._id || '').slice(-8).toUpperCase()}</span>
+                      <span style={{ color: '#333' }}>|</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ color: '#fbbf24' }}>⭐ 5.0</span>
+                        <span style={{ color: 'var(--text-muted)' }}>(0 đánh giá)</span>
+                      </div>
+                      <span style={{ color: '#333' }}>|</span>
+                      <span className="status-badge" style={{ 
+                        background: isOutOfStock ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)', 
+                        color: isOutOfStock ? '#ef4444' : '#22c55e', 
+                        padding: '2px 8px', 
+                        borderRadius: '4px', 
+                        fontSize: '12px',
+                        fontWeight: 600
+                      }}>
+                        {isOutOfStock ? 'Hết hàng' : (activeVariant && activeVariant.stock_quantity !== undefined ? `Còn hàng (${availableStock} sản phẩm)` : 'Còn hàng')}
+                      </span>
                     </div>
                   </div>
 
                   {/* SHORT DESC */}
-                  <div className="specs-table" style={{ marginTop: '20px', background: 'var(--dark2)', padding: '15px', borderRadius: '8px', border: '1px solid #333' }}>
-                    <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+                  <div className="specs-table" style={{ marginTop: '16px', background: 'var(--dark2)', padding: '12px 15px', borderRadius: '8px', border: '1px solid #333' }}>
+                    <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
                       {product.short_desc || 'Không có mô tả ngắn cho sản phẩm này.'}
                     </p>
                   </div>
 
                   {/* PRICE */}
-                  <div className="product-pricing" style={{ margin: '20px 0' }}>
+                  <div className="product-pricing" style={{ margin: '16px 0' }}>
                     <span className="price-note" style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)' }}>Giá đã bao gồm VAT</span>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '15px', marginTop: '5px' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '15px', marginTop: '4px' }}>
                       <span className="price-main" style={{ fontSize: '28px', color: 'var(--accent-color)', fontWeight: 'bold' }}>
                         {formatPrice(currentPrice)}
                       </span>
@@ -622,35 +842,92 @@ export default function ProductDetail() {
                     </div>
                   </div>
 
-                  {/* SELECT VARIANT CHIPS */}
-                  {Variants && Variants.length > 1 && (
-                    <div className="variant-selector" style={{ margin: '20px 0 10px 0' }}>
-                      <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '8px' }}>
-                        Phiên bản / Biến thể:
-                      </span>
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {Variants.map(v => (
-                          <button
-                            key={v._id}
-                            onClick={() => { setSelectedVariantId(v._id); setQuantity(1); }}
-                            style={{
-                              background: selectedVariantId === v._id ? 'var(--accent-color)' : 'var(--dark2)',
-                              color: selectedVariantId === v._id ? '#000' : '#fff',
-                              border: selectedVariantId === v._id ? '1px solid var(--accent-color)' : '1px solid #444',
-                              padding: '6px 14px',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              transition: 'all 0.2s'
-                            }}
-                          >
-                            {v.variant_name}
-                          </button>
+                  {/* ATTRIBUTE GROUPS & ATTRIBUTE VALUE SELECTION (MATCHING WEBSITE THEME) */}
+                  {(() => {
+                    const attributeGroups = getGroupedAttributes()
+                    if (attributeGroups.length === 0) return null
+
+                    return (
+                      <div className="attribute-groups-container" style={{ margin: '16px 0 20px 0' }}>
+                        {attributeGroups.map((group, groupIdx) => (
+                          <div key={groupIdx} style={{ marginBottom: '14px' }}>
+                            <div style={{ fontSize: '12px', color: 'var(--accent-color)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                              {group.attribute_name}
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                              {group.options.map((opt, optIdx) => {
+                                const isSelected = activeVariant?.Attributes?.some(
+                                  a => (a.attribute_name === group.attribute_name || a.name === group.attribute_name) &&
+                                       (a.value_name === opt.value_name || a.value === opt.value_name)
+                                ) || (selectedVariantId === opt.variant_id) || (!selectedVariantId && opt.variant_id === activeVariant?._id)
+
+                                return (
+                                  <button
+                                    key={optIdx}
+                                    type="button"
+                                    onClick={() => {
+                                      if (opt.variant_id) {
+                                        setSelectedVariantId(opt.variant_id)
+                                        setQuantity(1)
+                                      } else {
+                                        const matchVar = Variants?.find(v => 
+                                          v.Attributes?.some(a => (a.value_name === opt.value_name || a.value === opt.value_name))
+                                        )
+                                        if (matchVar) {
+                                          setSelectedVariantId(matchVar._id)
+                                          setQuantity(1)
+                                        }
+                                      }
+                                    }}
+                                    style={{
+                                      position: 'relative',
+                                      background: isSelected ? 'rgba(200, 230, 0, 0.12)' : 'var(--dark2)',
+                                      color: isSelected ? 'var(--accent-color)' : '#e2e8f0',
+                                      border: isSelected ? '1.5px solid var(--accent-color)' : '1px solid rgba(255, 255, 255, 0.15)',
+                                      padding: '8px 22px',
+                                      borderRadius: '6px',
+                                      fontSize: '13px',
+                                      fontWeight: isSelected ? 700 : 500,
+                                      cursor: 'pointer',
+                                      overflow: 'hidden',
+                                      transition: 'all 0.2s ease',
+                                      minWidth: '80px',
+                                      textAlign: 'center',
+                                      boxShadow: isSelected ? '0 0 12px rgba(200, 230, 0, 0.25)' : 'none'
+                                    }}
+                                  >
+                                    {opt.value_name}
+                                    {isSelected && (
+                                      <div style={{
+                                        position: 'absolute',
+                                        bottom: 0,
+                                        right: 0,
+                                        width: '15px',
+                                        height: '15px',
+                                        background: 'var(--accent-color)',
+                                        clipPath: 'polygon(100% 0, 0 100%, 100% 100%)',
+                                        display: 'flex',
+                                        alignItems: 'flex-end',
+                                        justifyContent: 'flex-end',
+                                      }}>
+                                        <span style={{
+                                          color: '#000000',
+                                          fontSize: '9px',
+                                          fontWeight: 900,
+                                          lineHeight: 1,
+                                          marginRight: '1px'
+                                        }}>✓</span>
+                                      </div>
+                                    )}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )
+                  })()}
 
                   {/* QUANTITY & ACTIONS */}
                   <div className="product-actions">
@@ -752,7 +1029,7 @@ export default function ProductDetail() {
 
               {/* TABS */}
               <div className="product-tabs" style={{ marginTop: '40px' }}>
-                <div className="tabs-header" style={{ borderBottom: '1px solid #333' }}>
+                <div className="tabs-header" style={{ borderBottom: '1px solid #333', display: 'flex', gap: '15px' }}>
                   <button 
                     className={`tab-btn ${activeTab === 'description' ? 'active' : ''}`}
                     onClick={() => setActiveTab('description')}
@@ -769,8 +1046,8 @@ export default function ProductDetail() {
 
                 <div className="tabs-content" style={{ padding: '20px 0' }}>
                   {activeTab === 'description' && (
-                    <div className="tab-pane" style={{ lineHeight: '1.8', color: '#ccc', fontSize: '15px' }}>
-                      <div style={{ whiteSpace: 'pre-line' }}>{product.description || 'Không có mô tả chi tiết cho sản phẩm này.'}</div>
+                    <div className="tab-pane">
+                      <FormattedDescription text={product.description} />
                     </div>
                   )}
 

@@ -1,0 +1,1481 @@
+[
+  {
+    "lineNum": 407,
+    "method": "POST",
+    "endpoints": [
+      "/register"
+    ],
+    "comments": "============================================================ | POST /register | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/register\", async (req, res) => {"
+  },
+  {
+    "lineNum": 524,
+    "method": "POST",
+    "endpoints": [
+      "/login"
+    ],
+    "comments": "",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/login\", function (req, res, next) {"
+  },
+  {
+    "lineNum": 580,
+    "method": "GET",
+    "endpoints": [
+      "/logout"
+    ],
+    "comments": "",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/logout\", function (req, res) {"
+  },
+  {
+    "lineNum": 596,
+    "method": "POST",
+    "endpoints": [
+      "/api/auth/google",
+      "/auth/google"
+    ],
+    "comments": "2. Backend verify token với Google OAuth2Client (đảm bảo token hợp lệ) | 3. Nếu email chưa tồn tại trong DB → Tạo tài khoản mới tự động (Đăng ký) | 4. Nếu đã có tài khoản → Link Google ID và đăng nhập luôn | 5. Trả về JWT token qua HttpOnly cookie (giống flow đăng nhập thường) | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post([\"/api/auth/google\", \"/auth/google\"], async (req, res) => {"
+  },
+  {
+    "lineNum": 735,
+    "method": "GET",
+    "endpoints": [
+      "/profile"
+    ],
+    "comments": "============================================================ | GET /profile | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/profile\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 754,
+    "method": "GET",
+    "endpoints": [
+      "/profile/stats"
+    ],
+    "comments": "============================================================ | GET /profile/stats — Thống kê tài khoản (tổng đơn hàng, tổng chi tiêu, sản phẩm yêu thích) | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/profile/stats\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 900,
+    "method": "PUT",
+    "endpoints": [
+      "/profile"
+    ],
+    "comments": "",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.put(\"/profile\", checklogin, uploadAvatar.single(\"avatar\"), handleUpdateProfile);"
+  },
+  {
+    "lineNum": 901,
+    "method": "POST",
+    "endpoints": [
+      "/profile/update"
+    ],
+    "comments": "",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/profile/update\", checklogin, uploadAvatar.single(\"avatar\"), handleUpdateProfile);"
+  },
+  {
+    "lineNum": 908,
+    "method": "GET",
+    "endpoints": [
+      "/auth/me"
+    ],
+    "comments": "GET /auth/me — kiểm tra user đang đăng nhập không | FE gọi API này trước khi hiển thị trang Login | - Trả về user info nếu đã đăng nhập (success: true) | - Trả về 401 nếu chưa đăng nhập → FE mới cho hiện form login | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/auth/me\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 926,
+    "method": "GET",
+    "endpoints": [
+      "/products"
+    ],
+    "comments": "GET /products  — lấy toàn bộ sản phẩm kèm ảnh + biến thể + thuộc tính | FIX: | - Bỏ Attribute.find({ id_variants }) — field này không còn tồn tại | - Dùng helper getVariantAttributeMap() qua bảng junction VariantAttribute | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/products\", async (req, res, next) => {"
+  },
+  {
+    "lineNum": 975,
+    "method": "GET",
+    "endpoints": [
+      "/products/home/newest"
+    ],
+    "comments": "============================================================ | GET /products/home/newest — 10 sản phẩm mới nhất | FIX: dùng getVariantAttributeMap thay vì Attribute.find({ id_variants }) | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/products/home/newest\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1054,
+    "method": "GET",
+    "endpoints": [
+      "/products/home/featured"
+    ],
+    "comments": "============================================================ | GET /products/home/featured — 10 sản phẩm nổi bật (bán chạy / sale cao) | FIX: dùng getVariantAttributeMap và tính lượt bán thực tế từ DB | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/products/home/featured\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1138,
+    "method": "GET",
+    "endpoints": [
+      "/products/home/flash-sale",
+      "/api/products/flash-sale"
+    ],
+    "comments": "1. PUBLIC API GET FLASH SALE (Trang chủ)",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get([\"/products/home/flash-sale\", \"/api/products/flash-sale\"], async (req, res) => {"
+  },
+  {
+    "lineNum": 1261,
+    "method": "GET",
+    "endpoints": [
+      "/api/admin/flash-sale"
+    ],
+    "comments": "2. ADMIN GET FLASH SALE SETTINGS",
+    "hasCheckLogin": false,
+    "isAdminRoute": true,
+    "lineContent": "app.get(\"/api/admin/flash-sale\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1282,
+    "method": "PUT",
+    "endpoints": [
+      "/api/admin/flash-sale"
+    ],
+    "comments": "3. ADMIN PUT FLASH SALE SETTINGS",
+    "hasCheckLogin": false,
+    "isAdminRoute": true,
+    "lineContent": "app.put(\"/api/admin/flash-sale\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1333,
+    "method": "GET",
+    "endpoints": [
+      "/api/buildpc/components",
+      "/api/products/build-pc"
+    ],
+    "comments": "============================================================ | dev fresher - BUILD PC COMPONENTS & SEARCH API | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get([\"/api/buildpc/components\", \"/api/products/build-pc\"], async (req, res) => {"
+  },
+  {
+    "lineNum": 1446,
+    "method": "GET",
+    "endpoints": [
+      "/api/buildpc/suggest"
+    ],
+    "comments": "============================================================ | BUILD PC — SUGGEST CONFIGURATION API | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/api/buildpc/suggest\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1635,
+    "method": "GET",
+    "endpoints": [
+      "/products/home/Newest"
+    ],
+    "comments": "",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/products/home/Newest\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1679,
+    "method": "GET",
+    "endpoints": [
+      "/products/home/Sale"
+    ],
+    "comments": "",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/products/home/Sale\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1738,
+    "method": "GET",
+    "endpoints": [
+      "/products/search"
+    ],
+    "comments": "============================================================ | GET /products/search — tìm kiếm sản phẩm (phải đặt TRƯỚC /:slug) | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/products/search\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1815,
+    "method": "GET",
+    "endpoints": [
+      "/products/:slug"
+    ],
+    "comments": "============================================================ | GET /products/:slug — chi tiết sản phẩm theo slug (hoặc _id) | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/products/:slug\", async (req, res, next) => {"
+  },
+  {
+    "lineNum": 1866,
+    "method": "GET",
+    "endpoints": [
+      "/categories"
+    ],
+    "comments": "============================================================ | GET /categories — lấy tất cả danh mục | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/categories\", async (req, res, next) => {"
+  },
+  {
+    "lineNum": 1887,
+    "method": "POST",
+    "endpoints": [
+      "/categories/upload"
+    ],
+    "comments": "============================================================ | POST /categories/upload — Upload ảnh danh mục vào frontend/public/image/category | Đổi tên file thành cate + 10 số ngẫu nhiên | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/categories/upload\", uploadCategory.single(\"image\"), (req, res) => {"
+  },
+  {
+    "lineNum": 1908,
+    "method": "GET",
+    "endpoints": [
+      "/categories/:id"
+    ],
+    "comments": "============================================================ | GET /categories/:id — Lấy chi tiết danh mục theo ID | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/categories/:id\", async (req, res, next) => {"
+  },
+  {
+    "lineNum": 1930,
+    "method": "POST",
+    "endpoints": [
+      "/categories"
+    ],
+    "comments": "============================================================ | POST /categories — Thêm danh mục mới | FE truyền ID/data danh mục lên để xử lý | Kiểm tra nếu danh mục đã tồn tại thì KHÔNG cho thêm | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/categories\", async (req, res) => {"
+  },
+  {
+    "lineNum": 1990,
+    "method": "PUT",
+    "endpoints": [
+      "/categories/:id"
+    ],
+    "comments": "============================================================ | PUT /categories/:id — Sửa danh mục | Cho phép sửa ảnh, nếu ảnh bị thay thế thì LẬP TỨC XÓA ẢNH CŨ khỏi đĩa | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.put(\"/categories/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2064,
+    "method": "PATCH",
+    "endpoints": [
+      "/categories/:id/status"
+    ],
+    "comments": "============================================================ | PATCH /categories/:id/status — Thay đổi trạng thái danh mục | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.patch(\"/categories/:id/status\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2102,
+    "method": "DELETE",
+    "endpoints": [
+      "/categories/:id"
+    ],
+    "comments": "============================================================ | DELETE /categories/:id — Không được xóa danh mục, chỉ được thay đổi trạng thái | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.delete(\"/categories/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2125,
+    "method": "GET",
+    "endpoints": [
+      "/brands"
+    ],
+    "comments": "============================================================ | GET /brands — lấy tất cả thương hiệu | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/brands\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2144,
+    "method": "POST",
+    "endpoints": [
+      "/products"
+    ],
+    "comments": "============================================================ | POST /products — tạo sản phẩm mới cùng ảnh và biến thể mặc định | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/products\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2226,
+    "method": "PUT",
+    "endpoints": [
+      "/products/:id"
+    ],
+    "comments": "============================================================ | PUT /products/:id — cập nhật sản phẩm | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.put(\"/products/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2323,
+    "method": "DELETE",
+    "endpoints": [
+      "/products/:id"
+    ],
+    "comments": "============================================================ | DELETE /products/:id — xóa sản phẩm cùng các ảnh, biến thể liên quan | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.delete(\"/products/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2359,
+    "method": "PATCH",
+    "endpoints": [
+      "/products/:id/status"
+    ],
+    "comments": "============================================================ | PATCH /products/:id/status — toggle trạng thái active/hidden | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.patch(\"/products/:id/status\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2393,
+    "method": "GET",
+    "endpoints": [
+      "/categories/:slug"
+    ],
+    "comments": "============================================================ | GET /categories/:slug — sản phẩm theo danh mục | Không thay đổi logic, chỉ giữ nguyên | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/categories/:slug\", async (req, res, next) => {"
+  },
+  {
+    "lineNum": 2461,
+    "method": "POST",
+    "endpoints": [
+      "/cart/add"
+    ],
+    "comments": "FIX: | - Thêm import CartItemModel (bị thiếu ở file gốc) | - Bỏ Attribute.find({ id_variants: variant._id }) — field không tồn tại | - Dùng getVariantAttributeMap() cho 1 variant đơn lẻ | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/cart/add\", async (req, res) => {"
+  },
+  {
+    "lineNum": 2597,
+    "method": "GET",
+    "endpoints": [
+      "/cart"
+    ],
+    "comments": "============================================================ | GET /cart — lấy giỏ hàng của user đã đăng nhập | API MỚI — cần thiết cho luồng checkout | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/cart\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 2661,
+    "method": "PUT",
+    "endpoints": [
+      "/cart/:cartItemId"
+    ],
+    "comments": "============================================================ | PUT /cart/:cartItemId — cập nhật số lượng item trong giỏ | API MỚI | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.put(\"/cart/:cartItemId\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 2719,
+    "method": "DELETE",
+    "endpoints": [
+      "/cart/:cartItemId"
+    ],
+    "comments": "============================================================ | DELETE /cart/:cartItemId — xóa item khỏi giỏ hàng | API MỚI | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.delete(\"/cart/:cartItemId\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 2759,
+    "method": "POST",
+    "endpoints": [
+      "/orders"
+    ],
+    "comments": "POST /orders — đặt hàng | FIX: | - OrderItem.variants_id thay vì attribute_value_id (đúng ERD) | - Trừ stock_quantity của ProductVariant sau khi đặt | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/orders\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 2902,
+    "method": "GET",
+    "endpoints": [
+      "/orders"
+    ],
+    "comments": "============================================================ | GET /orders — lịch sử đơn hàng của user | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/orders\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3000,
+    "method": "GET",
+    "endpoints": [
+      "/orders/:orderId"
+    ],
+    "comments": "============================================================ | GET /orders/:orderId — chi tiết đơn hàng | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/orders/:orderId\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3330,
+    "method": "GET",
+    "endpoints": [
+      "/orders/export-pdf/:id"
+    ],
+    "comments": "",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/orders/export-pdf/:id\", checklogin, exportOrderPdfHandler);"
+  },
+  {
+    "lineNum": 3331,
+    "method": "GET",
+    "endpoints": [
+      "/orders/:orderId/export-pdf"
+    ],
+    "comments": "",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/orders/:orderId/export-pdf\", checklogin, exportOrderPdfHandler);"
+  },
+  {
+    "lineNum": 3332,
+    "method": "POST",
+    "endpoints": [
+      "/orders/export-pdf"
+    ],
+    "comments": "",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/orders/export-pdf\", checklogin, exportOrderPdfHandler);"
+  },
+  {
+    "lineNum": 3333,
+    "method": "GET",
+    "endpoints": [
+      "/api/orders/export-pdf/:id"
+    ],
+    "comments": "",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/api/orders/export-pdf/:id\", checklogin, exportOrderPdfHandler);"
+  },
+  {
+    "lineNum": 3334,
+    "method": "POST",
+    "endpoints": [
+      "/api/orders/export-pdf"
+    ],
+    "comments": "",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/api/orders/export-pdf\", checklogin, exportOrderPdfHandler);"
+  },
+  {
+    "lineNum": 3340,
+    "method": "POST",
+    "endpoints": [
+      "/reviews"
+    ],
+    "comments": "============================================================ | POST /reviews — đăng review cho order item | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/reviews\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3395,
+    "method": "POST",
+    "endpoints": [
+      "/favorites"
+    ],
+    "comments": "============================================================ | POST /favorites — thêm yêu thích | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/favorites\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3421,
+    "method": "DELETE",
+    "endpoints": [
+      "/favorites/:productId"
+    ],
+    "comments": "============================================================ | DELETE /favorites/:productId — xóa yêu thích | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.delete(\"/favorites/:productId\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3441,
+    "method": "GET",
+    "endpoints": [
+      "/delivery-addresses"
+    ],
+    "comments": "============================================================ | GET /delivery-addresses — lấy địa chỉ giao hàng của user | API MỚI — dùng DeliveryAddressModel (bảng mới từ ERD) | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/delivery-addresses\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3457,
+    "method": "POST",
+    "endpoints": [
+      "/delivery-addresses"
+    ],
+    "comments": "============================================================ | POST /delivery-addresses — thêm địa chỉ giao hàng | API MỚI | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/delivery-addresses\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3485,
+    "method": "DELETE",
+    "endpoints": [
+      "/delivery-addresses/:id"
+    ],
+    "comments": "============================================================ | DELETE /delivery-addresses/:id — xóa địa chỉ giao hàng | API MỚI | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.delete(\"/delivery-addresses/:id\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3508,
+    "method": "GET",
+    "endpoints": [
+      "/vouchers/check/:code"
+    ],
+    "comments": "============================================================ | GET /vouchers/check/:code — kiểm tra voucher hợp lệ | ============================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/vouchers/check/:code\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3554,
+    "method": "GET",
+    "endpoints": [
+      "/api/cart/:u_id"
+    ],
+    "comments": "============================================================ | CART APIs | ============================================================ | Lấy danh sách giỏ hàng",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/api/cart/:u_id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3578,
+    "method": "POST",
+    "endpoints": [
+      "/api/cart"
+    ],
+    "comments": "Thêm vào giỏ hàng",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/api/cart\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3627,
+    "method": "PUT",
+    "endpoints": [
+      "/api/cart/:id"
+    ],
+    "comments": "Cập nhật số lượng",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.put(\"/api/cart/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3659,
+    "method": "DELETE",
+    "endpoints": [
+      "/api/cart/:id"
+    ],
+    "comments": "Xóa khỏi giỏ hàng",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.delete(\"/api/cart/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3669,
+    "method": "DELETE",
+    "endpoints": [
+      "/api/cart/clear/:u_id"
+    ],
+    "comments": "API Xóa toàn bộ giỏ hàng của 1 user",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.delete(\"/api/cart/clear/:u_id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3693,
+    "method": "POST",
+    "endpoints": [
+      "/upload"
+    ],
+    "comments": "============================================================ | POST /upload — upload ảnh dùng chung cho sản phẩm & danh mục | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/upload\", upload.single(\"image\"), (req, res) => {"
+  },
+  {
+    "lineNum": 3713,
+    "method": "POST",
+    "endpoints": [
+      "/categories"
+    ],
+    "comments": "============================================================ | POST /categories — tạo danh mục mới (Kiểm tra trùng tên) | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/categories\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3762,
+    "method": "PUT",
+    "endpoints": [
+      "/categories/:id"
+    ],
+    "comments": "============================================================ | PUT /categories/:id — cập nhật danh mục (Kiểm tra trùng tên) | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.put(\"/categories/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3820,
+    "method": "DELETE",
+    "endpoints": [
+      "/categories/:id"
+    ],
+    "comments": "============================================================ | DELETE /categories/:id — SOFT DELETE danh mục (Chỉ chuyển trạng thái) | ============================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.delete(\"/categories/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 3852,
+    "method": "GET",
+    "endpoints": [
+      "/favorites/ids"
+    ],
+    "comments": "============================================================ | FAVORITES (YÊU THÍCH) ROUTES | ============================================================ | GET /favorites/ids — chỉ trả mảng productId (nhẹ, dùng để check trạng thái)",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/favorites/ids\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3864,
+    "method": "GET",
+    "endpoints": [
+      "/favorites"
+    ],
+    "comments": "GET /favorites — lấy danh sách yêu thích kèm thông tin sản phẩm",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/favorites\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3915,
+    "method": "POST",
+    "endpoints": [
+      "/favorites/:productId"
+    ],
+    "comments": "POST /favorites/:productId — toggle yêu thích",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/favorites/:productId\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3949,
+    "method": "DELETE",
+    "endpoints": [
+      "/favorites/:productId"
+    ],
+    "comments": "DELETE /favorites/:productId — xóa khỏi yêu thích",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.delete(\"/favorites/:productId\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 3992,
+    "method": "GET",
+    "endpoints": [
+      "/admin/products"
+    ],
+    "comments": "============================================================ | 1. QUẢN LÝ SẢN PHẨM (ADMIN PRODUCT CRUD) | GET /admin/products — Lấy tất cả sản phẩm hệ thống",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.get(\"/admin/products\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4006,
+    "method": "POST",
+    "endpoints": [
+      "/admin/products"
+    ],
+    "comments": "POST /admin/products — Thêm mới sản phẩm (Kiểm tra trùng tên/slug trước khi thêm)",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.post(\"/admin/products\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4068,
+    "method": "PUT",
+    "endpoints": [
+      "/admin/products/:id"
+    ],
+    "comments": "PUT /admin/products/:id — Cập nhật sản phẩm (Kiểm tra trùng tên/slug ở sản phẩm khác)",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.put(\"/admin/products/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4148,
+    "method": "PUT",
+    "endpoints": [
+      "/admin/products/:id/status"
+    ],
+    "comments": "PUT /admin/products/:id/status — Đổi trạng thái sản phẩm (active / inactive)",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.put(\"/admin/products/:id/status\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4163,
+    "method": "DELETE",
+    "endpoints": [
+      "/admin/products/:id"
+    ],
+    "comments": "DELETE /admin/products/:id — SOFT DELETE sản phẩm (Chuyển status = 'inactive', TUYỆT ĐỐI KHÔNG XÓA DB)",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.delete(\"/admin/products/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4181,
+    "method": "GET",
+    "endpoints": [
+      "/admin/brands"
+    ],
+    "comments": "2. QUẢN LÝ THƯƠNG HIỆU (ADMIN BRAND CRUD) | GET /admin/brands — Lấy tất cả thương hiệu",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.get(\"/admin/brands\", async (req, res) => {"
+  },
+  {
+    "lineNum": 4191,
+    "method": "POST",
+    "endpoints": [
+      "/admin/brands"
+    ],
+    "comments": "POST /admin/brands — Thêm thương hiệu mới (Kiểm tra trùng tên)",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.post(\"/admin/brands\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4217,
+    "method": "PUT",
+    "endpoints": [
+      "/admin/brands/:id"
+    ],
+    "comments": "PUT /admin/brands/:id — Cập nhật thương hiệu (Kiểm tra trùng tên)",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.put(\"/admin/brands/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4244,
+    "method": "DELETE",
+    "endpoints": [
+      "/admin/brands/:id"
+    ],
+    "comments": "DELETE /admin/brands/:id — SOFT DELETE thương hiệu (Chỉ đổi status = 'inactive')",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.delete(\"/admin/brands/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4262,
+    "method": "GET",
+    "endpoints": [
+      "/admin/users"
+    ],
+    "comments": "3. QUẢN LÝ NGƯỜI DÙNG (ADMIN USER MANAGEMENT) | GET /admin/users — Danh sách người dùng",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.get(\"/admin/users\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4272,
+    "method": "POST",
+    "endpoints": [
+      "/admin/users"
+    ],
+    "comments": "POST /admin/users — Tạo người dùng mới (Kiểm tra trùng email/phone)",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.post(\"/admin/users\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4306,
+    "method": "PUT",
+    "endpoints": [
+      "/admin/users/:id/status"
+    ],
+    "comments": "PUT /admin/users/:id/status — Đổi trạng thái/khóa người dùng ('active' | 'inactive' | 'locked')",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.put(\"/admin/users/:id/status\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4321,
+    "method": "DELETE",
+    "endpoints": [
+      "/admin/users/:id"
+    ],
+    "comments": "DELETE /admin/users/:id — SOFT DELETE người dùng (Chuyển status = 'inactive')",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.delete(\"/admin/users/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4339,
+    "method": "GET",
+    "endpoints": [
+      "/admin/orders"
+    ],
+    "comments": "4. QUẢN LÝ ĐƠN HÀNG (ADMIN ORDER MANAGEMENT) | GET /admin/orders — Lấy tất cả đơn hàng hệ thống",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.get(\"/admin/orders\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4359,
+    "method": "PUT",
+    "endpoints": [
+      "/admin/orders/:id/status"
+    ],
+    "comments": "PUT /admin/orders/:id/status — Cập nhật trạng thái đơn hàng",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.put(\"/admin/orders/:id/status\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4374,
+    "method": "DELETE",
+    "endpoints": [
+      "/admin/orders/:id"
+    ],
+    "comments": "DELETE /admin/orders/:id — SOFT CANCEL đơn hàng (Chuyển status = 'canceled')",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.delete(\"/admin/orders/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4392,
+    "method": "GET",
+    "endpoints": [
+      "/admin/revenue/stats"
+    ],
+    "comments": "5. CHỨC NĂNG THỐNG KÊ DOANH THU & XUẤT FILE EXCEL | GET /admin/revenue/stats — Thống kê doanh thu theo Ngày, Tuần, Tháng, Năm",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.get(\"/admin/revenue/stats\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4448,
+    "method": "GET",
+    "endpoints": [
+      "/admin/revenue/export-excel"
+    ],
+    "comments": "GET /admin/revenue/export-excel — Xuất bảng thống kê doanh thu ra file Excel (.xlsx)",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.get(\"/admin/revenue/export-excel\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4567,
+    "method": "GET",
+    "endpoints": [
+      "/post-categories"
+    ],
+    "comments": "GET /post-categories — Lấy danh mục bài viết",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/post-categories\", async (req, res) => {"
+  },
+  {
+    "lineNum": 4578,
+    "method": "GET",
+    "endpoints": [
+      "/posts"
+    ],
+    "comments": "GET /posts — Lấy tất cả bài viết (hỗ trợ lọc theo category_id và status)",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/posts\", async (req, res) => {"
+  },
+  {
+    "lineNum": 4604,
+    "method": "GET",
+    "endpoints": [
+      "/posts/:slug"
+    ],
+    "comments": "GET /posts/:slug — Lấy chi tiết bài viết theo slug",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/posts/:slug\", async (req, res) => {"
+  },
+  {
+    "lineNum": 4624,
+    "method": "POST",
+    "endpoints": [
+      "/admin/posts"
+    ],
+    "comments": "POST /admin/posts — Tạo mới bài viết (Yêu cầu Admin)",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.post(\"/admin/posts\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4674,
+    "method": "PUT",
+    "endpoints": [
+      "/admin/posts/:id"
+    ],
+    "comments": "PUT /admin/posts/:id — Cập nhật bài viết (Yêu cầu Admin)",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.put(\"/admin/posts/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4738,
+    "method": "DELETE",
+    "endpoints": [
+      "/admin/posts/:id"
+    ],
+    "comments": "DELETE /admin/posts/:id — SOFT DELETE bài viết (Chỉ đổi status)",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.delete(\"/admin/posts/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4763,
+    "method": "POST",
+    "endpoints": [
+      "/admin/post-categories"
+    ],
+    "comments": "============================================================ | ADMIN POST CATEGORIES CRUD (SOFT DELETE & STATUS TOGGLE) | ============================================================ | POST /admin/post-categories — Tạo mới danh mục bài viết",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.post(\"/admin/post-categories\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4799,
+    "method": "PUT",
+    "endpoints": [
+      "/admin/post-categories/:id"
+    ],
+    "comments": "PUT /admin/post-categories/:id — Cập nhật danh mục bài viết",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.put(\"/admin/post-categories/:id\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4830,
+    "method": "PUT",
+    "endpoints": [
+      "/admin/post-categories/:id/status"
+    ],
+    "comments": "PUT /admin/post-categories/:id/status — Đổi trạng thái danh mục bài viết (active ↔ inactive)",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.put(\"/admin/post-categories/:id/status\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 4852,
+    "method": "PUT",
+    "endpoints": [
+      "/admin/reviews/:id/status"
+    ],
+    "comments": "============================================================ | ADMIN REVIEWS MODERATION (SOFT TOGGLE STATUS: ACTIVE / HIDDEN) | ============================================================ | PUT /admin/reviews/:id/status — Đổi trạng thái review (active ↔ hidden), KHÔNG XÓA DB",
+    "hasCheckLogin": true,
+    "isAdminRoute": true,
+    "lineContent": "app.put(\"/admin/reviews/:id/status\", checklogin, checkAdmin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5027,
+    "method": "GET",
+    "endpoints": [
+      "/profile/deliver"
+    ],
+    "comments": "Deliver | ========================================== | 1. API: HIỂN THỊ ĐỊA CHỈ CỦA NGƯỜI DÙNG (GET) | ==========================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/profile/deliver\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5045,
+    "method": "POST",
+    "endpoints": [
+      "/profile/deliver"
+    ],
+    "comments": "========================================== | 2. API: THÊM MỚI ĐỊA CHỈ (POST) | ==========================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/profile/deliver\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5085,
+    "method": "PUT",
+    "endpoints": [
+      "/profile/deliver/:id"
+    ],
+    "comments": "========================================== | 3. API: CHỈNH SỬA ĐỊA CHỈ (PUT) | ==========================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.put(\"/profile/deliver/:id\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5142,
+    "method": "POST",
+    "endpoints": [
+      "/contact"
+    ],
+    "comments": "",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/contact\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5194,
+    "method": "PUT",
+    "endpoints": [
+      "/profile/change-password"
+    ],
+    "comments": "======================================================== | API Đổi mật khẩu trong Profile (dành cho người dùng đã đăng nhập) | ========================================================",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.put(\"/profile/change-password\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5241,
+    "method": "POST",
+    "endpoints": [
+      "/api/auth/forgot-password"
+    ],
+    "comments": "======================================================== | API gửi mail mã OTP khôi phục / đổi mật khẩu (chỉ nhận Email) | ========================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/api/auth/forgot-password\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5311,
+    "method": "POST",
+    "endpoints": [
+      "/api/auth/reset-password"
+    ],
+    "comments": "======================================================== | API Xác thực OTP & Đổi mật khẩu mới (chỉ nhận Email) | ========================================================",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/api/auth/reset-password\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5374,
+    "method": "POST",
+    "endpoints": [
+      "/favorites/add"
+    ],
+    "comments": "Route /products/search đã được chuyển lên trước /products/:slug (line ~917) | để tránh bị Express match nhầm như một slug. | api yêu thích sản phẩm",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/favorites/add\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5420,
+    "method": "GET",
+    "endpoints": [
+      "/favorites/list"
+    ],
+    "comments": "",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/favorites/list\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5441,
+    "method": "POST",
+    "endpoints": [
+      "/compare/toggle"
+    ],
+    "comments": "chức năng so sánh sản phẩm",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/compare/toggle\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5506,
+    "method": "GET",
+    "endpoints": [
+      "/compare/my-list"
+    ],
+    "comments": "lấy danh sách sản phẩm so sánh của user",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/compare/my-list\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 5546,
+    "method": "GET",
+    "endpoints": [
+      "/api/compare/guest"
+    ],
+    "comments": "API Lấy dữ liệu so sánh cho Khách Vãng Lai (Guest) | FE gọi GET: /api/compare/guest?id1=...&id2=...",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/api/compare/guest\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5613,
+    "method": "GET",
+    "endpoints": [
+      "/api/buildpc/components"
+    ],
+    "comments": "Lấy danh sách linh kiện theo danh mục (có hỗ trợ tìm kiếm theo tên)",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/api/buildpc/components\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5661,
+    "method": "POST",
+    "endpoints": [
+      "/api/buildpc/save"
+    ],
+    "comments": "Lưu cấu hình Build PC vào DB",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/api/buildpc/save\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5697,
+    "method": "GET",
+    "endpoints": [
+      "/api/vouchers"
+    ],
+    "comments": "------------------------------------------------------------ | 1. API VOUCHER CHUNG | ------------------------------------------------------------ | Lấy danh sách tất cả voucher",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/api/vouchers\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5708,
+    "method": "GET",
+    "endpoints": [
+      "/api/vouchers/valid"
+    ],
+    "comments": "Lấy danh sách voucher còn hiệu lực",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/api/vouchers/valid\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5724,
+    "method": "GET",
+    "endpoints": [
+      "/api/vouchers/:idOrCode"
+    ],
+    "comments": "Lấy chi tiết 1 voucher theo ID hoặc mã code",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/api/vouchers/:idOrCode\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5745,
+    "method": "POST",
+    "endpoints": [
+      "/api/vouchers"
+    ],
+    "comments": "Tạo voucher mới (Admin)",
+    "hasCheckLogin": false,
+    "isAdminRoute": true,
+    "lineContent": "app.post(\"/api/vouchers\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5781,
+    "method": "PUT",
+    "endpoints": [
+      "/api/vouchers/:id"
+    ],
+    "comments": "Cập nhật voucher",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.put(\"/api/vouchers/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5799,
+    "method": "DELETE",
+    "endpoints": [
+      "/api/vouchers/:id"
+    ],
+    "comments": "Xóa voucher",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.delete(\"/api/vouchers/:id\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5816,
+    "method": "POST",
+    "endpoints": [
+      "/api/vouchers/apply"
+    ],
+    "comments": "Áp dụng voucher chung lên biến thể sản phẩm (biến thể sp) | POST /api/vouchers/apply | Body: { code, variant_id, quantity }",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/api/vouchers/apply\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5901,
+    "method": "POST",
+    "endpoints": [
+      "/api/user-vouchers/save"
+    ],
+    "comments": "2. API USER VOUCHER | ------------------------------------------------------------ | Lưu / Nhận voucher vào ví cá nhân của User | POST /api/user-vouchers/save",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/api/user-vouchers/save\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5953,
+    "method": "GET",
+    "endpoints": [
+      "/api/user-vouchers/my-vouchers"
+    ],
+    "comments": "Lấy danh sách voucher đã lưu của User | GET /api/user-vouchers/my-vouchers",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/api/user-vouchers/my-vouchers\", async (req, res) => {"
+  },
+  {
+    "lineNum": 5984,
+    "method": "POST",
+    "endpoints": [
+      "/api/user-vouchers/apply"
+    ],
+    "comments": "Áp dụng User Voucher lên biến thể sản phẩm (BƯỚC KIỂM TRA CHÍNH CHỦ USER) | POST /api/user-vouchers/apply",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/api/user-vouchers/apply\", async (req, res) => {"
+  },
+  {
+    "lineNum": 6110,
+    "method": "POST",
+    "endpoints": [
+      "/api/user-vouchers/use"
+    ],
+    "comments": "Đánh dấu User Voucher đã được sử dụng | POST /api/user-vouchers/use",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/api/user-vouchers/use\", async (req, res) => {"
+  },
+  {
+    "lineNum": 6261,
+    "method": "POST",
+    "endpoints": [
+      "/reviews/by-order-item"
+    ],
+    "comments": "POST /reviews/by-order-item — API chính FE gửi ID OrderItem lên hứng và truy xuất review",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/reviews/by-order-item\", handleGetReviews);"
+  },
+  {
+    "lineNum": 6264,
+    "method": "POST",
+    "endpoints": [
+      "/reviews/filter"
+    ],
+    "comments": "POST /reviews/by-order-item — API chính FE gửi ID OrderItem lên hứng và truy xuất review | POST /reviews/filter — API lọc review theo OrderItem ID và/hoặc User ID",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/reviews/filter\", handleGetReviews);"
+  },
+  {
+    "lineNum": 6267,
+    "method": "POST",
+    "endpoints": [
+      "/reviews"
+    ],
+    "comments": "POST /reviews/filter — API lọc review theo OrderItem ID và/hoặc User ID | POST /reviews — API vừa hỗ trợ tạo mới review, vừa hỗ trợ lấy/lọc review nếu FE gọi POST /reviews",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.post(\"/reviews\", async (req, res, next) => {"
+  },
+  {
+    "lineNum": 6331,
+    "method": "GET",
+    "endpoints": [
+      "/api/products/:productId/reviews"
+    ],
+    "comments": "GET /api/products/:productId/reviews — Lấy tất cả đánh giá của sản phẩm này",
+    "hasCheckLogin": false,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/api/products/:productId/reviews\", async (req, res) => {"
+  },
+  {
+    "lineNum": 6404,
+    "method": "GET",
+    "endpoints": [
+      "/api/products/:productId/review-eligibility"
+    ],
+    "comments": "GET /api/products/:productId/review-eligibility — Kiểm tra người dùng đã mua sản phẩm này chưa & có được phép viết đánh giá không",
+    "hasCheckLogin": true,
+    "isAdminRoute": false,
+    "lineContent": "app.get(\"/api/products/:productId/review-eligibility\", checklogin, async (req, res) => {"
+  },
+  {
+    "lineNum": 6775,
+    "method": "POST",
+    "endpoints": [
+      "/create_payment_url"
+    ],
+    "comments": "",
+    "hasCheckLogin": false,
+    "isAdminRoute": true,
+    "lineContent": "app.post(\"/create_payment_url\", payment);"
+  },
+  {
+    "lineNum": 6776,
+    "method": "POST",
+    "endpoints": [
+      "/order/create_payment_url"
+    ],
+    "comments": "",
+    "hasCheckLogin": false,
+    "isAdminRoute": true,
+    "lineContent": "app.post(\"/order/create_payment_url\", payment);"
+  },
+  {
+    "lineNum": 6777,
+    "method": "POST",
+    "endpoints": [
+      "/api/create-qr"
+    ],
+    "comments": "",
+    "hasCheckLogin": false,
+    "isAdminRoute": true,
+    "lineContent": "app.post(\"/api/create-qr\", payment);"
+  },
+  {
+    "lineNum": 6778,
+    "method": "GET",
+    "endpoints": [
+      "/order/vnpay_return"
+    ],
+    "comments": "",
+    "hasCheckLogin": false,
+    "isAdminRoute": true,
+    "lineContent": "app.get(\"/order/vnpay_return\", paymentReturn);"
+  },
+  {
+    "lineNum": 6779,
+    "method": "GET",
+    "endpoints": [
+      "/vnpay_return"
+    ],
+    "comments": "",
+    "hasCheckLogin": false,
+    "isAdminRoute": true,
+    "lineContent": "app.get(\"/vnpay_return\", paymentReturn);"
+  },
+  {
+    "lineNum": 6787,
+    "method": "POST",
+    "endpoints": [
+      "/admin/banners/upload"
+    ],
+    "comments": "============================================================ | BANNER MANAGEMENT APIs | ============================================================ | Upload Banner Image",
+    "hasCheckLogin": false,
+    "isAdminRoute": true,
+    "lineContent": "app.post(\"/admin/banners/upload\", uploadBanner.single(\"image\"), (req, res) => {"
+  },
+  {
+    "lineNum": 6800,
+    "method": "GET",
+    "endpoints": [
+      "/admin/banners",
+      "/api/banners"
+    ],
+    "comments": "Get all banners (ordered by position ascending 1, 2, 3...)",
+    "hasCheckLogin": false,
+    "isAdminRoute": true,
+    "lineContent": "app.get([\"/admin/banners\", \"/api/banners\"], async (req, res) => {"
+  },
+  {
+    "lineNum": 6810,
+    "method": "POST",
+    "endpoints": [
+      "/admin/banners"
+    ],
+    "comments": "Add new banner (unique name check)",
+    "hasCheckLogin": false,
+    "isAdminRoute": true,
+    "lineContent": "app.post(\"/admin/banners\", uploadBanner.single(\"imageFile\"), async (req, res) => {"
+  },
+  {
+    "lineNum": 6849,
+    "method": "PUT",
+    "endpoints": [
+      "/admin/banners/:id"
+    ],
+    "comments": "Update banner (allows uploading new image, editing position, name, status)",
+    "hasCheckLogin": false,
+    "isAdminRoute": true,
+    "lineContent": "app.put(\"/admin/banners/:id\", uploadBanner.single(\"imageFile\"), async (req, res) => {"
+  },
+  {
+    "lineNum": 6899,
+    "method": "PATCH",
+    "endpoints": [
+      "/admin/banners/:id/status",
+      "/api/banners/:id/status"
+    ],
+    "comments": "Toggle banner status between 'active' and 'hidden'",
+    "hasCheckLogin": false,
+    "isAdminRoute": true,
+    "lineContent": "app.patch([\"/admin/banners/:id/status\", \"/api/banners/:id/status\"], async (req, res) => {"
+  }
+]

@@ -376,9 +376,11 @@ async function getVariantAttributeMap(variantIds) {
 
     result[vid].push({
       attribute_id: attr ? attr._id : null,
-      attribute_name: attr ? attr.name : null, // tên nhóm (VD: "RAM", "Màu sắc")
+      attribute_name: attr ? attr.name : null, // tên nhóm Attribute (VD: "RAM", "Màu sắc", "Socket CPU")
+      name: attr ? attr.name : null,           // Standard name field
       value_id: attrValue._id,
-      value_name: attrValue.name, // giá trị (VD: "16GB", "Đen")
+      value_name: attrValue.value || attrValue.name, // giá trị AttributeValue (VD: "16GB", "Đen", "AM5")
+      value: attrValue.value || attrValue.name,       // Standard value field
       value_slug: attrValue.slug,
     });
   });
