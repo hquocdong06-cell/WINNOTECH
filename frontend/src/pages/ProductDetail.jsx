@@ -546,7 +546,7 @@ export default function ProductDetail() {
     return price.toLocaleString('vi-VN') + 'đ'
   }
 
-  // Gallery images list
+  // Gallery images list (chỉ lấy đúng số lượng ảnh thực tế, không lặp lại ảnh ảo)
   const getProductImages = () => {
     const list = []
     if (product.thumnail) {
@@ -562,15 +562,9 @@ export default function ProductDetail() {
     if (list.length === 0) {
       list.push('https://images.unsplash.com/photo-1591485121907-26859ff93e37?q=80&w=2670&auto=format&fit=crop')
     }
-    
-    // Đảm bảo luôn có ít nhất 4 ảnh (1 ảnh chính + 3 ảnh phụ thêm)
-    const baseImg = list[0]
-    while (list.length < 4) {
-      list.push(baseImg)
-    }
-    
     return list
   }
+
 
   const images = getProductImages()
 
@@ -1005,18 +999,21 @@ export default function ProductDetail() {
                   <div className="gallery-main" style={{ background: 'var(--dark2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', overflow: 'hidden' }}>
                     <img src={images[selectedImage]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </div>
-                  <div className="gallery-thumbnails">
-                    {images.map((img, idx) => (
-                      <button
-                        key={idx}
-                        className={`gallery-thumb ${selectedImage === idx ? 'active' : ''}`}
-                        onClick={() => setSelectedImage(idx)}
-                        style={{ background: 'var(--dark2)', borderRadius: '4px', overflow: 'hidden', border: selectedImage === idx ? '1px solid var(--accent-color)' : '1px solid transparent' }}
-                      >
-                        <img src={img} alt={`Thumbnail ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                      </button>
-                    ))}
-                  </div>
+                  {images.length > 1 && (
+                    <div className="gallery-thumbnails">
+                      {images.map((img, idx) => (
+                        <button
+                          key={idx}
+                          className={`gallery-thumb ${selectedImage === idx ? 'active' : ''}`}
+                          onClick={() => setSelectedImage(idx)}
+                          style={{ background: 'var(--dark2)', borderRadius: '4px', overflow: 'hidden', border: selectedImage === idx ? '1px solid var(--accent-color)' : '1px solid transparent' }}
+                        >
+                          <img src={img} alt={`Thumbnail ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                 </div>
 
                 {/* RIGHT: PRODUCT INFO */}

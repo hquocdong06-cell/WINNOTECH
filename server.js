@@ -4366,7 +4366,7 @@ app.get("/admin/products", checklogin, checkAdmin, async (req, res) => {
 // POST /admin/products — Thêm mới sản phẩm (Kiểm tra trùng tên/slug trước khi thêm)
 app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { name, price, sale, stock, short_desc, cat_id, brand_id, thumnail, description, status } = req.body;
+    const { name, price, sale, stock, short_desc, cat_id, brand_id, thumnail, description, status, sub_images, subImages } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, message: "Vui lòng nhập tên sản phẩm" });
@@ -4404,6 +4404,20 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
       status: status || "active"
     });
 
+    // TẠO ẢNH TRONG ImageModel
+    const createdImages = [];
+    if (thumnail && thumnail.trim()) {
+      const mainImg = await ImageModel.create({ p_id: newProduct._id, url: thumnail.trim(), is_main: true });
+      createdImages.push(mainImg);
+    }
+    const subList = Array.isArray(sub_images) ? sub_images : (Array.isArray(subImages) ? subImages : []);
+    for (const subUrl of subList) {
+      if (subUrl && typeof subUrl === 'string' && subUrl.trim()) {
+        const subImg = await ImageModel.create({ p_id: newProduct._id, url: subUrl.trim(), is_main: false });
+        createdImages.push(subImg);
+      }
+    }
+
     // TỰ ĐỘNG TẠO BIẾN THỂ MẶC ĐỊNH CHO SẢN PHẨM MỚI
     const defaultVariant = await ProductVariantModel.create({
       p_id: newProduct._id,
@@ -4417,7 +4431,7 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
     return res.status(201).json({
       success: true,
       message: "Thêm sản phẩm mới thành công",
-      data: { ...newProduct.toObject(), Variants: [defaultVariant] }
+      data: { ...newProduct.toObject(), Variants: [defaultVariant], AnhSP: createdImages }
     });
   } catch (error) {
     console.error("Lỗi POST admin product:", error);
@@ -4425,11 +4439,12 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
   }
 });
 
+
 // PUT /admin/products/:id — Cập nhật sản phẩm (Kiểm tra trùng tên/slug ở sản phẩm khác)
 app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, price, sale, stock, short_desc, cat_id, brand_id, thumnail, description, status, slug } = req.body;
+    const { name, price, sale, stock, short_desc, cat_id, brand_id, thumnail, description, status, slug, sub_images, subImages } = req.body;
 
     const product = await ProductModel.findById(id);
     if (!product) {
@@ -4486,6 +4501,18 @@ app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
         }
       }
     }
+
+    // 2. Cập nhật các ảnh phụ trong ImageModel
+    const subList = Array.isArray(sub_images) ? sub_images : (Array.isArray(subImages) ? subImages : null);
+    if (subList !== null) {
+      await ImageModel.deleteMany({ p_id: id, is_main: false });
+      for (const subUrl of subList) {
+        if (subUrl && typeof subUrl === 'string' && subUrl.trim()) {
+          await ImageModel.create({ p_id: id, url: subUrl.trim(), is_main: false });
+        }
+      }
+    }
+
 
     // 2. Cập nhật hoặc tạo biến thể cho sản phẩm
     const targetPrice = price !== undefined ? Number(price) || 0 : product.price || 0;
