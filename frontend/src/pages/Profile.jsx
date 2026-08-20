@@ -326,11 +326,27 @@ export default function Profile() {
     }
     if (activeTab === 'voucher') {
       setVouchersLoading(true)
-      userVoucherAPI.getMyVouchers()
-        .then(data => { if (data.success) setMyVouchers(data.data || []) })
-        .catch(() => {})
+      fetch(`${API_URL}/api/vouchers/my-vouchers`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data) {
+            const avail = (data.data.available || []).map(item => ({
+              ...item,
+              is_used: false,
+              voucher: item.voucher || item.voucher_id || item
+            }))
+            const hist = (data.data.history || []).map(item => ({
+              ...item,
+              is_used: true,
+              voucher: item.voucher || item.voucher_id || item
+            }))
+            setMyVouchers([...avail, ...hist])
+          }
+        })
+        .catch(err => console.error('Lỗi tải ví voucher:', err))
         .finally(() => setVouchersLoading(false))
     }
+
   }, [activeTab]);
 
   const handleRemoveFavorite = async (productId) => {
@@ -1772,13 +1788,18 @@ export default function Profile() {
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
                       {myVouchers.map((uv, i) => {
-                        const v = uv.voucher_id || uv
+                        const v = uv.voucher || uv.voucher_id || uv || {}
                         const now = new Date()
-                        const end = v.end_day ? new Date(v.end_day) : null
+                        const endStr = v.endDate || v.end_day
+                        const end = endStr ? new Date(endStr) : null
                         const isExpired = end && now > end
-                        const isUsed = uv.is_used
+                        const isUsed = uv.is_used || uv.isUsed
+                        const isPct = (v.discountType || v.discount_type) === 'percent'
+                        const discountVal = v.discountValue || v.discount_value || 0
+                        const minOrder = v.minOrderValue || v.min_order || 0
+
                         return (
-                          <div key={uv._id || i} style={{
+                          <div key={uv.userVoucherId || uv._id || i} style={{
                             border: '1px solid', borderColor: isUsed || isExpired ? '#333' : '#d4ff00',
                             borderRadius: '10px', padding: '16px 20px', display: 'flex',
                             justifyContent: 'space-between', alignItems: 'center', gap: '16px',
@@ -1787,28 +1808,29 @@ export default function Profile() {
                           }}>
                             <div>
                               <div style={{ fontFamily: 'monospace', fontSize: '16px', fontWeight: 700, color: isUsed || isExpired ? '#666' : '#d4ff00' }}>
-                                {v.code || 'N/A'}
+                                🎟 {v.code || 'N/A'}
                               </div>
-                              <div style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>
-                                {v.discount_type === 'percent' ? `Giảm ${v.discount_value}%` : `Giảm ${(v.discount_value || 0).toLocaleString('vi-VN')}đ`}
-                                {v.min_order > 0 && ` · Đơn tối thiểu ${v.min_order.toLocaleString('vi-VN')}đ`}
+                              <div style={{ fontSize: '13px', color: '#ccc', marginTop: '4px' }}>
+                                {isPct ? `Giảm ${discountVal}%` : `Giảm ${discountVal.toLocaleString('vi-VN')}đ`}
+                                {minOrder > 0 && ` · Đơn tối thiểu ${minOrder.toLocaleString('vi-VN')}đ`}
                               </div>
                               {end && (
-                                <div style={{ fontSize: '11px', color: isExpired ? '#ef4444' : '#666', marginTop: '2px' }}>
-                                  Hạn: {end.toLocaleDateString('vi-VN')}
+                                <div style={{ fontSize: '11px', color: isExpired ? '#ef4444' : '#888', marginTop: '2px' }}>
+                                  Hạn sử dụng: {end.toLocaleDateString('vi-VN')}
                                 </div>
                               )}
                             </div>
                             <span style={{
-                              fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '20px',
-                              background: isUsed ? 'rgba(100,100,100,0.2)' : isExpired ? 'rgba(239,68,68,0.1)' : 'rgba(212,255,0,0.1)',
-                              color: isUsed ? '#666' : isExpired ? '#ef4444' : '#d4ff00'
+                              fontSize: '11px', fontWeight: 600, padding: '4px 12px', borderRadius: '20px',
+                              background: isUsed ? 'rgba(100,100,100,0.2)' : isExpired ? 'rgba(239,68,68,0.1)' : 'rgba(212,255,0,0.15)',
+                              color: isUsed ? '#888' : isExpired ? '#ef4444' : '#d4ff00'
                             }}>
                               {isUsed ? 'Đã dùng' : isExpired ? 'Hết hạn' : 'Có thể dùng'}
                             </span>
                           </div>
                         )
                       })}
+
                     </div>
                   )}
                 </div>
