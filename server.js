@@ -6780,10 +6780,10 @@ app.post("/admin/banners/upload", uploadBanner.single("image"), (req, res) => {
   }
 });
 
-// Get all banners (ordered by position ascending)
+// Get all banners (ordered by position ascending 1, 2, 3...)
 app.get(["/admin/banners", "/api/banners"], async (req, res) => {
   try {
-    const banners = await Banner.find({}).sort({ position: 1, createdAt: -1 }).lean();
+    const banners = await Banner.find({}).sort({ position: 1, createdAt: 1 }).lean();
     return res.status(200).json({ success: true, data: banners });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

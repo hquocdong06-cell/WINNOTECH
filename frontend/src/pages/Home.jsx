@@ -320,13 +320,13 @@ export default function Home() {
     }
   }
 
-  // Fetch banners từ API (chỉ lấy active, sắp xếp theo position)
+  // Fetch banners từ API (chỉ lấy active, sắp xếp theo position 1, 2, 3...)
   useEffect(() => {
     const STATIC_FALLBACK = [
-      { _id: 's1', image: '/src/assets/images/banner11.jpg', name: 'Banner 1', link: '' },
-      { _id: 's2', image: '/src/assets/images/banner22.png', name: 'Banner 2', link: '' },
-      { _id: 's3', image: '/src/assets/images/banner33.png', name: 'Banner 3', link: '' },
-      { _id: 's4', image: '/src/assets/images/banner44.png', name: 'Banner 4', link: '' },
+      { _id: 's1', image: '/public/images/banners/banner11.jpg', name: 'Banner 1', link: '/products', position: 1 },
+      { _id: 's2', image: '/public/images/banners/banner22.png', name: 'Banner 2', link: '/build-pc', position: 2 },
+      { _id: 's3', image: '/public/images/banners/banner33.png', name: 'Banner 3', link: '/gpu', position: 3 },
+      { _id: 's4', image: '/public/images/banners/banner44.png', name: 'Banner 4', link: '/products', position: 4 },
     ]
     setLoadingBanners(true)
     fetch(`${API_URL}/api/banners`)
@@ -335,7 +335,12 @@ export default function Home() {
         if (d.success && Array.isArray(d.data) && d.data.length > 0) {
           const active = d.data
             .filter(b => b.status === 'active')
-            .sort((a, b) => (Number(a.position) || 0) - (Number(b.position) || 0))
+            .sort((a, b) => {
+              const posA = Number(a.position) ?? 999
+              const posB = Number(b.position) ?? 999
+              if (posA !== posB) return posA - posB
+              return (a.createdAt || '').localeCompare(b.createdAt || '')
+            })
           setBanners(active.length > 0 ? active : STATIC_FALLBACK)
         } else {
           setBanners(STATIC_FALLBACK)
@@ -525,7 +530,7 @@ export default function Home() {
           <div className="hero-bg">
             {banners.map((banner, index) => {
               const imgSrc = banner.image
-                ? (banner.image.startsWith('http') ? banner.image : `${API_URL}${banner.image}`)
+                ? (banner.image.startsWith('http') ? banner.image : `${API_URL}${banner.image.startsWith('/') ? '' : '/'}${banner.image}`)
                 : null
               return imgSrc ? (
                 <img

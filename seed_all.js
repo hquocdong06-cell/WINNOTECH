@@ -480,9 +480,10 @@ async function seedAll() {
     // ═══════════════════════════════════════════════════════════
     console.log("\n🎯 12. Tạo dữ liệu bảng Banner...");
     const banners = await Banner.insertMany([
-      { name: "Banner Siêu Sale Hè 2026", image: "http://localhost:3000/public/images/banners/banner_summer.png", link: "/products", status: "active" },
-      { name: "Banner Build PC Chuyên Nghiệp", image: "http://localhost:3000/public/images/banners/banner_buildpc.png", link: "/build-pc", status: "active" },
-      { name: "Banner RTX 40 Series Đỉnh Cao Gaming", image: "http://localhost:3000/public/images/banners/banner_rtx.png", link: "/gpu", status: "active" },
+      { name: "Banner Siêu Sale Hè 2026", image: "/public/images/banners/banner11.jpg", position: 1, link: "/products", status: "active" },
+      { name: "Banner Build PC Chuyên Nghiệp", image: "/public/images/banners/banner22.png", position: 2, link: "/build-pc", status: "active" },
+      { name: "Banner RTX 40 Series Đỉnh Cao Gaming", image: "/public/images/banners/banner33.png", position: 3, link: "/gpu", status: "active" },
+      { name: "Banner Chuột & Bàn Phím Gaming", image: "/public/images/banners/banner44.png", position: 4, link: "/products", status: "active" },
     ]);
     console.log(`✅ Đã tạo ${banners.length} Banners`);
 
