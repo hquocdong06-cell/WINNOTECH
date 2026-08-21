@@ -45,6 +45,21 @@ body {
   line-height: 1.5;
 }
 
+/* Global Input & Select Text Contrast Fix for Admin */
+input, select, textarea {
+  color: #ffffff !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #9ca3af !important;
+  opacity: 1 !important;
+}
+
+select option {
+  background-color: #1e1e2d !important;
+  color: #ffffff !important;
+}
+
 /* Layout */
 .admin-layout {
   display: flex;

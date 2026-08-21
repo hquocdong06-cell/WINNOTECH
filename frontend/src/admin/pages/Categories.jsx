@@ -165,7 +165,7 @@ const Categories = () => {
             placeholder="Tìm kiếm danh mục..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[#1e1e1e] border border-[#333] rounded-lg text-sm focus:border-[#d4ff00] outline-none text-white transition-colors"
+            className="w-full pl-10 pr-4 py-2.5 bg-[#1e1e1e] border border-[#333] rounded-lg text-sm focus:border-[#d4ff00] outline-none text-white placeholder-gray-400 transition-colors"
           />
         </div>
         <span className="text-sm text-gray-500">{filteredCategories.length} kết quả</span>

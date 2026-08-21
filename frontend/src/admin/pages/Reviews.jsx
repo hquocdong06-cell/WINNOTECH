@@ -148,13 +148,13 @@ const Reviews = () => {
             placeholder="Tìm theo khách hàng, tên sản phẩm, bình luận..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[#1e1e2d] border border-[#333] rounded-xl text-sm outline-none focus:border-[#d4ff00]"
+            className="w-full pl-10 pr-4 py-2.5 bg-[#1e1e2d] border border-[#333] rounded-xl text-sm outline-none focus:border-[#d4ff00] text-white placeholder-gray-400"
           />
         </div>
         <select
           value={starFilter}
           onChange={(e) => setStarFilter(e.target.value)}
-          className="bg-[#1e1e2d] border border-[#333] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#d4ff00] min-w-[180px]"
+          className="bg-[#1e1e2d] border border-[#333] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#d4ff00] min-w-[180px] text-white"
         >
           <option value="all">Tất cả mốc sao</option>
           <option value="5">5 Sao ⭐⭐⭐⭐⭐</option>

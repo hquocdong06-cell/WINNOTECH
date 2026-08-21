@@ -369,7 +369,7 @@ const Posts = () => {
             placeholder="Tìm kiếm bài viết..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#111] border border-[#222] rounded-lg pl-10 pr-4 py-2 text-sm focus:border-yellow-400 outline-none"
+            className="w-full bg-[#111] border border-[#222] rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-gray-400 focus:border-yellow-400 outline-none"
           />
         </div>
 

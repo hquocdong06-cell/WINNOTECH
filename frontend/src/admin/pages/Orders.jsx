@@ -720,7 +720,7 @@ const Orders = () => {
             placeholder="Tìm mã đơn, tên khách, SĐT..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[#1e1e2d] border border-[#333] rounded-xl text-sm outline-none focus:border-[#d4ff00] text-white placeholder-gray-600"
+            className="w-full pl-10 pr-4 py-2.5 bg-[#1e1e2d] border border-[#333] rounded-xl text-sm outline-none focus:border-[#d4ff00] text-white placeholder-gray-400"
           />
         </div>
         <select

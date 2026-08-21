@@ -154,7 +154,7 @@ const Banners = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm kiếm banner theo tên..."
-            className="w-full pl-10 pr-4 py-2 bg-[#1f1f1f] border border-[#333] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#d4ff00]"
+            className="w-full pl-10 pr-4 py-2 bg-[#1f1f1f] border border-[#333] rounded-lg text-sm text-white placeholder-gray-400 focus:outline-none focus:border-[#d4ff00]"
           />
         </div>
       </div>
