@@ -19,6 +19,7 @@ const ReviewSchema = new mongoose.Schema({
     p_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
     content: { type: String, required: true },
     star_number: { type: Number, required: true, min: 1, max: 5 },
+    images: [{ type: String }],
     status: { type: String, default: 'active' }
 }, { timestamps: true });
 

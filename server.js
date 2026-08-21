@@ -279,6 +279,26 @@ const uploadBanner = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+// Cấu hình upload riêng cho ảnh Đánh Giá: lưu vào frontend/public/image/reviews
+const reviewStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const reviewUploadDir = path.join(__dirname, "frontend", "public", "image", "reviews");
+    fs.mkdirSync(reviewUploadDir, { recursive: true });
+    cb(null, reviewUploadDir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    const uniqueName = `rev_${Date.now()}_${Math.round(Math.random() * 1e6)}${ext}`;
+    cb(null, uniqueName);
+  },
+});
+
+const uploadReview = multer({
+  storage: reviewStorage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
 var cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 var session = require("express-session");
@@ -408,6 +428,7 @@ function slugify(text) {
 // ============================================================
 app.post("/register", async (req, res) => {
   try {
+    const { name, phone, email, password, confirmPassword } = req.body || {};
     const trimmedEmail = (email || "").trim();
     const trimmedPhone = (phone || "").trim();
 
@@ -449,9 +470,9 @@ app.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = new UserModel({
-      name: email.split("@")[0] || "User",
-      phone: phone,
-      email: email,
+      name: name || (trimmedEmail ? trimmedEmail.split("@")[0] : "User"),
+      phone: trimmedPhone,
+      email: trimmedEmail,
       password: hashedPassword,
     });
 
@@ -2983,13 +3004,18 @@ app.get("/orders", checklogin, async (req, res) => {
     const data = orders.map((order) => {
       const rawItems = orderItems.filter((oi) => oi.order_id?.toString() === order._id.toString());
       const isReviewed = rawItems.length > 0 && rawItems.every(i => reviewedItemIds.has(i._id.toString()));
+      let currentStatus = order.status;
+      if (isReviewed && currentStatus === 'delivered') {
+        currentStatus = 'completed';
+        Order.findByIdAndUpdate(order._id, { status: 'completed' }).exec();
+      }
       const items = rawItems.map((oi) => {
         const variant = variantMap.get(oi.variants_id?.toString());
         const product = variant ? productMap.get(variant.p_id?.toString()) : null;
         const AnhSP = product ? images.filter(img => img.p_id?.toString() === product._id.toString()) : [];
         return { ...oi, variant: variant || null, product: product || null, AnhSP };
       });
-      return { ...order, isReviewed, items };
+      return { ...order, status: currentStatus, isReviewed, items };
     });
 
     return res.json({ 
@@ -6781,7 +6807,7 @@ app.post("/reviews/by-order-item", handleGetReviews);
 app.post("/reviews/filter", handleGetReviews);
 
 // POST /reviews — API vừa hỗ trợ tạo mới review, vừa hỗ trợ lấy/lọc review nếu FE gọi POST /reviews
-app.post("/reviews", async (req, res, next) => {
+app.post("/reviews", uploadReview.array("images", 5), async (req, res, next) => {
   const { content, star_number } = req.body;
   // Nếu không truyền content hoặc star_number => FE dùng POST /reviews để lấy danh sách review
   if (!content || star_number === undefined) {
@@ -6824,10 +6850,18 @@ app.post("/reviews", async (req, res, next) => {
         .json({ success: false, message: "Sản phẩm trong đơn hàng này đã được đánh giá rồi!" });
     }
 
+    let imagePaths = [];
+    if (req.files && req.files.length > 0) {
+      imagePaths = req.files.map(f => `/image/reviews/${f.filename}`);
+    } else if (req.body.images) {
+      imagePaths = Array.isArray(req.body.images) ? req.body.images : [req.body.images];
+    }
+
     const newReview = new Review({
       id_oderitems: order_item_id,
       content,
       star_number: Number(star_number),
+      images: imagePaths
     });
 
     const savedReview = await newReview.save();
@@ -6904,6 +6938,7 @@ app.get("/api/products/:productId/reviews", async (req, res) => {
         _id: r._id,
         content: r.content,
         star_number: r.star_number,
+        images: r.images || [],
         createdAt: r.createdAt || r._id.getTimestamp(),
         userName: user.name || "Khách hàng WinNoTech",
         userAvatar: user.avatar || null,
@@ -7454,18 +7489,6 @@ app.patch(["/admin/banners/:id/status", "/api/banners/:id/status"], async (req, 
     return res.status(500).json({ success: false, message: error.message });
   }
 });
-
-// ============================================================
-// AI CHATBOT ROUTER
-// ============================================================
-app.use("/api/chatbot", require("./routers/AI_chatbot"));
-
-app.listen(port, () => {
-  console.log(`Server started on port ${port}`);
-  fixCartItemsInDB();
-});
-
-
 
 // ============================================================
 // AI CHATBOT ROUTER

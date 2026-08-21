@@ -273,6 +273,10 @@ export default function Auth() {
     }
   }
 
+  useEffect(() => {
+    setErrors({})
+  }, [location.pathname])
+
   // === GOOGLE IDENTITY SERVICES ===
   // Load Google GSI script và khởi tạo nút đăng nhập/đăng ký
   useEffect(() => {
@@ -655,6 +659,21 @@ export default function Auth() {
                 <span>Tôi đồng ý với điều khoản sử dụng</span>
               </label>
               {errors.agreeTerms && <span className="error-text">{errors.agreeTerms}</span>}
+
+              {/* General Error */}
+              {errors.general && (
+                <div style={{
+                  background: 'rgba(239,68,68,0.1)',
+                  border: '1px solid rgba(239,68,68,0.3)',
+                  color: '#f87171',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  marginBottom: '8px'
+                }}>
+                  {errors.general}
+                </div>
+              )}
 
               {/* Submit */}
               <button type="submit" className="btn-submit">ĐĂNG KÝ</button>

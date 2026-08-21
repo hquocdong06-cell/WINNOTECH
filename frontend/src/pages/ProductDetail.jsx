@@ -1273,6 +1273,7 @@ export default function ProductDetail() {
     const [reviewsList, setReviewsList] = useState([])
     const [avgRating, setAvgRating] = useState(5)
     const [loadingReviews, setLoadingReviews] = useState(true)
+    const [previewImage, setPreviewImage] = useState(null)
 
     const [eligibility, setEligibility] = useState({ canReview: false, hasPurchased: false, reason: null, order_item_id: null })
     const [checkingEligibility, setCheckingEligibility] = useState(true)
@@ -1495,11 +1496,49 @@ export default function ProductDetail() {
                   <p style={{ margin: 0, fontSize: '13px', color: '#ddd', lineHeight: '1.6' }}>
                     {r.content}
                   </p>
+
+                  {/* Review Images */}
+                  {Array.isArray(r.images) && r.images.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+                      {r.images.map((imgUrl, imgIdx) => {
+                        const fullUrl = imgUrl.startsWith('http') ? imgUrl : `${API_URL}${imgUrl}`
+                        return (
+                          <img
+                            key={imgIdx}
+                            src={fullUrl}
+                            alt={`Review image ${imgIdx + 1}`}
+                            onClick={() => setPreviewImage(fullUrl)}
+                            style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', transition: 'transform 0.15s ease' }}
+                            onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                            onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                          />
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </div>
+
+        {/* Lightbox Preview Modal */}
+        {previewImage && (
+          <div 
+            onClick={() => setPreviewImage(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', cursor: 'zoom-out' }}
+          >
+            <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+              <img src={previewImage} alt="Enlarged review" style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.8)', border: '1px solid #333' }} />
+              <button 
+                onClick={() => setPreviewImage(null)}
+                style={{ position: 'absolute', top: '-14px', right: '-14px', background: '#d4ff00', color: '#000', border: 'none', borderRadius: '50%', width: '32px', height: '32px', fontWeight: 800, fontSize: '16px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

@@ -246,8 +246,10 @@ export default function Profile() {
     code: o.code || o._id?.slice(-8).toUpperCase(),
     date: formatDate(o.createdAt),
     total: formatPrice(o.total_amount),
-    status: o.status,
-    items: (o.items || []).length
+    status: (o.isReviewed && o.status === 'delivered') ? 'completed' : o.status,
+    isReviewed: !!o.isReviewed,
+    items: (o.items || []).length,
+    rawOrder: o
   }))
 
 
@@ -900,6 +902,50 @@ export default function Profile() {
                       onChange={e => setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], content: e.target.value } }))}
                       style={{ width:'100%',padding:'12px',background:'#161622',border:'1px solid #3d3d56',borderRadius:'10px',fontSize:'13px',color:'#fff',resize:'vertical',boxSizing:'border-box',outline:'none' }}
                     />
+
+                    {/* Upload Images */}
+                    <div style={{ marginTop: '12px' }}>
+                      <div style={{ fontSize: '12px', color: '#ccc', marginBottom: '6px', fontWeight: 600 }}>
+                        📷 Đính kèm hình ảnh thực tế (Tối đa 5 ảnh):
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                        {(itemState.imageFiles || []).map((file, imgIdx) => (
+                          <div key={imgIdx} style={{ position: 'relative', width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #d4ff00' }}>
+                            <img src={URL.createObjectURL(file)} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newFiles = (itemState.imageFiles || []).filter((_, idx) => idx !== imgIdx)
+                                setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], imageFiles: newFiles } }))
+                              }}
+                              style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+
+                        {(itemState.imageFiles || []).length < 5 && (
+                          <label style={{ width: '64px', height: '64px', borderRadius: '8px', border: '1px dashed #555', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#161622', color: '#aaa', fontSize: '11px' }}>
+                            <span style={{ fontSize: '18px', lineHeight: '1' }}>+</span>
+                            <span>Thêm ảnh</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={e => {
+                                const files = Array.from(e.target.files || [])
+                                if (!files.length) return
+                                const currentFiles = itemState.imageFiles || []
+                                const combined = [...currentFiles, ...files].slice(0, 5)
+                                setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], imageFiles: combined } }))
+                              }}
+                              style={{ display: 'none' }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )
               })
@@ -919,14 +965,23 @@ export default function Profile() {
                   setReviewSubmitting(true)
                   let successCount = 0, failCount = 0
                   for (const item of reviewModal.items) {
-                    const { star, content } = reviewForm[item.orderItemId] || { star: 5, content: '' }
+                    const { star, content, imageFiles } = reviewForm[item.orderItemId] || { star: 5, content: '', imageFiles: [] }
                     if (!content || !content.trim()) { failCount++; continue }
                     try {
+                      const formData = new FormData()
+                      formData.append('order_item_id', item.orderItemId)
+                      formData.append('star_number', star)
+                      formData.append('content', content)
+                      if (imageFiles && imageFiles.length > 0) {
+                        imageFiles.forEach(file => {
+                          formData.append('images', file)
+                        })
+                      }
+
                       const res = await fetch(API_URL + '/reviews', {
                         method: 'POST', 
                         credentials: 'include',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ order_item_id: item.orderItemId, star_number: star, content })
+                        body: formData
                       })
                       const data = await res.json()
                       if (data.success) successCount++

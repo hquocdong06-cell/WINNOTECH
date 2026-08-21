@@ -9,6 +9,7 @@ const Reviews = () => {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [starFilter, setStarFilter] = useState('all');
+  const [previewImage, setPreviewImage] = useState(null);
 
   const fetchReviews = useCallback(async () => {
     setLoading(true);
@@ -222,6 +223,22 @@ const Reviews = () => {
                       ) : (
                         <span className="text-gray-500 italic">Khách hàng không để lại nhận xét văn bản.</span>
                       )}
+                      {Array.isArray(r.images) && r.images.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {r.images.map((imgUrl, imgIdx) => {
+                            const fullUrl = imgUrl.startsWith('http') ? imgUrl : `${API_BASE}${imgUrl}`;
+                            return (
+                              <img
+                                key={imgIdx}
+                                src={fullUrl}
+                                alt="Ảnh đánh giá"
+                                onClick={() => setPreviewImage(fullUrl)}
+                                className="w-12 h-12 object-cover rounded-lg border border-[#444] cursor-pointer hover:scale-105 transition-transform"
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
@@ -260,6 +277,24 @@ const Reviews = () => {
           </table>
         </div>
       </div>
+
+      {/* Lightbox Preview Modal */}
+      {previewImage && (
+        <div 
+          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out"
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <img src={previewImage} alt="Phóng to ảnh đánh giá" className="max-w-full max-h-[90vh] rounded-2xl border border-[#333] shadow-2xl" />
+            <button 
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-3 -right-3 bg-[#d4ff00] text-black font-extrabold rounded-full w-8 h-8 flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
