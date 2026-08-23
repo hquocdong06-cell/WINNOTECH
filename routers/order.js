@@ -109,6 +109,18 @@ router.get('/vnpay_return', async function (req, res, next) {
     let hmac = crypto.createHmac("sha512", secretKey);
     let signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
 
+    const getClientBaseUrl = (req) => {
+        let url = process.env.CLIENT_URL;
+        if (!url || url.includes('localhost:3000') || url === 'http://localhost:3000') {
+            url = (req && req.headers && req.headers.host && req.headers.host.includes('localhost'))
+                ? 'http://localhost:5173'
+                : 'https://winnotech.io.vn';
+        }
+        return url;
+    };
+    const clientBaseUrl = getClientBaseUrl(req);
+    const isBrowserNav = req.headers['accept']?.includes('text/html') || !req.xhr;
+
     if (secureHash === signed) {
         const paymentId = vnp_Params['vnp_TxnRef'];
 
@@ -122,6 +134,9 @@ router.get('/vnpay_return', async function (req, res, next) {
                 });
 
                 if (!order) {
+                    if (isBrowserNav) {
+                        return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
+                    }
                     return res.status(404).json({ message: "Không tìm thấy đơn hàng hoặc đơn hàng đã được xử lý" });
                 }
 
@@ -138,14 +153,25 @@ router.get('/vnpay_return', async function (req, res, next) {
                     }
                 }
 
+                if (order.user_id) {
+                    const s = order.user_id.toString();
+                    const filter = mongoose.Types.ObjectId.isValid(s)
+                        ? { u_id: { $in: [s, new mongoose.Types.ObjectId(s)] } }
+                        : { u_id: s };
+                    await CartItemModel.deleteMany(filter);
+                }
+
                 await order.save();
 
-                if (req.headers['accept']?.includes('text/html') || !req.xhr) {
-                    return res.redirect(`http://localhost:5173/payment-result?${querystring.stringify(req.query)}`);
+                if (isBrowserNav) {
+                    return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
                 }
                 return res.status(200).json("Thanh toán online thành công, chi tiết đơn hàng đã gửi qua mail");
             } catch (error) {
                 console.error("Lỗi xử lý thanh toán:", error);
+                if (isBrowserNav) {
+                    return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
+                }
                 return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
             }
 
@@ -158,19 +184,20 @@ router.get('/vnpay_return', async function (req, res, next) {
                     ]
                 });
 
-                if (!order) {
-                    return res.status(404).json({ message: "Không tìm thấy đơn hàng hoặc đơn hàng đã được xử lý" });
+                if (order) {
+                    order.payment_status = "canceled";
+                    await order.save();
                 }
 
-                order.payment_status = "canceled";
-                await order.save();
-
-                if (req.headers['accept']?.includes('text/html') || !req.xhr) {
-                    return res.redirect(`http://localhost:5173/payment-result?${querystring.stringify(req.query)}`);
+                if (isBrowserNav) {
+                    return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
                 }
                 return res.status(200).json("Hủy thanh toán thành công");
             } catch (error) {
                 console.error("Lỗi xử lý thanh toán:", error);
+                if (isBrowserNav) {
+                    return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
+                }
                 return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
             }
 
@@ -183,26 +210,27 @@ router.get('/vnpay_return', async function (req, res, next) {
                     ]
                 });
 
-                if (!order) {
-                    return res.status(404).json({ message: "Không tìm thấy đơn hàng hoặc đơn hàng đã được xử lý" });
+                if (order) {
+                    order.payment_status = "failed";
+                    await order.save();
                 }
 
-                order.payment_status = "failed";
-                await order.save();
-
-                if (req.headers['accept']?.includes('text/html') || !req.xhr) {
-                    return res.redirect(`http://localhost:5173/payment-result?${querystring.stringify(req.query)}`);
+                if (isBrowserNav) {
+                    return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
                 }
                 return res.status(500).json("Thanh toán online không thành công, xin mời bạn đặt hàng lại ");
             } catch (error) {
                 console.error("Lỗi xử lý thanh toán:", error);
+                if (isBrowserNav) {
+                    return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
+                }
                 return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
             }
         }
 
     } else {
-        if (req.headers['accept']?.includes('text/html') || !req.xhr) {
-            return res.redirect(`http://localhost:5173/payment-result?vnp_ResponseCode=97&vnp_TxnRef=${vnp_Params['vnp_TxnRef'] || ''}`);
+        if (isBrowserNav) {
+            return res.redirect(`${clientBaseUrl}/payment-result?vnp_ResponseCode=97&vnp_TxnRef=${vnp_Params['vnp_TxnRef'] || ''}`);
         }
         return res.status(400).json({ code: '97', message: "Chữ ký không hợp lệ" });
     }

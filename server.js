@@ -3687,60 +3687,7 @@ app.get("/api/orders/export-pdf/:id", checklogin, exportOrderPdfHandler);
 app.post("/api/orders/export-pdf", checklogin, exportOrderPdfHandler);
 
 
-// ============================================================
-// POST /reviews — đăng review cho order item
-// ============================================================
-app.post("/reviews", checklogin, async (req, res) => {
-  try {
-    const { order_item_id, content, star_number } = req.body;
 
-    if (!order_item_id || !content || !star_number) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Thiếu thông tin review" });
-    }
-
-    // Kiểm tra order item có thuộc user không
-    const orderItem = await OrderItem.findById(order_item_id).lean();
-    if (!orderItem) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Không tìm thấy order item" });
-    }
-
-    const order = await Order.findOne({
-      _id: orderItem.order_id,
-      user_id: req.user._id,
-    });
-    if (!order) {
-      return res.status(403).json({
-        success: false,
-        message: "Bạn không có quyền review đơn hàng này",
-      });
-    }
-
-    // Kiểm tra đã review chưa
-    const existingReview = await Review.findOne({
-      id_oderitems: order_item_id,
-    });
-    if (existingReview) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Bạn đã review sản phẩm này rồi" });
-    }
-
-    const review = await Review.create({
-      id_oderitems: order_item_id, // FIX: đúng tên field theo ERD (giữ typo)
-      content,
-      star_number,
-    });
-
-    return res.status(201).json({ success: true, data: review });
-  } catch (error) {
-    console.log("Lỗi API create review:", error);
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
-  }
-});
 
 // ============================================================
 // POST /favorites — thêm yêu thích
@@ -4018,21 +3965,34 @@ app.delete("/api/cart/:id", async (req, res) => {
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });
-// API Xóa toàn bộ giỏ hàng của 1 user
+// API Xóa toàn bộ giỏ hàng của 1 user hoặc user hiện tại
 app.delete("/api/cart/clear/:u_id", async (req, res) => {
   try {
     const { u_id } = req.params;
+    let filter = null;
 
-    const result = await CartItemModel.deleteMany({ u_id: u_id });
-
-    if (result.deletedCount === 0) {
-      return res.json({ success: true, message: "Giỏ hàng đã trống sẵn" });
+    if (u_id === 'all' || u_id === 'user' || u_id === 'me') {
+      let cookieUserId = req.user ? req.user._id : (req.session?.user?._id || null);
+      if (!cookieUserId && req.cookies && req.cookies.token) {
+        try {
+          const fs = require('fs');
+          const cert = fs.readFileSync(path.join(__dirname, './key/publickey.crt'));
+          const jwt = require('jsonwebtoken');
+          const verify = jwt.verify(req.cookies.token, cert, { algorithms: ["RS256"] });
+          if (verify && verify._id) cookieUserId = verify._id;
+        } catch (err) {}
+      }
+      if (cookieUserId) filter = getUserCartFilter(cookieUserId);
+    } else {
+      filter = getUserCartFilter(u_id);
     }
 
+    if (filter) {
+      await CartItemModel.deleteMany(filter);
+    }
     return res.json({
       success: true,
       message: "Đã xóa giỏ hàng",
-      deletedCount: result.deletedCount,
     });
   } catch (error) {
     console.error("Lỗi clear cart:", error);
@@ -6807,7 +6767,15 @@ app.post("/reviews/by-order-item", handleGetReviews);
 app.post("/reviews/filter", handleGetReviews);
 
 // POST /reviews — API vừa hỗ trợ tạo mới review, vừa hỗ trợ lấy/lọc review nếu FE gọi POST /reviews
-app.post("/reviews", uploadReview.array("images", 5), async (req, res, next) => {
+app.post("/reviews", (req, res, next) => {
+  uploadReview.array("images", 5)(req, res, (err) => {
+    if (err) {
+      console.error("Lỗi upload ảnh review:", err);
+      return res.status(400).json({ success: false, message: "Lỗi upload ảnh: " + err.message });
+    }
+    next();
+  });
+}, async (req, res, next) => {
   const { content, star_number } = req.body;
   // Nếu không truyền content hoặc star_number => FE dùng POST /reviews để lấy danh sách review
   if (!content || star_number === undefined) {
@@ -6828,7 +6796,8 @@ app.post("/reviews", uploadReview.array("images", 5), async (req, res, next) => 
         .json({ success: false, message: "Thiếu hoặc ID OrderItem không hợp lệ" });
     }
 
-    if (star_number < 1 || star_number > 5) {
+    const numStar = Number(star_number);
+    if (isNaN(numStar) || numStar < 1 || numStar > 5) {
       return res
         .status(400)
         .json({ success: false, message: "Số sao đánh giá phải từ 1 đến 5" });
@@ -6857,10 +6826,17 @@ app.post("/reviews", uploadReview.array("images", 5), async (req, res, next) => 
       imagePaths = Array.isArray(req.body.images) ? req.body.images : [req.body.images];
     }
 
+    let p_id = null;
+    if (orderItem && orderItem.variants_id) {
+      const variantDoc = await ProductVariantModel.findById(orderItem.variants_id).select("p_id").lean();
+      if (variantDoc && variantDoc.p_id) p_id = variantDoc.p_id;
+    }
+
     const newReview = new Review({
       id_oderitems: order_item_id,
+      p_id: p_id,
       content,
-      star_number: Number(star_number),
+      star_number: numStar,
       images: imagePaths
     });
 
@@ -7080,7 +7056,17 @@ const payment = async (req, res) => {
 
     // Nếu gửi từ Checkout (có items) mà chưa có Order trong DB, tự tạo Order
     if ((!orderId || !amount) && req.body.items && req.body.items.length > 0) {
-      const userId = req.user ? req.user._id : (req.body.user_id || null);
+      let userId = req.user ? req.user._id : (req.body.user_id || null);
+      if (!userId && req.cookies && req.cookies.token) {
+        try {
+          const fs = require('fs');
+          const cert = fs.readFileSync(path.join(__dirname, './key/publickey.crt'));
+          const jwt = require('jsonwebtoken');
+          const verify = jwt.verify(req.cookies.token, cert, { algorithms: ["RS256"] });
+          if (verify && verify._id) userId = verify._id;
+        } catch (err) {}
+      }
+
       let subTotal = 0;
       const orderItemsData = [];
 
@@ -7122,6 +7108,14 @@ const payment = async (req, res) => {
         order_id: newOrder._id
       }));
       await OrderItem.insertMany(finalOrderItems);
+
+      // Xóa ngay giỏ hàng DB cho user & guest khi khởi tạo đơn hàng VNPay
+      if (userId) {
+        await CartItemModel.deleteMany(getUserCartFilter(userId));
+      }
+      if (req.body.guest_id) {
+        await CartItemModel.deleteMany({ u_id: req.body.guest_id });
+      }
     }
 
     if (!orderId) orderId = `WN${moment(date).format('DDHHmmss')}`;
@@ -7169,6 +7163,16 @@ const payment = async (req, res) => {
   }
 };
 
+const getClientBaseUrl = (req) => {
+  let url = process.env.CLIENT_URL;
+  if (!url || url.includes('localhost:3000') || url === 'http://localhost:3000') {
+    url = (req && req.headers && req.headers.host && req.headers.host.includes('localhost'))
+      ? 'http://localhost:5173'
+      : 'https://winnotech.io.vn';
+  }
+  return url;
+};
+
 const paymentReturn = async (req, res) => {
   try {
     let vnp_Params = { ...req.query };
@@ -7192,6 +7196,9 @@ const paymentReturn = async (req, res) => {
     let hmac = crypto.createHmac("sha512", secretKey);
     let signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
 
+    const clientBaseUrl = getClientBaseUrl(req);
+    const isBrowserNav = req.headers['accept']?.includes('text/html') || !req.xhr;
+
     if (secureHash === signed) {
       const paymentId = vnp_Params['vnp_TxnRef'];
 
@@ -7205,6 +7212,9 @@ const paymentReturn = async (req, res) => {
           });
 
           if (!order) {
+            if (isBrowserNav) {
+              return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
+            }
             return res.status(404).json({ message: "Không tìm thấy đơn hàng hoặc đơn hàng đã được xử lý" });
           }
 
@@ -7223,15 +7233,10 @@ const paymentReturn = async (req, res) => {
             }
           }
 
-          // Xóa các sản phẩm đã mua khỏi giỏ hàng DB
+          // Xóa TOÀN BỘ giỏ hàng DB của user sau khi thanh toán thành công
           if (order.user_id) {
-            const orderVariantIds = orderItems.map(i => i.variants_id || i.variant_id).filter(Boolean);
-            if (orderVariantIds.length > 0) {
-              await CartItemModel.deleteMany({
-                u_id: order.user_id,
-                variant_id: { $in: orderVariantIds }
-              });
-            }
+            const u_id_filter = getUserCartFilter(order.user_id);
+            await CartItemModel.deleteMany(u_id_filter);
           }
 
           await order.save();
@@ -7262,14 +7267,15 @@ const paymentReturn = async (req, res) => {
             }
           }
 
-          const clientBaseUrl = process.env.CLIENT_URL || (req.headers.host && req.headers.host.includes('localhost') ? 'http://localhost:5173' : 'https://winnotech.io.vn');
-
-          if (req.headers['accept']?.includes('text/html') || !req.xhr) {
+          if (isBrowserNav) {
             return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
           }
           return res.status(200).json("Thanh toán online thành công, chi tiết đơn hàng đã gửi qua mail");
         } catch (error) {
           console.error("Lỗi xử lý thanh toán:", error);
+          if (isBrowserNav) {
+            return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
+          }
           return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
         }
 
@@ -7282,22 +7288,20 @@ const paymentReturn = async (req, res) => {
             ]
           });
 
-          if (!order) {
-            return res.status(404).json({ message: "Không tìm thấy đơn hàng hoặc đơn hàng đã được xử lý" });
+          if (order) {
+            order.payment_status = "canceled";
+            await order.save();
           }
 
-          // Cập nhật trạng thái thanh toán
-          order.payment_status = "canceled";
-          await order.save();
-
-          const clientBaseUrl = process.env.CLIENT_URL || (req.headers.host && req.headers.host.includes('localhost') ? 'http://localhost:5173' : 'https://winnotech.io.vn');
-          if (req.headers['accept']?.includes('text/html') || !req.xhr) {
+          if (isBrowserNav) {
             return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
           }
-          // Trả về kết quả cho client
           return res.status(200).json("Hủy thanh toán thành công");
         } catch (error) {
           console.error("Lỗi xử lý thanh toán:", error);
+          if (isBrowserNav) {
+            return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
+          }
           return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
         }
 
@@ -7310,36 +7314,37 @@ const paymentReturn = async (req, res) => {
             ]
           });
 
-          if (!order) {
-            return res.status(404).json({ message: "Không tìm thấy đơn hàng hoặc đơn hàng đã được xử lý" });
+          if (order) {
+            order.payment_status = "failed";
+            await order.save();
           }
 
-          // Cập nhật trạng thái thanh toán
-          order.payment_status = "failed";
-          await order.save();
-
-          const clientBaseUrl = process.env.CLIENT_URL || (req.headers.host && req.headers.host.includes('localhost') ? 'http://localhost:5173' : 'https://winnotech.io.vn');
-          if (req.headers['accept']?.includes('text/html') || !req.xhr) {
+          if (isBrowserNav) {
             return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
           }
-          // Trả về kết quả cho VNPAY
           return res.status(500).json("Thanh toán online không thành công, xin mời bạn đặt hàng lại ");
         } catch (error) {
           console.error("Lỗi xử lý thanh toán:", error);
+          if (isBrowserNav) {
+            return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
+          }
           return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
         }
       }
 
     } else {
       console.error("Chữ ký VNPay không khớp!");
-      const clientBaseUrl = process.env.CLIENT_URL || (req.headers.host && req.headers.host.includes('localhost') ? 'http://localhost:5173' : 'https://winnotech.io.vn');
-      if (req.headers['accept']?.includes('text/html') || !req.xhr) {
+      if (isBrowserNav) {
         return res.redirect(`${clientBaseUrl}/payment-result?vnp_ResponseCode=97&vnp_TxnRef=${vnp_Params['vnp_TxnRef'] || ''}`);
       }
       return res.status(400).json({ code: '97', message: "Chữ ký không hợp lệ" });
     }
   } catch (error) {
     console.error("Lỗi callback VNPay return:", error);
+    const clientBaseUrl = getClientBaseUrl(req);
+    if (req.headers['accept']?.includes('text/html') || !req.xhr) {
+      return res.redirect(`${clientBaseUrl}/payment-result?vnp_ResponseCode=99`);
+    }
     return res.status(500).json({ code: '99', message: "Lỗi hệ thống" });
   }
 };

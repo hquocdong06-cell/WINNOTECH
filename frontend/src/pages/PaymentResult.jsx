@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import DefaultLayout from '../layouts/DefaultLayout'
-import { clearCart } from '../redux/cartSlice'
+import { clearCart, clearGuestCartAPI } from '../redux/cartSlice'
 import { clearPurchasedPCBuildConfig } from '../utils/pcBuildUtils'
+import { API_BASE } from '../services/apiService'
 
 /**
  * Trang nhận kết quả callback từ VNPay
@@ -30,14 +31,24 @@ export default function PaymentResult() {
 
   useEffect(() => {
     const t = setTimeout(() => setShow(true), 50)
-    // Nếu thanh toán thành công → xóa giỏ hàng trong Redux & localStorage và xóa cấu hình PC đã mua
+    // Nếu thanh toán thành công → xóa giỏ hàng trong Redux, localStorage, Guest DB & user DB
     if (isSuccess) {
       dispatch(clearCart())
+      dispatch(clearGuestCartAPI())
       clearPurchasedPCBuildConfig()
+      localStorage.removeItem('cartItems')
+      localStorage.removeItem('cart')
       window.dispatchEvent(new CustomEvent('cartUpdated'))
+
+      // Gọi API xóa giỏ hàng DB để đảm bảo giỏ hàng sạch 100%
+      fetch(`${API_BASE}/api/cart/clear/all`, { method: 'DELETE', credentials: 'include' }).catch(() => {})
+      const guestId = localStorage.getItem('guest_cart_id')
+      if (guestId) {
+        fetch(`${API_BASE}/api/cart/clear/${guestId}`, { method: 'DELETE' }).catch(() => {})
+      }
     }
     return () => clearTimeout(t)
-  }, [])
+  }, [isSuccess])
 
   return (
     <DefaultLayout>

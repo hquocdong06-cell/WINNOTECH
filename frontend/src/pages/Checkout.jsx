@@ -3,8 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/checkout.css'
-import { voucherAPI } from '../services/apiService'
-import { clearCart, selectCartItems } from '../redux/cartSlice'
+import { clearCart, clearGuestCartAPI, getGuestId, selectCartItems } from '../redux/cartSlice'
 import { clearPurchasedPCBuildConfig } from '../utils/pcBuildUtils'
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -622,6 +621,8 @@ const voucherCalc = voucherInfo?.rawVoucher
           Name, Phone, Adress,
           payment_method: PAYMENT_METHOD_IDS.ewallet,
           items,
+          user_id: user?._id || user?.id,
+          guest_id: getGuestId(),
         }
         if (voucherCode.trim()) body.voucher_code = voucherCode.trim()
 
@@ -634,6 +635,15 @@ const voucherCalc = voucherInfo?.rawVoucher
         const data = await res.json()
 
         if (data.success) {
+          // Xóa sạch giỏ hàng phía FE trước khi chuyển hướng sang VNPay
+          dispatch(clearCart())
+          dispatch(clearGuestCartAPI())
+          clearPurchasedPCBuildConfig()
+          setCartItems([])
+          localStorage.removeItem('cartItems')
+          localStorage.removeItem('cart')
+          window.dispatchEvent(new CustomEvent('cartUpdated'))
+
           // Chuyển hướng trực tiếp sang VNPay
           window.location.href = data.paymentUrl;
         } else {
