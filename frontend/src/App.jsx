@@ -69,7 +69,8 @@ function App() {
         <Route path="/psu" element={<PSU />} />
         <Route path="/cooling" element={<CategoryPage slug="cooling" title="Tản nhiệt (Cooling)" />} />
         <Route path="/case" element={<Case />} />
-        <Route path="/build-pc" element={<BuildPC />} />
+        {/* Tạm ẩn trang Build PC */}
+        <Route path="/build-pc" element={<Navigate to="/" replace />} />
         <Route path="/product/:slug" element={<ProductDetail />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />

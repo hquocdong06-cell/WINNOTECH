@@ -199,12 +199,14 @@ export default function DefaultLayout({ children }) {
         {/* Row 2: Category bar */}
         <div className="nav-catbar">
           <div className="nav-catbar-inner">
+            {/* Tạm ẩn nút Build PC
             <Link to="/build-pc" className="btn-build-pc" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="#111" style={{marginRight:'5px',verticalAlign:'middle'}}>
                 <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"/>
               </svg>
               Build PC ngay
             </Link>
+            */}
             <div className="category-menu-wrapper">
               <Link to="/products" className="btn-category-menu" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
                 ☰ Danh mục ▾
@@ -230,7 +232,7 @@ export default function DefaultLayout({ children }) {
                       <li><Link to="/pc-gaming">PC Gaming</Link></li>
                       <li><Link to="/pc-do-hoa">PC Đồ họa / Workstation</Link></li>
                       <li><Link to="/pc-van-phong">PC Văn phòng / Học tập</Link></li>
-                      <li><Link to="/build-pc" style={{ color: 'var(--yellow)', fontWeight: 600 }}>⚡ Tự Build PC</Link></li>
+                      {/* Tạm ẩn link Build PC: <li><Link to="/build-pc" style={{ color: 'var(--yellow)', fontWeight: 600 }}>⚡ Tự Build PC</Link></li> */}
                     </ul>
                   </div>
                   <div className="mega-menu-col">

@@ -921,6 +921,7 @@ export default function ProductDetail() {
   const { isLoggedIn } = useAuth()
   const { slug } = useParams()
   const [selectedVariantId, setSelectedVariantId] = useState('')
+  const [selectedAttributes, setSelectedAttributes] = useState({})
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('specs')
   const { favoriteIds, toggleFavorite } = useFavorite()
@@ -1019,6 +1020,29 @@ export default function ProductDetail() {
     }
   }, [productData])
 
+  // Đồng bộ thuộc tính đã chọn khi activeVariant hoặc productData thay đổi
+  useEffect(() => {
+    if (!productData) return
+    const variants = productData.Variants || []
+    if (variants.length === 0) return
+
+    const curVariant = variants.find(v => v._id === selectedVariantId) || variants[0]
+    const curAttrs = curVariant?.Attributes || curVariant?.attributes || []
+    if (curAttrs.length === 0) return
+
+    setSelectedAttributes(prev => {
+      const next = { ...prev }
+      curAttrs.forEach(a => {
+        const gName = a.attribute_name || a.name
+        const gVal = a.value_name || a.value
+        if (gName && gVal && !next[gName]) {
+          next[gName] = gVal
+        }
+      })
+      return next
+    })
+  }, [productData, selectedVariantId])
+
   if (loading) {
     return (
       <DefaultLayout>
@@ -1084,6 +1108,23 @@ export default function ProductDetail() {
   const isOutOfStock = activeVariant && activeVariant.stock_quantity !== undefined ? activeVariant.stock_quantity <= 0 : false
   const availableStock = activeVariant && activeVariant.stock_quantity !== undefined ? activeVariant.stock_quantity : 999
 
+  const getNormalizedKey = (groupName, valName) => {
+    if (!valName) return ''
+    let cleaned = valName.toString().trim().toLowerCase()
+
+    // Loại bỏ phần dịch tiếng Anh trong ngoặc: "đen (black)" -> "đen"
+    cleaned = cleaned.replace(/\s*\([^)]*\)/g, '').trim()
+
+    // Chuẩn hóa cấu hình dung lượng bộ nhớ (VD: "2 x 16GB", "2x16GB" -> "32gb")
+    const multMatch = cleaned.match(/^(\d+)\s*x\s*(\d+)\s*gb$/i)
+    if (multMatch) {
+      const totalGB = parseInt(multMatch[1]) * parseInt(multMatch[2])
+      cleaned = `${totalGB}gb`
+    }
+
+    return cleaned
+  }
+
   // Group attributes by Attribute Name for top purchasing section (ONLY selectable options like Màu sắc, Phiên bản)
   const getGroupedAttributes = () => {
     if (!Variants || Variants.length === 0) return []
@@ -1104,6 +1145,8 @@ export default function ProductDetail() {
       'tên của case', 'chất liệu', 'loại case', 'hỗ trợ mainboard', 'số lượng ổ đĩa hỗ trợ', 
       'hỗ trợ tản nhiệt cpu cao', 'loại quạt hỗ trợ phía trên', 'loại quạt hỗ trợ phía sau', 
       'loại quạt hỗ trợ bên dưới', 'ổ đĩa hỗ trợ', 'tản nhiệt cpu cao', 'quạt hỗ trợ',
+      'kiểu ổ cứng', 'màu sắc của ổ cứng', 'tốc độ vòng quay', 'tốc độ đọc', 'tốc độ ghi',
+      'giao tiếp', 'tbw', 'form factor', 'nand', 'controller',
       'weight', 'dimensions', 'sensor'
     ]
 
@@ -1125,7 +1168,8 @@ export default function ProductDetail() {
           if (!groups[groupName]) {
             groups[groupName] = { attribute_name: groupName, options: [] }
           }
-          if (!groups[groupName].options.some(o => o.value_name === valName)) {
+          const normKey = getNormalizedKey(groupName, valName)
+          if (!groups[groupName].options.some(o => getNormalizedKey(groupName, o.value_name) === normKey)) {
             groups[groupName].options.push({
               value_name: valName,
               variant_id: v._id
@@ -1135,6 +1179,25 @@ export default function ProductDetail() {
       })
 
       const filteredGroups = Object.values(groups)
+      
+      // Fallback: nếu sản phẩm chưa có thuộc tính Dung lượng nhưng tên có chứa dung lượng (VD: 32GB, 16GB...)
+      const hasCapGroup = filteredGroups.some(g => 
+        isMatchStr(g.attribute_name, 'Dung lượng') || isMatchStr(g.attribute_name, 'Dung lượng RAM')
+      )
+      if (!hasCapGroup && product?.name) {
+        const capMatch = product.name.match(/\b(\d+\s*GB|\d+\s*TB)\b/i)
+        if (capMatch) {
+          const extractedCap = capMatch[1].replace(/\s+/g, '').toUpperCase()
+          filteredGroups.unshift({
+            attribute_name: 'Dung lượng RAM',
+            options: [{
+              value_name: extractedCap,
+              variant_id: activeVariant?._id
+            }]
+          })
+        }
+      }
+
       if (filteredGroups.length > 0) return filteredGroups
     }
 
@@ -1151,7 +1214,82 @@ export default function ProductDetail() {
       }
     }
 
+    // Fallback cho trường hợp sản phẩm không khai báo Variants attributes
+    if (product?.name) {
+      const capMatch = product.name.match(/\b(\d+\s*GB|\d+\s*TB)\b/i)
+      if (capMatch) {
+        const extractedCap = capMatch[1].replace(/\s+/g, '').toUpperCase()
+        return [{
+          attribute_name: 'Dung lượng RAM',
+          options: [{
+            value_name: extractedCap,
+            variant_id: activeVariant?._id
+          }]
+        }]
+      }
+    }
+
     return []
+  }
+
+
+
+  const isMatchStr = (s1, s2, groupName = '') => {
+    if (s1 === undefined || s1 === null || s2 === undefined || s2 === null) return false
+    const str1 = s1.toString().trim().toLowerCase()
+    const str2 = s2.toString().trim().toLowerCase()
+    if (str1 === str2) return true
+
+    if (groupName) {
+      return getNormalizedKey(groupName, s1) === getNormalizedKey(groupName, s2)
+    }
+
+    return false
+  }
+
+  const handleSelectAttributeOption = (group, opt) => {
+    // 1. Cập nhật state chọn thuộc tính ngay lập tức để nút tùy chọn sáng vàng & hiển thị tick ✓
+    const newSelectedAttrs = {
+      ...selectedAttributes,
+      [group.attribute_name]: opt.value_name
+    }
+    setSelectedAttributes(newSelectedAttrs)
+
+    if (!Variants || Variants.length === 0) return
+
+    if (group.attribute_name === 'Phiên bản / Biến thể') {
+      if (opt.variant_id) {
+        setSelectedVariantId(opt.variant_id)
+        setQuantity(1)
+      }
+      return
+    }
+
+    // 2. Tìm biến thể phù hợp nhất trong cơ sở dữ liệu nếu có nhiều biến thể
+    let bestVariant = null
+    let maxScore = -1
+
+    Variants.forEach(v => {
+      const attrs = v.Attributes || v.attributes || []
+      let score = 0
+      Object.entries(newSelectedAttrs).forEach(([gName, valName]) => {
+        if (attrs.some(a =>
+          isMatchStr(a.attribute_name || a.name, gName) &&
+          isMatchStr(a.value_name || a.value, valName, gName)
+        )) {
+          score++
+        }
+      })
+      if (score > maxScore) {
+        maxScore = score
+        bestVariant = v
+      }
+    })
+
+    if (bestVariant && bestVariant._id !== selectedVariantId) {
+      setSelectedVariantId(bestVariant._id)
+      setQuantity(1)
+    }
   }
 
   const handleQuantityChange = (e) => {
@@ -1645,82 +1783,78 @@ export default function ProductDetail() {
 
                     return (
                       <div className="attribute-groups-container" style={{ margin: '16px 0 20px 0' }}>
-                        {attributeGroups.map((group, groupIdx) => (
-                          <div key={groupIdx} style={{ marginBottom: '14px' }}>
-                            <div style={{ fontSize: '12px', color: 'var(--accent-color)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                              {group.attribute_name}
-                            </div>
-                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                              {group.options.map((opt, optIdx) => {
-                                const isSelected = activeVariant?.Attributes?.some(
-                                  a => (a.attribute_name === group.attribute_name || a.name === group.attribute_name) &&
-                                       (a.value_name === opt.value_name || a.value === opt.value_name)
-                                ) || (selectedVariantId === opt.variant_id) || (!selectedVariantId && opt.variant_id === activeVariant?._id)
+                        {attributeGroups.map((group, groupIdx) => {
+                          const isFallbackGroup = group.attribute_name === 'Phiên bản / Biến thể'
+                          const currentSelectedVal = selectedAttributes[group.attribute_name]
 
-                                return (
-                                  <button
-                                    key={optIdx}
-                                    type="button"
-                                    onClick={() => {
-                                      if (opt.variant_id) {
-                                        setSelectedVariantId(opt.variant_id)
-                                        setQuantity(1)
-                                      } else {
-                                        const matchVar = Variants?.find(v => 
-                                          v.Attributes?.some(a => (a.value_name === opt.value_name || a.value === opt.value_name))
-                                        )
-                                        if (matchVar) {
-                                          setSelectedVariantId(matchVar._id)
-                                          setQuantity(1)
-                                        }
-                                      }
-                                    }}
-                                    style={{
-                                      position: 'relative',
-                                      background: isSelected ? 'rgba(200, 230, 0, 0.12)' : 'var(--dark2)',
-                                      color: isSelected ? 'var(--accent-color)' : '#e2e8f0',
-                                      border: isSelected ? '1.5px solid var(--accent-color)' : '1px solid rgba(255, 255, 255, 0.15)',
-                                      padding: '8px 22px',
-                                      borderRadius: '6px',
-                                      fontSize: '13px',
-                                      fontWeight: isSelected ? 700 : 500,
-                                      cursor: 'pointer',
-                                      overflow: 'hidden',
-                                      transition: 'all 0.2s ease',
-                                      minWidth: '80px',
-                                      textAlign: 'center',
-                                      boxShadow: isSelected ? '0 0 12px rgba(200, 230, 0, 0.25)' : 'none'
-                                    }}
-                                  >
-                                    {opt.value_name}
-                                    {isSelected && (
-                                      <div style={{
-                                        position: 'absolute',
-                                        bottom: 0,
-                                        right: 0,
-                                        width: '15px',
-                                        height: '15px',
-                                        background: 'var(--accent-color)',
-                                        clipPath: 'polygon(100% 0, 0 100%, 100% 100%)',
-                                        display: 'flex',
-                                        alignItems: 'flex-end',
-                                        justifyContent: 'flex-end',
-                                      }}>
-                                        <span style={{
-                                          color: '#000000',
-                                          fontSize: '9px',
-                                          fontWeight: 900,
-                                          lineHeight: 1,
-                                          marginRight: '1px'
-                                        }}>✓</span>
-                                      </div>
-                                    )}
-                                  </button>
-                                )
-                              })}
+                          return (
+                            <div key={groupIdx} style={{ marginBottom: '14px' }}>
+                              <div style={{ fontSize: '12px', color: 'var(--accent-color)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                                {group.attribute_name}
+                              </div>
+                              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                {group.options.map((opt, optIdx) => {
+                                  let isSelected = false
+                                  if (isFallbackGroup) {
+                                    isSelected = (selectedVariantId === opt.variant_id) || (!selectedVariantId && opt.variant_id === activeVariant?._id)
+                                  } else if (currentSelectedVal) {
+                                    isSelected = isMatchStr(currentSelectedVal, opt.value_name, group.attribute_name)
+                                  } else {
+                                    isSelected = (optIdx === 0)
+                                  }
+
+                                  return (
+                                    <button
+                                      key={optIdx}
+                                      type="button"
+                                      onClick={() => handleSelectAttributeOption(group, opt)}
+                                      style={{
+                                        position: 'relative',
+                                        background: isSelected ? 'rgba(200, 230, 0, 0.12)' : 'var(--dark2)',
+                                        color: isSelected ? 'var(--accent-color)' : '#e2e8f0',
+                                        border: isSelected ? '1.5px solid var(--accent-color)' : '1px solid rgba(255, 255, 255, 0.15)',
+                                        padding: '8px 22px',
+                                        borderRadius: '6px',
+                                        fontSize: '13px',
+                                        fontWeight: isSelected ? 700 : 500,
+                                        cursor: 'pointer',
+                                        overflow: 'hidden',
+                                        transition: 'all 0.2s ease',
+                                        minWidth: '80px',
+                                        textAlign: 'center',
+                                        boxShadow: isSelected ? '0 0 12px rgba(200, 230, 0, 0.25)' : 'none'
+                                      }}
+                                    >
+                                      {opt.value_name}
+                                      {isSelected && (
+                                        <div style={{
+                                          position: 'absolute',
+                                          bottom: 0,
+                                          right: 0,
+                                          width: '15px',
+                                          height: '15px',
+                                          background: 'var(--accent-color)',
+                                          clipPath: 'polygon(100% 0, 0 100%, 100% 100%)',
+                                          display: 'flex',
+                                          alignItems: 'flex-end',
+                                          justifyContent: 'flex-end',
+                                        }}>
+                                          <span style={{
+                                            color: '#000000',
+                                            fontSize: '9px',
+                                            fontWeight: 900,
+                                            lineHeight: 1,
+                                            marginRight: '1px'
+                                          }}>✓</span>
+                                        </div>
+                                      )}
+                                    </button>
+                                  )
+                                })}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )
                   })()}

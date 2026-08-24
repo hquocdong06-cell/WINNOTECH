@@ -324,7 +324,7 @@ export default function Home() {
   useEffect(() => {
     const STATIC_FALLBACK = [
       { _id: 's1', image: '/public/images/banners/banner11.jpg', name: 'Banner 1', link: '/products', position: 1 },
-      { _id: 's2', image: '/public/images/banners/banner22.png', name: 'Banner 2', link: '/build-pc', position: 2 },
+      { _id: 's2', image: '/public/images/banners/banner22.png', name: 'Banner 2', link: '/products', position: 2 },
       { _id: 's3', image: '/public/images/banners/banner33.png', name: 'Banner 3', link: '/gpu', position: 3 },
       { _id: 's4', image: '/public/images/banners/banner44.png', name: 'Banner 4', link: '/products', position: 4 },
     ]
