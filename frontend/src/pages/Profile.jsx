@@ -1223,10 +1223,33 @@ export default function Profile() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <button
                                 className="btn-buy-now-card"
-                                onClick={async (e) => {
+                                onClick={(e) => {
                                   e.stopPropagation();
-                                  await handleAddToCart(p);
-                                  navigate('/checkout');
+                                  const price = p.sale_price > 0 ? p.sale_price : (p.price || 0);
+                                  const buyNowItem = {
+                                    cartItem: {
+                                      _id: p._id,
+                                      variant_id: p._id,
+                                      quantity: 1,
+                                      price: price
+                                    },
+                                    variant: {
+                                      _id: p._id,
+                                      price: price,
+                                      sale_price: price,
+                                      variant_name: ''
+                                    },
+                                    product: {
+                                      _id: p._id,
+                                      name: p.name
+                                    },
+                                    AnhSP: p.images?.[0] ? [{ url: p.images[0] }] : [],
+                                    _localPrice: price,
+                                    _variantId: p._id,
+                                    _isBuyNow: true
+                                  };
+                                  sessionStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
+                                  navigate('/checkout', { state: { buyNowItem } });
                                 }}
                                 style={{
                                   background: 'var(--yellow)',

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 
 import { API_BASE as API_URL } from '../services/apiService';
 
@@ -22,6 +23,7 @@ const HeartSVG = ({ isFilled }) => (
 
 export default function ProductCard({ product, onAddToCart, favoriteIds, onToggleFavorite, showSold = false }) {
   const navigate = useNavigate()
+  const { isLoggedIn } = useAuth()
   const [cartActive, setCartActive] = useState(false)
 
   if (!product) return null
@@ -71,8 +73,43 @@ export default function ProductCard({ product, onAddToCart, favoriteIds, onToggl
     e.preventDefault()
     e.stopPropagation()
     if (!isOutOfStock) {
-      await onAddToCart?.(product)
-      navigate('/checkout')
+      const variant = product.Variants?.[0] || {}
+      const OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/
+      let variantId = variant._id
+      if (!variantId || !OBJECT_ID_REGEX.test(String(variantId))) {
+        if (OBJECT_ID_REGEX.test(String(product._id))) {
+          variantId = product._id
+        }
+      }
+
+      if (!variantId || !OBJECT_ID_REGEX.test(String(variantId))) {
+        alert('Sản phẩm này chưa có biến thể sẵn sàng trong cơ sở dữ liệu!')
+        return
+      }
+
+      if (isLoggedIn) {
+        try {
+          const res = await fetch(`${API_URL}/cart/add`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ variant_id: variantId, quantity: 1 })
+          })
+          const data = await res.json()
+          if (!data.success) {
+            alert(data.message || 'Lỗi khi thêm vào giỏ hàng!')
+            return
+          }
+          window.dispatchEvent(new CustomEvent('cartUpdated'))
+          navigate('/checkout')
+        } catch {
+          alert('Lỗi kết nối máy chủ!')
+        }
+        return
+      }
+
+      alert('Vui lòng đăng nhập để tiến hành mua hàng!')
+      navigate('/login?redirect=/checkout')
     }
   }
 

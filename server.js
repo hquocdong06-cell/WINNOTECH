@@ -2739,8 +2739,23 @@ app.put("/cart/:cartItemId", checklogin, async (req, res) => {
 });
 
 // ============================================================
+// DELETE /cart — xóa toàn bộ giỏ hàng của user đã đăng nhập
+// ============================================================
+app.delete("/cart", checklogin, async (req, res) => {
+  try {
+    const u_id = cleanUserId(req.user._id);
+    const u_id_filter = getUserCartFilter(u_id);
+
+    await CartItemModel.deleteMany(u_id_filter);
+    return res.json({ success: true, message: "Đã xóa toàn bộ giỏ hàng thành công" });
+  } catch (error) {
+    console.log("Lỗi API clear cart:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ============================================================
 // DELETE /cart/:cartItemId — xóa item khỏi giỏ hàng
-// API MỚI
 // ============================================================
 app.delete("/cart/:cartItemId", checklogin, async (req, res) => {
   try {
@@ -2751,16 +2766,6 @@ app.delete("/cart/:cartItemId", checklogin, async (req, res) => {
       _id: req.params.cartItemId,
       ...u_id_filter,
     });
-
-    if (!cartItem) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy item trong giỏ hàng",
-      });
-    }
-
-    return res.json({ success: true, message: "Đã xóa khỏi giỏ hàng" });
-
 
     if (!cartItem) {
       return res.status(404).json({
@@ -2784,16 +2789,32 @@ app.delete("/cart/:cartItemId", checklogin, async (req, res) => {
 // ============================================================
 app.post("/orders", checklogin, async (req, res) => {
   try {
+    if (req.user && (req.user.role === "admin" || req.user.role === 1)) {
+      return res.status(403).json({
+        success: false,
+        message: "Tài khoản Quản trị viên (Admin) không được phép thực hiện chức năng mua hàng!"
+      });
+    }
     const { Name, Phone, Adress, payment_method, voucher_code, items } = req.body;
 
     if (!Name || !Phone || !Adress || !payment_method || !items || items.length === 0) {
       return res.status(400).json({ success: false, message: "Thiếu thông tin đặt hàng" });
     }
 
-    // ==========================================
-    // 1. LẤY GIÁ THẬT VÀ CHECK TỒN KHO TỪ DB
-    // ==========================================
-    const variantIds = items.map((i) => i.variant_id);
+    // Gộp trùng sản phẩm theo variant_id và cộng dồn số lượng
+    const itemMap = new Map();
+    for (const i of items) {
+      const vid = String(i.variant_id);
+      const qty = parseInt(i.quantity) || 1;
+      if (itemMap.has(vid)) {
+        itemMap.get(vid).quantity += qty;
+      } else {
+        itemMap.set(vid, { variant_id: i.variant_id, quantity: qty });
+      }
+    }
+    const groupedItems = Array.from(itemMap.values());
+
+    const variantIds = groupedItems.map((i) => i.variant_id);
 
     // Validate: loại bỏ variant_id không phải MongoDB ObjectId hợp lệ
     const OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/;
@@ -2801,7 +2822,7 @@ app.post("/orders", checklogin, async (req, res) => {
     if (invalidIds.length > 0) {
       return res.status(400).json({
         success: false,
-        message: `Đơn hàng chứa sản phẩm không hợp lệ (chưa có trong hệ thống): ${invalidIds.join(', ')}. Vui lòng chỉ đặt hàng các linh kiện có trong cơ sở dữ liệu (CPU, RAM, GPU, Mainboard, Ổ cứng, PSU, Vỏ case, Tản nhiệt).`
+        message: `Đơn hàng chứa sản phẩm không hợp lệ (chưa có trong hệ thống): ${invalidIds.join(', ')}. Vui lòng chỉ đặt hàng các linh kiện có trong cơ sở dữ liệu.`
       });
     }
 
@@ -2811,22 +2832,22 @@ app.post("/orders", checklogin, async (req, res) => {
     const orderItemDocs = [];
     const bulkStockOps = [];
 
-    for (const item of items) {
+    for (const item of groupedItems) {
       const dbVariant = dbVariants.find(v => v._id.toString() === item.variant_id.toString());
 
       if (!dbVariant) {
-        return res.status(404).json({ success: false, message: `Sản phẩm không tồn tại.` });
+        return res.status(404).json({ success: false, message: `Sản phẩm không tồn tại trong cơ sở dữ liệu.` });
       }
 
       if (dbVariant.stock_quantity < item.quantity) {
         return res.status(400).json({ 
           success: false, 
-          message: `Sản phẩm đã hết hàng hoặc không đủ số lượng!` 
+          message: `Sản phẩm ${dbVariant.variant_name || ''} đã hết hàng hoặc không đủ số lượng tồn kho (tồn: ${dbVariant.stock_quantity}, yêu cầu: ${item.quantity})!` 
         });
       }
 
-      // Tính tiền bằng giá trong Database
-      const realPrice = dbVariant.price; 
+      // Tính tiền bằng giá thật trong Database (ưu tiên sale_price)
+      const realPrice = (dbVariant.sale_price && dbVariant.sale_price > 0) ? dbVariant.sale_price : dbVariant.price; 
       total_amount += realPrice * item.quantity;
 
       orderItemDocs.push({
@@ -2853,8 +2874,13 @@ app.post("/orders", checklogin, async (req, res) => {
 
     if (voucher_code) {
       validVoucher = await Voucher.findOne({ code: voucher_code });
+      if (!validVoucher) {
+        return res.status(400).json({ success: false, message: "Mã giảm giá không tồn tại!" });
+      }
+      if (validVoucher.status !== 'active') {
+        return res.status(400).json({ success: false, message: "Mã giảm giá chưa được kích hoạt hoặc đã bị tạm ngưng hoạt động!" });
+      }
       if (
-        validVoucher &&
         validVoucher.end_day >= new Date() &&
         validVoucher.used_count < validVoucher.usage_limit
       ) {
@@ -6195,6 +6221,7 @@ app.get("/api/vouchers/valid", async (req, res) => {
   try {
     const now = new Date();
     const vouchers = await Voucher.find({
+      status: 'active',
       start_day: { $lte: now },
       end_day: { $gte: now },
       $expr: { $lt: ["$used_count", "$usage_limit"] },
@@ -6230,7 +6257,7 @@ app.get("/api/vouchers/:idOrCode", async (req, res) => {
 // Tạo voucher mới (Admin)
 app.post("/api/vouchers", async (req, res) => {
   try {
-    const { code, discount_type, discountType, discount_value, discountValue, start_day, startDate, end_day, endDate, usage_limit, usageLimit, min_order, minOrderValue, maxDiscountAmount } = req.body;
+    const { code, discount_type, discountType, discount_value, discountValue, start_day, startDate, end_day, endDate, usage_limit, usageLimit, min_order, minOrderValue, maxDiscountAmount, status } = req.body;
 
     const finalCode = (code || '').trim().toUpperCase();
     const finalType = discount_type || discountType || 'percent';
@@ -6239,6 +6266,7 @@ app.post("/api/vouchers", async (req, res) => {
     const finalEnd = end_day || endDate ? new Date(end_day || endDate) : null;
     const finalLimit = Number(usage_limit !== undefined ? usage_limit : (usageLimit || 100));
     const finalMinOrder = Number(min_order !== undefined ? min_order : (minOrderValue || 0));
+    const finalStatus = status && ['active', 'deactive'].includes(status) ? status : 'deactive';
 
     if (!finalCode || !finalEnd) {
       return res.status(400).json({ success: false, message: "Thiếu mã voucher hoặc ngày kết thúc" });
@@ -6270,7 +6298,8 @@ app.post("/api/vouchers", async (req, res) => {
       used_count: 0,
       minOrderValue: finalMinOrder,
       min_order: finalMinOrder,
-      isActive: true,
+      status: finalStatus,
+      isActive: finalStatus === 'active',
     });
 
     return res.status(201).json({ success: true, message: "Tạo voucher thành công", data: newVoucher });
@@ -6286,6 +6315,11 @@ app.put("/api/vouchers/:id", async (req, res) => {
     const { id } = req.params;
     const updateData = { ...req.body };
     if (updateData.code) updateData.code = updateData.code.trim().toUpperCase();
+    if (updateData.status) {
+      updateData.isActive = (updateData.status === 'active');
+    } else if (updateData.isActive !== undefined) {
+      updateData.status = updateData.isActive ? 'active' : 'deactive';
+    }
 
     const updatedVoucher = await Voucher.findByIdAndUpdate(id, updateData, { new: true });
     if (!updatedVoucher) {
@@ -6328,6 +6362,11 @@ app.post("/api/vouchers/apply", async (req, res) => {
     const voucher = await Voucher.findOne({ code: code.trim().toUpperCase() });
     if (!voucher) {
       return res.status(404).json({ success: false, message: "Mã voucher không tồn tại" });
+    }
+
+    // Kiểm tra trạng thái status có active hay không
+    if (voucher.status !== 'active') {
+      return res.status(400).json({ success: false, message: "Mã voucher chưa được kích hoạt hoặc đã bị tạm ngưng hoạt động!" });
     }
 
     // 2. Kiểm tra thời gian hiệu lực
@@ -7028,6 +7067,12 @@ function sortObject(obj) {
 
 const payment = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Chưa đăng nhập. Vui lòng đăng nhập để thực hiện mua hàng.' });
+    }
+    if (req.user && (req.user.role === "admin" || req.user.role === 1)) {
+      return res.status(403).json({ success: false, message: 'Tài khoản Quản trị viên (Admin) không được phép thực hiện mua hàng!' });
+    }
     process.env.TZ = 'Asia/Ho_Chi_Minh';
     
     let date = new Date();
@@ -7070,11 +7115,23 @@ const payment = async (req, res) => {
       let subTotal = 0;
       const orderItemsData = [];
 
+      const groupedPayItems = [];
       for (let item of req.body.items) {
+        const vid = String(item.variant_id);
+        const qty = item.quantity || item.Quantity || 1;
+        const existing = groupedPayItems.find(g => String(g.variant_id) === vid);
+        if (existing) {
+          existing.quantity += qty;
+        } else {
+          groupedPayItems.push({ variant_id: item.variant_id, quantity: qty });
+        }
+      }
+
+      for (let item of groupedPayItems) {
         const variant = await ProductVariantModel.findById(item.variant_id).lean();
         if (variant) {
-          const price = variant.sale_price > 0 ? variant.sale_price : (variant.price || 0);
-          const qty = item.quantity || item.Quantity || 1;
+          const price = (variant.sale_price && variant.sale_price > 0) ? variant.sale_price : (variant.price || 0);
+          const qty = item.quantity;
           subTotal += price * qty;
           orderItemsData.push({
             variants_id: variant._id,
@@ -7349,9 +7406,9 @@ const paymentReturn = async (req, res) => {
   }
 };
 
-app.post("/create_payment_url", payment);
-app.post("/order/create_payment_url", payment);
-app.post("/api/create-qr", payment);
+app.post("/create_payment_url", checklogin, payment);
+app.post("/order/create_payment_url", checklogin, payment);
+app.post("/api/create-qr", checklogin, payment);
 app.get("/order/vnpay_return", paymentReturn);
 app.get("/vnpay_return", paymentReturn);
 app.use("/order", require("./routers/order"));

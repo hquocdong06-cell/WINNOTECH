@@ -1393,7 +1393,7 @@ export default function ProductDetail() {
     }
   }
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     if (!activeVariant) {
       toast.error('Sản phẩm này hiện tại chưa có sẵn biến thể!', { position: 'bottom-right' })
       return
@@ -1402,8 +1402,31 @@ export default function ProductDetail() {
       toast.error('Sản phẩm này đã hết hàng!', { position: 'bottom-right' })
       return
     }
-    await handleAddToCart()
-    navigate('/checkout')
+    if (!isLoggedIn) {
+      toast.error('Vui lòng đăng nhập để thực hiện mua hàng!', { position: 'bottom-right' })
+      navigate('/login?redirect=/checkout')
+      return
+    }
+    const price = activeVariant.sale_price > 0 ? activeVariant.sale_price : activeVariant.price
+    const buyNowItem = {
+      cartItem: {
+        _id: activeVariant._id,
+        variant_id: activeVariant._id,
+        quantity: quantity,
+        price: price
+      },
+      variant: activeVariant,
+      product: {
+        _id: product?._id || slug,
+        name: product?.name || 'Sản phẩm'
+      },
+      AnhSP: activeVariant.image ? [{ url: activeVariant.image }] : (product?.thumnail ? [{ url: product.thumnail }] : []),
+      _localPrice: price,
+      _variantId: activeVariant._id,
+      _isBuyNow: true
+    }
+    sessionStorage.setItem('buyNowItem', JSON.stringify(buyNowItem))
+    navigate('/checkout', { state: { buyNowItem } })
   }
 
   // ── ReviewSection component (Purchase-check & Customer Reviews) ──

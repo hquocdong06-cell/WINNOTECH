@@ -6,6 +6,7 @@ import '../assets/styles/build-pc.css'
 import { buildPCAPI } from '../services/apiService'
 import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
+import { useAuth } from '../hooks/useAuth'
 
 import { API_BASE as API_URL } from '../services/apiService';
 
@@ -332,6 +333,7 @@ const BRAND_FILTERS = {
 export default function BuildPC() {
   const navigate  = useNavigate()
   const dispatch  = useDispatch()
+  const { isLoggedIn } = useAuth()
   const [activeStep, setActiveStep]     = useState('cpu')
   const [brandFilter, setBrandFilter]   = useState('Tất cả')
   const [searchQuery, setSearchQuery]   = useState('')
@@ -670,6 +672,11 @@ export default function BuildPC() {
 
   const handleCTAClick = async () => {
     if (isComplete || selectedCount > 0) {
+      if (!isLoggedIn) {
+        toast.error('Vui lòng đăng nhập để tiến hành mua hàng!', { position: 'bottom-right' })
+        navigate('/login?redirect=/checkout')
+        return
+      }
       localStorage.setItem('purchasing_pc_build_config_id', activeConfigId.toString())
       await handleAddAllToCart()
       navigate('/checkout')
@@ -791,6 +798,11 @@ export default function BuildPC() {
   }
 
   const handleCheckoutNow = async () => {
+    if (!isLoggedIn) {
+      toast.error('Vui lòng đăng nhập để tiến hành mua hàng!', { position: 'bottom-right' })
+      navigate('/login?redirect=/checkout')
+      return
+    }
     setShowSummaryModal(false)
     const items = Object.values(selected).filter(Boolean)
     if (items.length === 0) {

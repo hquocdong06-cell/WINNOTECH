@@ -169,6 +169,51 @@ export default function Cart() {
     }
   }
 
+  // ── Xóa tất cả giỏ hàng (Đã login) ──────────────────────────────────
+  const handleClearAllCart = async () => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa tất cả sản phẩm trong giỏ hàng?')) return
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/cart`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      const data = await res.json()
+      if (data.success) {
+        setCartItems([])
+        dispatch(clearCart())
+        toast.success('Đã xóa tất cả sản phẩm trong giỏ hàng!', { position: 'bottom-right' })
+        window.dispatchEvent(new CustomEvent('cartUpdated'))
+      } else {
+        toast.error(data.message || 'Không thể xóa giỏ hàng', { position: 'bottom-right' })
+      }
+    } catch {
+      toast.error('Lỗi kết nối máy chủ', { position: 'bottom-right' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── Thao tác giỏ hàng cho Guest (Chưa login) ─────────────────────────
+  const handleLocalQuantityChange = (product_id, variant_id, newQty) => {
+    if (newQty < 1) {
+      handleLocalRemoveItem(product_id, variant_id)
+      return
+    }
+    dispatch(updateQuantity({ product_id, variant_id, quantity: newQty }))
+  }
+
+  const handleLocalRemoveItem = (product_id, variant_id) => {
+    dispatch(removeFromCart({ product_id, variant_id }))
+    toast.info('Đã xóa sản phẩm khỏi giỏ hàng tạm thời', { position: 'bottom-right', autoClose: 1500 })
+  }
+
+  const handleLocalClearAll = () => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa tất cả sản phẩm trong giỏ hàng tạm thời?')) return
+    dispatch(clearCart())
+    toast.info('Đã xóa toàn bộ sản phẩm trong giỏ hàng tạm thời', { position: 'bottom-right', autoClose: 1500 })
+  }
+
   // ── Mã giảm giá (demo) ────────────────────────────────────────────────
   const handleApplyDiscount = () => {
     if (discountCode === 'SAVE1M') {
@@ -194,6 +239,11 @@ export default function Cart() {
 
   // ── Checkout ──────────────────────────────────────────────────────────
   const handleCheckout = () => {
+    if (!isLoggedIn) {
+      alert('Vui lòng đăng nhập để tiến hành mua hàng!')
+      navigate('/login?redirect=/checkout')
+      return
+    }
     navigate('/checkout')
   }
 
@@ -233,7 +283,30 @@ export default function Cart() {
         </div>
         <div className="cart-section">
           <div className="section-inner">
-            <h1 className="cart-title">GIỂ HÀNG CỦA BẠN</h1>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+              <h1 className="cart-title" style={{ margin: 0 }}>GIỎ HÀNG CỦA BẠN</h1>
+              {localCartItems.length > 0 && (
+                <button
+                  onClick={handleLocalClearAll}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    color: '#ef4444',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    fontWeight: '600',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Xóa tất cả giỏ hàng
+                </button>
+              )}
+            </div>
 
             {/* Banner gợi ý đăng nhập */}
             <div style={{
@@ -280,11 +353,44 @@ export default function Cart() {
                       </div>
                       <div className="item-price">{formatPrice(item.price)}</div>
                       <div className="item-quantity">
-                        <span style={{ color: '#aaa', fontSize: '13px' }}>Số lượng: {item.quantity}</span>
+                        <button
+                          onClick={() => handleLocalQuantityChange(item.product_id, item.variant_id, item.quantity - 1)}
+                          className="qty-btn"
+                        >−</button>
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          min="0"
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value)
+                            if (isNaN(v) || v <= 0) {
+                              handleLocalRemoveItem(item.product_id, item.variant_id)
+                            } else {
+                              handleLocalQuantityChange(item.product_id, item.variant_id, v)
+                            }
+                          }}
+                          className="qty-input"
+                        />
+                        <button
+                          onClick={() => handleLocalQuantityChange(item.product_id, item.variant_id, item.quantity + 1)}
+                          className="qty-btn"
+                        >+</button>
                       </div>
                       <div className="item-subtotal" style={{ minWidth: '110px', textAlign: 'right', fontWeight: 700, color: '#c8e600', fontSize: '14px' }}>
                         {formatPrice(item.price * item.quantity)}
                       </div>
+                      <button
+                        onClick={() => handleLocalRemoveItem(item.product_id, item.variant_id)}
+                        className="btn-remove"
+                        title="Xóa sản phẩm"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          <line x1="10" y1="11" x2="10" y2="17" />
+                          <line x1="14" y1="11" x2="14" y2="17" />
+                        </svg>
+                      </button>
                     </div>
                   ))}
                   <Link to="/" className="btn-continue-shopping-link">← TIẾP TỤC MUA SẮM</Link>
@@ -354,7 +460,30 @@ export default function Cart() {
       {/* CART SECTION */}
       <div className="cart-section">
         <div className="section-inner">
-          <h1 className="cart-title">GIỎ HÀNG CỦA BẠN</h1>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+            <h1 className="cart-title" style={{ margin: 0 }}>GIỎ HÀNG CỦA BẠN</h1>
+            {cartItems.length > 0 && (
+              <button
+                onClick={handleClearAllCart}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  color: '#ef4444',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Xóa tất cả giỏ hàng
+              </button>
+            )}
+          </div>
 
           {cartItems.length === 0 ? (
             <div className="empty-cart">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
+import { useAuth } from '../hooks/useAuth'
 import DefaultLayout from '../layouts/DefaultLayout'
 import { compareAPI } from '../services/apiService'
 import { cartAPI } from '../services/apiService'
@@ -77,6 +78,7 @@ const SPEC_ROWS = [
 
 export default function Compare() {
   const navigate = useNavigate()
+  const { isLoggedIn } = useAuth()
   const [products, setProducts] = useState([])   // max 2 items
   const [loading, setLoading] = useState(true)
   const [removing, setRemoving] = useState(null)
@@ -146,6 +148,41 @@ export default function Compare() {
     } finally {
       setAddingCart(null)
     }
+  }
+
+  // ── Mua ngay trực tiếp (không qua giỏ hàng) ──
+  const handleDirectBuyNow = (p) => {
+    if (!isLoggedIn) {
+      toast.error('Vui lòng đăng nhập để tiến hành mua hàng!', { position: 'bottom-right' })
+      navigate('/login?redirect=/checkout')
+      return
+    }
+    const variant = p.Variants?.[0] || {}
+    const price = getPrice(p)
+    const buyNowItem = {
+      cartItem: {
+        _id: variant._id || p._id,
+        variant_id: variant._id || p._id,
+        quantity: 1,
+        price: price
+      },
+      variant: {
+        _id: variant._id || p._id,
+        price: price,
+        sale_price: price,
+        variant_name: variant.variant_name || ''
+      },
+      product: {
+        _id: p._id,
+        name: p.name
+      },
+      AnhSP: p.images?.[0] ? [{ url: p.images[0] }] : (p.thumnail ? [{ url: p.thumnail }] : []),
+      _localPrice: price,
+      _variantId: variant._id || p._id,
+      _isBuyNow: true
+    }
+    sessionStorage.setItem('buyNowItem', JSON.stringify(buyNowItem))
+    navigate('/checkout', { state: { buyNowItem } })
   }
 
   // ── So sánh số: ai cao hơn ai ──
@@ -291,10 +328,7 @@ export default function Compare() {
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
                         <button
                           className="compare-product-btn"
-                          onClick={async () => {
-                            await handleAddToCart(p);
-                            navigate('/checkout');
-                          }}
+                          onClick={() => handleDirectBuyNow(p)}
                           style={{ fontSize: '12px', padding: '8px 14px', background: 'var(--yellow)', color: '#000', border: 'none', fontWeight: '800' }}
                         >
                           ⚡ Mua ngay
@@ -366,10 +400,7 @@ export default function Compare() {
                     <div className="compare-row-val" key={p._id} style={{ flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
                       <button
                         className="compare-product-btn"
-                        onClick={async () => {
-                          await handleAddToCart(p);
-                          navigate('/checkout');
-                        }}
+                        onClick={() => handleDirectBuyNow(p)}
                         style={{ width: '100%', justifyContent: 'center', background: 'var(--yellow)', color: '#000', border: 'none', fontWeight: '800' }}
                       >
                         ⚡ Mua ngay

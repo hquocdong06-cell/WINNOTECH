@@ -276,13 +276,17 @@ export default function Home() {
       return
     }
 
-    const currentPrice = defaultVariant.sale_price > 0 ? defaultVariant.sale_price : defaultVariant.price
+    const { originalPrice, currentPrice } = getProductPriceInfo(product)
+    const discountPct = product.flash_sale_discount || 25
+    const calcFlashPrice = currentPrice && currentPrice < originalPrice ? currentPrice : Math.round(originalPrice * (1 - discountPct / 100))
+    const price = calcFlashPrice || currentPrice || defaultVariant.sale_price || defaultVariant.price || product.price
+
     const imgUrl = getProductImage(product)
     const cartPayload = {
       product_id: product._id,
       variant_id: defaultVariant._id,
       name: product.name,
-      price: currentPrice,
+      price: price,
       quantity: 1,
       image: imgUrl
     }
@@ -290,11 +294,12 @@ export default function Home() {
     // Chưa đăng nhập → lưu localStorage qua Redux, không cần gọi API
     if (!isLoggedIn) {
       dispatch(addToCart(cartPayload))
-      toast.success('Đã thêm vào giỏ hàng!', { position: 'bottom-right' })
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
+      toast.success('Đã thêm sản phẩm vào giỏ hàng!', { position: 'bottom-right' })
       return
     }
 
-    // Đã đăng nhập → đồng bộ lên DB
+    // Đã đăng nhập → đồng bộ lên CSDL MongoDB
     try {
       const res = await fetch(`${API_URL}/cart/add`, {
         method: 'POST',
@@ -314,10 +319,81 @@ export default function Home() {
       }
 
       dispatch(addToCart(cartPayload))
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
       toast.success('Đã thêm sản phẩm vào giỏ hàng!', { position: 'bottom-right' })
     } catch (err) {
       toast.error('Lỗi khi thêm vào giỏ hàng!', { position: 'bottom-right' })
     }
+  }
+
+  const handleBuyNowFlashSale = (product) => {
+    if (!product) return
+
+    // 1. Nếu chưa đăng nhập -> tuyệt đối không cho mua, hiện thông báo và chuyển hướng sang login
+    if (!isLoggedIn) {
+      toast.error('Vui lòng đăng nhập để thực hiện mua hàng!', { position: 'bottom-right' })
+      navigate('/login?redirect=/checkout')
+      return
+    }
+
+    const defaultVariant = product.Variants?.find(v => v.variant_name === 'Mặc định') || product.Variants?.[0] || {}
+    const { originalPrice, currentPrice } = getProductPriceInfo(product)
+    const discountPct = product.flash_sale_discount || 25
+    const calcFlashPrice = currentPrice && currentPrice < originalPrice ? currentPrice : Math.round(originalPrice * (1 - discountPct / 100))
+    const price = calcFlashPrice || originalPrice || product.price || 100000
+
+    const OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/
+    let variantId = defaultVariant._id
+    if (!variantId || !OBJECT_ID_REGEX.test(String(variantId))) {
+      if (OBJECT_ID_REGEX.test(String(product._id))) {
+        variantId = product._id
+      }
+    }
+
+    if (!variantId || !OBJECT_ID_REGEX.test(String(variantId))) {
+      toast.error('Sản phẩm Flash Sale chưa có biến thể sẵn sàng!', { position: 'bottom-right' })
+      return
+    }
+
+    // 2. Tính toán cộng dồn số lượng nếu ấn Mua ngay 2 lần cho cùng 1 sản phẩm
+    let qty = 1
+    const stored = sessionStorage.getItem('buyNowItem')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        if (parsed?._variantId === variantId || parsed?.cartItem?.variant_id === variantId) {
+          qty = (parsed.cartItem?.quantity || 1) + 1
+        }
+      } catch {}
+    }
+
+    const imgUrl = getProductImage(product)
+    const buyNowItem = {
+      cartItem: {
+        _id: variantId,
+        variant_id: variantId,
+        quantity: qty,
+        price: price
+      },
+      variant: {
+        _id: variantId,
+        price: originalPrice || price,
+        sale_price: price,
+        variant_name: defaultVariant.variant_name || ''
+      },
+      product: {
+        _id: product._id,
+        name: product.name
+      },
+      AnhSP: imgUrl ? [{ url: imgUrl }] : [],
+      _localPrice: price,
+      _variantId: variantId,
+      _isBuyNow: true
+    }
+
+    // 3. Lưu vào sessionStorage & Chuyển thẳng đến trang thanh toán /checkout
+    sessionStorage.setItem('buyNowItem', JSON.stringify(buyNowItem))
+    navigate('/checkout', { state: { buyNowItem } })
   }
 
   // Fetch banners từ API (chỉ lấy active, sắp xếp theo position 1, 2, 3...)
@@ -709,21 +785,12 @@ export default function Home() {
                             )}
                           </div>
 
-                          <div className="flash-progress-wrap">
-                            <div className="flash-progress-bar">
-                              <div 
-                                className="flash-progress-fill" 
-                                style={{ width: `${Math.min(100, Math.max(20, (product.sold_count || 1) * 20))}%` }}
-                              ></div>
-                              <span className="flash-progress-text">🔥 ĐÃ BẢN {product.sold_count || 0} CÁI</span>
-                            </div>
-                          </div>
 
                           <button 
                             onClick={() => handleQuickAddToCart(product)} 
                             className="btn-flash-buy"
                           >
-                            MUA NGAY
+                            THÊM VÀO GIỎ HÀNG
                           </button>
                         </div>
                       </div>

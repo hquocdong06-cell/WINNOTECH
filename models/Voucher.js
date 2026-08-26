@@ -19,11 +19,21 @@ const VoucherSchema = new mongoose.Schema({
     start_day: { type: Date },
     endDate: { type: Date },
     end_day: { type: Date },
-    isActive: { type: Boolean, default: true }
+    status: { type: String, enum: ['active', 'deactive'], default: 'deactive' },
+    isActive: { type: Boolean, default: false }
 }, { timestamps: true });
 
 // Pre-validate hook đồng bộ các trường alias TRƯỚC khi Mongoose validate schema
 VoucherSchema.pre('validate', function() {
+    if (this.status) {
+        this.isActive = (this.status === 'active');
+    } else if (this.isActive !== undefined) {
+        this.status = this.isActive ? 'active' : 'deactive';
+    } else {
+        this.status = 'deactive';
+        this.isActive = false;
+    }
+
     if (this.discountType && !this.discount_type) this.discount_type = this.discountType;
     if (this.discount_type && !this.discountType) this.discountType = this.discount_type;
 

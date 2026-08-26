@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import { selectCartItems, selectCartTotalPrice, removeFromCart, updateQuantity } from '../redux/cartSlice';
 import '../assets/styles/cart-drawer.css'; // CSS riêng cho drawer mini cart
 
@@ -9,6 +10,7 @@ import { API_BASE as API_URL } from '../services/apiService';
 export default function CartDrawer({ isOpen, onClose }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
   const cartItems = useSelector(selectCartItems);
   const totalPrice = useSelector(selectCartTotalPrice);
   const [removingId, setRemovingId] = useState(null);
@@ -70,6 +72,11 @@ export default function CartDrawer({ isOpen, onClose }) {
 
   const handleCheckout = () => {
     onClose();
+    if (!isLoggedIn) {
+      alert('Vui lòng đăng nhập để tiến hành mua hàng!');
+      navigate('/login?redirect=/checkout');
+      return;
+    }
     navigate('/checkout');
   };
 

@@ -2573,19 +2573,19 @@ footer {
   gap: 10px;
 }
 
-/* ── FLASH SALE 8H REAL-TIME STYLES (Fresher Dev UI) ── */
+/* ── FLASH SALE 8H REAL-TIME STYLES (Neon Yellow & Dark Obsidian Aesthetic) ── */
 .flash-sale-section {
   padding: 40px 0;
-  background: linear-gradient(180deg, rgba(255, 40, 40, 0.05) 0%, rgba(0, 0, 0, 0) 100%);
+  background: linear-gradient(180deg, rgba(200, 230, 0, 0.04) 0%, rgba(0, 0, 0, 0) 100%);
   position: relative;
 }
 
 .flash-sale-container {
-  background: linear-gradient(135deg, #1f0b0b 0%, #121217 60%, #0d0d12 100%);
-  border: 1px solid rgba(255, 60, 60, 0.3);
+  background: linear-gradient(135deg, #181822 0%, #121217 60%, #0d0d12 100%);
+  border: 1px solid rgba(200, 230, 0, 0.25);
   border-radius: 20px;
   padding: 28px 32px;
-  box-shadow: 0 10px 30px rgba(255, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .flash-sale-header {
@@ -2609,8 +2609,8 @@ footer {
 }
 
 @keyframes pulseFlame {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(255, 60, 0, 0.8)); }
-  50% { transform: scale(1.15); filter: drop-shadow(0 0 16px rgba(255, 120, 0, 1)); }
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(200, 230, 0, 0.8)); }
+  50% { transform: scale(1.15); filter: drop-shadow(0 0 16px rgba(255, 180, 0, 1)); }
 }
 
 .flash-sale-heading {
@@ -2623,8 +2623,8 @@ footer {
 }
 
 .flash-sale-heading span {
-  color: #ff3333;
-  text-shadow: 0 0 10px rgba(255, 51, 51, 0.5);
+  color: var(--yellow, #c8e600);
+  text-shadow: 0 0 12px rgba(200, 230, 0, 0.5);
 }
 
 .flash-sale-timer-box {
@@ -2632,15 +2632,16 @@ footer {
   align-items: center;
   gap: 10px;
   background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 60, 60, 0.4);
+  border: 1px solid rgba(200, 230, 0, 0.3);
   padding: 8px 16px;
   border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .flash-sale-timer-label {
   font-size: 12px;
-  font-weight: 700;
-  color: #ffaa00;
+  font-weight: 800;
+  color: var(--yellow, #c8e600);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -2652,20 +2653,20 @@ footer {
 }
 
 .timer-num {
-  background: #ff2222;
-  color: #ffffff;
-  font-weight: 800;
+  background: var(--yellow, #c8e600);
+  color: #000000;
+  font-weight: 900;
   font-size: 15px;
   padding: 4px 8px;
   border-radius: 6px;
   font-family: monospace;
   min-width: 32px;
   text-align: center;
-  box-shadow: 0 2px 6px rgba(255, 0, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(200, 230, 0, 0.3);
 }
 
 .timer-colon {
-  color: #ffaa00;
+  color: var(--yellow, #c8e600);
   font-weight: 800;
   font-size: 16px;
 }
@@ -2689,7 +2690,7 @@ footer {
 }
 
 .flash-card {
-  background: #14141c;
+  background: #181820;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   padding: 14px;
@@ -2702,22 +2703,22 @@ footer {
 
 .flash-card:hover {
   transform: translateY(-5px);
-  border-color: rgba(255, 60, 60, 0.5);
-  box-shadow: 0 10px 20px rgba(255, 0, 0, 0.2);
+  border-color: var(--yellow, #c8e600);
+  box-shadow: 0 10px 24px rgba(200, 230, 0, 0.2);
 }
 
 .flash-badge {
   position: absolute;
   top: 10px;
   left: 10px;
-  background: linear-gradient(135deg, #ff0000, #ff5500);
-  color: #fff;
+  background: linear-gradient(135deg, #c8e600, #ffb700);
+  color: #000000;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 900;
   padding: 3px 8px;
   border-radius: 6px;
   z-index: 2;
-  box-shadow: 0 2px 6px rgba(255, 0, 0, 0.5);
+  box-shadow: 0 2px 8px rgba(200, 230, 0, 0.4);
 }
 
 .flash-card-img {
@@ -2726,6 +2727,8 @@ footer {
   object-fit: contain;
   margin-bottom: 12px;
   border-radius: 8px;
+  background: #ffffff;
+  padding: 6px;
 }
 
 .flash-card-title {
@@ -2748,7 +2751,8 @@ footer {
 .flash-price-current {
   font-size: 16px;
   font-weight: 800;
-  color: #ff3333;
+  color: var(--yellow, #c8e600);
+  text-shadow: 0 0 8px rgba(200, 230, 0, 0.2);
 }
 
 .flash-price-old {
@@ -2773,7 +2777,7 @@ footer {
 
 .flash-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #ff8800, #ff2222);
+  background: linear-gradient(90deg, #c8e600, #ffaa00);
   border-radius: 10px;
   transition: width 0.5s ease;
 }
@@ -2787,26 +2791,28 @@ footer {
   font-size: 9px;
   font-weight: 800;
   color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
 .btn-flash-buy {
   width: 100%;
-  padding: 8px;
-  background: linear-gradient(135deg, #ff2222, #e60000);
-  color: #ffffff;
+  padding: 9px;
+  background: var(--yellow, #c8e600);
+  color: #000000;
   border: none;
   border-radius: 8px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 900;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .btn-flash-buy:hover {
-  background: linear-gradient(135deg, #ff4444, #ff0000);
+  background: #d4f200;
+  transform: scale(1.02);
+  box-shadow: 0 4px 14px rgba(200, 230, 0, 0.35);
 }
 
 /* ── RESPONSIVE OPTIMIZATIONS FOR IPHONE 17 PRO MAX (430px) & TABLET (IPAD) ── */

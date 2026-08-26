@@ -49,15 +49,29 @@ const Promotions = () => {
     setIsModalOpen(true);
   };
 
+  // ── Đổi nhanh trạng thái active / deactive ──
+  const handleToggleStatus = async (v) => {
+    const newStatus = v.status === 'active' ? 'deactive' : 'active';
+    try {
+      await voucherAPI.update(v._id, { status: newStatus });
+      setVouchers(prev => prev.map(item => item._id === v._id ? { ...item, status: newStatus, isActive: newStatus === 'active' } : item));
+    } catch (err) {
+      alert(err.message || 'Lỗi khi đổi trạng thái voucher');
+    }
+  };
+
   // ── Tính trạng thái voucher ──
   const getVoucherStatus = (v) => {
+    if (v.status === 'deactive' || (v.status === undefined && v.isActive === false)) {
+      return { label: 'Chưa kích hoạt (Deactive)', cls: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30' };
+    }
     const now = new Date();
     const start = new Date(v.start_day);
     const end = new Date(v.end_day);
     if (now < start) return { label: 'Sắp diễn ra', cls: 'bg-blue-500/10 text-blue-400' };
     if (now > end) return { label: 'Đã hết hạn', cls: 'bg-gray-800 text-gray-400' };
     if (v.used_count >= v.usage_limit) return { label: 'Đã hết lượt', cls: 'bg-red-500/10 text-red-400' };
-    return { label: 'Đang chạy', cls: 'bg-[#d4ff00]/10 text-[#d4ff00]' };
+    return { label: 'Hoạt động (Active)', cls: 'bg-[#d4ff00]/10 text-[#d4ff00] border border-[#d4ff00]/30' };
   };
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN') : '—';
@@ -124,6 +138,7 @@ const Promotions = () => {
             ) : (
               vouchers.map((v) => {
                 const status = getVoucherStatus(v);
+                const isActive = v.status === 'active' || (v.status === undefined && v.isActive === true);
                 return (
                   <tr key={v._id} className="hover:bg-[#1e1e1e] transition-colors">
                     <td className="px-6 py-4">
@@ -152,7 +167,18 @@ const Promotions = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end items-center gap-2">
+                        <button
+                          onClick={() => handleToggleStatus(v)}
+                          className={`px-3 py-1 text-xs font-semibold rounded border transition-colors ${
+                            isActive
+                              ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/20'
+                              : 'bg-[#d4ff00]/10 text-[#d4ff00] border-[#d4ff00]/30 hover:bg-[#d4ff00]/20'
+                          }`}
+                          title={isActive ? 'Tắt kích hoạt (Deactive)' : 'Bật kích hoạt (Active)'}
+                        >
+                          {isActive ? 'Tắt' : 'Kích hoạt'}
+                        </button>
                         <button
                           onClick={() => handleOpenEditModal(v)}
                           className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-md text-gray-300 hover:text-blue-400 transition-colors"

@@ -4,7 +4,7 @@ const FlashSaleSettingSchema = new mongoose.Schema(
   {
     durationSeconds: {
       type: Number,
-      default: 28800, // 8h = 28,800s
+      default: 28800,
       min: 60,
       max: 28800,
     },

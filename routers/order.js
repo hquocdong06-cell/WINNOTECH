@@ -19,7 +19,12 @@ function sortObject(obj) {
     return sorted;
 }
 
-router.post('/create_payment_url', function (req, res, next) {
+const checklogin = require('../middleware/AuthMiddleware');
+
+router.post('/create_payment_url', checklogin, function (req, res, next) {
+    if (!req.user) {
+        return res.status(401).json({ success: false, message: 'Chưa đăng nhập. Vui lòng đăng nhập để thực hiện mua hàng.' });
+    }
     process.env.TZ = 'Asia/Ho_Chi_Minh';
     
     let date = new Date();

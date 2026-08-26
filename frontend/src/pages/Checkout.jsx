@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/checkout.css'
-import { clearCart, clearGuestCartAPI, getGuestId, selectCartItems } from '../redux/cartSlice'
+import { clearCart, clearGuestCartAPI, getGuestId, selectCartItems, removeFromCart } from '../redux/cartSlice'
 import { clearPurchasedPCBuildConfig } from '../utils/pcBuildUtils'
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -359,7 +359,21 @@ function calculateVoucherDiscount(voucher, subtotal, baseShipping = 30000) {
 // ═══════════════════════════════════════════════════════════════════════════
 export default function Checkout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const dispatch = useDispatch()
+
+  const buyNowState = React.useMemo(() => {
+    try {
+      if (location.state?.buyNowItem) return location.state.buyNowItem
+      const stored = sessionStorage.getItem('buyNowItem')
+      if (stored && stored !== 'undefined' && stored !== 'null') {
+        return JSON.parse(stored)
+      }
+    } catch (e) {
+      console.error('Error parsing buyNowItem:', e)
+    }
+    return null
+  }, [location.state])
 
   // Cart từ Redux/localStorage (fallback khi chưa đăng nhập hoặc API trả trống)
   const localCartItems = useSelector(selectCartItems)
@@ -508,6 +522,11 @@ const voucherCalc = voucherInfo?.rawVoucher
 
   // ── Fetch cart từ API thật ──
   const loadCartData = useCallback(() => {
+    if (buyNowState) {
+      setCartItems([buyNowState])
+      setCartLoading(false)
+      return
+    }
     setCartLoading(true)
     fetch(API_URL + '/cart', { credentials: 'include' })
       .then((r) => r.json())
@@ -560,7 +579,7 @@ const voucherCalc = voucherInfo?.rawVoucher
         }
       })
       .finally(() => setCartLoading(false))
-  }, [localCartItems])
+  }, [localCartItems, buyNowState])
 
   useEffect(() => {
     loadCartData()
@@ -569,16 +588,22 @@ const voucherCalc = voucherInfo?.rawVoucher
 
   // ── XÓA SẢN PHẨM TỨC THÌ: Lắng nghe Redux localCartItems thay đổi ──
   useEffect(() => {
-    setCartItems((prevItems) => {
-      if (!prevItems || prevItems.length === 0) return prevItems
-      const activeVariantIds = new Set((localCartItems || []).map((i) => String(i.variant_id)))
-      const filtered = prevItems.filter((item) => {
-        const vid = String(item._variantId || item.cartItem?.variant_id || item.variant?._id || '')
-        return activeVariantIds.has(vid)
+    if (buyNowState) return
+    if (localCartItems && localCartItems.length >= 0) {
+      setCartItems((prev) => {
+        if (prev.length > 0 && !prev[0]._isLocal) return prev
+        return localCartItems.map((item) => ({
+          cartItem: { _id: item.variant_id, variant_id: item.variant_id, quantity: item.quantity || 1, price: item.price || 0 },
+          variant:  { _id: item.variant_id, price: item.price || 0, sale_price: 0 },
+          product:  { _id: item.product_id, name: item.name },
+          AnhSP:    item.image ? [{ url: item.image }] : [],
+          _isLocal: true,
+          _localPrice: item.price || 0,
+          _variantId:  item.variant_id,
+        }))
       })
-      return filtered.length === prevItems.length ? prevItems : filtered
-    })
-  }, [localCartItems])
+    }
+  }, [localCartItems, buyNowState])
 
   // ── Lắng nghe sự kiện cartUpdated (CartDrawer/Cart) & storage (tab khác) ──
   useEffect(() => {
@@ -595,6 +620,17 @@ const voucherCalc = voucherInfo?.rawVoucher
 
   // ── Trực tiếp gọi API khi người dùng đã xác nhận trên modal ──
   const executeOrderSubmission = async () => {
+    if (!user) {
+      setSubmitError('Bạn chưa đăng nhập. Vui lòng đăng nhập để tiến hành mua hàng!')
+      setShowConfirmModal(false)
+      navigate('/login?redirect=/checkout')
+      return
+    }
+    if (isAdminUser) {
+      setSubmitError('Tài khoản Quản trị viên (Admin) không được phép thực hiện chức năng mua hàng!')
+      setShowConfirmModal(false)
+      return
+    }
     const now = Date.now()
     const elapsed = now - lastSubmitTimeRef.current
     if (elapsed < 60000 && lastSubmitTimeRef.current > 0) {
@@ -635,16 +671,18 @@ const voucherCalc = voucherInfo?.rawVoucher
         const data = await res.json()
 
         if (data.success) {
-          // Xóa sạch giỏ hàng phía FE trước khi chuyển hướng sang VNPay
-          dispatch(clearCart())
-          dispatch(clearGuestCartAPI())
-          clearPurchasedPCBuildConfig()
-          setCartItems([])
-          localStorage.removeItem('cartItems')
-          localStorage.removeItem('cart')
-          window.dispatchEvent(new CustomEvent('cartUpdated'))
-
-          // Chuyển hướng trực tiếp sang VNPay
+          if (buyNowState) {
+            sessionStorage.removeItem('buyNowItem')
+            setCartItems([])
+          } else {
+            dispatch(clearCart())
+            dispatch(clearGuestCartAPI())
+            clearPurchasedPCBuildConfig()
+            setCartItems([])
+            localStorage.removeItem('cartItems')
+            localStorage.removeItem('cart')
+            window.dispatchEvent(new CustomEvent('cartUpdated'))
+          }
           window.location.href = data.paymentUrl;
         } else {
           setSubmitError(data.message || 'Không thể tạo thanh toán VNPay, vui lòng thử lại!')
@@ -678,10 +716,15 @@ const voucherCalc = voucherInfo?.rawVoucher
       const data = await res.json()
 
       if (data.success) {
-        dispatch(clearCart())
-        clearPurchasedPCBuildConfig()
-        setCartItems([])
-        window.dispatchEvent(new CustomEvent('cartUpdated'))
+        if (buyNowState) {
+          sessionStorage.removeItem('buyNowItem')
+          setCartItems([])
+        } else {
+          dispatch(clearCart())
+          clearPurchasedPCBuildConfig()
+          setCartItems([])
+          window.dispatchEvent(new CustomEvent('cartUpdated'))
+        }
         navigate(`/order-success?code=${data.order?.code || ''}`)
       } else {
         setSubmitError(data.message || 'Đặt hàng thất bại, vui lòng thử lại!')
@@ -697,6 +740,17 @@ const voucherCalc = voucherInfo?.rawVoucher
   const handleSubmit = (e) => {
     e.preventDefault()
     setSubmitError('')
+
+    if (!user) {
+      setSubmitError('Bạn chưa đăng nhập. Vui lòng đăng nhập để tiến hành mua hàng!')
+      navigate('/login?redirect=/checkout')
+      return
+    }
+
+    if (isAdminUser) {
+      setSubmitError('Tài khoản Quản trị viên (Admin) không được phép thực hiện chức năng mua hàng!')
+      return
+    }
 
     const now = Date.now()
     const elapsed = now - lastSubmitTimeRef.current
@@ -820,8 +874,89 @@ const voucherCalc = voucherInfo?.rawVoucher
     return <ShippingForm form={form} onChange={handleGuestChange} />
   }
 
+  // ── TỰ ĐỘNG XÓA DB & VỀ TRANG CHỦ NẾU ĐƠN HÀNG < 1 SẢN PHẨM ──
+  useEffect(() => {
+    if (!cartLoading && cartItems.length === 0) {
+      sessionStorage.removeItem('buyNowItem')
+      fetch(`${API_URL}/cart`, { method: 'DELETE', credentials: 'include' }).catch(() => {})
+      dispatch(clearCart())
+      dispatch(clearGuestCartAPI())
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
+      const timer = setTimeout(() => {
+        navigate('/')
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [cartLoading, cartItems.length, dispatch, navigate])
+
+  // ── Xóa sản phẩm trực tiếp từ DB / Checkout summary ──
+  const handleRemoveCheckoutItem = async (item) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này khỏi đơn hàng?')) return
+
+    const cartItemId = item.cartItem?._id
+    const productId = item.product?._id
+    const variantId = item._variantId || item.cartItem?.variant_id || item.variant?._id
+    const nextCount = cartItems.length - 1
+
+    if (nextCount < 1) {
+      sessionStorage.removeItem('buyNowItem')
+      setCartItems([])
+      dispatch(clearCart())
+      dispatch(clearGuestCartAPI())
+      try {
+        await fetch(`${API_URL}/cart`, { method: 'DELETE', credentials: 'include' })
+      } catch {}
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
+      navigate('/')
+      return
+    }
+
+    // Nếu là Buy Now Item
+    if (buyNowState || item._isBuyNow) {
+      sessionStorage.removeItem('buyNowItem')
+      setCartItems([])
+      navigate('/')
+      return
+    }
+
+    // Nếu là DB cart item (đã đăng nhập và có cartItemId MongoDB 24 ký tự)
+    if (cartItemId && /^[0-9a-fA-F]{24}$/.test(String(cartItemId)) && !item._isLocal) {
+      try {
+        const res = await fetch(`${API_URL}/cart/${cartItemId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        })
+        const data = await res.json()
+        if (data.success) {
+          const updated = cartItems.filter(i => (i.cartItem?._id || i._variantId) !== cartItemId)
+          setCartItems(updated)
+          dispatch(removeFromCart({ product_id: productId, variant_id: variantId }))
+          window.dispatchEvent(new CustomEvent('cartUpdated'))
+          if (updated.length < 1) {
+            navigate('/')
+          }
+        } else {
+          alert(data.message || 'Lỗi khi xóa sản phẩm khỏi cơ sở dữ liệu!')
+        }
+      } catch {
+        alert('Lỗi kết nối máy chủ!')
+      }
+      return
+    }
+
+    // Nếu là local guest cart item
+    dispatch(removeFromCart({ product_id: productId, variant_id: variantId }))
+    const updated = cartItems.filter(i => (i._variantId || i.variant?._id) !== variantId)
+    setCartItems(updated)
+    window.dispatchEvent(new CustomEvent('cartUpdated'))
+    if (updated.length < 1) {
+      navigate('/')
+    }
+  }
+
   // ── Render item trong giỏ ──
   const renderCartItem = (item, idx) => {
+    if (!item) return null
     const product = item.product
     const variant = item.variant
     const cartItem = item.cartItem
@@ -847,11 +982,93 @@ const voucherCalc = voucherInfo?.rawVoucher
           <div className="co-item-name">{name}</div>
           {specs && <div className="co-item-specs">{specs}</div>}
         </div>
-        <div className="co-item-right">
-          <div className="co-item-price">{fmt(price * qty)}</div>
-          <div className="co-item-qty">x{qty}</div>
+        <div className="co-item-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ textAlign: 'right' }}>
+            <div className="co-item-price">{fmt(price * qty)}</div>
+            <div className="co-item-qty">x{qty}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleRemoveCheckoutItem(item)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#71717a',
+              cursor: 'pointer',
+              padding: '4px',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#71717a')}
+            title="Xóa khỏi đơn hàng"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <line x1="10" y1="11" x2="10" y2="17" />
+              <line x1="14" y1="11" x2="14" y2="17" />
+            </svg>
+          </button>
         </div>
       </div>
+    )
+  }
+
+  const isAdminUser = user && (user.role === 'admin' || user.role === 1 || user.isAdmin)
+
+  if (!authLoading && !user) {
+    return (
+      <DefaultLayout>
+        <div className="checkout-wrapper" style={{ padding: '80px 24px', textAlign: 'center', minHeight: '65vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="co-card" style={{ maxWidth: '500px', width: '100%', margin: '0 auto', padding: '40px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '18px', background: '#18181b', border: '1px solid #27272a', borderRadius: '16px' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>
+              🔒
+            </div>
+            <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: '700', margin: 0 }}>Yêu cầu đăng nhập để mua hàng</h2>
+            <p style={{ color: '#a1a1aa', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
+              Để đảm bảo an toàn đơn hàng và xử lý tồn kho chính xác, quý khách vui lòng đăng nhập trước khi tiến hành thanh toán.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '8px' }}>
+              <Link to="/cart" style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #3f3f46', color: '#e4e4e7', textAlign: 'center', textDecoration: 'none', fontWeight: '600', fontSize: '14px' }}>
+                Quay lại giỏ hàng
+              </Link>
+              <Link to="/login?redirect=/checkout" style={{ flex: 1, padding: '12px', borderRadius: '8px', background: 'var(--yellow, #c8e600)', color: '#000', textAlign: 'center', textDecoration: 'none', fontWeight: '700', fontSize: '14px' }}>
+                Đăng nhập ngay
+              </Link>
+            </div>
+          </div>
+        </div>
+      </DefaultLayout>
+    )
+  }
+
+  if (!authLoading && isAdminUser) {
+    return (
+      <DefaultLayout>
+        <div className="checkout-wrapper" style={{ padding: '80px 24px', textAlign: 'center', minHeight: '65vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="co-card" style={{ maxWidth: '520px', width: '100%', margin: '0 auto', padding: '40px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '18px', background: '#18181b', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '16px' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>
+              🚫
+            </div>
+            <h2 style={{ color: '#ef4444', fontSize: '20px', fontWeight: '700', margin: 0 }}>Tài khoản Admin không được phép mua hàng</h2>
+            <p style={{ color: '#a1a1aa', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
+              Tài khoản Quản trị viên (Admin) không được phép thực hiện chức năng mua hàng và tạo đơn hàng. Vui lòng sử dụng tài khoản khách hàng để mua hàng.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '8px' }}>
+              <Link to="/" style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #3f3f46', color: '#e4e4e7', textAlign: 'center', textDecoration: 'none', fontWeight: '600', fontSize: '14px' }}>
+                Trang chủ
+              </Link>
+              <Link to="/admin" style={{ flex: 1, padding: '12px', borderRadius: '8px', background: '#ef4444', color: '#fff', textAlign: 'center', textDecoration: 'none', fontWeight: '700', fontSize: '14px' }}>
+                Trang Quản Trị
+              </Link>
+            </div>
+          </div>
+        </div>
+      </DefaultLayout>
     )
   }
 

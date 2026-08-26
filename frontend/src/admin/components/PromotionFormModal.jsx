@@ -13,6 +13,7 @@ const PromotionFormModal = ({ isOpen, onClose, promo, onSaved }) => {
     usage_limit: '',
     start_day: '',
     end_day: '',
+    status: 'deactive',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -27,9 +28,10 @@ const PromotionFormModal = ({ isOpen, onClose, promo, onSaved }) => {
         usage_limit: promo.usage_limit ?? '',
         start_day: promo.start_day ? new Date(promo.start_day).toISOString().slice(0, 10) : '',
         end_day: promo.end_day ? new Date(promo.end_day).toISOString().slice(0, 10) : '',
+        status: promo.status || (promo.isActive ? 'active' : 'deactive'),
       });
     } else {
-      setForm({ code: '', discount_type: 'percent', discount_value: '', min_order: '', usage_limit: '', start_day: '', end_day: '' });
+      setForm({ code: '', discount_type: 'percent', discount_value: '', min_order: '', usage_limit: '', start_day: '', end_day: '', status: 'deactive' });
     }
     setError('');
   }, [promo, isOpen]);
@@ -54,6 +56,7 @@ const PromotionFormModal = ({ isOpen, onClose, promo, onSaved }) => {
       usage_limit: Number(form.usage_limit),
       start_day: form.start_day || undefined,
       end_day: form.end_day || undefined,
+      status: form.status || 'deactive',
     };
 
     setSaving(true);
@@ -93,12 +96,22 @@ const PromotionFormModal = ({ isOpen, onClose, promo, onSaved }) => {
             </div>
           )}
 
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">Mã Code *</label>
-            <input type="text" name="code" value={form.code}
-              onChange={handleChange} placeholder="VD: HELLO2024"
-              className="w-full bg-[#1e1e1e] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white uppercase"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">Mã Code *</label>
+              <input type="text" name="code" value={form.code}
+                onChange={handleChange} placeholder="VD: HELLO2024"
+                className="w-full bg-[#1e1e1e] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white uppercase"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">Trạng thái *</label>
+              <select name="status" value={form.status} onChange={handleChange}
+                className="w-full bg-[#1e1e1e] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white font-medium">
+                <option value="deactive">❌ Chưa kích hoạt (Deactive)</option>
+                <option value="active">✅ Kích hoạt (Active)</option>
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
