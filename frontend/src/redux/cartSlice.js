@@ -185,8 +185,14 @@ export const { addToCart, removeFromCart, updateQuantity, clearCart, setCart } =
 // Selectors
 export const selectCartItems = (state) => state.cart.items;
 export const selectGuestCartItems = (state) => state.cart.guestItems;
+
+/** Số dòng sản phẩm khác nhau trong giỏ (distinct line items) — dùng cho badge icon header */
+export const selectCartItemCount = (state) => state.cart.items.length;
+
+/** Tổng quantity (cộng dồn số lượng mỗi dòng) — giữ lại nếu cần */
 export const selectCartTotalQuantity = (state) =>
   state.cart.items.reduce((total, item) => total + item.quantity, 0);
+
 export const selectGuestCartTotalQuantity = (state) =>
   state.cart.guestItems.reduce((total, item) => total + (item.quantity || 0), 0);
 export const selectCartTotalPrice = (state) =>

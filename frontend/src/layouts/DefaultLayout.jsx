@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import { selectCartTotalQuantity, setCart } from '../redux/cartSlice'
+import { selectCartItemCount, setCart } from '../redux/cartSlice'
 import CartDrawer from '../components/CartDrawer'
 import AIChatbot from '../components/AIChatbot'
 import { compareAPI } from '../services/apiService'
@@ -28,7 +28,7 @@ export default function DefaultLayout({ children }) {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [compareCount, setCompareCount] = useState(0)
   const dispatch = useDispatch()
-  const cartTotalQuantity = useSelector(selectCartTotalQuantity)
+  const cartTotalQuantity = useSelector(selectCartItemCount)
 
   // Sync giỏ hàng từ DB vào Redux khi mount (nếu đã đăng nhập)
   useEffect(() => {

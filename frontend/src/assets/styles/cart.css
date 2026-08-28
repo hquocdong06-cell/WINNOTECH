@@ -35,12 +35,14 @@
   background: var(--dark);
   padding: 32px 0 60px;
   min-height: 70vh;
+  overflow-x: hidden;
 }
 
 .section-inner {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 40px;
+  box-sizing: border-box;
 }
 
 .cart-title {
@@ -108,8 +110,8 @@
 ═══════════════════════════════════════════════════ */
 .cart-grid {
   display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
   align-items: start;
 }
 
@@ -121,20 +123,22 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
+  min-width: 0;
 }
 
 /* ─── CART ITEM ROW ─── */
 /*
-  Columns: [img 90px] [info 1fr] [unit-price 120px] [qty 130px] [subtotal 120px] [delete 44px]
+  7 Columns: [checkbox 24px] [img 80px] [info 1fr] [unit-price 105px] [qty 115px] [subtotal 115px] [delete 36px]
 */
 .cart-item {
   display: grid;
-  grid-template-columns: 90px 1fr 120px 130px 120px 44px;
-  gap: 16px;
+  grid-template-columns: 24px 80px minmax(0, 1fr) 105px 115px 115px 36px;
+  gap: 12px;
   align-items: center;
-  padding: 18px 20px;
+  padding: 16px;
   border-bottom: 1px solid var(--border);
   transition: background 0.2s;
+  min-width: 0;
 }
 
 .cart-item:last-of-type {
@@ -506,19 +510,19 @@
 ═══════════════════════════════════════════════════ */
 @media (max-width: 1100px) {
   .cart-grid {
-    grid-template-columns: 1fr 320px;
-    gap: 20px;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 16px;
   }
 
   .cart-item {
-    grid-template-columns: 80px 1fr 110px 120px 110px 40px;
-    gap: 12px;
-    padding: 16px;
+    grid-template-columns: 24px 70px minmax(0, 1fr) 95px 110px 105px 32px;
+    gap: 10px;
+    padding: 14px 12px;
   }
 
   .item-image {
-    width: 80px;
-    height: 80px;
+    width: 70px;
+    height: 70px;
   }
 }
 
@@ -536,7 +540,7 @@
   }
 
   .cart-item {
-    grid-template-columns: 75px 1fr 100px 110px 100px 38px;
+    grid-template-columns: 24px 75px minmax(0, 1fr) 100px 110px 105px 36px;
     gap: 10px;
     padding: 14px 16px;
   }

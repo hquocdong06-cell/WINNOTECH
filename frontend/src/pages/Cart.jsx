@@ -30,6 +30,9 @@ export default function Cart() {
   const [deletingId, setDeletingId]     = useState(null)   // cartItemId đang xóa
   const [error, setError]               = useState(null)
 
+  // Checkbox selection state
+  const [checkedIds, setCheckedIds]     = useState(new Set())  // Set<cartItemId>
+
   // Cart từ localStorage (dùng khi chưa login)
   const localCartItems = useSelector(selectCartItems)
 
@@ -60,11 +63,14 @@ export default function Cart() {
       }
 
       setIsLoggedIn(true)
-      setCartItems(data.data || [])
+      const fetchedItems = data.data || []
+      setCartItems(fetchedItems)
+      // Mặc định tick chọn tất cả sau khi fetch
+      setCheckedIds(new Set(fetchedItems.map(d => d.cartItem?._id).filter(Boolean)))
 
       // Sync về Redux store để header cart badge cập nhật đúng
-      const reduxItems = (data.data || []).map(d => ({
-        cartItemId: d.cartItem?._id,           // ← lưu MongoDB _id để CartDrawer gọi DELETE API
+      const reduxItems = fetchedItems.map(d => ({
+        cartItemId: d.cartItem?._id,
         product_id: d.product?._id,
         variant_id: d.cartItem?.variant_id,
         name:       d.product?.name || 'Sản phẩm',
@@ -149,6 +155,8 @@ export default function Cart() {
       if (data.success) {
         const newItems = cartItems.filter(item => item.cartItem._id !== cartItemId)
         setCartItems(newItems)
+        // Xóa khỏi checkedIds
+        setCheckedIds(prev => { const s = new Set(prev); s.delete(cartItemId); return s })
         // Sync Redux
         dispatch(setCart(
           newItems.map(d => ({
@@ -228,20 +236,44 @@ export default function Cart() {
     }
   }
 
-  // ── Tính tổng ─────────────────────────────────────────────────────────
+  // ── Checkbox helpers ──────────────────────────────────────────────────
+  const allIds        = cartItems.map(i => i.cartItem?._id).filter(Boolean)
+  const isAllChecked  = allIds.length > 0 && allIds.every(id => checkedIds.has(id))
+  const isSomeChecked = allIds.some(id => checkedIds.has(id))
+
+  const toggleItem = (cartItemId) => {
+    setCheckedIds(prev => {
+      const s = new Set(prev)
+      if (s.has(cartItemId)) s.delete(cartItemId)
+      else s.add(cartItemId)
+      return s
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (isAllChecked) setCheckedIds(new Set())
+    else setCheckedIds(new Set(allIds))
+  }
+
+  // ── Tính tổng — CHỈ trên sản phẩm đã được tick ────────────────────────
   const getItemPrice = (item) =>
     item.variant?.sale_price > 0 ? item.variant.sale_price : (item.variant?.price || 0)
 
-  const subtotal  = cartItems.reduce((sum, item) =>
+  const selectedItems   = cartItems.filter(i => checkedIds.has(i.cartItem?._id))
+  const subtotal        = selectedItems.reduce((sum, item) =>
     sum + getItemPrice(item) * (item.cartItem?.quantity || 1), 0)
-  const shipping  = subtotal >= 1000000 ? 0 : 50000
-  const total     = subtotal - appliedDiscount + shipping
+  const shipping        = selectedItems.length === 0 ? 0 : (subtotal >= 1000000 ? 0 : 50000)
+  const total           = subtotal - appliedDiscount + shipping
 
   // ── Checkout ──────────────────────────────────────────────────────────
   const handleCheckout = () => {
     if (!isLoggedIn) {
       alert('Vui lòng đăng nhập để tiến hành mua hàng!')
       navigate('/login?redirect=/checkout')
+      return
+    }
+    if (selectedItems.length === 0) {
+      toast.warning('Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!', { position: 'bottom-right' })
       return
     }
     navigate('/checkout')
@@ -495,6 +527,28 @@ export default function Cart() {
             <div className="cart-grid">
               {/* LEFT: CART ITEMS */}
               <div className="cart-items">
+                {/* HEADER ROW: Chọn tất cả */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  padding: '12px 16px 14px 16px', borderBottom: '1px solid #2a2a2a', marginBottom: '4px'
+                }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
+                    <input
+                      type="checkbox"
+                      checked={isAllChecked}
+                      ref={el => { if (el) el.indeterminate = isSomeChecked && !isAllChecked }}
+                      onChange={toggleSelectAll}
+                      style={{ width: '17px', height: '17px', accentColor: '#c8e600', cursor: 'pointer' }}
+                    />
+                    <span style={{ color: '#ccc', fontSize: '13px', fontWeight: 600 }}>
+                      Chọn tất cả ({allIds.length})
+                    </span>
+                  </label>
+                  {checkedIds.size > 0 && checkedIds.size < allIds.length && (
+                    <span style={{ color: '#888', fontSize: '12px' }}>({checkedIds.size} đã chọn)</span>
+                  )}
+                </div>
+
                 {cartItems.map((item) => {
                   const cartItemId = item.cartItem._id
                   const price      = getItemPrice(item)
@@ -502,15 +556,50 @@ export default function Cart() {
                   const img        = getProductImage(item)
                   const isUpdating = updatingId === cartItemId
                   const isDeleting = deletingId === cartItemId
-                  const varAttrs   = item.variant?.Attributes || []
-                  const specStr    = varAttrs.slice(0, 3).map(a => a.value).join(' • ')
+                  const isChecked  = checkedIds.has(cartItemId)
+                  const specStr    = (() => {
+                    const varAttrs = item.variant?.Attributes || []
+                    if (!varAttrs.length) return ''
+                    const pName = (item.product?.name || '').toLowerCase()
+                    const catName = (item.product?.cat_id?.name || item.product?.cat_id?.slug || '').toLowerCase()
+                    const isNoColorCategory = catName.includes('cpu') || catName.includes('vga') || catName.includes('gpu') ||
+                                              catName.includes('ram') || catName.includes('ssd') || catName.includes('bo mạch') ||
+                                              catName.includes('mainboard') || pName.includes('cpu') || pName.includes('ryzen') || pName.includes('intel')
+
+                    const filtered = varAttrs.filter(a => {
+                      const attrName = (a.attribute_name || a.name || '').toLowerCase()
+                      const attrVal  = (a.value_name || a.value || '').toLowerCase()
+                      if (attrVal.includes('mặc định') || attrVal.includes('default') || attrVal === 'tiêu chuẩn') return false
+                      if (isNoColorCategory) {
+                        if (attrName.includes('màu') || attrName.includes('color')) return false
+                        if (attrVal.includes('đen') || attrVal.includes('black') || attrVal.includes('trắng') || attrVal.includes('white')) return false
+                      }
+                      return true
+                    })
+                    return filtered.slice(0, 3).map(a => a.value_name || a.value).join(' • ')
+                  })()
 
                   return (
                     <div
                       key={cartItemId}
                       className="cart-item"
-                      style={{ opacity: isDeleting ? 0.4 : 1, transition: 'opacity 0.3s' }}
+                      style={{
+                        opacity: isDeleting ? 0.4 : 1,
+                        transition: 'opacity 0.3s',
+                        background: isChecked ? 'rgba(200,230,0,0.03)' : 'transparent',
+                        borderColor: isChecked ? 'rgba(200,230,0,0.15)' : undefined
+                      }}
                     >
+                      {/* CHECKBOX */}
+                      <div style={{ display: 'flex', alignItems: 'center', paddingRight: '4px' }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleItem(cartItemId)}
+                          style={{ width: '17px', height: '17px', accentColor: '#c8e600', cursor: 'pointer' }}
+                        />
+                      </div>
+
                       {/* ẢNH */}
                       <div className="item-image" style={{ background: '#1a1a1a', borderRadius: '6px', overflow: 'hidden' }}>
                         {img
@@ -613,8 +702,16 @@ export default function Cart() {
               <aside className="order-summary">
                 <h2>TÓM TẮT ĐƠN HÀNG</h2>
 
+                {/* Sản phẩm đã chọn */}
+                <div className="summary-item" style={{ borderBottom: '1px solid #2a2a2a', paddingBottom: '10px', marginBottom: '10px' }}>
+                  <span style={{ color: '#aaa', fontSize: '13px' }}>Sản phẩm đã chọn</span>
+                  <span style={{ color: checkedIds.size > 0 ? '#c8e600' : '#888', fontWeight: 700 }}>
+                    {checkedIds.size} / {cartItems.length}
+                  </span>
+                </div>
+
                 <div className="summary-item">
-                  <span>Tạm tính ({cartItems.length} sản phẩm)</span>
+                  <span>Tạm tính ({checkedIds.size} sản phẩm)</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
 
@@ -628,11 +725,11 @@ export default function Cart() {
                 <div className="summary-item">
                   <span>Phí vận chuyển</span>
                   <span style={{ color: shipping === 0 ? '#22c55e' : 'inherit' }}>
-                    {shipping === 0 ? 'Miễn phí' : formatPrice(shipping)}
+                    {selectedItems.length === 0 ? '—' : shipping === 0 ? 'Miễn phí' : formatPrice(shipping)}
                   </span>
                 </div>
 
-                {shipping > 0 && (
+                {selectedItems.length > 0 && shipping > 0 && (
                   <div style={{
                     fontSize: '11px', color: '#aaa', marginBottom: '12px',
                     padding: '8px', background: '#1a1a1a', borderRadius: '4px'
@@ -675,12 +772,20 @@ export default function Cart() {
                 </div>
 
                 {/* NÚT THANH TOÁN */}
-                <button className="btn-checkout" onClick={handleCheckout}>
+                <button
+                  className="btn-checkout"
+                  onClick={handleCheckout}
+                  disabled={selectedItems.length === 0}
+                  style={{
+                    opacity: selectedItems.length === 0 ? 0.45 : 1,
+                    cursor: selectedItems.length === 0 ? 'not-allowed' : 'pointer'
+                  }}
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
                     <line x1="3" y1="6" x2="21" y2="6" />
                   </svg>
-                  TIẾN HÀNH THANH TOÁN
+                  {selectedItems.length === 0 ? 'CHỌN SẢN PHẨM ĐỂ THANH TOÁN' : `THANH TOÁN (${checkedIds.size} SẢN PHẨM)`}
                 </button>
 
                 {/* ĐẶC QUYỀN */}

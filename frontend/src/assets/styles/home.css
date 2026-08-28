@@ -338,22 +338,23 @@ nav {
 
 /* ── HERO ── */
 .hero-wrapper {
-  width: 100%;
-  padding: 20px 40px;
+  max-width: 1280px;
+  margin: 20px auto 0;
+  padding: 0 40px;
   box-sizing: border-box;
-  background: var(--black)
+  background: transparent;
 }
 
 .hero {
   position: relative;
   width: 100%;
-  max-width: 1280px;
+  max-width: 100%;
   margin: 0 auto;
-  min-height: 560px;
+  min-height: 520px;
   overflow: hidden;
   display: flex;
   align-items: stretch;
-  border-radius: 12px
+  border-radius: 12px;
 }
 
 .hero-bg {
@@ -602,20 +603,20 @@ nav {
 
 /* ── TRUST BAR ── */
 .trustbar {
-  background: var(--yellow);
-  padding: 16px 0;
-  max-width: 1200px;
-  margin: 24px auto;
-  border-radius: 8px;
-  width: calc(100% - 80px)
+  max-width: 1280px;
+  margin: 20px auto 0;
+  padding: 0 40px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .trustbar-inner {
-  margin: 0 auto;
-  padding: 0 24px;
+  background: var(--yellow);
+  padding: 16px 24px;
+  border-radius: 8px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px
+  gap: 20px;
 }
 
 .trust-item {

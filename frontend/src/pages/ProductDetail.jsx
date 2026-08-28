@@ -1073,17 +1073,26 @@ export default function ProductDetail() {
     return price.toLocaleString('vi-VN') + 'đ'
   }
 
-  // Gallery images list (chỉ lấy đúng số lượng ảnh thực tế, không lặp lại ảnh ảo)
+  // Gallery images list: thumbnail chính + tất cả ảnh phụ (is_main: false)
   const getProductImages = () => {
     const list = []
+    // Thêm thumbnail chính (ảnh đầu tiên)
     if (product.thumnail) {
       const thumb = product.thumnail.startsWith('http') ? product.thumnail : `${API_URL}${product.thumnail}`
       list.push(thumb)
     }
+    // Thêm tất cả ảnh phụ (is_main = false) — KHÔNG dedup theo URL
+    // vì DB có thể lưu cùng URL cho nhiều record khác nhau
     if (AnhSP && AnhSP.length > 0) {
+      const seenIds = new Set()
       AnhSP.forEach(img => {
+        // Bỏ qua ảnh is_main (đã dùng làm thumbnail)
+        if (img.is_main === true) return
+        // Dedup theo _id để không thêm 2 lần cùng 1 record
+        if (img._id && seenIds.has(img._id.toString())) return
+        if (img._id) seenIds.add(img._id.toString())
         const url = img.url.startsWith('http') ? img.url : `${API_URL}${img.url}`
-        if (!list.includes(url)) list.push(url)
+        list.push(url)
       })
     }
     if (list.length === 0) {
@@ -1128,6 +1137,13 @@ export default function ProductDetail() {
   // Group attributes by Attribute Name for top purchasing section (ONLY selectable options like Màu sắc, Phiên bản)
   const getGroupedAttributes = () => {
     if (!Variants || Variants.length === 0) return []
+
+    // Kiểm tra sản phẩm có phải card màn hình không (GPU/VGA)
+    const catNameG = (product?.cat_id?.name || product?.cat_id?.slug || '').toLowerCase()
+    const pNameG = (product?.name || '').toUpperCase()
+    const isGPU = catNameG.includes('gpu') || catNameG.includes('vga') || catNameG.includes('card')
+      || pNameG.includes('RTX') || pNameG.includes('GTX') || pNameG.includes('RX ')
+      || pNameG.includes('ARC ') || pNameG.includes('GEFORCE') || pNameG.includes('RADEON')
 
     const specFilterOut = [
       'thương hiệu', 'bảo hành', 'nhu cầu', 'kiểu kết nối', 'kết nối', 
@@ -1181,10 +1197,11 @@ export default function ProductDetail() {
       const filteredGroups = Object.values(groups)
       
       // Fallback: nếu sản phẩm chưa có thuộc tính Dung lượng nhưng tên có chứa dung lượng (VD: 32GB, 16GB...)
+      // Bỏ qua cho GPU vì GB trong tên GPU là VRAM, không phải RAM hệ thống
       const hasCapGroup = filteredGroups.some(g => 
         isMatchStr(g.attribute_name, 'Dung lượng') || isMatchStr(g.attribute_name, 'Dung lượng RAM')
       )
-      if (!hasCapGroup && product?.name) {
+      if (!hasCapGroup && !isGPU && product?.name) {
         const capMatch = product.name.match(/\b(\d+\s*GB|\d+\s*TB)\b/i)
         if (capMatch) {
           const extractedCap = capMatch[1].replace(/\s+/g, '').toUpperCase()
@@ -1201,21 +1218,39 @@ export default function ProductDetail() {
       if (filteredGroups.length > 0) return filteredGroups
     }
 
-    if (Variants.length > 1) {
-      const hasRealVariantNames = Variants.some(v => v.variant_name && v.variant_name !== 'Mặc định' && v.variant_name !== 'Tiêu chuẩn (Standard)')
-      if (hasRealVariantNames) {
-        return [{
-          attribute_name: 'Phiên bản / Biến thể',
-          options: Variants.map(v => ({
-            value_name: v.variant_name,
-            variant_id: v._id
-          }))
-        }]
-      }
+    // Danh sách tên variant "mặc định" không có ý nghĩa lựa chọn
+    const DEFAULT_VARIANT_NAMES = [
+      'mặc định', 'mac dinh', 'default',
+      'tiêu chuẩn', 'tieu chuan',
+      'tiêu chuẩn (standard)', 'tieu chuan (standard)',
+      'bản tiêu chuẩn (standard)', 'ban tieu chuan (standard)'
+    ]
+    const isDefaultVariant = (name) => {
+      const n = (name || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      return DEFAULT_VARIANT_NAMES.some(d => {
+        const dn = d.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        return n === dn
+      })
     }
 
+    // Chỉ lấy các variant có tên thật (không phải mặc định)
+    const realVariants = Variants.filter(v => v.variant_name && !isDefaultVariant(v.variant_name))
+
+    // Chỉ hiện selector khi có ≥2 variant thật
+    if (realVariants.length >= 2) {
+      return [{
+        attribute_name: 'Phiên bản / Biến thể',
+        options: realVariants.map(v => ({
+          value_name: v.variant_name,
+          variant_id: v._id
+        }))
+      }]
+    }
+
+
     // Fallback cho trường hợp sản phẩm không khai báo Variants attributes
-    if (product?.name) {
+    // Bỏ qua cho GPU vì GB trong tên GPU là VRAM, không phải RAM hệ thống
+    if (!isGPU && product?.name) {
       const capMatch = product.name.match(/\b(\d+\s*GB|\d+\s*TB)\b/i)
       if (capMatch) {
         const extractedCap = capMatch[1].replace(/\s+/g, '').toUpperCase()
