@@ -4852,17 +4852,55 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
     const adminName = req.user?.name || req.user?.email || 'Admin';
     order.statusHistory = order.statusHistory || [];
 
-    // Canonical statuses cho admin dropdown (5 bước tuần tự — KHAI THÁC cancelled qua nút riêng)
-    const CANONICAL_STATUSES = ['pending', 'preparing', 'shipping', 'delivered', 'completed'];
-    if (!CANONICAL_STATUSES.includes(status)) {
+    // State Machine định nghĩa chuyển đổi hợp lệ giữa các trạng thái
+    const ORDER_TRANSITIONS = {
+      pending:   ['preparing', 'cancelled'],
+      preparing: ['shipping', 'cancelled'],
+      shipping:  ['delivered'],
+      delivered: ['completed'],
+      completed: [],
+      cancelled: []
+    };
+
+    const STATUS_LABELS_VI = {
+      pending:   'Chờ xác nhận',
+      preparing: 'Đang chuẩn bị hàng',
+      shipping:  'Đang giao hàng',
+      delivered: 'Đã giao hàng',
+      completed: 'Hoàn thành',
+      cancelled: 'Đã hủy'
+    };
+
+    const normalizeStatus = (s) => {
+      if (!s) return 'pending';
+      if (['handed_over', 'handover', 'shipped', 'delivering'].includes(s)) return 'shipping';
+      if (s === 'done') return 'completed';
+      if (s === 'canceled') return 'cancelled';
+      return s;
+    };
+
+    const currentStatus = normalizeStatus(order.status);
+
+    if (currentStatus === status) {
       return res.status(400).json({
         success: false,
-        message: `Trạng thái “${status}” không hợp lệ. Chỉ được chọn: ${CANONICAL_STATUSES.join(', ')}.`
+        message: `Đơn hàng đã ở trạng thái "${STATUS_LABELS_VI[currentStatus] || currentStatus}".`
       });
     }
 
-    // Không cho phép chuyển thẳng sang 'completed' nếu chưa đủ điều kiện
-    if (status === 'completed' && (order.status !== 'delivered' || order.payment_status !== 'paid')) {
+    const allowedNext = ORDER_TRANSITIONS[currentStatus] || [];
+    if (!allowedNext.includes(status)) {
+      const allowedText = allowedNext.length > 0 
+        ? allowedNext.map(s => `"${STATUS_LABELS_VI[s] || s}"`).join(' hoặc ')
+        : 'Không có (trạng thái kết thúc)';
+      return res.status(400).json({
+        success: false,
+        message: `Không thể chuyển từ "${STATUS_LABELS_VI[currentStatus] || currentStatus}" sang "${STATUS_LABELS_VI[status] || status}". Trạng thái tiếp theo hợp lệ: ${allowedText}.`
+      });
+    }
+
+    // Kiểm tra riêng khi chuyển sang 'completed' (phải là 'delivered' VÀ 'paid')
+    if (status === 'completed' && (currentStatus !== 'delivered' || order.payment_status !== 'paid')) {
       return res.status(400).json({
         success: false,
         message: "Chỉ được chuyển sang 'Hoàn thành' khi đơn đã giao (delivered) VÀ đã thanh toán (paid)."

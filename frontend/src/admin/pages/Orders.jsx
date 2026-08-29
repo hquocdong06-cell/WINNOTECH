@@ -23,14 +23,24 @@ const STATUS_LABELS = {
 // Luồng 5 bước tuần tự — dùng cho stepper/progress bar
 const STATUS_FLOW = ['pending', 'preparing', 'shipping', 'delivered', 'completed'];
 
-// Dropdown cập nhật trạng thái — CHỈ 5 bước tuần tự, không có 'cancelled'
-// (Hủy đơn được xử lý riêng qua nút Hủy đơn)
-const STATUS_OPTIONS = [
+// State Machine: Định nghĩa chính xác các bước chuyển đổi hợp lệ cho từng trạng thái
+const ORDER_TRANSITIONS = {
+  pending:   ['preparing', 'cancelled'],
+  preparing: ['shipping', 'cancelled'],
+  shipping:  ['delivered'],
+  delivered: ['completed'],
+  completed: [],
+  cancelled: []
+};
+
+// Tất cả tùy chọn trạng thái cho Admin UI
+const ALL_STATUS_OPTIONS = [
   { value: 'pending',   label: 'Chờ xác nhận' },
   { value: 'preparing', label: 'Đang chuẩn bị hàng' },
   { value: 'shipping',  label: 'Đang giao hàng' },
   { value: 'delivered', label: 'Đã giao hàng' },
   { value: 'completed', label: 'Hoàn thành' },
+  { value: 'cancelled', label: 'Đã hủy' },
 ];
 
 const fmtPrice = (n) => (n || 0).toLocaleString('vi-VN') + '₫';
@@ -108,9 +118,15 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
     try {
       const res = await fetchAdminOrderDetail(orderId);
       if (res.success) {
-        setOrder(res.data);
-        setEditStatus(res.data.status);
-        setEditPaymentStatus(res.data.payment_status || 'unpaid');
+        const ordData = res.data;
+        setOrder(ordData);
+        const normStatus = normalizeOrderStatus(ordData.status);
+        const allowedNext = ORDER_TRANSITIONS[normStatus] || [];
+        // Tự động chọn bước tiếp theo hợp lệ nhất nếu có
+        setEditStatus(allowedNext.length > 0 ? allowedNext[0] : normStatus);
+        setEditPaymentStatus(ordData.payment_status || 'unpaid');
+        setStatusNote('');
+        setPaymentNote('');
       }
     } catch (e) {
       toast.error('Không thể tải chi tiết đơn hàng');
@@ -456,45 +472,87 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
                   {/* Cập nhật trạng thái đơn hàng */}
                   <div className="bg-[#13131e] border border-[#222234] rounded-xl p-4">
                     <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                      <Edit className="w-3.5 h-3.5" /> Cập nhật trạng thái đơn hàng
+                      <Edit className="w-3.5 h-3.5" /> Cập nhật trạng thái đơn hàng (State Machine)
                     </div>
-                    <div className="text-[10px] text-gray-600 mb-3 ml-0.5">
-                      Hiện tại: <StatusBadge status={order.status} />
-                      {order.status === 'delivered' && order.payment_status !== 'paid' && (
-                        <span className="ml-2 text-amber-400">&#9888; Cần đã thanh toán để tự động Hoàn thành</span>
-                      )}
-                    </div>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1.5">Trạng thái mới</label>
-                        <select
-                          value={editStatus}
-                          onChange={e => setEditStatus(e.target.value)}
-                          className="w-full bg-[#1a1a27] border border-[#2a2a3d] text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#d4ff00]"
-                        >
-                          {STATUS_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value} className="bg-[#13131e]">{opt.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1.5">Ghi chú (hiển thị trong lịch sử)</label>
-                        <input
-                          type="text"
-                          value={statusNote}
-                          onChange={e => setStatusNote(e.target.value)}
-                          placeholder="VD: Đã bàn giao đơn vị vận chuyển GHN..."
-                          className="w-full bg-[#1a1a27] border border-[#2a2a3d] text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#d4ff00] placeholder-gray-600"
-                        />
-                      </div>
-                      <button
-                        onClick={handleUpdateStatus}
-                        disabled={updatingStatus || editStatus === order.status}
-                        className="w-full py-2.5 bg-[#d4ff00] hover:bg-[#bce600] disabled:bg-gray-700 disabled:text-gray-500 text-black font-bold rounded-xl text-sm transition-colors"
-                      >
-                        {updatingStatus ? 'Đang lưu...' : editStatus === order.status ? 'Chọn trạng thái khác để cập nhật' : 'Lưu thay đổi trạng thái'}
-                      </button>
-                    </div>
+                    
+                    {(() => {
+                      const currStatus = normalizeOrderStatus(order.status);
+                      const allowedNext = ORDER_TRANSITIONS[currStatus] || [];
+                      const isFinalState = allowedNext.length === 0;
+
+                      return (
+                        <>
+                          <div className="text-[11px] text-gray-400 mb-3 ml-0.5 flex flex-wrap items-center gap-2">
+                            <span>Hiện tại:</span>
+                            <StatusBadge status={order.status} />
+                            {order.status === 'delivered' && order.payment_status !== 'paid' && (
+                              <span className="text-amber-400 font-semibold">&#9888; Cần đã thanh toán để Hoàn thành</span>
+                            )}
+                          </div>
+
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-xs text-gray-400 mb-1.5 font-medium">Chọn trạng thái mới:</label>
+                              <select
+                                value={editStatus}
+                                onChange={e => setEditStatus(e.target.value)}
+                                disabled={isFinalState}
+                                className="w-full bg-[#1a1a27] border border-[#2a2a3d] text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#d4ff00] disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {ALL_STATUS_OPTIONS.map(opt => {
+                                  const isCurrent = opt.value === currStatus;
+                                  const isAllowed = allowedNext.includes(opt.value);
+                                  return (
+                                    <option
+                                      key={opt.value}
+                                      value={opt.value}
+                                      disabled={!isAllowed && !isCurrent}
+                                      className={isAllowed ? 'bg-[#13131e] text-white font-medium' : 'bg-[#1a1a27] text-gray-500'}
+                                    >
+                                      {opt.label} {isCurrent ? ' (Hiện tại)' : isAllowed ? ' (Hợp lệ)' : ' 🔒 (Không thể chọn)'}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            </div>
+
+                            {/* Hướng dẫn State Machine */}
+                            {isFinalState ? (
+                              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400">
+                                🛑 Đơn hàng đã ở trạng thái kết thúc (<strong>{STATUS_LABELS[currStatus]}</strong>). Không thể chuyển trạng thái nữa.
+                              </div>
+                            ) : (
+                              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-300 leading-relaxed">
+                                💡 Từ <strong>"{STATUS_LABELS[currStatus]}"</strong>, chỉ có thể chuyển sang:{' '}
+                                <span className="font-bold text-[#d4ff00]">
+                                  {allowedNext.map(s => STATUS_LABELS[s] || s).join(' hoặc ')}
+                                </span>.
+                              </div>
+                            )}
+
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1.5">Ghi chú (hiển thị trong lịch sử)</label>
+                              <input
+                                type="text"
+                                value={statusNote}
+                                onChange={e => setStatusNote(e.target.value)}
+                                disabled={isFinalState}
+                                placeholder="VD: Đã bàn giao đơn vị vận chuyển GHN..."
+                                className="w-full bg-[#1a1a27] border border-[#2a2a3d] text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#d4ff00] placeholder-gray-600 disabled:opacity-50"
+                              />
+                            </div>
+
+                            <button
+                              onClick={handleUpdateStatus}
+                              disabled={updatingStatus || isFinalState || editStatus === currStatus || !(ORDER_TRANSITIONS[currStatus] || []).includes(editStatus)}
+                              className="w-full py-2.5 bg-[#d4ff00] hover:bg-[#bce600] disabled:bg-gray-800 disabled:text-gray-500 text-black font-bold rounded-xl text-sm transition-colors"
+                            >
+                              {updatingStatus ? 'Đang lưu...' : isFinalState ? 'Trạng thái kết thúc' : editStatus === currStatus ? 'Chọn trạng thái tiếp theo để cập nhật' : 'Lưu thay đổi trạng thái'}
+                            </button>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Cập nhật trạng thái thanh toán — mục mới độc lập */}
@@ -634,12 +692,21 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
 
 // ── MODAL CẬP NHẬT TRẠNG THÁI (giữ lại từ bảng) ─────────────
 const OrderStatusModal = ({ isOpen, onClose, order, onSuccess }) => {
-  const [status, setStatus] = useState(order?.status || 'pending');
+  const [status, setStatus] = useState('pending');
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const currStatus = useMemo(() => normalizeOrderStatus(order?.status), [order?.status]);
+  const allowedNext = useMemo(() => ORDER_TRANSITIONS[currStatus] || [], [currStatus]);
+  const isFinalState = allowedNext.length === 0;
+
   useEffect(() => {
-    if (order) { setStatus(order.status); setNote(''); }
+    if (order) {
+      const norm = normalizeOrderStatus(order.status);
+      const nexts = ORDER_TRANSITIONS[norm] || [];
+      setStatus(nexts.length > 0 ? nexts[0] : norm);
+      setNote('');
+    }
   }, [order]);
 
   if (!isOpen || !order) return null;
@@ -661,34 +728,63 @@ const OrderStatusModal = ({ isOpen, onClose, order, onSuccess }) => {
     <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="bg-[#1c1c28] border border-[#3b3b4f] rounded-2xl w-full max-w-md p-6 text-white shadow-2xl">
         <h3 className="text-xl font-bold mb-2 text-white">Cập Nhật Trạng Thái Đơn Hàng</h3>
-        <p className="text-xs text-gray-300 mb-5">Mã đơn: <span className="font-mono text-[#d4ff00] font-bold">#{order.code}</span></p>
+        <div className="text-xs text-gray-300 mb-4 flex items-center gap-2">
+          <span>Mã đơn: <strong className="font-mono text-[#d4ff00]">#{order.code}</strong></span>
+          <span>• Hiện tại:</span>
+          <StatusBadge status={order.status} />
+        </div>
 
-        <label className="block text-xs font-semibold text-gray-300 mb-2">Chọn trạng thái mới:</label>
+        <label className="block text-xs font-semibold text-gray-300 mb-2">Chọn trạng thái tiếp theo:</label>
         <select
           value={status}
           onChange={e => setStatus(e.target.value)}
-          className="w-full bg-[#252536] text-white border border-[#44445e] font-semibold text-sm rounded-xl px-4 py-3 outline-none focus:border-[#d4ff00] mb-3 cursor-pointer"
+          disabled={isFinalState}
+          className="w-full bg-[#252536] text-white border border-[#44445e] font-semibold text-sm rounded-xl px-4 py-3 outline-none focus:border-[#d4ff00] mb-3 cursor-pointer disabled:opacity-50"
         >
-          {STATUS_OPTIONS.map(opt => (
-            <option key={opt.value} value={opt.value} className="bg-[#1c1c28] text-white">{opt.label}</option>
-          ))}
+          {ALL_STATUS_OPTIONS.map(opt => {
+            const isCurrent = opt.value === currStatus;
+            const isAllowed = allowedNext.includes(opt.value);
+            return (
+              <option
+                key={opt.value}
+                value={opt.value}
+                disabled={!isAllowed && !isCurrent}
+                className={isAllowed ? 'bg-[#1c1c28] text-white font-medium' : 'bg-[#252536] text-gray-500'}
+              >
+                {opt.label} {isCurrent ? ' (Hiện tại)' : isAllowed ? ' (Hợp lệ)' : ' 🔒 (Không thể chọn)'}
+              </option>
+            );
+          })}
         </select>
+
+        {isFinalState ? (
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400 mb-5">
+            🛑 Đơn hàng đã ở trạng thái kết thúc (<strong>{STATUS_LABELS[currStatus]}</strong>). Không thể chuyển tiếp nữa.
+          </div>
+        ) : (
+          <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-300 mb-5 leading-relaxed">
+            💡 Trạng thái hợp lệ tiếp theo: <strong className="text-[#d4ff00]">{allowedNext.map(s => STATUS_LABELS[s] || s).join(' hoặc ')}</strong>.
+          </div>
+        )}
 
         <label className="block text-xs font-semibold text-gray-300 mb-2">Ghi chú (tùy chọn):</label>
         <input
           type="text"
           value={note}
           onChange={e => setNote(e.target.value)}
+          disabled={isFinalState}
           placeholder="Thêm ghi chú vào lịch sử..."
-          className="w-full bg-[#252536] text-white border border-[#44445e] text-sm rounded-xl px-4 py-3 outline-none focus:border-[#d4ff00] mb-6 placeholder-gray-600"
+          className="w-full bg-[#252536] text-white border border-[#44445e] text-sm rounded-xl px-4 py-3 outline-none focus:border-[#d4ff00] mb-6 placeholder-gray-600 disabled:opacity-50"
         />
 
         <div className="flex gap-3 justify-end">
           <button onClick={onClose} className="px-5 py-2.5 bg-[#2b2b3b] border border-[#444] rounded-xl text-xs font-semibold text-gray-200 hover:bg-[#38384d] transition-colors">
             Hủy
           </button>
-          <button onClick={handleSave} disabled={loading}
-            className="px-5 py-2.5 bg-[#d4ff00] hover:bg-[#bce600] text-black font-bold rounded-xl text-xs transition-colors shadow-[0_0_12px_rgba(212,255,0,0.3)]"
+          <button
+            onClick={handleSave}
+            disabled={loading || isFinalState || status === currStatus || !allowedNext.includes(status)}
+            className="px-5 py-2.5 bg-[#d4ff00] hover:bg-[#bce600] disabled:bg-gray-800 disabled:text-gray-500 text-black font-bold rounded-xl text-xs transition-colors shadow-[0_0_12px_rgba(212,255,0,0.3)]"
           >
             {loading ? 'Đang lưu...' : 'Lưu Thay Đổi'}
           </button>
