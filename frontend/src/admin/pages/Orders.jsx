@@ -1,33 +1,36 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Search, Eye, Edit, RefreshCw, FileText, Trash2, X, MessageSquare, Send, Clock, CheckCircle2, Package, MapPin, CreditCard, User, Phone, Mail } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchAdminOrders, fetchAdminOrderDetail, updateAdminOrderStatus, addAdminOrderNote, deleteAdminOrder, getOrderPdfUrl, API_BASE } from '../services/adminService';
+import { fetchAdminOrders, fetchAdminOrderDetail, updateAdminOrderStatus, updateAdminOrderPaymentStatus, addAdminOrderNote, deleteAdminOrder, getOrderPdfUrl, API_BASE } from '../services/adminService';
 
+// ── Canonical status labels (5 bước tuần tự + cancelled ngoài luồng) ────────────
 const STATUS_LABELS = {
-  pending:      'Chờ xác nhận',
-  preparing:    'Đang chuẩn bị hàng',
-  handed_over:  'Đã bàn giao vận chuyển',
-  handover:     'Đã bàn giao vận chuyển',
-  shipping:     'Đang vận chuyển',
-  shipped:      'Đang vận chuyển',
-  delivering:   'Đang giao hàng',
-  delivered:    'Đã giao hàng',
-  completed:    'Hoàn thành',
-  canceled:     'Đã hủy',
-  cancelled:    'Đã hủy',
+  pending:     'Chờ xác nhận',
+  preparing:   'Đang chuẩn bị',
+  shipping:    'Đang giao hàng',
+  delivered:   'Đã giao hàng',
+  completed:   'Hoàn thành',
+  cancelled:   'Đã hủy',
+  // Legacy aliases — chỉ dùng để hiển thị label cho data cũ:
+  canceled:    'Đã hủy',
+  handed_over: 'Đang giao hàng',
+  handover:    'Đang giao hàng',
+  shipped:     'Đang giao hàng',
+  delivering:  'Đang giao hàng',
+  done:        'Hoàn thành',
 };
 
-const STATUS_FLOW = ['pending','preparing','handed_over','shipping','delivering','delivered','completed'];
+// Luồng 5 bước tuần tự — dùng cho stepper/progress bar
+const STATUS_FLOW = ['pending', 'preparing', 'shipping', 'delivered', 'completed'];
 
+// Dropdown cập nhật trạng thái — CHỈ 5 bước tuần tự, không có 'cancelled'
+// (Hủy đơn được xử lý riêng qua nút Hủy đơn)
 const STATUS_OPTIONS = [
-  { value: 'pending',     label: 'Chờ xác nhận' },
-  { value: 'preparing',   label: 'Đang chuẩn bị hàng' },
-  { value: 'handed_over', label: 'Đã bàn giao vận chuyển' },
-  { value: 'shipping',    label: 'Đang vận chuyển' },
-  { value: 'delivering',  label: 'Đang giao hàng' },
-  { value: 'delivered',   label: 'Đã giao hàng' },
-  { value: 'completed',   label: 'Hoàn thành' },
-  { value: 'canceled',    label: 'Đã hủy' },
+  { value: 'pending',   label: 'Chờ xác nhận' },
+  { value: 'preparing', label: 'Đang chuẩn bị hàng' },
+  { value: 'shipping',  label: 'Đang giao hàng' },
+  { value: 'delivered', label: 'Đã giao hàng' },
+  { value: 'completed', label: 'Hoàn thành' },
 ];
 
 const fmtPrice = (n) => (n || 0).toLocaleString('vi-VN') + '₫';
@@ -37,25 +40,44 @@ const fmtDate = (d) => {
   return `${dt.toLocaleDateString('vi-VN')} ${dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
 };
 
+// Helper: normalize legacy status -> canonical
+const normalizeOrderStatus = (s) => {
+  if (!s) return 'pending';
+  if (['handed_over', 'handover', 'shipped', 'delivering'].includes(s)) return 'shipping';
+  if (s === 'done') return 'completed';
+  if (s === 'canceled') return 'cancelled';
+  return s;
+};
+
 // ── Chip trạng thái ──────────────────────────────────────────
 const StatusBadge = ({ status }) => {
+  const canonical = normalizeOrderStatus(status);
   const label = STATUS_LABELS[status] || status;
   const cfg = {
-    pending:     'bg-blue-500/10 text-blue-400 border-blue-500/30',
-    preparing:   'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
-    handed_over: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-    handover:    'bg-purple-500/10 text-purple-400 border-purple-500/30',
-    shipping:    'bg-purple-500/10 text-purple-400 border-purple-500/30',
-    shipped:     'bg-purple-500/10 text-purple-400 border-purple-500/30',
-    delivering:  'bg-teal-500/10 text-teal-400 border-teal-500/30',
-    delivered:   'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-    completed:   'bg-green-500/10 text-green-400 border-green-500/30',
-    canceled:    'bg-red-500/10 text-red-400 border-red-500/30',
-    cancelled:   'bg-red-500/10 text-red-400 border-red-500/30',
+    pending:   'bg-blue-500/10 text-blue-400 border-blue-500/30',
+    preparing: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
+    shipping:  'bg-purple-500/10 text-purple-400 border-purple-500/30',
+    delivered: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+    completed: 'bg-green-500/10 text-green-400 border-green-500/30',
+    cancelled: 'bg-red-500/10 text-red-400 border-red-500/30',
   };
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${cfg[status] || 'bg-gray-500/10 text-gray-400 border-gray-500/30'}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${cfg[canonical] || 'bg-gray-500/10 text-gray-400 border-gray-500/30'}`}>
       {label}
+    </span>
+  );
+};
+
+// ── Chip trạng thái thanh toán ─────────────────────────────────────
+const PaymentBadge = ({ payment_status }) => {
+  const isPaid = payment_status === 'paid';
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
+      isPaid
+        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+        : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+    }`}>
+      {isPaid ? '✔ Đã thanh toán' : '⧘ Chưa TT'}
     </span>
   );
 };
@@ -71,6 +93,11 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
   const [statusNote, setStatusNote] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
+  // Payment status update
+  const [editPaymentStatus, setEditPaymentStatus] = useState('');
+  const [paymentNote, setPaymentNote] = useState('');
+  const [updatingPayment, setUpdatingPayment] = useState(false);
+
   // Admin note
   const [noteInput, setNoteInput] = useState('');
   const [addingNote, setAddingNote] = useState(false);
@@ -83,6 +110,7 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
       if (res.success) {
         setOrder(res.data);
         setEditStatus(res.data.status);
+        setEditPaymentStatus(res.data.payment_status || 'unpaid');
       }
     } catch (e) {
       toast.error('Không thể tải chi tiết đơn hàng');
@@ -98,13 +126,27 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
   const handleUpdateStatus = async () => {
     setUpdatingStatus(true);
     try {
-      await updateAdminOrderStatus(orderId, editStatus, statusNote);
-      toast.success('Đã cập nhật trạng thái!');
+      const res = await updateAdminOrderStatus(orderId, editStatus, statusNote);
+      const msg = res?.message || 'Đã cập nhật trạng thái!';
+      toast.success(msg);
       setStatusNote('');
       onStatusUpdated?.();
       await load();
     } catch (e) { toast.error(e.message || 'Cập nhật thất bại'); }
     setUpdatingStatus(false);
+  };
+
+  const handleUpdatePaymentStatus = async () => {
+    setUpdatingPayment(true);
+    try {
+      const res = await updateAdminOrderPaymentStatus(orderId, editPaymentStatus, paymentNote);
+      const msg = res?.message || 'Đã cập nhật trạng thái thanh toán!';
+      toast.success(msg);
+      setPaymentNote('');
+      onStatusUpdated?.();
+      await load();
+    } catch (e) { toast.error(e.message || 'Cập nhật thất bại'); }
+    setUpdatingPayment(false);
   };
 
   const handleAddNote = async () => {
@@ -153,6 +195,7 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
           </div>
           <div className="flex items-center gap-3">
             {order && <StatusBadge status={order.status} />}
+            {order && <PaymentBadge payment_status={order.payment_status} />}
             <button onClick={onClose} className="w-8 h-8 bg-[#1e1e2d] hover:bg-[#2a2a3d] rounded-lg flex items-center justify-center text-gray-400 hover:text-white transition-colors">
               <X className="w-4 h-4" />
             </button>
@@ -410,10 +453,16 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
               {/* ── TAB: HÀNH ĐỘNG ── */}
               {activeTab === 'actions' && (
                 <div className="space-y-4">
-                  {/* Cập nhật trạng thái */}
+                  {/* Cập nhật trạng thái đơn hàng */}
                   <div className="bg-[#13131e] border border-[#222234] rounded-xl p-4">
-                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                       <Edit className="w-3.5 h-3.5" /> Cập nhật trạng thái đơn hàng
+                    </div>
+                    <div className="text-[10px] text-gray-600 mb-3 ml-0.5">
+                      Hiện tại: <StatusBadge status={order.status} />
+                      {order.status === 'delivered' && order.payment_status !== 'paid' && (
+                        <span className="ml-2 text-amber-400">&#9888; Cần đã thanh toán để tự động Hoàn thành</span>
+                      )}
                     </div>
                     <div className="space-y-3">
                       <div>
@@ -444,6 +493,52 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
                         className="w-full py-2.5 bg-[#d4ff00] hover:bg-[#bce600] disabled:bg-gray-700 disabled:text-gray-500 text-black font-bold rounded-xl text-sm transition-colors"
                       >
                         {updatingStatus ? 'Đang lưu...' : editStatus === order.status ? 'Chọn trạng thái khác để cập nhật' : 'Lưu thay đổi trạng thái'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Cập nhật trạng thái thanh toán — mục mới độc lập */}
+                  <div className="bg-[#13131e] border border-emerald-500/20 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                      <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400">Cập nhật trạng thái thanh toán</span>
+                    </div>
+                    <div className="text-[10px] text-gray-600 mb-3 ml-0.5 flex items-center gap-2">
+                      Hiện tại: <PaymentBadge payment_status={order.payment_status} />
+                      {order.status === 'delivered' && order.payment_status !== 'paid' && (
+                        <span className="text-emerald-400">&#x2192; Xác nhận đã TT để tự động Hoàn thành</span>
+                      )}
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1.5">Trạng thái thanh toán</label>
+                        <select
+                          value={editPaymentStatus}
+                          onChange={e => setEditPaymentStatus(e.target.value)}
+                          className="w-full bg-[#1a1a27] border border-emerald-500/30 text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400"
+                        >
+                          <option value="unpaid" className="bg-[#13131e]">Chưa thanh toán</option>
+                          <option value="paid" className="bg-[#13131e]">Đã thanh toán</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1.5">Ghi chú (tùy chọn)</label>
+                        <input
+                          type="text"
+                          value={paymentNote}
+                          onChange={e => setPaymentNote(e.target.value)}
+                          placeholder="VD: Khách đã chuyển khoản..."
+                          className="w-full bg-[#1a1a27] border border-[#2a2a3d] text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 placeholder-gray-600"
+                        />
+                      </div>
+                      <button
+                        onClick={handleUpdatePaymentStatus}
+                        disabled={updatingPayment || editPaymentStatus === (order.payment_status || 'unpaid')}
+                        className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-700 disabled:text-gray-500 text-white font-bold rounded-xl text-sm transition-colors"
+                      >
+                        {updatingPayment ? 'Đang lưu...' :
+                          editPaymentStatus === (order.payment_status || 'unpaid') ? 'Chọn trạng thái khác để cập nhật' :
+                          'Lưu trạng thái thanh toán'}
                       </button>
                     </div>
                   </div>
@@ -627,14 +722,15 @@ const Orders = () => {
           customer: o.Name || o.user_id?.name || 'Khách vãng lai',
           phone: o.Phone || o.user_id?.phone || '—',
           total: o.total_amount || 0,
-          status: o.status,
+          status: normalizeOrderStatus(o.status),  // normalize legacy
           date: o.createdAt ? new Date(o.createdAt).toLocaleDateString('vi-VN') : '—',
           payment_method: o.payment_method,
+          payment_status: o.payment_status || 'unpaid',
           itemCount: (o.items || []).length,
           rawOrder: o,
         }));
         setOrders(mapped);
-        // Tính counts
+        // Tính counts theo canonical status
         const c = {};
         mapped.forEach(o => { c[o.status] = (c[o.status] || 0) + 1; });
         setCounts(c);
@@ -665,6 +761,7 @@ const Orders = () => {
         order.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         order.customer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         order.phone?.includes(searchQuery);
+      // Filter theo canonical status (cần so sánh với normalized value)
       const matchStatus = filterStatus === 'all' || order.status === filterStatus;
       return matchSearch && matchStatus;
     });
@@ -690,8 +787,8 @@ const Orders = () => {
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-sm">{error}</div>
       )}
 
-      {/* Thống kê nhanh */}
-      <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2 mb-6">
+      {/* Thống kê nhanh — chỉ hiển thị canonical statuses */}
+      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
         <button
           onClick={() => setFilterStatus('all')}
           className={`p-3 rounded-2xl border text-center transition-all ${filterStatus === 'all' ? 'border-[#d4ff00] bg-[#d4ff00]/10' : 'border-[#333] bg-[#14141d] hover:bg-[#1a1a24]'}`}
@@ -699,13 +796,20 @@ const Orders = () => {
           <div className="text-xl font-bold text-white">{orders.length}</div>
           <div className="text-[10px] text-gray-400 mt-1">Tất cả</div>
         </button>
-        {Object.entries(STATUS_LABELS).filter(([k]) => !['handover','shipped'].includes(k)).map(([key, label]) => (
+        {[
+          { key: 'pending',   label: 'Chờ xác nhận', color: 'text-blue-400' },
+          { key: 'preparing', label: 'Đang chuẩn bị',   color: 'text-indigo-400' },
+          { key: 'shipping',  label: 'Đang giao',       color: 'text-purple-400' },
+          { key: 'delivered', label: 'Đã giao hàng',    color: 'text-cyan-400' },
+          { key: 'completed', label: 'Hoàn thành',      color: 'text-green-400' },
+          { key: 'cancelled', label: 'Đã hủy',          color: 'text-red-400' },
+        ].map(({ key, label, color }) => (
           <button
             key={key}
             onClick={() => setFilterStatus(key)}
             className={`p-3 rounded-2xl border text-center transition-all ${filterStatus === key ? 'border-[#d4ff00] bg-[#d4ff00]/10' : 'border-[#333] bg-[#14141d] hover:bg-[#1a1a24]'}`}
           >
-            <div className="text-xl font-bold text-white">{counts[key] || 0}</div>
+            <div className={`text-xl font-bold ${color}`}>{counts[key] || 0}</div>
             <div className="text-[10px] text-gray-400 mt-1 leading-tight">{label}</div>
           </button>
         ))}
@@ -729,9 +833,12 @@ const Orders = () => {
           className="bg-[#1e1e2d] border border-[#333] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#d4ff00] min-w-[200px] text-white"
         >
           <option value="all">Tất cả trạng thái ({orders.length})</option>
-          {Object.entries(STATUS_LABELS).filter(([k]) => !['handover','shipped'].includes(k)).map(([k, label]) => (
-            <option key={k} value={k}>{label} ({counts[k] || 0})</option>
-          ))}
+          <option value="pending">Chờ xác nhận ({counts['pending'] || 0})</option>
+          <option value="preparing">Đang chuẩn bị ({counts['preparing'] || 0})</option>
+          <option value="shipping">Đang giao hàng ({counts['shipping'] || 0})</option>
+          <option value="delivered">Đã giao hàng ({counts['delivered'] || 0})</option>
+          <option value="completed">Hoàn thành ({counts['completed'] || 0})</option>
+          <option value="cancelled">Đã hủy ({counts['cancelled'] || 0})</option>
         </select>
       </div>
 
@@ -741,13 +848,14 @@ const Orders = () => {
           <table className="w-full text-sm text-left">
             <thead className="bg-[#1e1e2d] text-gray-400 text-xs uppercase border-b border-[#333]">
               <tr>
-                <th className="px-6 py-4 font-semibold">MÃ ĐƠN</th>
-                <th className="px-6 py-4 font-semibold">KHÁCH HÀNG</th>
-                <th className="px-6 py-4 font-semibold">SĐT</th>
-                <th className="px-6 py-4 font-semibold">TỔNG TIỀN</th>
-                <th className="px-6 py-4 font-semibold">TRẠNG THÁI</th>
-                <th className="px-6 py-4 font-semibold">NGÀY TẠO</th>
-                <th className="px-6 py-4 font-semibold text-right">HÀNH ĐỘNG</th>
+                <th className="px-5 py-4 font-semibold whitespace-nowrap">MÃ ĐƠN</th>
+                <th className="px-5 py-4 font-semibold whitespace-nowrap">KHÁCH HÀNG</th>
+                <th className="px-5 py-4 font-semibold whitespace-nowrap">SĐT</th>
+                <th className="px-5 py-4 font-semibold whitespace-nowrap">TỔNG TIỀN</th>
+                <th className="px-4 py-4 font-semibold whitespace-nowrap" style={{minWidth:'160px'}}>TRẠNG THÁI</th>
+                <th className="px-4 py-4 font-semibold whitespace-nowrap" style={{minWidth:'140px'}}>THANH TOÁN</th>
+                <th className="px-5 py-4 font-semibold whitespace-nowrap">NGÀY TẠO</th>
+                <th className="px-5 py-4 font-semibold whitespace-nowrap text-right">HÀNH ĐỘNG</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#222]">
@@ -760,12 +868,17 @@ const Orders = () => {
               ) : (
                 filteredOrders.map(order => (
                   <tr key={order.id} className="hover:bg-[#1a1a24] transition-colors">
-                    <td className="px-6 py-4 font-bold text-[#d4ff00] font-mono text-xs">{order.code}</td>
-                    <td className="px-6 py-4 font-semibold text-white">{order.customer}</td>
-                    <td className="px-6 py-4 text-gray-400 font-mono text-xs">{order.phone}</td>
-                    <td className="px-6 py-4 text-white font-bold">{order.total.toLocaleString('vi-VN')}₫</td>
-                    <td className="px-6 py-4"><StatusBadge status={order.status} /></td>
-                    <td className="px-6 py-4 text-gray-400 text-xs">{order.date}</td>
+                    <td className="px-5 py-4 font-bold text-[#d4ff00] font-mono text-xs whitespace-nowrap">{order.code}</td>
+                    <td className="px-5 py-4 font-semibold text-white max-w-[160px] truncate">{order.customer}</td>
+                    <td className="px-5 py-4 text-gray-400 font-mono text-xs whitespace-nowrap">{order.phone}</td>
+                    <td className="px-5 py-4 text-white font-bold whitespace-nowrap">{order.total.toLocaleString('vi-VN')}₫</td>
+                    <td className="px-4 py-4">
+                      <StatusBadge status={order.status} />
+                    </td>
+                    <td className="px-4 py-4">
+                      <PaymentBadge payment_status={order.payment_status} />
+                    </td>
+                    <td className="px-5 py-4 text-gray-400 text-xs whitespace-nowrap">{order.date}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button
@@ -807,7 +920,7 @@ const Orders = () => {
               )}
               {!loading && filteredOrders.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">Không tìm thấy đơn hàng nào.</td>
+                  <td colSpan="8" className="px-6 py-8 text-center text-gray-500">Không tìm thấy đơn hàng nào.</td>
                 </tr>
               )}
             </tbody>

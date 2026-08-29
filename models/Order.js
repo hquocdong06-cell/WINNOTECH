@@ -5,12 +5,21 @@ const OrderSchema = new mongoose.Schema({
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     code: { type: String, required: true, unique: true },
     status: {
-    type: String,
-    enum: [
-        'pending', 'preparing', 'handed_over', 'handover', 'shipping', 'shipped', 'delivering', 'delivered', 'completed', 'done', 'canceled', 'cancelled'
-    ],
-    default: 'pending',
-},
+        type: String,
+        // Canonical (5 bước tuần tự + 1 ngoài luồng):
+        //   pending → preparing → shipping → delivered → completed
+        //   cancelled (ngoài luồng, chỉ qua nút Hủy đơn)
+        // Legacy aliases giữ để không lỗi validate với dữ liệu cũ trong DB:
+        //   handed_over / handover / shipped / delivering → shipping
+        //   done → completed
+        //   canceled → cancelled
+        enum: [
+            'pending', 'preparing', 'shipping', 'delivered', 'completed', 'cancelled',
+            // legacy (backward compat):
+            'handed_over', 'handover', 'shipped', 'delivering', 'done', 'canceled'
+        ],
+        default: 'pending',
+    },
     Name: { type: String, required: true },
     Phone: { type: String, required: true },
     Adress: { type: String, required: true }, // Giữ nguyên chính tả ERD

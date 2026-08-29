@@ -2970,29 +2970,45 @@ app.get("/orders", checklogin, async (req, res) => {
     ]);
 
     let totalOrders = 0;
+    // Canonical 5-bước + cancelled (legacy alias gộp vào canonical)
     const countMap = {
-      "all": 0,           // Cho tab "Tất cả"
-      "pending": 0,       // Chờ xác nhận
-      "preparing": 0,     // Chuẩn bị hàng
-      "handed_over": 0,   // Bàn giao VC
-      "shipping": 0,      // Đang vận chuyển
-      "delivering": 0,    // Đang giao
-      "delivered": 0,     // Đã giao hàng
-      "completed": 0,     // Hoàn thành
-      "canceled": 0       // Đã hủy
+      "all":       0,
+      "pending":   0,   // Chờ xác nhận
+      "preparing": 0,   // Đang chuẩn bị hàng
+      "shipping":  0,   // Đang giao hàng (gộp: handed_over/handover/shipped/delivering)
+      "delivered": 0,   // Đã giao hàng
+      "completed": 0,   // Hoàn thành
+      "cancelled": 0    // Đã hủy (néo alias 'canceled' vào đây)
+    };
+
+    // Helper normalize legacy status -> canonical
+    const normalizeStatus = (s) => {
+      if (!s) return s;
+      if (['handed_over','handover','shipped','delivering'].includes(s)) return 'shipping';
+      if (s === 'done') return 'completed';
+      if (s === 'canceled') return 'cancelled';
+      return s;
     };
 
     statusCounts.forEach(item => {
-      if (countMap[item._id] !== undefined) {
-        countMap[item._id] = item.count;
-      }
+      const canonical = normalizeStatus(item._id);
       totalOrders += item.count;
+      if (countMap.hasOwnProperty(canonical)) {
+        countMap[canonical] += item.count;
+      }
     });
-    countMap["all"] = totalOrders;
+    countMap.all = totalOrders;
 
     let query = { user_id: userId };
     if (status && status !== "all") {
-      query.status = status;
+      // Nếu filter là "shipping", tìm cả các alias
+      if (status === 'shipping') {
+         query.status = { $in: ['shipping', 'handed_over', 'handover', 'shipped', 'delivering'] };
+      } else if (status === 'cancelled') {
+         query.status = { $in: ['cancelled', 'canceled'] };
+      } else {
+         query.status = status;
+      }
     }
 
     const orders = await Order.find(query)
@@ -4824,7 +4840,7 @@ app.get("/admin/orders/:id", checklogin, checkAdmin, async (req, res) => {
   }
 });
 
-// PUT /admin/orders/:id/status — Cập nhật trạng thái + ghi statusHistory
+// PUT /admin/orders/:id/status — Cập nhật trạng thái + ghi statusHistory + logic tự động hoàn thành
 app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => {
   try {
     const { status, note } = req.body;
@@ -4833,19 +4849,98 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
 
-    order.status = status;
+    const adminName = req.user?.name || req.user?.email || 'Admin';
     order.statusHistory = order.statusHistory || [];
+
+    // Canonical statuses cho admin dropdown (5 bước tuần tự — KHAI THÁC cancelled qua nút riêng)
+    const CANONICAL_STATUSES = ['pending', 'preparing', 'shipping', 'delivered', 'completed'];
+    if (!CANONICAL_STATUSES.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Trạng thái “${status}” không hợp lệ. Chỉ được chọn: ${CANONICAL_STATUSES.join(', ')}.`
+      });
+    }
+
+    // Không cho phép chuyển thẳng sang 'completed' nếu chưa đủ điều kiện
+    if (status === 'completed' && (order.status !== 'delivered' || order.payment_status !== 'paid')) {
+      return res.status(400).json({
+        success: false,
+        message: "Chỉ được chuyển sang 'Hoàn thành' khi đơn đã giao (delivered) VÀ đã thanh toán (paid)."
+      });
+    }
+
+    order.status = status;
     order.statusHistory.push({
       status,
       note: note || '',
-      changedBy: req.user?.name || req.user?.email || 'Admin',
+      changedBy: adminName,
       changedAt: new Date()
     });
+
+    // === LOGIC TỰ ĐỘNG HOÀN THÀNH ===
+    // Khi admin set status = 'delivered' và đơn đã được thanh toán → tự động completed
+    if (status === 'delivered' && order.payment_status === 'paid') {
+      order.status = 'completed';
+      order.statusHistory.push({
+        status: 'completed',
+        note: 'Tự động hoàn thành: Đã giao hàng và đã thanh toán',
+        changedBy: 'Hệ thống',
+        changedAt: new Date()
+      });
+    }
+
     await order.save();
 
     return res.json({ success: true, message: "Cập nhật trạng thái đơn hàng thành công", data: order });
   } catch (error) {
     console.error("Lỗi PUT /admin/orders/:id/status:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// PUT /admin/orders/:id/payment-status — Cập nhật trạng thái thanh toán (độc lập)
+app.put("/admin/orders/:id/payment-status", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { payment_status, note } = req.body;
+    if (!payment_status) return res.status(400).json({ success: false, message: "Thiếu payment_status" });
+    if (!['unpaid', 'paid'].includes(payment_status)) {
+      return res.status(400).json({ success: false, message: "payment_status chỉ được là 'unpaid' hoặc 'paid'" });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+
+    const adminName = req.user?.name || req.user?.email || 'Admin';
+    order.payment_status = payment_status;
+    order.statusHistory = order.statusHistory || [];
+    order.statusHistory.push({
+      status: order.status,
+      note: `[Thanh toán] ${payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}${note ? ': ' + note : ''}`,
+      changedBy: adminName,
+      changedAt: new Date()
+    });
+
+    // === LOGIC TỰ ĐỘNG HOÀN THÀNH ===
+    // Khi admin set payment_status = 'paid' và đơn đã được giao → tự động completed
+    if (payment_status === 'paid' && order.status === 'delivered') {
+      order.status = 'completed';
+      order.statusHistory.push({
+        status: 'completed',
+        note: 'Tự động hoàn thành: Đã giao hàng và đã thanh toán',
+        changedBy: 'Hệ thống',
+        changedAt: new Date()
+      });
+    }
+
+    await order.save();
+
+    return res.json({
+      success: true,
+      message: `Cập nhật trạng thái thanh toán thành công${order.status === 'completed' ? ' — Đơn hàng đã tự động chuyển sang Hoàn thành' : ''}`,
+      data: order
+    });
+  } catch (error) {
+    console.error("Lỗi PUT /admin/orders/:id/payment-status:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 });
@@ -4874,16 +4969,16 @@ app.post("/admin/orders/:id/note", checklogin, checkAdmin, async (req, res) => {
   }
 });
 
-// DELETE /admin/orders/:id — SOFT CANCEL đơn hàng (Chuyển status = 'canceled')
+// DELETE /admin/orders/:id — SOFT CANCEL đơn hàng (Chuyển status = 'cancelled')
 app.delete("/admin/orders/:id", checklogin, checkAdmin, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
 
-    order.status = "canceled";
+    order.status = "cancelled";
     order.statusHistory = order.statusHistory || [];
     order.statusHistory.push({
-      status: "canceled",
+      status: "cancelled",
       note: "Admin hủy đơn",
       changedBy: req.user?.name || req.user?.email || 'Admin',
       changedAt: new Date()

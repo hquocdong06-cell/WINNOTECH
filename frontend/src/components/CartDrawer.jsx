@@ -96,20 +96,20 @@ export default function CartDrawer({ isOpen, onClose }) {
               <button onClick={onClose} className="btn-primary" style={{marginTop:'10px'}}>Tiếp tục mua sắm</button>
             </div>
           ) : (
-            <div className="cart-items">
+            <div className="drawer-items">
               {cartItems.map((item, index) => (
-                <div className="cart-item" key={index}>
-                  <img src={getImageUrl(item.image)} alt={item.name} className="cart-item-img" />
-                  <div className="cart-item-info">
-                    <div className="cart-item-title">{item.name}</div>
-                    <div className="cart-item-price">{formatPrice(item.price)}</div>
-                    <div className="cart-item-qty">
+                <div className="drawer-item" key={index}>
+                  <img src={getImageUrl(item.image)} alt={item.name} className="drawer-item-img" />
+                  <div className="drawer-item-info">
+                    <div className="drawer-item-title">{item.name}</div>
+                    <div className="drawer-item-price">{formatPrice(item.price)}</div>
+                    <div className="drawer-item-qty">
                       <button onClick={() => handleUpdateQuantity(item, item.quantity - 1)}>-</button>
                       <span>{item.quantity}</span>
                       <button onClick={() => handleUpdateQuantity(item, item.quantity + 1)}>+</button>
                     </div>
                   </div>
-                  <button className="cart-item-remove" onClick={() => handleRemove(item)}>🗑️</button>
+                  <button className="drawer-item-remove" onClick={() => handleRemove(item)}>🗑️</button>
                 </div>
               ))}
             </div>

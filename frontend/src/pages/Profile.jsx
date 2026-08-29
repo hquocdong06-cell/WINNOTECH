@@ -236,6 +236,7 @@ export default function Profile() {
         voucher: order.voucher_value ? '-' + formatPrice(order.voucher_value) : '-0đ',
         total: formatPrice(order.total_amount)
       },
+      payment_status: order.payment_status || 'unpaid',
       shipping: { carrier: '—', tracking: order.tracking_code || '—' },
       timeline: [{ time: formatDate(order.createdAt), event: 'Đặt hàng thành công', done: true }]
     }
@@ -247,6 +248,7 @@ export default function Profile() {
     date: formatDate(o.createdAt),
     total: formatPrice(o.total_amount),
     status: (o.isReviewed && o.status === 'delivered') ? 'completed' : o.status,
+    payment_status: o.payment_status || 'unpaid',
     isReviewed: !!o.isReviewed,
     items: (o.items || []).length,
     rawOrder: o
@@ -260,31 +262,40 @@ export default function Profile() {
   const [isLoadingWishlist, setIsLoadingWishlist] = useState(false);
 
   const statusMap = {
-    pending:       'Chờ xác nhận',
-    preparing:     'Đang chuẩn bị hàng',
-    handover:      'Bàn giao vận chuyển',
-    handed_over:   'Bàn giao vận chuyển',
-    shipped:       'Đang vận chuyển',
-    shipping:      'Đang vận chuyển',
-    delivering:    'Đang giao hàng',
-    delivered:     'Đã giao hàng',
-    completed:     'Hoàn thành',
-    done:          'Hoàn thành',
-    cancelled:     'Đã hủy',
+    // Canonical 5 bước
+    pending:     'Chờ xác nhận',
+    preparing:   'Đang chuẩn bị hàng',
+    shipping:    'Đang giao hàng',
+    delivered:   'Đã giao hàng',
+    completed:   'Hoàn thành',
+    cancelled:   'Đã hủy',
+    // Legacy aliases — chỉ để hiển thị label cho data cũ:
+    handover:    'Đang giao hàng',
+    handed_over: 'Đang giao hàng',
+    shipped:     'Đang giao hàng',
+    shipping_old:'Đang giao hàng',
+    delivering:  'Đang giao hàng',
+    done:        'Hoàn thành',
+    canceled:    'Đã hủy',
     delivery_fail: 'Giao không thành công',
     refund:        'Trả hàng / Hoàn tiền'
   }
 
-  // Thứ tự các bước trong flow chính
-  const ORDER_FLOW = ['pending','preparing','handover','shipped','delivering','delivered','completed']
+  // Normalize legacy -> canonical (dùng cho getFlowStep)
+  const normalizeStatus = (s) => {
+    if (!s) return s;
+    if (['handed_over','handover','shipped','delivering'].includes(s)) return 'shipping';
+    if (s === 'done') return 'completed';
+    if (s === 'canceled') return 'cancelled';
+    return s;
+  }
+
+  // Luồng 5 bước tuần tự
+  const ORDER_FLOW = ['pending', 'preparing', 'shipping', 'delivered', 'completed']
 
   // Lấy chỉ số bước hiện tại trong flow
   const getFlowStep = (status) => {
-    let s = status;
-    if (s === 'handed_over') s = 'handover';
-    if (s === 'shipping') s = 'shipped';
-    if (s === 'done') s = 'completed';
-    return ORDER_FLOW.indexOf(s);
+    return ORDER_FLOW.indexOf(normalizeStatus(status))
   }
 
   const filteredOrders = orders_for_table.filter(o => {
@@ -616,6 +627,12 @@ export default function Profile() {
                 <div className="odm-info-row"><span className="odm-info-label">Mã đơn hàng</span><span className="odm-info-value odm-id-text">{detail.id}</span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Ngày đặt hàng</span><span className="odm-info-value">{detail.date}</span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Trạng thái</span><span className={`order-status status-${detail.status}`} style={{fontSize:'11px'}}>{statusMap[detail.status]}</span></div>
+                <div className="odm-info-row"><span className="odm-info-label">Trạng thái thanh toán</span><span style={{
+                  fontSize:'11px', fontWeight:700, padding:'2px 8px', borderRadius:'999px',
+                  background: detail.payment_status === 'paid' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
+                  color: detail.payment_status === 'paid' ? '#10b981' : '#f59e0b',
+                  border: `1px solid ${detail.payment_status === 'paid' ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`
+                }}>{detail.payment_status === 'paid' ? '✔ Đã thanh toán' : '⧘ Chưa thanh toán'}</span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Phương thức thanh toán</span><span className="odm-info-value">{detail.payMethod}</span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Mã vận đơn</span><span className="odm-info-value odm-tracking">{detail.trackingCode}</span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Dự kiến giao</span><span className="odm-info-value">{detail.estimatedDelivery}</span></div>
@@ -1367,15 +1384,13 @@ export default function Profile() {
 
                   <div className="profile-order-filters">
                     {[
-                      { key: 'all',          label: 'Tất cả',               count: orders_for_table.length },
-                      { key: 'pending',      label: 'Chờ xác nhận',         count: orders_for_table.filter(o=>o.status==='pending').length },
-                      { key: 'preparing',   label: 'Chuẩn bị hàng',        count: orders_for_table.filter(o=>o.status==='preparing').length },
-                      { key: 'handover',    label: 'Bàn giao VC',          count: orders_for_table.filter(o=>o.status==='handover'||o.status==='handed_over').length },
-                      { key: 'shipped',     label: 'Đang vận chuyển',      count: orders_for_table.filter(o=>o.status==='shipped'||o.status==='shipping').length },
-                      { key: 'delivering',  label: 'Đang giao',            count: orders_for_table.filter(o=>o.status==='delivering').length },
-                      { key: 'delivered',   label: 'Đã giao hàng',         count: orders_for_table.filter(o=>o.status==='delivered').length },
-                      { key: 'completed',   label: 'Hoàn thành',           count: orders_for_table.filter(o=>o.status==='completed'||o.status==='done').length },
-                      { key: 'cancelled',   label: 'Đã hủy',               count: orders_for_table.filter(o=>o.status==='cancelled').length },
+                      { key: 'all',       label: 'Tất cả',         count: orders_for_table.length },
+                      { key: 'pending',   label: 'Chờ xác nhận',  count: orders_for_table.filter(o=>o.status==='pending').length },
+                      { key: 'preparing', label: 'Chuẩn bị hàng',  count: orders_for_table.filter(o=>o.status==='preparing').length },
+                      { key: 'shipping',  label: 'Đang giao',        count: orders_for_table.filter(o=>['shipping','handed_over','handover','shipped','delivering'].includes(o.status)).length },
+                      { key: 'delivered', label: 'Đã giao hàng',    count: orders_for_table.filter(o=>o.status==='delivered').length },
+                      { key: 'completed', label: 'Hoàn thành',      count: orders_for_table.filter(o=>o.status==='completed'||o.status==='done').length },
+                      { key: 'cancelled', label: 'Đã hủy',          count: orders_for_table.filter(o=>o.status==='cancelled'||o.status==='canceled').length },
                       { key: 'delivery_fail',label: 'Giao thất bại',       count: orders_for_table.filter(o=>o.status==='delivery_fail').length },
                       { key: 'refund',      label: 'Hoàn tiền',            count: orders_for_table.filter(o=>o.status==='refund').length },
                     ].filter(f => f.key === 'all' || f.count > 0).map(f => (
@@ -1433,7 +1448,17 @@ export default function Profile() {
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                                 #{order.code || order.id}
                               </div>
-                              <span className={`order-status status-${order.status}`}>{statusMap[order.status]}</span>
+                              <div style={{display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap'}}>
+                                <span className={`order-status status-${order.status}`}>{statusMap[order.status]}</span>
+                                <span style={{
+                                  fontSize:'10px', fontWeight:700, padding:'2px 8px', borderRadius:'999px',
+                                  background: order.payment_status === 'paid' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
+                                  color: order.payment_status === 'paid' ? '#10b981' : '#f59e0b',
+                                  border: `1px solid ${order.payment_status === 'paid' ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`
+                                }}>
+                                  {order.payment_status === 'paid' ? '✔ Đã thanh toán' : '⧘ Chưa thanh toán'}
+                                </span>
+                              </div>
                             </div>
 
                             {/* Status flow tracker – chỉ hiển thị cho đơn trong flow chính */}

@@ -215,6 +215,14 @@ export async function updateAdminOrderStatus(id, status, note = '') {
   });
 }
 
+export async function updateAdminOrderPaymentStatus(id, payment_status, note = '') {
+  return apiFetch(`/admin/orders/${id}/payment-status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ payment_status, note }),
+  });
+}
+
 export async function addAdminOrderNote(id, content) {
   return apiFetch(`/admin/orders/${id}/note`, {
     method: 'POST',
