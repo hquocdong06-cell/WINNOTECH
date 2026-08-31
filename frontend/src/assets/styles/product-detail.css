@@ -476,12 +476,12 @@
 
 .btn-add-cart {
   flex: 1;
-  background: var(--yellow);
-  color: #000;
-  border: none;
-  border-radius: 4px;
+  background: transparent !important;
+  color: #e4e4e7 !important;
+  border: 1px solid #e4e4e7 !important;
+  border-radius: 8px;
   padding: 12px 20px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   cursor: pointer;
@@ -489,11 +489,36 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
 }
 
-.btn-add-cart:hover {
-  background: var(--yellow2);
+.btn-add-cart:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+.btn-buy-now {
+  flex: 1;
+  background: transparent !important;
+  color: #D3FC00 !important;
+  border: 1.5px solid #D3FC00 !important;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-buy-now:hover:not(:disabled) {
+  background: rgba(211, 252, 0, 0.08) !important;
+  box-shadow: 0 0 12px rgba(211, 252, 0, 0.25) !important;
 }
 
 /* ── WISHLIST ── */
@@ -917,47 +942,30 @@
   }
 }
 
-/* ── ANIMATED PURPLE & BLUE/CYAN RUNNING GRADIENT BORDER FOR PRODUCT DETAIL ── */
-@keyframes purpleBlueBorderRun {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
+/* ── WHITE-GRAY BORDER STYLES FOR PRODUCT DETAIL ── */
 
 /* Active & Hover Gallery Thumbnails */
 .gallery-thumb.active,
 .gallery-thumb:hover {
   position: relative !important;
-  border: 2px solid transparent !important;
-  background: linear-gradient(#0b0f19, #0b0f19) padding-box,
-              linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #06b6d4 100%, #a855f7 100%) border-box !important;
-  background-size: 200% 200% !important;
-  animation: purpleBlueBorderRun 2.5s ease infinite !important;
-  box-shadow: 0 0 14px rgba(168, 85, 247, 0.5), 0 0 22px rgba(59, 130, 246, 0.35) !important;
+  border: 2px solid #e4e4e7 !important;
+  background: #0b0f19 !important;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.2) !important;
 }
 
 /* Gallery Main Image Hover */
 .gallery-main:hover {
-  border: 2px solid transparent !important;
-  background: linear-gradient(#0a0a0f, #0a0a0f) padding-box,
-              linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #06b6d4 100%) border-box !important;
-  background-size: 200% 200% !important;
-  animation: purpleBlueBorderRun 2.5s ease infinite !important;
-  box-shadow: 0 0 18px rgba(168, 85, 247, 0.4) !important;
+  border: 2px solid #e4e4e7 !important;
+  background: #0a0a0f !important;
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.15) !important;
 }
 
 /* Active Tabs */
 .tab-btn.active {
-  color: #c084fc !important;
-  border-bottom: 3px solid transparent !important;
-  background: linear-gradient(90deg, #a855f7 0%, #3b82f6 50%, #06b6d4 100%) bottom / 100% 3px no-repeat !important;
-  text-shadow: 0 0 8px rgba(168, 85, 247, 0.6) !important;
+  color: #ffffff !important;
+  border-bottom: 3px solid #e4e4e7 !important;
+  background: transparent !important;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3) !important;
 }
 
 /* Active & Hover Option/Variant Buttons */
@@ -965,12 +973,9 @@
 .variant-btn:hover,
 .spec-btn.active,
 .spec-btn:hover {
-  border: 2px solid transparent !important;
-  background: linear-gradient(#121621, #121621) padding-box,
-              linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #06b6d4 100%) border-box !important;
-  background-size: 200% 200% !important;
-  animation: purpleBlueBorderRun 2.5s ease infinite !important;
-  box-shadow: 0 0 14px rgba(168, 85, 247, 0.4) !important;
+  border: 2px solid #e4e4e7 !important;
+  background: #181820 !important;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.15) !important;
   color: #ffffff !important;
 }
 
@@ -978,12 +983,9 @@
 .related-card:hover,
 .rv-card:hover,
 .rv-sidebar-item:hover {
-  border: 2px solid transparent !important;
-  background: linear-gradient(#121621, #121621) padding-box,
-              linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #06b6d4 100%) border-box !important;
-  background-size: 200% 200% !important;
-  animation: purpleBlueBorderRun 2.5s ease infinite !important;
-  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.4), 0 0 15px rgba(59, 130, 246, 0.3) !important;
+  border: 2px solid #52525b !important;
+  background: #181820 !important;
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.1) !important;
   transform: translateY(-3px) !important;
 }
 

@@ -102,6 +102,12 @@ export default function CartDrawer({ isOpen, onClose }) {
                   <img src={getImageUrl(item.image)} alt={item.name} className="drawer-item-img" />
                   <div className="drawer-item-info">
                     <div className="drawer-item-title">{item.name}</div>
+                    {(item.sku || item.variantName) && (
+                      <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        {item.sku && <span>SKU: <strong style={{ color: '#d1d5db', fontFamily: 'monospace' }}>{item.sku}</strong></span>}
+                        {item.variantName && <span>Biến thể: <strong style={{ color: '#f3f4f6' }}>{item.variantName}</strong></span>}
+                      </div>
+                    )}
                     <div className="drawer-item-price">{formatPrice(item.price)}</div>
                     <div className="drawer-item-qty">
                       <button onClick={() => handleUpdateQuantity(item, item.quantity - 1)}>-</button>

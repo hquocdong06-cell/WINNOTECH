@@ -17,10 +17,7 @@
   left: 0;
   right: 0;
   height: 400px;
-  background: 
-    radial-gradient(ellipse 60% 50% at 20% 100%, rgba(124, 58, 237, 0.15) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 40% at 80% 100%, rgba(59, 130, 246, 0.12) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 30% at 50% 100%, rgba(200, 230, 0, 0.05) 0%, transparent 60%);
+  background: transparent;
   pointer-events: none;
   z-index: 0;
 }
@@ -1006,27 +1003,66 @@
 .profile-order-item-body {
   display: flex; align-items: center; justify-content: space-between;
   margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05);
-  flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+  flex-wrap: wrap; gap: 12px; margin-bottom: 12px;
 }
-.profile-order-item-meta { display: flex; gap: 18px; flex-wrap: wrap; }
+.profile-order-item-meta { display: flex; gap: 20px; flex-wrap: wrap; flex: 1; align-items: flex-start; }
 .profile-order-item-meta span { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); }
-.profile-order-item-total { font-size: 16px; font-weight: 800; color: var(--white); }
-.profile-order-item-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.profile-order-item-total { font-size: 16px; font-weight: 800; color: var(--white); align-self: center; }
+
+/* Product Summary List & Voucher Columns */
+.order-meta-col { display: flex; flex-direction: column; gap: 4px; }
+.order-meta-date span { color: var(--text-muted); font-size: 12px; }
+
+.order-meta-products { display: flex; flex-direction: column; gap: 5px; }
+.order-product-line {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: #e4e4e7; line-height: 1.4;
+}
+.order-product-line svg { flex-shrink: 0; color: #9ca3af; }
+.order-product-name { font-weight: 500; color: #f4f4f5; }
+.order-product-qty {
+  font-size: 11px; font-weight: 700; color: #10b981;
+  background: rgba(16,185,129,0.12); padding: 1px 6px;
+  border-radius: 4px; border: 1px solid rgba(16,185,129,0.25);
+  line-height: 1.2;
+}
+
+.order-voucher-col { display: flex; align-items: center; }
+.order-voucher-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; background: rgba(255, 255, 255, 0.04);
+  border: 1px solid #4b5563; border-radius: 7px;
+  font-size: 12px; color: #d1d5db; font-weight: 600;
+}
+.order-voucher-badge svg { color: #9ca3af; flex-shrink: 0; }
+.order-voucher-code { font-weight: 700; color: #f3f4f6; }
+.order-voucher-val { color: #9ca3af; font-weight: 600; }
+
+.profile-order-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.profile-order-item-voucher { display: flex; align-items: center; }
+.profile-order-item-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-left: auto; }
 .profile-order-btn {
   display: flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 7px;
   font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s;
   border: 1px solid var(--border); background: transparent; color: var(--text-muted);
 }
-.profile-order-btn--detail  { border-color: rgba(124,58,237,0.3);  color: var(--purple2);  background: rgba(124,58,237,0.08); }
-.profile-order-btn--detail:hover { background: rgba(124,58,237,0.18); color: #a78bfa; }
-.profile-order-btn--rebuy   { border-color: rgba(200,230,0,0.3);   color: var(--yellow);   background: rgba(200,230,0,0.06); }
-.profile-order-btn--rebuy:hover { background: rgba(200,230,0,0.12); }
-.profile-order-btn--cancel  { border-color: rgba(239,68,68,0.3);   color: #f87171;  background: rgba(239,68,68,0.06); }
-.profile-order-btn--cancel:hover { background: rgba(239,68,68,0.12); }
-.profile-order-btn--refund  { border-color: rgba(249,115,22,0.3);  color: #fb923c;  background: rgba(249,115,22,0.06); }
-.profile-order-btn--refund:hover { background: rgba(249,115,22,0.12); }
-.profile-order-btn--review  { border-color: rgba(251,191,36,0.3);  color: #fbbf24;  background: rgba(251,191,36,0.06); }
-.profile-order-btn--review:hover { background: rgba(251,191,36,0.12); }
+.profile-order-btn--detail  { border: 1px solid #ffffff; color: #ffffff; background: rgba(255,255,255,0.06); }
+.profile-order-btn--detail:hover { background: rgba(255,255,255,0.18); border-color: #ffffff; color: #ffffff; box-shadow: 0 0 8px rgba(255,255,255,0.25); }
+.profile-order-btn--rebuy   { border: 1px solid #4b5563; color: #9ca3af; background: rgba(255,255,255,0.04); }
+.profile-order-btn--rebuy:hover { border-color: #6b7280; background: rgba(255,255,255,0.1); color: #ffffff; }
+.profile-order-btn--cancel  { border: 1px solid #4b5563; color: #9ca3af; background: rgba(255,255,255,0.04); }
+.profile-order-btn--cancel:hover { border-color: #6b7280; background: rgba(255,255,255,0.1); color: #ffffff; }
+.profile-order-btn--refund  { border: 1px solid #4b5563; color: #9ca3af; background: rgba(255,255,255,0.04); }
+.profile-order-btn--refund:hover { border-color: #6b7280; background: rgba(255,255,255,0.1); color: #ffffff; }
+.profile-order-btn--review  { border: 1px solid #4b5563; color: #9ca3af; background: rgba(255,255,255,0.04); }
+.profile-order-btn--review:hover { border-color: #6b7280; background: rgba(255,255,255,0.1); color: #ffffff; }
 
 /* ── Order Flow Tracker ── */
 .order-flow-tracker {
@@ -1064,19 +1100,22 @@
 }
 
 .flow-step.done .flow-step-dot {
-  background: #4ade80;
-  border-color: #4ade80;
-  box-shadow: 0 0 8px rgba(74,222,128,0.4);
+  background: #374151;
+  border-color: #4b5563;
+  color: #9ca3af;
+  box-shadow: none;
 }
 
 .flow-step.active .flow-step-dot {
-  background: rgba(200,230,0,0.15);
-  border-color: #c8e600;
-  box-shadow: 0 0 10px rgba(200,230,0,0.3);
+  background: #22c55e;
+  border-color: #22c55e;
+  box-shadow: 0 0 10px rgba(34,197,94,0.5);
 }
 
 .flow-step.pending .flow-step-dot {
-  opacity: 0.35;
+  background: transparent;
+  border-color: #9ca3af;
+  opacity: 1;
 }
 
 /* Connector line */
@@ -1086,24 +1125,24 @@
   left: calc(50% + 11px);
   right: calc(-50% + 11px);
   height: 2px;
-  background: var(--border);
+  background: #4b5563;
   z-index: 0;
   transition: background 0.3s;
 }
-.flow-step-line.done { background: #4ade80; }
+.flow-step-line.done { background: #374151; }
 
 /* Pulse animation for active step */
 .flow-step-pulse {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #c8e600;
+  background: #ffffff;
   animation: pulseGlow 1.4s infinite;
 }
 
 @keyframes pulseGlow {
   0%   { transform: scale(1);   opacity: 1; }
-  50%  { transform: scale(1.5); opacity: 0.6; }
+  50%  { transform: scale(1.4); opacity: 0.5; }
   100% { transform: scale(1);   opacity: 1; }
 }
 
@@ -1118,9 +1157,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.flow-step.done .flow-step-label   { color: #4ade80; }
-.flow-step.active .flow-step-label  { color: #c8e600; font-weight: 700; }
-.flow-step.pending .flow-step-label { opacity: 0.4; }
+.flow-step.done .flow-step-label   { color: #6b7280; font-weight: 500; }
+.flow-step.active .flow-step-label  { color: #22c55e; font-weight: 700; }
+.flow-step.pending .flow-step-label { color: #9ca3af; opacity: 1; font-weight: 400; }
 
 /* ── Sub-status Badge (for non-main-flow statuses) ── */
 .order-sub-status {
@@ -1427,24 +1466,24 @@
   display: flex; align-items: center; justify-content: center;
   z-index: 1; flex-shrink: 0; transition: all 0.3s;
 }
-.odm-flow-step.done   .odm-flow-dot { background: #4ade80; border-color: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,0.5); }
-.odm-flow-step.active .odm-flow-dot { background: rgba(200,230,0,0.15); border-color: #c8e600; box-shadow: 0 0 8px rgba(200,230,0,0.35); }
-.odm-flow-step.pending .odm-flow-dot { opacity: 0.3; }
+.odm-flow-step.done   .odm-flow-dot { background: #374151; border-color: #4b5563; color: #9ca3af; box-shadow: none; }
+.odm-flow-step.active .odm-flow-dot { background: #22c55e; border-color: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.5); }
+.odm-flow-step.pending .odm-flow-dot { background: transparent; border-color: #9ca3af; opacity: 1; }
 .odm-flow-line {
   position: absolute; top: 9px;
   left: calc(50% + 10px); right: calc(-50% + 10px);
-  height: 2px; background: rgba(255,255,255,0.08); z-index: 0; transition: background 0.3s;
+  height: 2px; background: #4b5563; z-index: 0; transition: background 0.3s;
 }
-.odm-flow-line.done { background: #4ade80; }
-.odm-flow-pulse { width: 7px; height: 7px; border-radius: 50%; background: #c8e600; animation: pulseGlow 1.4s infinite; }
+.odm-flow-line.done { background: #374151; }
+.odm-flow-pulse { width: 7px; height: 7px; border-radius: 50%; background: #ffffff; animation: pulseGlow 1.4s infinite; }
 .odm-flow-label {
   font-size: 8.5px; color: var(--text-muted); text-align: center;
   margin-top: 6px; line-height: 1.3; max-width: 60px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.odm-flow-step.done  .odm-flow-label  { color: #4ade80; }
-.odm-flow-step.active .odm-flow-label { color: #c8e600; font-weight: 700; }
-.odm-flow-step.pending .odm-flow-label { opacity: 0.35; }
+.odm-flow-step.done  .odm-flow-label  { color: #6b7280; font-weight: 500; }
+.odm-flow-step.active .odm-flow-label { color: #22c55e; font-weight: 700; }
+.odm-flow-step.pending .odm-flow-label { color: #9ca3af; opacity: 1; font-weight: 400; }
 
 .odm-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .odm-action-btn {
@@ -1453,20 +1492,20 @@
   cursor: pointer; font-family: inherit; transition: all 0.2s;
   border: 1px solid; white-space: nowrap;
 }
-.odm-action-btn--rebuy   { background: rgba(200,230,0,0.08);  border-color: rgba(200,230,0,0.3);  color: #c8e600; }
-.odm-action-btn--rebuy:hover   { background: rgba(200,230,0,0.15); }
-.odm-action-btn--cancel  { background: rgba(239,68,68,0.08);  border-color: rgba(239,68,68,0.3);  color: #f87171; }
-.odm-action-btn--cancel:hover  { background: rgba(239,68,68,0.15); }
-.odm-action-btn--track   { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.3); color: #60a5fa; }
-.odm-action-btn--track:hover   { background: rgba(59,130,246,0.15); }
-.odm-action-btn--review  { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.3); color: #fbbf24; }
-.odm-action-btn--review:hover  { background: rgba(251,191,36,0.15); }
-.odm-action-btn--refund  { background: rgba(20,184,166,0.08); border-color: rgba(20,184,166,0.3); color: #2dd4bf; }
-.odm-action-btn--refund:hover  { background: rgba(20,184,166,0.15); }
-.odm-action-btn--contact { background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.3); color: #c084fc; }
-.odm-action-btn--contact:hover { background: rgba(168,85,247,0.15); }
-.odm-action-btn--invoice { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); color: var(--text-muted); }
-.odm-action-btn--invoice:hover { border-color: rgba(255,255,255,0.25); color: var(--white); }
+.odm-action-btn--rebuy   { background: rgba(255,255,255,0.04); border-color: #4b5563; color: #9ca3af; }
+.odm-action-btn--rebuy:hover   { background: rgba(255,255,255,0.1); border-color: #6b7280; color: #ffffff; }
+.odm-action-btn--cancel  { background: rgba(255,255,255,0.04); border-color: #4b5563; color: #9ca3af; }
+.odm-action-btn--cancel:hover  { background: rgba(255,255,255,0.1); border-color: #6b7280; color: #ffffff; }
+.odm-action-btn--track   { background: rgba(255,255,255,0.04); border-color: #4b5563; color: #9ca3af; }
+.odm-action-btn--track:hover   { background: rgba(255,255,255,0.1); border-color: #6b7280; color: #ffffff; }
+.odm-action-btn--review  { background: rgba(255,255,255,0.04); border-color: #4b5563; color: #9ca3af; }
+.odm-action-btn--review:hover  { background: rgba(255,255,255,0.1); border-color: #6b7280; color: #ffffff; }
+.odm-action-btn--refund  { background: rgba(255,255,255,0.04); border-color: #4b5563; color: #9ca3af; }
+.odm-action-btn--refund:hover  { background: rgba(255,255,255,0.1); border-color: #6b7280; color: #ffffff; }
+.odm-action-btn--contact { background: rgba(255,255,255,0.04); border-color: #4b5563; color: #9ca3af; }
+.odm-action-btn--contact:hover { background: rgba(255,255,255,0.1); border-color: #6b7280; color: #ffffff; }
+.odm-action-btn--invoice { background: rgba(255,255,255,0.04); border-color: #4b5563; color: #9ca3af; }
+.odm-action-btn--invoice:hover { background: rgba(255,255,255,0.1); border-color: #6b7280; color: #ffffff; }
 
 .odm-timeline { display: flex; flex-direction: column; }
 .odm-timeline-item {

@@ -71,6 +71,7 @@ export default function Profile() {
   // ── Review modal ──
   const [reviewModal, setReviewModal] = useState(null) // { orderId, items: [] }
   const [reviewForm, setReviewForm] = useState({})    // { [orderItemId]: { star: 5, content: '' } }
+  const [expandedReviewItems, setExpandedReviewItems] = useState({}) // { [orderItemId]: boolean }
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
 
   // ── Cancel confirm modal ──
@@ -205,12 +206,37 @@ export default function Profile() {
     } catch { toast.error('Lỗi kết nối') }
   }
 
+  const handleOpenReview = (targetOrder) => {
+    if (!targetOrder) return
+    const orderId = targetOrder.id || targetOrder._id
+    const fullOrder = orders.find(o => o._id === orderId || o.code === orderId || o._id === targetOrder.rawOrder?._id) || targetOrder.rawOrder || targetOrder
+    const rawItems = fullOrder?.items || targetOrder.products || targetOrder.rawOrder?.items || []
+
+    const items = rawItems.map((oi, idx) => {
+      const pName = oi.product?.name || oi.variants_id?.p_id?.name || oi.variant?.variant_name || oi.name || 'Sản phẩm'
+      const vName = oi.variant?.variant_name && oi.variant?.variant_name !== 'Mặc định' ? ` (${oi.variant.variant_name})` : ''
+      return {
+        orderItemId: oi._id || `item_${idx}`,
+        name: pName + vName
+      }
+    })
+
+    setReviewModal({ orderId, items })
+    setExpandedReviewItems({})
+    const initForm = {}
+    items.forEach(it => {
+      initForm[it.orderItemId] = { star: 5, content: '' }
+    })
+    setReviewForm(initForm)
+  }
+
   const getOrderDetail = (order) => {
     if (!order) return null
     const items = order.items || []
     return {
       id: order.code || order._id,
       _id: order._id,           // MongoDB ObjectId thật — dùng cho PDF URL
+      isReviewed: !!order.isReviewed,
       date: formatDate(order.createdAt),
       status: order.status,
       payMethod: (order.payment_method && typeof order.payment_method === 'object') ? order.payment_method.name : (order.payment_method || 'COD'),
@@ -242,17 +268,32 @@ export default function Profile() {
     }
   }
 
-  const orders_for_table = orders.map(o => ({
-    id: o._id,
-    code: o.code || o._id?.slice(-8).toUpperCase(),
-    date: formatDate(o.createdAt),
-    total: formatPrice(o.total_amount),
-    status: (o.isReviewed && o.status === 'delivered') ? 'completed' : o.status,
-    payment_status: o.payment_status || 'unpaid',
-    isReviewed: !!o.isReviewed,
-    items: (o.items || []).length,
-    rawOrder: o
-  }))
+  const orders_for_table = orders.map(o => {
+    const itemsList = (o.items || []).map(oi => {
+      const pName = oi.product?.name || oi.variant?.variant_name || oi.product_name || oi.name || 'Sản phẩm'
+      const vName = oi.variant?.variant_name && oi.variant?.variant_name !== 'Mặc định' ? oi.variant?.variant_name : ''
+      const qty = oi.Quantity || oi.quantity || 1
+      return {
+        name: pName,
+        variant: vName,
+        qty: qty
+      }
+    })
+    return {
+      id: o._id,
+      code: o.code || o._id?.slice(-8).toUpperCase(),
+      date: formatDate(o.createdAt),
+      total: formatPrice(o.total_amount),
+      status: (o.isReviewed && o.status === 'delivered') ? 'completed' : o.status,
+      payment_status: o.payment_status || 'unpaid',
+      isReviewed: !!o.isReviewed,
+      items: (o.items || []).length,
+      itemsList,
+      voucherCode: o.voucher_code || '',
+      voucherValue: o.voucher_value || 0,
+      rawOrder: o
+    }
+  })
 
 
 
@@ -628,10 +669,10 @@ export default function Profile() {
                 <div className="odm-info-row"><span className="odm-info-label">Ngày đặt hàng</span><span className="odm-info-value">{detail.date}</span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Trạng thái</span><span className={`order-status status-${detail.status}`} style={{fontSize:'11px'}}>{statusMap[detail.status]}</span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Trạng thái thanh toán</span><span style={{
-                  fontSize:'11px', fontWeight:700, padding:'2px 8px', borderRadius:'999px',
-                  background: detail.payment_status === 'paid' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
-                  color: detail.payment_status === 'paid' ? '#10b981' : '#f59e0b',
-                  border: `1px solid ${detail.payment_status === 'paid' ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`
+                  fontSize:'11px', fontWeight:700, padding:'3px 10px', borderRadius:'999px',
+                  background: 'rgba(255,255,255,0.04)',
+                  color: '#9ca3af',
+                  border: '1px solid #4b5563'
                 }}>{detail.payment_status === 'paid' ? '✔ Đã thanh toán' : '⧘ Chưa thanh toán'}</span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Phương thức thanh toán</span><span className="odm-info-value">{detail.payMethod}</span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Mã vận đơn</span><span className="odm-info-value odm-tracking">{detail.trackingCode}</span></div>
@@ -726,7 +767,7 @@ export default function Profile() {
               </div>
               <div className="odm-info-grid">
                 <div className="odm-info-row"><span className="odm-info-label">Đơn vị vận chuyển</span><span className="odm-info-value">{detail.shipping.carrier}</span></div>
-                <div className="odm-info-row"><span className="odm-info-label">Mã tracking</span><span className="odm-info-value odm-tracking">{detail.shipping.tracking}</span></div>
+                <div className="odm-info-row"><span className="odm-info-label">Trạng thái đơn hàng</span><span className="odm-info-value odm-tracking">{statusMap[detail.status] || detail.shipping.tracking}</span></div>
               </div>
               {/* Mini flow tracker */}
               {isMainFlow && (
@@ -752,9 +793,27 @@ export default function Profile() {
                 Thao tác
               </div>
               <div className="odm-actions">
-                {(detail.status === 'done' || detail.status === 'completed') && (
-                  <button className="odm-action-btn odm-action-btn--rebuy">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.53"/></svg>Mua lại
+                {(detail.status === 'done' || detail.status === 'completed' || detail.status === 'delivered') && (
+                  <button
+                    className={`odm-action-btn odm-action-btn--review ${detail.isReviewed ? 'disabled' : ''}`}
+                    disabled={detail.isReviewed}
+                    onClick={() => {
+                      if (!detail.isReviewed) {
+                        onClose()
+                        handleOpenReview(detail)
+                      }
+                    }}
+                    style={detail.isReviewed ? {
+                      opacity: 0.45,
+                      cursor: 'not-allowed',
+                      borderColor: '#374151',
+                      color: '#6b7280',
+                      background: 'rgba(255,255,255,0.02)',
+                      pointerEvents: 'none'
+                    } : {}}
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    {detail.isReviewed ? 'Đã đánh giá' : 'Đánh giá'}
                   </button>
                 )}
                 {detail.status === 'pending' && (
@@ -863,106 +922,113 @@ export default function Profile() {
             ) : (
               reviewModal.items.map(item => {
                 const itemState = reviewForm[item.orderItemId] || { star: 5, content: '' }
-                const starLabels = ['', '1★ Rất không hài lòng 😞', '2★ Không hài lòng 🙁', '3★ Bình thường 😐', '4★ Hài lòng 😊', '5★ Tuyệt vời! 🌟']
-                const quickTags = ['🚀 Giao hàng siêu nhanh', '📦 Đóng gói cẩn thận', '⭐ Sản phẩm chính hãng', '💬 Tư vấn nhiệt tình']
+                const isExpanded = Boolean(expandedReviewItems[item.orderItemId])
+                const hasContent = Boolean(itemState.content && itemState.content.trim())
+                const quickTags = ['Giao hàng siêu nhanh', 'Đóng gói cẩn thận', 'Sản phẩm chính hãng', 'Tư vấn nhiệt tình']
+
+                const toggleExpand = () => {
+                  setExpandedReviewItems(prev => ({
+                    ...prev,
+                    [item.orderItemId]: !prev[item.orderItemId]
+                  }))
+                }
 
                 return (
-                  <div key={item.orderItemId} style={{ marginBottom:'24px',padding:'18px',background:'#20202e',border:'1px solid #33334d',borderRadius:'14px' }}>
-                    <div style={{ fontWeight:700,marginBottom:'12px',fontSize:'14px',color:'#fff' }}>
-                      🛒 {item.name}
-                    </div>
-
-                    {/* Star rating */}
-                    <div style={{ display:'flex',alignItems:'center',gap:'8px',marginBottom:'12px',background:'#161622',padding:'10px 14px',borderRadius:'10px' }}>
-                      <div style={{ display:'flex',gap:'4px' }}>
-                        {[1,2,3,4,5].map(star => (
-                          <button 
-                            key={star} 
-                            type="button"
-                            onClick={() => setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], star } }))}
-                            style={{ background:'none',border:'none',fontSize:'26px',cursor:'pointer',color: (itemState.star || 5) >= star ? '#f5a623' : '#444',transition:'transform 0.1s' }}
-                            onMouseOver={e => e.currentTarget.style.transform = 'scale(1.2)'}
-                            onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-                          >
-                            ★
-                          </button>
-                        ))}
-                      </div>
-                      <span style={{ fontSize:'13px',fontWeight:700,color:'#f5a623',marginLeft:'8px' }}>
-                        {starLabels[itemState.star || 5]}
-                      </span>
-                    </div>
-
-                    {/* Quick Tags */}
-                    <div style={{ display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'12px' }}>
-                      {quickTags.map(tag => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => {
-                            const curText = itemState.content || ''
-                            const newText = curText ? `${curText} - ${tag}` : tag
-                            setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], content: newText } }))
-                          }}
-                          style={{ fontSize:'11px',padding:'4px 10px',background:'#2a2a3d',border:'1px solid #444460',borderRadius:'20px',color:'#ddd',cursor:'pointer' }}
-                        >
-                          + {tag}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Review text */}
-                    <textarea
-                      placeholder="Hãy chia sẻ cảm nhận của bạn về chất lượng sản phẩm, dịch vụ giao hàng..."
-                      rows={3}
-                      value={itemState.content || ''}
-                      onChange={e => setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], content: e.target.value } }))}
-                      style={{ width:'100%',padding:'12px',background:'#161622',border:'1px solid #3d3d56',borderRadius:'10px',fontSize:'13px',color:'#fff',resize:'vertical',boxSizing:'border-box',outline:'none' }}
-                    />
-
-                    {/* Upload Images */}
-                    <div style={{ marginTop: '12px' }}>
-                      <div style={{ fontSize: '12px', color: '#ccc', marginBottom: '6px', fontWeight: 600 }}>
-                        📷 Đính kèm hình ảnh thực tế (Tối đa 5 ảnh):
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                        {(itemState.imageFiles || []).map((file, imgIdx) => (
-                          <div key={imgIdx} style={{ position: 'relative', width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #d4ff00' }}>
-                            <img src={URL.createObjectURL(file)} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newFiles = (itemState.imageFiles || []).filter((_, idx) => idx !== imgIdx)
-                                setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], imageFiles: newFiles } }))
-                              }}
-                              style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-
-                        {(itemState.imageFiles || []).length < 5 && (
-                          <label style={{ width: '64px', height: '64px', borderRadius: '8px', border: '1px dashed #555', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#161622', color: '#aaa', fontSize: '11px' }}>
-                            <span style={{ fontSize: '18px', lineHeight: '1' }}>+</span>
-                            <span>Thêm ảnh</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              onChange={e => {
-                                const files = Array.from(e.target.files || [])
-                                if (!files.length) return
-                                const currentFiles = itemState.imageFiles || []
-                                const combined = [...currentFiles, ...files].slice(0, 5)
-                                setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], imageFiles: combined } }))
-                              }}
-                              style={{ display: 'none' }}
-                            />
-                          </label>
+                  <div 
+                    key={item.orderItemId} 
+                    style={{ 
+                      marginBottom:'16px',
+                      padding:'16px 18px',
+                      background:'#20202e',
+                      border: `1px solid ${isExpanded ? '#9ca3af' : '#33334d'}`,
+                      borderRadius:'14px',
+                      transition:'all 0.2s'
+                    }}
+                  >
+                    {/* Header dòng SP kèm nút Cây viết */}
+                    <div 
+                      style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px',cursor:'pointer' }}
+                      onClick={toggleExpand}
+                    >
+                      <div style={{ fontWeight:700,fontSize:'14px',color:'#fff',display:'flex',alignItems:'center',gap:'8px',flex:1 }}>
+                        <span>🛒</span>
+                        <span>{item.name}</span>
+                        {hasContent && (
+                          <span style={{ fontSize:'11px',padding:'2px 8px',borderRadius:'999px',background:'rgba(34,197,94,0.15)',color:'#22c55e',border:'1px solid rgba(34,197,94,0.3)',fontWeight:600 }}>✓ Đã nhập đánh giá</span>
                         )}
                       </div>
+
+                      {/* Nút cây viết Đánh giá (Toggle) */}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); toggleExpand() }}
+                        title={isExpanded ? "Ẩn phần đánh giá" : "Viết đánh giá sản phẩm"}
+                        style={{
+                          display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',
+                          padding:'6px 12px',borderRadius:'8px',
+                          background: isExpanded ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${isExpanded ? '#e5e7eb' : '#4b5563'}`,
+                          color: isExpanded ? '#ffffff' : '#9ca3af',
+                          cursor:'pointer',fontSize:'12px',fontWeight:600,transition:'all 0.2s'
+                        }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        <span>{isExpanded ? 'Ẩn' : 'Viết đánh giá'}</span>
+                      </button>
                     </div>
+
+                    {/* Chi tiết form đánh giá (Hiển thị khi click cây viết) */}
+                    {isExpanded && (
+                      <div style={{ marginTop:'14px',paddingTop:'14px',borderTop:'1px solid #2d2d3f' }}>
+                        {/* Star rating */}
+                        <div style={{ display:'flex',alignItems:'center',gap:'8px',marginBottom:'12px' }}>
+                          <div style={{ display:'flex',gap:'4px' }}>
+                            {[1,2,3,4,5].map(star => (
+                              <button 
+                                key={star} 
+                                type="button"
+                                onClick={() => setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], star } }))}
+                                style={{ background:'none',border:'none',fontSize:'26px',cursor:'pointer',color: (itemState.star || 5) >= star ? '#f5a623' : '#444',transition:'transform 0.1s' }}
+                                onMouseOver={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                                onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                              >
+                                ★
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Quick Tags */}
+                        <div style={{ display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'12px' }}>
+                          {quickTags.map(tag => (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => {
+                                const curText = itemState.content || ''
+                                const newText = curText ? `${curText} - ${tag}` : tag
+                                setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], content: newText } }))
+                              }}
+                              style={{ fontSize:'11px',padding:'4px 10px',background:'#2a2a3d',border:'1px solid #444460',borderRadius:'20px',color:'#ddd',cursor:'pointer' }}
+                            >
+                              + {tag}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Review text */}
+                        <textarea
+                          placeholder="Hãy chia sẻ cảm nhận của bạn về chất lượng sản phẩm, dịch vụ giao hàng..."
+                          rows={3}
+                          value={itemState.content || ''}
+                          onChange={e => setReviewForm(f => ({ ...f, [item.orderItemId]: { ...f[item.orderItemId], content: e.target.value } }))}
+                          style={{ width:'100%',padding:'12px',background:'#161622',border:'1px solid #3d3d56',borderRadius:'10px',fontSize:'13px',color:'#fff',resize:'vertical',boxSizing:'border-box',outline:'none' }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )
               })
@@ -981,19 +1047,25 @@ export default function Profile() {
                 onClick={async () => {
                   setReviewSubmitting(true)
                   let successCount = 0, failCount = 0
-                  for (const item of reviewModal.items) {
-                    const { star, content, imageFiles } = reviewForm[item.orderItemId] || { star: 5, content: '', imageFiles: [] }
-                    if (!content || !content.trim()) { failCount++; continue }
+
+                  const itemsToSubmit = reviewModal.items.filter(item => {
+                    const form = reviewForm[item.orderItemId]
+                    return form && form.content && form.content.trim().length > 0
+                  })
+
+                  if (itemsToSubmit.length === 0) {
+                    toast.info('Vui lòng nhấn vào cây viết và nhập nội dung đánh giá cho sản phẩm bạn muốn đánh giá.', { position: 'bottom-right' })
+                    setReviewSubmitting(false)
+                    return
+                  }
+
+                  for (const item of itemsToSubmit) {
+                    const { star, content } = reviewForm[item.orderItemId] || { star: 5, content: '' }
                     try {
                       const formData = new FormData()
                       formData.append('order_item_id', item.orderItemId)
                       formData.append('star_number', star)
                       formData.append('content', content)
-                      if (imageFiles && imageFiles.length > 0) {
-                        imageFiles.forEach(file => {
-                          formData.append('images', file)
-                        })
-                      }
 
                       const res = await fetch(API_URL + '/reviews', {
                         method: 'POST', 
@@ -1005,15 +1077,17 @@ export default function Profile() {
                       else failCount++
                     } catch { failCount++ }
                   }
+
                   setReviewSubmitting(false)
                   if (successCount > 0) {
                     toast.success(`🎉 Đã gửi ${successCount} đánh giá sản phẩm thành công!`, { position: 'bottom-right' })
                     if (reviewModal?.orderId) {
                       setOrders(prev => prev.map(o => (o._id === reviewModal.orderId || o.code === reviewModal.orderId || o.id === reviewModal.orderId) ? { ...o, status: 'completed', isReviewed: true } : o))
                     }
+                    setReviewModal(null)
+                  } else if (failCount > 0) {
+                    toast.warn('Không thể gửi đánh giá. Vui lòng thử lại sau.', { position: 'bottom-right' })
                   }
-                  if (failCount > 0) toast.warn(`${failCount} sản phẩm chưa gửi được (có thể đã đánh giá hoặc chưa nhập nội dung)`, { position: 'bottom-right' })
-                  setReviewModal(null)
                 }}
                 style={{ 
                   padding:'10px 28px',
@@ -1027,7 +1101,7 @@ export default function Profile() {
                   boxShadow:'0 0 15px rgba(212,255,0,0.3)'
                 }}
               >
-                {reviewSubmitting ? 'Đang gửi...' : 'Gửi Đánh Giá'}
+                {reviewSubmitting ? 'Đang cập nhật...' : 'Cập nhật toàn bộ đánh giá'}
               </button>
             </div>
           </div>
@@ -1449,12 +1523,11 @@ export default function Profile() {
                                 #{order.code || order.id}
                               </div>
                               <div style={{display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap'}}>
-                                <span className={`order-status status-${order.status}`}>{statusMap[order.status]}</span>
                                 <span style={{
-                                  fontSize:'10px', fontWeight:700, padding:'2px 8px', borderRadius:'999px',
-                                  background: order.payment_status === 'paid' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
-                                  color: order.payment_status === 'paid' ? '#10b981' : '#f59e0b',
-                                  border: `1px solid ${order.payment_status === 'paid' ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`
+                                  fontSize:'10px', fontWeight:700, padding:'3px 10px', borderRadius:'999px',
+                                  background: 'rgba(255,255,255,0.04)',
+                                  color: '#9ca3af',
+                                  border: '1px solid #4b5563'
                                 }}>
                                   {order.payment_status === 'paid' ? '✔ Đã thanh toán' : '⧘ Chưa thanh toán'}
                                 </span>
@@ -1497,61 +1570,87 @@ export default function Profile() {
                             {/* Meta + tổng tiền */}
                             <div className="profile-order-item-body">
                               <div className="profile-order-item-meta">
-                                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> {order.date}</span>
-                                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg> {order.items} sản phẩm</span>
+                                <div className="order-meta-col order-meta-date">
+                                  <span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    {order.date}
+                                  </span>
+                                </div>
+
+                                {/* Tóm tắt danh sách tên SP + SL (Mỗi SP 1 dòng) */}
+                                <div className="order-meta-col order-meta-products">
+                                  {order.itemsList && order.itemsList.length > 0 ? (
+                                    order.itemsList.map((it, idx) => (
+                                      <div key={idx} className="order-product-line">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+                                        <span className="order-product-name">{it.name}{it.variant ? ` (${it.variant})` : ''}</span>
+                                        <span className="order-product-qty">x{it.qty}</span>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="order-product-line">
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+                                      <span>{order.items || 1} sản phẩm</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                               <div className="profile-order-item-total">{order.total}</div>
                             </div>
 
-                            {/* Action buttons */}
-                            <div className="profile-order-item-actions">
-                              {(order.status === 'done' || order.status === 'completed' || order.status === 'delivered') &&
-                                <button className="profile-order-btn profile-order-btn--rebuy">
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.53"/></svg>Mua lại
+                            {/* Footer: Voucher (bên trái) + Action buttons (bên phải) ngang hàng */}
+                            <div className="profile-order-item-footer">
+                              <div className="profile-order-item-voucher">
+                                {(Boolean(order.voucherCode) || order.voucherValue > 0) && (
+                                  <div className="order-voucher-badge">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                                      <line x1="7" y1="7" x2="7.01" y2="7"/>
+                                    </svg>
+                                    <span className="order-voucher-code">{order.voucherCode ? `Mã: ${order.voucherCode}` : 'Voucher'}</span>
+                                    {order.voucherValue > 0 && (
+                                      <span className="order-voucher-val">(-{formatPrice(order.voucherValue)})</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="profile-order-item-actions">
+                                {(order.status === 'done' || order.status === 'completed' || order.status === 'delivered') && (
+                                  <button
+                                    className={`profile-order-btn profile-order-btn--review ${order.isReviewed ? 'disabled' : ''}`}
+                                    disabled={order.isReviewed}
+                                    onClick={() => !order.isReviewed && handleOpenReview(order)}
+                                    style={order.isReviewed ? {
+                                      opacity: 0.45,
+                                      cursor: 'not-allowed',
+                                      borderColor: '#374151',
+                                      color: '#6b7280',
+                                      background: 'rgba(255,255,255,0.02)',
+                                      pointerEvents: 'none'
+                                    } : {}}
+                                  >
+                                    <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                    {order.isReviewed ? 'Đã đánh giá' : 'Đánh giá'}
+                                  </button>
+                                )}
+                                {(order.status === 'pending' || order.status === 'preparing') &&
+                                  <button
+                                    className="profile-order-btn profile-order-btn--cancel"
+                                    onClick={() => { setCancelModal({ orderId: order.id, orderCode: order.code }); setCancelReason('') }}
+                                  >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Hủy đơn
+                                  </button>
+                                }
+                                {order.status === 'delivery_fail' &&
+                                  <button className="profile-order-btn profile-order-btn--refund">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.53"/></svg>Yêu cầu hoàn tiền
+                                  </button>
+                                }
+                                <button className="profile-order-btn profile-order-btn--detail" onClick={() => handleViewOrder(order.id)}>
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết
                                 </button>
-                              }
-                              {(order.status === 'pending' || order.status === 'preparing') &&
-                                <button
-                                  className="profile-order-btn profile-order-btn--cancel"
-                                  onClick={() => { setCancelModal({ orderId: order.id, orderCode: order.code }); setCancelReason('') }}
-                                >
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Hủy đơn
-                                </button>
-                              }
-                              {order.status === 'delivery_fail' &&
-                                <button className="profile-order-btn profile-order-btn--refund">
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.53"/></svg>Yêu cầu hoàn tiền
-                                </button>
-                              }
-                              {order.status === 'delivered' && !order.isReviewed && (
-                                <button
-                                  className="profile-order-btn profile-order-btn--review"
-                                  style={{ background: '#d4ff00', color: '#000', fontWeight: 700, border: 'none' }}
-                                  onClick={() => {
-                                    const fullOrder = orders.find(o => o._id === order.id || o.code === order.code || o._id === order.rawOrder?._id) || order.rawOrder || {}
-                                    const rawItems = fullOrder?.items || order.rawOrder?.items || []
-                                    const items = rawItems.map(oi => ({
-                                      orderItemId: oi._id,
-                                      name: oi.variants_id?.p_id?.name || oi.product?.name || oi.variants_id?.variant_name || oi.variant?.variant_name || 'Sản phẩm'
-                                    }))
-                                    setReviewModal({ orderId: order.id, items })
-                                    const initForm = {}
-                                    items.forEach(it => { initForm[it.orderItemId] = { star: 5, content: '' } })
-                                    setReviewForm(initForm)
-                                  }}
-                                >
-                                  <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                                  Đánh giá
-                                </button>
-                              )}
-                              {(order.isReviewed || order.status === 'completed' || order.status === 'done') && (
-                                <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', background: 'rgba(16,185,129,0.1)', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.2)' }}>
-                                  ✓ Đã hoàn thành
-                                </span>
-                              )}
-                              <button className="profile-order-btn profile-order-btn--detail" onClick={() => handleViewOrder(order.id)}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết
-                              </button>
+                              </div>
                             </div>
                           </div>
                         )

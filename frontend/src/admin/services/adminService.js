@@ -242,12 +242,30 @@ export function getOrderPdfUrl(id) {
 // ============================================================
 // REVENUE & STATS (ADMIN)
 // ============================================================
-export async function fetchRevenueStats(type = 'month') {
-  return apiFetch(`/admin/revenue/stats?type=${type}`);
+export async function fetchRevenueStats(type = 'month', startDate = '', endDate = '') {
+  let url = `/admin/revenue/stats?type=${type}`;
+  if (startDate) url += `&startDate=${startDate}`;
+  if (endDate) url += `&endDate=${endDate}`;
+  return apiFetch(url);
 }
 
-export function getRevenueExcelExportUrl() {
-  return `${API_BASE}/admin/revenue/export-excel`;
+export async function fetchMonthlyRevenue() {
+  return apiFetch('/admin/revenue/monthly');
+}
+
+export async function fetchRevenueByMonth(month) {
+  return apiFetch(`/admin/revenue/by-month${month ? `?month=${month}` : ''}`);
+}
+
+export async function fetchRevenueByWeek(weekStart) {
+  return apiFetch(`/admin/revenue/by-week${weekStart ? `?start=${weekStart}` : ''}`);
+}
+
+export function getRevenueExcelExportUrl(type = 'month', startDate = '', endDate = '') {
+  let url = `${API_BASE}/admin/revenue/export-excel?type=${type}`;
+  if (startDate) url += `&startDate=${startDate}`;
+  if (endDate) url += `&endDate=${endDate}`;
+  return url;
 }
 
 // ============================================================

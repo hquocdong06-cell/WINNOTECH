@@ -27,22 +27,8 @@
   background: rgba(10, 10, 26, 0.55);
 }
 
-@keyframes gradientShift {
-  0%, 100% {
-    background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0f0a1e 100%);
-  }
-  50% {
-    background: linear-gradient(135deg, #1a0a2e 0%, #2a0a3e 50%, #1a0a2e 100%);
-  }
-}
-
-.auth-background::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 20% 50%, rgba(200, 230, 0, 0.1) 0%, transparent 50%),
-              radial-gradient(ellipse at 80% 80%, rgba(140, 80, 255, 0.1) 0%, transparent 50%);
-  pointer-events: none;
+.auth-background {
+  background: #111111;
 }
 
 /* ── AUTH CONTENT ── */

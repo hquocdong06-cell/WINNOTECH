@@ -932,6 +932,27 @@ export default function ProductDetail() {
   const [error, setError] = useState(null)
   const [relatedProducts, setRelatedProducts] = useState([])
 
+  const [reviewsList, setReviewsList] = useState([])
+  const [avgRating, setAvgRating] = useState(5)
+  const [loadingReviews, setLoadingReviews] = useState(true)
+
+  const loadReviews = async (productIdOverride) => {
+    const targetId = productIdOverride || productData?.product?._id || slug
+    if (!targetId) return
+    try {
+      setLoadingReviews(true)
+      const data = await reviewAPI.getProductReviews(targetId)
+      if (data && data.success) {
+        setReviewsList(data.data || [])
+        setAvgRating(data.avgRating || 5)
+      }
+    } catch (e) {
+      console.error('Lỗi tải đánh giá sản phẩm:', e)
+    } finally {
+      setLoadingReviews(false)
+    }
+  }
+
   // Sidebar mock filters (giữ giao diện đẹp mắt của template)
   const brands = ['NVIDIA', 'AMD', 'ASUS', 'MSI', 'GIGABYTE']
   const productLines = [
@@ -997,6 +1018,9 @@ export default function ProductDetail() {
             } catch {
               // Không lấy được related products → bỏ qua
             }
+          }
+          if (currentProductId) {
+            loadReviews(currentProductId)
           }
         } else {
           setError(data.message || 'Không tìm thấy sản phẩm')
@@ -1349,7 +1373,9 @@ export default function ProductDetail() {
     const cartPayload = {
       product_id: product._id,
       variant_id: activeVariant._id,
-      name: product.name + (activeVariant.attributes && activeVariant.attributes.length > 0 ? ` - ${activeVariant.attributes.map(a => a.value).join(', ')}` : ''),
+      name: product.name,
+      sku: activeVariant?.sku || product?.sku || product?.code || '',
+      variantName: activeVariant?.variant_name && activeVariant?.variant_name !== 'Mặc định' ? activeVariant.variant_name : (activeVariant.attributes && activeVariant.attributes.length > 0 ? activeVariant.attributes.map(a => a.value).join(', ') : ''),
       price: currentPrice,
       quantity,
       image: images[0]
@@ -1401,6 +1427,8 @@ export default function ProductDetail() {
       product_id: product._id,
       variant_id: activeVar ? activeVar._id : null,
       name: product.name,
+      sku: activeVar?.sku || product?.sku || product?.code || '',
+      variantName: activeVar?.variant_name && activeVar?.variant_name !== 'Mặc định' ? activeVar.variant_name : '',
       price,
       quantity: 1,
       image: (product.AnhSP && product.AnhSP.length > 0) ? product.AnhSP[0].url : (product.thumnail || product.image)
@@ -1466,9 +1494,6 @@ export default function ProductDetail() {
 
   // ── ReviewSection component (Purchase-check & Customer Reviews) ──
   const ReviewSection = () => {
-    const [reviewsList, setReviewsList] = useState([])
-    const [avgRating, setAvgRating] = useState(5)
-    const [loadingReviews, setLoadingReviews] = useState(true)
     const [previewImage, setPreviewImage] = useState(null)
 
     const [eligibility, setEligibility] = useState({ canReview: false, hasPurchased: false, reason: null, order_item_id: null })
@@ -1480,23 +1505,6 @@ export default function ProductDetail() {
     const [rMsg, setRMsg] = useState(null)
 
     const productId = product?._id || slug
-
-    // Fetch reviews list
-    const loadReviews = async () => {
-      if (!productId) return
-      try {
-        setLoadingReviews(true)
-        const data = await reviewAPI.getProductReviews(productId)
-        if (data.success) {
-          setReviewsList(data.data || [])
-          setAvgRating(data.avgRating || 5)
-        }
-      } catch (e) {
-        console.error('Lỗi tải đánh giá sản phẩm:', e)
-      } finally {
-        setLoadingReviews(false)
-      }
-    }
 
     // Check eligibility for logged in user
     const checkUserEligibility = async () => {
@@ -1519,8 +1527,8 @@ export default function ProductDetail() {
       }
     }
 
+    // Chỉ check eligibility — loadReviews() đã được gọi từ parent khi fetch sản phẩm
     useEffect(() => {
-      loadReviews()
       checkUserEligibility()
     }, [productId, isLoggedIn])
 
@@ -1558,90 +1566,12 @@ export default function ProductDetail() {
 
     return (
       <div className="product-reviews-container" style={{ color: '#ccc' }}>
-        {/* Form Đánh giá (Chỉ hiển thị nút viết cho người dùng ĐÃ MUA sản phẩm & chưa đánh giá) */}
-        <div className="review-box" style={{ background: '#121621', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '10px', padding: '20px', marginBottom: '30px' }}>
-          <h3 style={{ fontSize: '15px', color: '#fff', marginBottom: '12px' }}>ĐÁNH GIÁ SẢN PHẨM</h3>
-          
-          {checkingEligibility ? (
-            <div style={{ fontSize: '13px', color: '#888' }}>Đang kiểm tra quyền đánh giá...</div>
-          ) : !isLoggedIn ? (
-            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px dashed #333', borderRadius: '8px', padding: '14px', fontSize: '13px', color: '#aaa' }}>
-              🔒 Vui lòng đăng nhập và mua sản phẩm này để viết đánh giá.
-            </div>
-          ) : eligibility.canReview ? (
-            <form onSubmit={handleSubmitReview} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <p style={{ margin: 0, fontSize: '13px', color: '#86efac' }}>
-                ✓ Bạn đã mua sản phẩm này! Hãy chia sẻ trải nghiệm thực tế của bạn:
-              </p>
-              <div>
-                <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '6px' }}>Chọn số sao đánh giá</label>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  {[1, 2, 3, 4, 5].map(s => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setRStars(s)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '24px', color: s <= rStars ? '#fbbf24' : '#444', transition: 'transform 0.1s' }}
-                    >
-                      ★
-                    </button>
-                  ))}
-                  <span style={{ fontSize: '14px', color: '#fbbf24', fontWeight: 700, marginLeft: '6px' }}>{rStars}/5 sao</span>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '6px' }}>Nội dung đánh giá *</label>
-                <textarea
-                  value={rContent}
-                  onChange={e => setRContent(e.target.value)}
-                  rows={4}
-                  placeholder="Nhập nhận xét chi tiết về sản phẩm (chất lượng, hiệu năng, đóng gói...)..."
-                  style={{ width: '100%', background: '#0a0a0f', border: '1px solid #333', borderRadius: '6px', padding: '10px 14px', color: '#fff', fontSize: '13px', outline: 'none', resize: 'vertical' }}
-                />
-              </div>
-
-              {rMsg && (
-                <div style={{
-                  padding: '10px 14px',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  background: rMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                  color: rMsg.type === 'success' ? '#22c55e' : '#ef4444',
-                  border: `1px solid ${rMsg.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`
-                }}>
-                  {rMsg.text}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={rSubmitting}
-                style={{
-                  alignSelf: 'flex-start',
-                  background: 'var(--accent-color, #c8e600)',
-                  color: '#000',
-                  border: 'none',
-                  padding: '10px 24px',
-                  borderRadius: '6px',
-                  fontWeight: 700,
-                  fontSize: '13px',
-                  cursor: rSubmitting ? 'not-allowed' : 'pointer',
-                  opacity: rSubmitting ? 0.7 : 1
-                }}
-              >
-                {rSubmitting ? 'Đang gửi...' : 'GỬI ĐÁNH GIÁ'}
-              </button>
-            </form>
-          ) : eligibility.alreadyReviewed ? (
-            <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '8px', padding: '14px', fontSize: '13px', color: '#86efac' }}>
-              ✓ Bạn đã gửi đánh giá cho sản phẩm này. Cảm ơn phản hồi của bạn!
-            </div>
-          ) : (
-            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px dashed #333', borderRadius: '8px', padding: '14px', fontSize: '13px', color: '#aaa' }}>
-              🔒 Bạn chưa mua sản phẩm này nên không thể gửi đánh giá. Dưới đây là đánh giá từ các khách hàng đã mua:
-            </div>
-          )}
+        {/* Thông báo chính sách Đánh giá */}
+        <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '10px', padding: '14px 18px', marginBottom: '24px', fontSize: '13px', color: '#aaa', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18" style={{ color: '#e4e4e7', flexShrink: 0 }}>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span>🔒 <strong>Chính sách đánh giá:</strong> Đánh giá sản phẩm chỉ dành cho khách hàng đã mua và hoàn tất đơn hàng (thực hiện trực tiếp tại mục <strong>Lịch sử đơn hàng</strong>).</span>
         </div>
 
         {/* Danh sách Đánh giá của Khách hàng (Công khai cho tất cả người xem) */}
@@ -1795,8 +1725,8 @@ export default function ProductDetail() {
                       <span>SKU: {activeVariant?.sku || product.sku || String(product._id || '').slice(-8).toUpperCase()}</span>
                       <span style={{ color: '#333' }}>|</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ color: '#fbbf24' }}>⭐ 5.0</span>
-                        <span style={{ color: 'var(--text-muted)' }}>(0 đánh giá)</span>
+                        <span style={{ color: '#fbbf24' }}>⭐ {reviewsList.length > 0 ? Number(avgRating).toFixed(1) : '5.0'}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>({reviewsList.length} đánh giá)</span>
                       </div>
                       <span style={{ color: '#333' }}>|</span>
                       <span className="status-badge" style={{ 
@@ -1949,9 +1879,9 @@ export default function ProductDetail() {
                         style={{ 
                           flex: 1,
                           height: '48px',
-                          background: isOutOfStock ? '#333' : 'rgba(212, 255, 0, 0.12)', 
-                          color: isOutOfStock ? '#888' : 'var(--accent-color)', 
-                          border: isOutOfStock ? '1px solid #444' : '1px solid var(--accent-color)',
+                          background: isOutOfStock ? '#333' : 'transparent', 
+                          color: isOutOfStock ? '#888' : '#e4e4e7', 
+                          border: isOutOfStock ? '1px solid #444' : '1px solid #e4e4e7',
                           fontWeight: 'bold',
                           fontSize: '13px',
                           borderRadius: '8px',
@@ -1963,12 +1893,12 @@ export default function ProductDetail() {
                           transition: 'all 0.2s ease'
                         }}
                       >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isOutOfStock ? '#888' : '#e4e4e7'} strokeWidth="2">
                           <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
                           <line x1="3" y1="6" x2="21" y2="6" />
                           <path d="M16 10a4 4 0 0 1-8 0" />
                         </svg>
-                        {isOutOfStock ? 'HẾT HÀNG' : 'THÊM VÀO GIỎ HÀNG'}
+                        {isOutOfStock ? 'HẾT HÀNG' : 'THÊM GIỎ HÀNG'}
                       </button>
                       <button 
                         className="btn-buy-now" 
@@ -1977,9 +1907,9 @@ export default function ProductDetail() {
                         style={{ 
                           flex: 1,
                           height: '48px',
-                          background: isOutOfStock ? '#444' : 'var(--accent-color)', 
-                          color: isOutOfStock ? '#888' : '#000', 
-                          border: 'none',
+                          background: isOutOfStock ? '#444' : 'transparent', 
+                          color: isOutOfStock ? '#888' : '#D3FC00', 
+                          border: isOutOfStock ? 'none' : '1.5px solid #D3FC00',
                           fontWeight: 'bold',
                           fontSize: '13px',
                           borderRadius: '8px',
@@ -1991,7 +1921,7 @@ export default function ProductDetail() {
                           transition: 'all 0.2s ease'
                         }}
                       >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isOutOfStock ? '#888' : '#D3FC00'} strokeWidth="2">
                           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
                         </svg>
                         {isOutOfStock ? 'HẾT HÀNG' : 'MUA NGAY'}

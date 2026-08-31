@@ -74,6 +74,8 @@ export default function Cart() {
         product_id: d.product?._id,
         variant_id: d.cartItem?.variant_id,
         name:       d.product?.name || 'Sản phẩm',
+        sku:        d.variant?.sku || d.product?.sku || d.product?.code || '',
+        variantName:d.variant?.variant_name && d.variant?.variant_name !== 'Mặc định' ? d.variant.variant_name : '',
         price:      d.variant?.sale_price > 0 ? d.variant.sale_price : (d.variant?.price || 0),
         quantity:   d.cartItem?.quantity || 1,
         image:      getProductImage(d),
@@ -382,6 +384,26 @@ export default function Cart() {
                       </div>
                       <div className="item-info">
                         <div className="item-name">{item.name}</div>
+                        {(item.sku || item.variantName) && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '4px' }}>
+                            {item.sku && (
+                              <div style={{ fontSize: '11.5px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ fontWeight: 600, color: '#6b7280' }}>SKU:</span>
+                                <span style={{ fontFamily: 'monospace', color: '#d1d5db', background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: '4px' }}>
+                                  {item.sku}
+                                </span>
+                              </div>
+                            )}
+                            {item.variantName && (
+                              <div style={{ fontSize: '11.5px', color: '#d1d5db', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ fontWeight: 600, color: '#6b7280' }}>Biến thể:</span>
+                                <span style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', padding: '1px 7px', borderRadius: '4px', color: '#f3f4f6' }}>
+                                  {item.variantName}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="item-price">{formatPrice(item.price)}</div>
                       <div className="item-quantity">
@@ -620,9 +642,29 @@ export default function Cart() {
                             {item.product?.name || 'Sản phẩm'}
                           </Link>
                         </div>
-                        {specStr && (
-                          <div className="item-specs">{specStr}</div>
-                        )}
+
+                        {/* Display SKU & Biến thể */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '4px' }}>
+                          {(item.variant?.sku || item.product?.sku || item.product?.code) && (
+                            <div style={{ fontSize: '11.5px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span style={{ fontWeight: 600, color: '#6b7280' }}>SKU:</span>
+                              <span style={{ fontFamily: 'monospace', color: '#d1d5db', background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: '4px' }}>
+                                {item.variant?.sku || item.product?.sku || item.product?.code}
+                              </span>
+                            </div>
+                          )}
+
+                          {((item.variant?.variant_name && item.variant?.variant_name !== 'Mặc định') || specStr) && (
+                            <div style={{ fontSize: '11.5px', color: '#d1d5db', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span style={{ fontWeight: 600, color: '#6b7280' }}>Biến thể:</span>
+                              <span style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', padding: '1px 7px', borderRadius: '4px', color: '#f3f4f6' }}>
+                                {item.variant?.variant_name && item.variant?.variant_name !== 'Mặc định'
+                                  ? item.variant.variant_name
+                                  : specStr}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                         {/* Hiển thị giá sale nếu có */}
                         {item.variant?.sale_price > 0 && item.variant.sale_price < item.variant.price && (
                           <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>

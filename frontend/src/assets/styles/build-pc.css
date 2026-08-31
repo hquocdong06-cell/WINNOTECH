@@ -13,8 +13,8 @@
   --bp-border:  #2a2a2a;
   --bp-yellow:  #c8e600;
   --bp-yellow2: #d4f000;
-  --bp-purple:  #7c3aed;
-  --bp-purple2: #8b5cf6;
+  --bp-purple:  #e4e4e7;
+  --bp-purple2: #d1d5db;
   --bp-green:   #22c55e;
   --bp-red:     #ef4444;
   --bp-orange:  #f59e0b;
@@ -161,7 +161,7 @@
 }
 .bp-progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--bp-purple), var(--bp-yellow));
+  background: #e4e4e7;
   border-radius: 2px;
   transition: width 0.5s ease;
 }
@@ -396,7 +396,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--bp-purple), var(--bp-yellow));
+  background: #e4e4e7;
 }
 
 @media (max-width: 992px) {
@@ -929,13 +929,14 @@
 
 /* "Tiếp tục chọn linh kiện" — purple */
 .bp-cta-next {
-  background: linear-gradient(135deg, var(--bp-purple), #6d28d9);
+  background: #3f3f46;
   color: #fff;
+  border: 1px solid #52525b;
 }
 .bp-cta-next:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--bp-purple2), var(--bp-purple));
+  background: #52525b;
   transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(124,58,237,.4);
+  box-shadow: 0 4px 15px rgba(255,255,255,0.1);
 }
 
 /* ── CHECKOUT & CART ACTION BUTTONS ── */
@@ -1178,7 +1179,7 @@
 }
 .bp-modal-buy:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(200,230,0,.4); }
 .bp-modal-checkout {
-  background: linear-gradient(135deg, var(--bp-purple), #6d28d9);
+  background: #3f3f46;
   color: #fff;
   border: none;
   border-radius: 8px;

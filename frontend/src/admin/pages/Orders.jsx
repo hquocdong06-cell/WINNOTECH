@@ -87,7 +87,7 @@ const PaymentBadge = ({ payment_status }) => {
         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
         : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
     }`}>
-      {isPaid ? '✔ Đã thanh toán' : '⧘ Chưa TT'}
+      {isPaid ? '✔ Đã thanh toán' : '⧘ Chưa thanh toán'}
     </span>
   );
 };
@@ -1000,15 +1000,7 @@ const Orders = () => {
                         >
                           <FileText className="w-4 h-4" />
                         </a>
-                        {!['canceled','cancelled','completed'].includes(order.status) && (
-                          <button
-                            onClick={() => handleCancelOrder(order)}
-                            className="p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg transition-colors"
-                            title="Hủy đơn hàng"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+
                       </div>
                     </td>
                   </tr>
