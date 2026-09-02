@@ -903,7 +903,7 @@ export default function CategoryPage({ slug: propSlug, title: propTitle }) {
                           ) : (
                             product.sale > 0 && <span className="cpu-card-sale-badge">-{product.sale}%</span>
                           )}
-                          {variantCount > 1 && (
+                          {!['pc-gaming', 'pc-do-hoa', 'pc-van-phong'].includes(activeSlug) && variantCount > 1 && (
                             <span style={{ background: 'rgba(0,0,0,0.75)', color: '#d4ff00', fontSize: '9.5px', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(212,255,0,0.4)' }}>
                               {variantCount} Biến thể
                             </span>

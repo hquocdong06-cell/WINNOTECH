@@ -1169,6 +1169,9 @@ export default function ProductDetail() {
       || pNameG.includes('RTX') || pNameG.includes('GTX') || pNameG.includes('RX ')
       || pNameG.includes('ARC ') || pNameG.includes('GEFORCE') || pNameG.includes('RADEON')
 
+    const isMonitor = catNameG.includes('man-hinh') || catNameG.includes('màn hình') || catNameG.includes('monitor')
+      || pNameG.includes('MÀN HÌNH') || pNameG.includes('MONITOR')
+
     const specFilterOut = [
       'thương hiệu', 'bảo hành', 'nhu cầu', 'kiểu kết nối', 'kết nối', 
       'kiểu cầm', 'switch', 'độ phân giải (cpi/dpi)', 'độ phân giải', 
@@ -1197,13 +1200,19 @@ export default function ProductDetail() {
       Variants.forEach(v => {
         const attrs = v.Attributes || []
         attrs.forEach(a => {
-          const groupName = a.attribute_name || a.name || 'Thuộc tính'
+          let groupName = a.attribute_name || a.name || 'Thuộc tính'
           const valName = a.value_name || a.value
           if (!groupName || !valName) return
 
-          // Lọc bỏ các thông số kỹ thuật cố định, chỉ giữ lại các option mua hàng thực sự ở phía trên
+          // Lọc bỏ các thông số kỹ thuật cố định
           const lowerName = groupName.trim().toLowerCase()
           if (specFilterOut.some(s => lowerName === s || lowerName.includes(s) || s.includes(lowerName))) return
+
+          // Nếu là màn hình máy tính, loại bỏ hoàn toàn các thuộc tính chứa "dung lượng" hoặc "phiên bản / dung lượng"
+          if (isMonitor && (lowerName.includes('dung lượng') || lowerName.includes('dung luong'))) return
+
+          // Chuẩn hóa tiêu đề nếu là "Phiên bản / Dung lượng" nhưng không phải danh mục lưu trữ/RAM
+          if (groupName === 'Phiên bản / Dung lượng' && isMonitor) return
 
           if (!groups[groupName]) {
             groups[groupName] = { attribute_name: groupName, options: [] }
@@ -1221,11 +1230,11 @@ export default function ProductDetail() {
       const filteredGroups = Object.values(groups)
       
       // Fallback: nếu sản phẩm chưa có thuộc tính Dung lượng nhưng tên có chứa dung lượng (VD: 32GB, 16GB...)
-      // Bỏ qua cho GPU vì GB trong tên GPU là VRAM, không phải RAM hệ thống
+      // Bỏ qua cho GPU và Monitor
       const hasCapGroup = filteredGroups.some(g => 
         isMatchStr(g.attribute_name, 'Dung lượng') || isMatchStr(g.attribute_name, 'Dung lượng RAM')
       )
-      if (!hasCapGroup && !isGPU && product?.name) {
+      if (!hasCapGroup && !isGPU && !isMonitor && product?.name) {
         const capMatch = product.name.match(/\b(\d+\s*GB|\d+\s*TB)\b/i)
         if (capMatch) {
           const extractedCap = capMatch[1].replace(/\s+/g, '').toUpperCase()
@@ -1263,7 +1272,7 @@ export default function ProductDetail() {
     // Chỉ hiện selector khi có ≥2 variant thật
     if (realVariants.length >= 2) {
       return [{
-        attribute_name: 'Phiên bản / Biến thể',
+        attribute_name: isMonitor ? 'Phiên bản' : 'Phiên bản / Biến thể',
         options: realVariants.map(v => ({
           value_name: v.variant_name,
           variant_id: v._id
@@ -1271,10 +1280,9 @@ export default function ProductDetail() {
       }]
     }
 
-
     // Fallback cho trường hợp sản phẩm không khai báo Variants attributes
-    // Bỏ qua cho GPU vì GB trong tên GPU là VRAM, không phải RAM hệ thống
-    if (!isGPU && product?.name) {
+    // Bỏ qua cho GPU và Monitor
+    if (!isGPU && !isMonitor && product?.name) {
       const capMatch = product.name.match(/\b(\d+\s*GB|\d+\s*TB)\b/i)
       if (capMatch) {
         const extractedCap = capMatch[1].replace(/\s+/g, '').toUpperCase()
@@ -1316,7 +1324,7 @@ export default function ProductDetail() {
 
     if (!Variants || Variants.length === 0) return
 
-    if (group.attribute_name === 'Phiên bản / Biến thể') {
+    if (group.attribute_name === 'Phiên bản / Biến thể' || group.attribute_name === 'Phiên bản' || group.attribute_name === 'Phiên bản / Dung lượng') {
       if (opt.variant_id) {
         setSelectedVariantId(opt.variant_id)
         setQuantity(1)
@@ -1772,7 +1780,7 @@ export default function ProductDetail() {
                     return (
                       <div className="attribute-groups-container" style={{ margin: '16px 0 20px 0' }}>
                         {attributeGroups.map((group, groupIdx) => {
-                          const isFallbackGroup = group.attribute_name === 'Phiên bản / Biến thể'
+                          const isFallbackGroup = group.attribute_name === 'Phiên bản / Biến thể' || group.attribute_name === 'Phiên bản' || group.attribute_name === 'Phiên bản / Dung lượng'
                           const currentSelectedVal = selectedAttributes[group.attribute_name]
 
                           return (
