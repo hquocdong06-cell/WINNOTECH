@@ -270,7 +270,7 @@ const CATEGORY_FILTER_CONFIGS = {
 
   // 6. Tản nhiệt PC
   'cooling': {
-    title: 'Tản Nhiệt (Cooling)',
+    title: 'Tản nhiệt PC',
     groups: [
       {
         key: 'coolingType',

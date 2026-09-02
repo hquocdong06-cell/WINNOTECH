@@ -223,7 +223,7 @@ export default function DefaultLayout({ children }) {
                       <li><Link to="/storage">Ổ cứng (SSD / HDD)</Link></li>
                       <li><Link to="/psu">Nguồn máy tính (PSU)</Link></li>
                       <li><Link to="/case">Vỏ máy tính (Case)</Link></li>
-                      <li><Link to="/cooling">Tản nhiệt (Cooling)</Link></li>
+                      <li><Link to="/cooling">Tản nhiệt PC</Link></li>
                     </ul>
                   </div>
                   <div className="mega-menu-col">

@@ -2802,23 +2802,29 @@ footer {
 
 .btn-flash-buy {
   width: 100%;
-  padding: 9px;
-  background: var(--yellow, #c8e600);
-  color: #000000;
-  border: none;
+  padding: 10px 14px;
+  background: transparent !important;
+  color: #e4e4e7 !important;
+  border: 1px solid #e4e4e7 !important;
   border-radius: 8px;
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   transition: all 0.2s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.btn-flash-buy:hover {
-  background: #d4f200;
-  transform: scale(1.02);
-  box-shadow: 0 4px 14px rgba(200, 230, 0, 0.35);
+.btn-flash-buy:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  transform: none;
+  box-shadow: none;
 }
 
 /* ── RESPONSIVE OPTIMIZATIONS FOR IPHONE 17 PRO MAX (430px) & TABLET (IPAD) ── */
