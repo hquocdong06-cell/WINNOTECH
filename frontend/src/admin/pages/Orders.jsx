@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, Eye, Edit, RefreshCw, FileText, Trash2, X, MessageSquare, Send, Clock, CheckCircle2, Package, MapPin, CreditCard, User, Phone, Mail, ChevronDown, Check } from 'lucide-react';
+import { Search, Eye, Edit, RefreshCw, FileText, Trash2, X, MessageSquare, Send, Clock, CheckCircle2, Package, MapPin, CreditCard, User, Phone, Mail, ChevronDown, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { fetchAdminOrders, fetchAdminOrderDetail, updateAdminOrderStatus, updateAdminOrderPaymentStatus, addAdminOrderNote, deleteAdminOrder, getOrderPdfUrl, API_BASE } from '../services/adminService';
 
@@ -881,6 +881,15 @@ const Orders = () => {
   const [selectedOrderId, setSelectedOrderId] = useState(null); // cho detail modal
   const [selectedOrderEdit, setSelectedOrderEdit] = useState(null); // cho status modal
 
+  // Phân trang
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // Reset về trang 1 khi thay đổi tìm kiếm hoặc bộ lọc
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterStatus, filterPaymentStatus]);
+
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -965,8 +974,32 @@ const Orders = () => {
     });
   }, [orders, searchQuery, filterStatus, filterPaymentStatus]);
 
+  // Logic phân trang
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredOrders.slice(start, start + pageSize);
+  }, [filteredOrders, safePage, pageSize]);
+
+  // Tạo danh sách số trang hiển thị
+  const pageNumbers = useMemo(() => {
+    const pages = [];
+    const maxButtons = 5;
+    let start = Math.max(1, safePage - 2);
+    let end = Math.min(totalPages, start + maxButtons - 1);
+    if (end - start + 1 < maxButtons) {
+      start = Math.max(1, end - maxButtons + 1);
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }, [safePage, totalPages]);
+
   return (
-    <div className="p-8 text-white min-h-screen">
+    <div className="p-4 sm:p-6 text-white min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -1052,14 +1085,14 @@ const Orders = () => {
           <table className="w-full text-xs text-left">
             <thead className="bg-[#1f1f1f] text-gray-400 uppercase border-b border-[#262626]">
               <tr>
-                <th className="px-5 py-3.5 font-semibold whitespace-nowrap">MÃ ĐƠN</th>
-                <th className="px-5 py-3.5 font-semibold whitespace-nowrap">KHÁCH HÀNG</th>
-                <th className="px-5 py-3.5 font-semibold whitespace-nowrap">SĐT</th>
-                <th className="px-5 py-3.5 font-semibold whitespace-nowrap">TỔNG TIỀN</th>
-                <th className="px-4 py-3.5 font-semibold whitespace-nowrap" style={{minWidth:'150px'}}>TRẠNG THÁI</th>
-                <th className="px-4 py-3.5 font-semibold whitespace-nowrap" style={{minWidth:'150px'}}>THANH TOÁN</th>
-                <th className="px-5 py-3.5 font-semibold whitespace-nowrap">NGÀY TẠO</th>
-                <th className="px-5 py-3.5 font-semibold whitespace-nowrap text-right">HÀNH ĐỘNG</th>
+                <th className="px-3 py-3 font-semibold whitespace-nowrap">MÃ ĐƠN</th>
+                <th className="px-3 py-3 font-semibold whitespace-nowrap">KHÁCH HÀNG</th>
+                <th className="px-3 py-3 font-semibold whitespace-nowrap">SĐT</th>
+                <th className="px-3 py-3 font-semibold whitespace-nowrap">TỔNG TIỀN</th>
+                <th className="px-3 py-3 font-semibold whitespace-nowrap">TRẠNG THÁI</th>
+                <th className="px-3 py-3 font-semibold whitespace-nowrap">THANH TOÁN</th>
+                <th className="px-3 py-3 font-semibold whitespace-nowrap">NGÀY TẠO</th>
+                <th className="px-3 py-3 font-semibold whitespace-nowrap text-right">HÀNH ĐỘNG</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#222]">
@@ -1070,23 +1103,23 @@ const Orders = () => {
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map(order => (
+                paginatedOrders.map(order => (
                   <tr key={order.id} className="hover:bg-[#1a1a1a] transition-colors">
-                    <td className="px-5 py-3.5 font-bold text-[#d4ff00] font-mono text-xs whitespace-nowrap">{order.code}</td>
-                    <td className="px-5 py-3.5 font-semibold text-white max-w-[160px] truncate">{order.customer}</td>
-                    <td className="px-5 py-3.5 text-gray-400 font-mono text-xs whitespace-nowrap">{order.phone}</td>
-                    <td className="px-5 py-3.5 text-white font-bold whitespace-nowrap">{order.total.toLocaleString('vi-VN')}₫</td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-3 py-3 font-bold text-[#d4ff00] font-mono text-[11px] whitespace-nowrap">{order.code}</td>
+                    <td className="px-3 py-3 font-semibold text-white max-w-[120px] truncate" title={order.customer}>{order.customer}</td>
+                    <td className="px-3 py-3 text-gray-400 font-mono text-[11px] whitespace-nowrap">{order.phone}</td>
+                    <td className="px-3 py-3 text-white font-bold whitespace-nowrap">{order.total.toLocaleString('vi-VN')}₫</td>
+                    <td className="px-3 py-3">
                       <StatusBadge status={order.status} />
                     </td>
-                    <td className="px-4 py-3.5 relative" onClick={e => e.stopPropagation()}>
+                    <td className="px-3 py-3 relative" onClick={e => e.stopPropagation()}>
                       {/* Đổi nhanh trạng thái thanh toán */}
                       <div className="relative inline-block">
                         <button
                           type="button"
                           onClick={() => setOpenPaymentMenuId(openPaymentMenuId === order.id ? null : order.id)}
                           disabled={updatingPaymentId === order.id}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-all hover:scale-105 cursor-pointer shadow-sm ${
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border transition-all hover:scale-105 cursor-pointer shadow-sm ${
                             order.payment_status === 'paid'
                               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
                               : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
@@ -1108,7 +1141,7 @@ const Orders = () => {
 
                         {/* Menu dropdown đổi nhanh thanh toán */}
                         {openPaymentMenuId === order.id && (
-                          <div className="absolute left-0 top-full mt-1.5 w-44 bg-[#1c1c28] border border-[#3b3b4f] rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                          <div className="absolute right-0 top-full mt-1.5 w-44 bg-[#1c1c28] border border-[#3b3b4f] rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                             <div className="text-[10px] uppercase font-bold text-gray-400 px-2.5 py-1 tracking-wider border-b border-[#2d2d3d] mb-1">
                               Đổi thanh toán
                             </div>
@@ -1144,31 +1177,31 @@ const Orders = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-gray-400 text-xs whitespace-nowrap">{order.date}</td>
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                      <div className="flex justify-end gap-2">
+                    <td className="px-3 py-3 text-gray-400 text-[11px] whitespace-nowrap">{order.date}</td>
+                    <td className="px-3 py-3 text-right whitespace-nowrap">
+                      <div className="flex justify-end gap-1.5">
                         <button
                           onClick={() => setSelectedOrderEdit(order)}
-                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
+                          className="p-1.5 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
                           title="Cập nhật trạng thái & thanh toán"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setSelectedOrderId(order.id)}
-                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
+                          className="p-1.5 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
                           title="Xem chi tiết đơn hàng"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-3.5 h-3.5" />
                         </button>
                         <a
                           href={getOrderPdfUrl(order._id || order.id)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
+                          className="p-1.5 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
                           title="In hóa đơn PDF"
                         >
-                          <FileText className="w-4 h-4" />
+                          <FileText className="w-3.5 h-3.5" />
                         </a>
                       </div>
                     </td>
@@ -1183,6 +1216,99 @@ const Orders = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Thanh Phân Trang (Pagination Controls) */}
+        {!loading && filteredOrders.length > 0 && (
+          <div className="bg-[#191919] border-t border-[#262626] px-5 py-3.5 flex flex-wrap items-center justify-between gap-4 text-xs">
+            {/* Thông tin số lượng & Chọn dòng / trang */}
+            <div className="flex items-center gap-4 text-gray-400">
+              <span>
+                Hiển thị <strong className="text-white">{(safePage - 1) * pageSize + 1}</strong> - <strong className="text-white">{Math.min(safePage * pageSize, filteredOrders.length)}</strong> trên tổng số <strong className="text-[#d4ff00]">{filteredOrders.length.toLocaleString('vi-VN')}</strong> đơn hàng
+              </span>
+
+              <div className="flex items-center gap-2">
+                <span>Hiển thị:</span>
+                <select
+                  value={pageSize}
+                  onChange={e => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="bg-[#1f1f1f] border border-[#333] rounded-lg px-2.5 py-1 text-white text-xs outline-none focus:border-[#d4ff00] cursor-pointer"
+                >
+                  <option value={15}>15 dòng</option>
+                  <option value={20}>20 dòng</option>
+                  <option value={50}>50 dòng</option>
+                  <option value={100}>100 dòng</option>
+                  <option value={200}>200 dòng</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Các nút chuyển trang */}
+            <div className="flex items-center gap-1.5">
+              {/* Nút Đầu trang */}
+              <button
+                type="button"
+                onClick={() => setCurrentPage(1)}
+                disabled={safePage === 1}
+                className="p-1.5 rounded-lg bg-[#1f1f1f] border border-[#333] text-gray-300 hover:text-white hover:border-[#d4ff00] disabled:opacity-30 disabled:hover:border-[#333] disabled:cursor-not-allowed transition-colors"
+                title="Trang đầu"
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </button>
+
+              {/* Nút Trước */}
+              <button
+                type="button"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={safePage === 1}
+                className="p-1.5 rounded-lg bg-[#1f1f1f] border border-[#333] text-gray-300 hover:text-white hover:border-[#d4ff00] disabled:opacity-30 disabled:hover:border-[#333] disabled:cursor-not-allowed transition-colors"
+                title="Trang trước"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {/* Các số trang */}
+              {pageNumbers.map(pageNum => (
+                <button
+                  type="button"
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`min-w-[32px] h-8 px-2 rounded-lg font-bold transition-all ${
+                    safePage === pageNum
+                      ? 'bg-[#d4ff00] text-black shadow-md shadow-[#d4ff00]/20'
+                      : 'bg-[#1f1f1f] border border-[#333] text-gray-300 hover:text-white hover:border-[#555]'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+
+              {/* Nút Sau */}
+              <button
+                type="button"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={safePage === totalPages}
+                className="p-1.5 rounded-lg bg-[#1f1f1f] border border-[#333] text-gray-300 hover:text-white hover:border-[#d4ff00] disabled:opacity-30 disabled:hover:border-[#333] disabled:cursor-not-allowed transition-colors"
+                title="Trang sau"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+
+              {/* Nút Cuối trang */}
+              <button
+                type="button"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={safePage === totalPages}
+                className="p-1.5 rounded-lg bg-[#1f1f1f] border border-[#333] text-gray-300 hover:text-white hover:border-[#d4ff00] disabled:opacity-30 disabled:hover:border-[#333] disabled:cursor-not-allowed transition-colors"
+                title="Trang cuối"
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modals */}

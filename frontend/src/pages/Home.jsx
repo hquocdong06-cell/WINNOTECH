@@ -470,23 +470,21 @@ export default function Home() {
 
         const saleIds = new Set(saleList.map(p => String(p._id)))
 
-        // 2. BÁN CHẠY / FEATURED — sản phẩm bán chạy nhất, lượt bán cao nhất
-        //    KHÔNG trùng với saleList
+        // 2. BÁN CHẠY / FEATURED — sản phẩm có lượt bán cao nhất từ lớn đến nhỏ
         const getSold = (p) => Number(p.sold_count ?? p.sold_quantity ?? p.buyturn ?? 0)
         const featuredList = [...all]
-          .filter(p => !saleIds.has(String(p._id)))   // loại trùng
           .sort((a, b) => getSold(b) - getSold(a) || (b.sale || 0) - (a.sale || 0))
 
         const featuredIds = new Set(featuredList.slice(0, PAGE_SIZE).map(p => String(p._id)))
 
-        // 3. HÀNG MỚI — mới nhất, không trùng 2 nhóm trên
+        // 3. HÀNG MỚI — mới nhất, không trùng nhóm trên
         const newList = [...all]
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
           .filter(p => !saleIds.has(String(p._id)) && !featuredIds.has(String(p._id)))
 
-        // Fallback: nếu sau dedup quá ít thì dùng toàn bộ (có thể trùng nhưng ít hơn)
+        // Cập nhật state sản phẩm
         setSaleProducts(saleList.length >= 5 ? saleList : all.filter(hasTrueDiscount).concat(all).slice(0, 20))
-        setFeaturedProducts(featuredList.length >= 5 ? featuredList : [...all].sort((a, b) => getSold(b) - getSold(a)))
+        setFeaturedProducts(featuredList)
         setNewProducts(newList.length >= 5 ? newList : [...all].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
       } catch (err) {
         console.error('Lỗi fetch products:', err)

@@ -5163,16 +5163,21 @@ app.delete("/admin/user-vouchers/:id", checklogin, checkAdmin, async (req, res) 
 // GET /admin/orders — Lấy tất cả đơn hàng hệ thống
 app.get("/admin/orders", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { status, payment_status } = req.query;
+    const { status, payment_status, limit } = req.query;
     const filter = {};
     if (status) filter.status = status;
     if (payment_status) filter.payment_status = payment_status;
 
-    const orders = await Order.find(filter)
+    let query = Order.find(filter)
       .populate("user_id", "name email phone")
       .populate("payment_method")
-      .sort({ createdAt: -1 })
-      .lean();
+      .sort({ createdAt: -1 });
+
+    if (limit && !isNaN(parseInt(limit))) {
+      query = query.limit(parseInt(limit));
+    }
+
+    const orders = await query.lean();
 
     return res.json({ success: true, count: orders.length, data: orders });
   } catch (error) {
@@ -5226,6 +5231,31 @@ app.get("/admin/orders/:id", checklogin, checkAdmin, async (req, res) => {
   }
 });
 
+// Helper: Tự động cộng sold_count, sold_quantity & buyturn khi đơn hàng chuyển sang 'completed'
+async function incrementProductSalesForOrder(orderId) {
+  try {
+    const orderItems = await OrderItem.find({ order_id: orderId }).lean();
+    for (const item of orderItems) {
+      const variantId = item.variants_id || item.variant_id;
+      if (!variantId) continue;
+      const variant = await ProductVariantModel.findById(variantId).lean();
+      const productId = variant?.product_id || variant?.p_id;
+      if (productId) {
+        const qty = item.Quantity || item.quantity || 1;
+        await ProductModel.findByIdAndUpdate(productId, {
+          $inc: {
+            sold_count: 1,
+            sold_quantity: qty,
+            buyturn: 1
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Lỗi tự động cộng sold_count cho sản phẩm:", err);
+  }
+}
+
 // PUT /admin/orders/:id/status — Cập nhật trạng thái + ghi statusHistory + logic tự động hoàn thành
 app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => {
   try {
@@ -5240,7 +5270,6 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
     const adminName = req.user?.name || req.user?.email || 'Admin';
     order.statusHistory = order.statusHistory || [];
 
-    // State Machine định nghĩa chuyển đổi hợp lệ giữa các trạng thái
     const ORDER_TRANSITIONS = {
       pending:   ['preparing', 'cancelled'],
       preparing: ['shipping', 'cancelled'],
@@ -5268,6 +5297,7 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
     };
 
     const currentStatus = normalizeStatus(order.status);
+    const wasCompleted = currentStatus === 'completed';
     let paymentChanged = false;
 
     // Cập nhật payment_status nếu được gửi lên
@@ -5305,6 +5335,10 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
       }
 
       await order.save();
+      if (order.status === 'completed' && !wasCompleted) {
+        await incrementProductSalesForOrder(order._id);
+      }
+
       return res.json({
         success: true,
         message: `Cập nhật trạng thái thanh toán thành công${order.status === 'completed' ? ' — Đơn hàng đã tự động chuyển sang Hoàn thành' : ''}`,
@@ -5341,7 +5375,6 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
     });
 
     // === LOGIC TỰ ĐỘNG HOÀN THÀNH ===
-    // Khi admin set status = 'delivered' và đơn đã được thanh toán → tự động completed
     if (status === 'delivered' && order.payment_status === 'paid') {
       order.status = 'completed';
       order.statusHistory.push({
@@ -5353,6 +5386,10 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
     }
 
     await order.save();
+
+    if (order.status === 'completed' && !wasCompleted) {
+      await incrementProductSalesForOrder(order._id);
+    }
 
     let msg = "Cập nhật trạng thái đơn hàng thành công";
     if (paymentChanged) {
@@ -5377,6 +5414,7 @@ app.put("/admin/orders/:id/payment-status", checklogin, checkAdmin, async (req, 
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
 
+    const wasCompleted = order.status === 'completed';
     const adminName = req.user?.name || req.user?.email || 'Admin';
     order.payment_status = payment_status;
     order.statusHistory = order.statusHistory || [];
@@ -5388,7 +5426,6 @@ app.put("/admin/orders/:id/payment-status", checklogin, checkAdmin, async (req, 
     });
 
     // === LOGIC TỰ ĐỘNG HOÀN THÀNH ===
-    // Khi admin set payment_status = 'paid' và đơn đã được giao → tự động completed
     if (payment_status === 'paid' && order.status === 'delivered') {
       order.status = 'completed';
       order.statusHistory.push({
@@ -5400,6 +5437,10 @@ app.put("/admin/orders/:id/payment-status", checklogin, checkAdmin, async (req, 
     }
 
     await order.save();
+
+    if (order.status === 'completed' && !wasCompleted) {
+      await incrementProductSalesForOrder(order._id);
+    }
 
     return res.json({
       success: true,
