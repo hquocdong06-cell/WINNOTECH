@@ -117,7 +117,7 @@ export default function ProductCard({ product, onAddToCart, favoriteIds, onToggl
     <Link to={`/product/${product.slug || product._id}`} className="product-link" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
       <div className="product-card" style={isOutOfStock ? { opacity: 0.85 } : {}}>
         {isOutOfStock ? (
-          <div className="product-sale-badge" style={{ background: '#ef4444', color: '#fff' }}>Hết hàng</div>
+          <div className="product-sale-badge" style={{ background: '#ef4444', color: '#fff', border: 'none' }}>Hết hàng</div>
         ) : (
           hasSale && salePercent > 0 && <div className="product-sale-badge">-{salePercent}%</div>
         )}

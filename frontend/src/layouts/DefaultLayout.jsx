@@ -121,14 +121,6 @@ export default function DefaultLayout({ children }) {
                 window.location.href = `/home?search=${encodeURIComponent(e.target.search.value)}`;
               }}
             >
-              <select className="search-select">
-                <option>Tất cả</option>
-                <option>CPU</option>
-                <option>GPU</option>
-                <option>RAM</option>
-                <option>Ổ cứng</option>
-              </select>
-              <div className="search-divider" />
               <input type="text" name="search" placeholder="Tìm CPU, GPU, RAM,..." defaultValue={new URLSearchParams(window.location.search).get('search') || ''} />
               <button type="submit" className="search-btn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

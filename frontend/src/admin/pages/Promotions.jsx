@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Edit } from 'lucide-react';
 import PromotionFormModal from '../components/PromotionFormModal';
 import { voucherAPI } from '../../services/apiService';
 
@@ -86,14 +86,8 @@ const Promotions = () => {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={fetchVouchers}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#222] border border-[#333] hover:bg-[#333] text-white font-medium rounded-lg transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" /> Làm mới
-          </button>
-          <button
             onClick={handleOpenAddModal}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#d4ff00] hover:bg-[#bce600] text-black font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(212,255,0,0.2)]"
+            className="flex items-center gap-2 px-5 py-2.5 bg-black border border-[#D3FC00] text-[#D3FC00] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(211,252,0,0.15)] hover:bg-[#D3FC00]/10"
           >
             <Plus className="w-5 h-5" /> Tạo mã mới
           </button>
@@ -109,98 +103,93 @@ const Promotions = () => {
 
       {/* Table */}
       <div className="bg-[#141414] border border-[#333] rounded-xl overflow-hidden">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-[#1a1a1a] border-b border-[#333] text-gray-400">
-            <tr>
-              <th className="px-6 py-4 font-medium">MÃ CODE</th>
-              <th className="px-6 py-4 font-medium">LOẠI GIẢM</th>
-              <th className="px-6 py-4 font-medium">GIÁ TRỊ</th>
-              <th className="px-6 py-4 font-medium">ĐƠN TỐI THIỂU</th>
-              <th className="px-6 py-4 font-medium">THỜI GIAN</th>
-              <th className="px-6 py-4 font-medium">SỬ DỤNG</th>
-              <th className="px-6 py-4 font-medium">TRẠNG THÁI</th>
-              <th className="px-6 py-4 font-medium text-right">HÀNH ĐỘNG</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#333]">
-            {loading ? (
+        <div className="w-full overflow-x-auto">
+          <table className="w-full text-xs text-left">
+            <thead className="bg-[#1a1a1a] border-b border-[#333] text-gray-400 uppercase">
               <tr>
-                <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
-                  Đang tải...
-                </td>
+                <th className="px-3.5 py-3.5 font-medium whitespace-nowrap">MÃ CODE</th>
+                <th className="px-3.5 py-3.5 font-medium whitespace-nowrap">LOẠI GIẢM</th>
+                <th className="px-3.5 py-3.5 font-medium whitespace-nowrap">GIÁ TRỊ</th>
+                <th className="px-3.5 py-3.5 font-medium whitespace-nowrap">ĐƠN TỐI THIỂU</th>
+                <th className="px-3.5 py-3.5 font-medium whitespace-nowrap">THỜI GIAN</th>
+                <th className="px-3.5 py-3.5 font-medium whitespace-nowrap">SỬ DỤNG</th>
+                <th className="px-3.5 py-3.5 font-medium whitespace-nowrap">TRẠNG THÁI</th>
+                <th className="px-3.5 py-3.5 font-medium text-right whitespace-nowrap">HÀNH ĐỘNG</th>
               </tr>
-            ) : vouchers.length === 0 ? (
-              <tr>
-                <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
-                  Chưa có voucher nào.
-                </td>
-              </tr>
-            ) : (
-              vouchers.map((v) => {
-                const status = getVoucherStatus(v);
-                const isActive = v.status === 'active' || (v.status === undefined && v.isActive === true);
-                return (
-                  <tr key={v._id} className="hover:bg-[#1e1e1e] transition-colors">
-                    <td className="px-6 py-4">
-                      <code className="bg-[#333] px-2 py-1 rounded text-[#d4ff00] font-mono">{v.code}</code>
-                    </td>
-                    <td className="px-6 py-4 text-gray-300">
-                      {v.discount_type === 'percent' ? 'Phần trăm (%)' : 'Số tiền cố định'}
-                    </td>
-                    <td className="px-6 py-4 text-gray-300">
-                      {v.discount_type === 'percent'
-                        ? `${v.discount_value}%`
-                        : `${v.discount_value?.toLocaleString('vi-VN')}đ`}
-                    </td>
-                    <td className="px-6 py-4 text-gray-300">
-                      {v.min_order > 0 ? `${v.min_order?.toLocaleString('vi-VN')}đ` : 'Không giới hạn'}
-                    </td>
-                    <td className="px-6 py-4 text-gray-300">
-                      {formatDate(v.start_day)} — {formatDate(v.end_day)}
-                    </td>
-                    <td className="px-6 py-4 text-gray-300">
-                      {v.used_count ?? 0} / {v.usage_limit}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${status.cls}`}>
-                        {status.label}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end items-center gap-2">
-                        <button
-                          onClick={() => handleToggleStatus(v)}
-                          className={`px-3 py-1 text-xs font-semibold rounded border transition-colors ${
-                            isActive
-                              ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/20'
-                              : 'bg-[#d4ff00]/10 text-[#d4ff00] border-[#d4ff00]/30 hover:bg-[#d4ff00]/20'
-                          }`}
-                          title={isActive ? 'Tắt kích hoạt (Deactive)' : 'Bật kích hoạt (Active)'}
-                        >
-                          {isActive ? 'Tắt' : 'Kích hoạt'}
-                        </button>
-                        <button
-                          onClick={() => handleOpenEditModal(v)}
-                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-md text-gray-300 hover:text-blue-400 transition-colors"
-                          title="Sửa"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(v._id)}
-                          className="p-2 bg-[#222] hover:bg-red-500/20 border border-[#444] hover:border-red-500/50 rounded-md text-gray-300 hover:text-red-500 transition-colors"
-                          title="Xóa"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-[#333]">
+              {loading ? (
+                <tr>
+                  <td colSpan="8" className="px-3.5 py-8 text-center text-gray-500">
+                    Đang tải...
+                  </td>
+                </tr>
+              ) : vouchers.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="px-3.5 py-8 text-center text-gray-500">
+                    Chưa có voucher nào.
+                  </td>
+                </tr>
+              ) : (
+                vouchers.map((v) => {
+                  const status = getVoucherStatus(v);
+                  const isActive = v.status === 'active' || (v.status === undefined && v.isActive === true);
+                  return (
+                    <tr key={v._id} className="hover:bg-[#1e1e1e] transition-colors">
+                      <td className="px-3.5 py-3 whitespace-nowrap font-medium">
+                        <code className="bg-[#333] px-2 py-0.5 rounded text-[#d4ff00] font-mono whitespace-nowrap">{v.code}</code>
+                      </td>
+                      <td className="px-3.5 py-3 text-gray-300 whitespace-nowrap">
+                        {v.discount_type === 'percent' ? 'Phần trăm (%)' : 'Số tiền cố định'}
+                      </td>
+                      <td className="px-3.5 py-3 text-gray-300 whitespace-nowrap font-medium">
+                        {v.discount_type === 'percent'
+                          ? `${v.discount_value}%`
+                          : `${v.discount_value?.toLocaleString('vi-VN')}đ`}
+                      </td>
+                      <td className="px-3.5 py-3 text-gray-300 whitespace-nowrap">
+                        {v.min_order > 0 ? `${v.min_order?.toLocaleString('vi-VN')}đ` : 'Không giới hạn'}
+                      </td>
+                      <td className="px-3.5 py-3 text-gray-300 whitespace-nowrap font-mono">
+                        {formatDate(v.start_day)} — {formatDate(v.end_day)}
+                      </td>
+                      <td className="px-3.5 py-3 text-gray-300 whitespace-nowrap font-mono">
+                        {v.used_count ?? 0} / {v.usage_limit}
+                      </td>
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${status.cls}`}>
+                          {status.label}
+                        </span>
+                      </td>
+                      <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                        <div className="flex justify-end items-center gap-1.5 whitespace-nowrap">
+                          <button
+                            onClick={() => handleToggleStatus(v)}
+                            className={`px-2.5 py-1 text-xs font-semibold rounded border transition-colors whitespace-nowrap ${
+                              isActive
+                                ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/20'
+                                : 'bg-[#d4ff00]/10 text-[#d4ff00] border-[#d4ff00]/30 hover:bg-[#d4ff00]/20'
+                            }`}
+                            title={isActive ? 'Tắt kích hoạt (Deactive)' : 'Bật kích hoạt (Active)'}
+                          >
+                            {isActive ? 'Tắt' : 'Kích hoạt'}
+                          </button>
+                          <button
+                            onClick={() => handleOpenEditModal(v)}
+                            className="p-1.5 bg-[#222] hover:bg-[#333] border border-[#444] rounded-md text-gray-300 hover:text-blue-400 transition-colors"
+                            title="Sửa"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <PromotionFormModal

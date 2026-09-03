@@ -505,7 +505,8 @@ export default function Home() {
       .finally(() => setLoadingCategories(false))
   }, [])
 
-  // ── Fetch Flash Sale 8h (Top 5 sản phẩm bán thấp nhất hoặc tùy chỉnh) ──
+  /*
+  // ── Fetch Flash Sale 8h (Tạm ẩn theo yêu cầu) ──
   useEffect(() => {
     setLoadingFlashSale(true)
     productAPI.getFlashSale()
@@ -527,13 +528,14 @@ export default function Home() {
       .finally(() => setLoadingFlashSale(false))
   }, [])
 
-  // ── Đếm ngược thời gian thực 8h (Real-time timer 1s) ──
+  // ── Đếm ngược thời gian thực 8h (Real-time timer 1s - Tạm ẩn) ──
   useEffect(() => {
     const timer = setInterval(() => {
       setFlashSaleRemainingSeconds(prev => (prev > 0 ? prev - 1 : 28800))
     }, 1000)
     return () => clearInterval(timer)
   }, [])
+  */
 
   // Blog & FAQ (dynamic with static fallback)
   const [blogs, setBlogs] = useState([
@@ -712,99 +714,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── 🔥 FLASH SALE 8H REAL-TIME (TOP 5 SẢN PHẨM BÁN THẤP NHẤT HẶC TÙY CHỈNH) ── */}
-      {!searchQuery && isFlashSaleActive && flashSaleProducts.length > 0 && (
-        <section className="flash-sale-section">
-          <div className="section-inner">
-            <div className="flash-sale-container">
-              
-              {/* Header với Tiêu đề & Đồng hồ đếm ngược 8 tiếng thực */}
-              <div className="flash-sale-header">
-                <div className="flash-sale-title-wrap">
-                  <span className="flash-sale-icon-flame">🔥</span>
-                  <div>
-                    <h2 className="flash-sale-heading">
-                      FLASH SALE <span>8 GIỜ VÀNG</span>
-                    </h2>
-                    <p className="text-xs text-gray-400 mt-0.5">Top 5 sản phẩm xả kho giá sốc — Đếm ngược thời gian thực</p>
-                  </div>
-                </div>
-
-                {/* Đồng hồ đếm ngược Real-time */}
-                <div className="flash-sale-timer-box">
-                  <span className="flash-sale-timer-label">KẾT THÚC TRONG:</span>
-                  <div className="flash-sale-countdown">
-                    <span className="timer-num">{formatCountdown(flashSaleRemainingSeconds).hrs}</span>
-                    <span className="timer-colon">:</span>
-                    <span className="timer-num">{formatCountdown(flashSaleRemainingSeconds).mins}</span>
-                    <span className="timer-colon">:</span>
-                    <span className="timer-num">{formatCountdown(flashSaleRemainingSeconds).secs}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Danh sách đúng 5 sản phẩm Flash Sale */}
-              {loadingFlashSale ? (
-                <div className="text-center py-10 text-gray-400">Đang tải sản phẩm Flash Sale...</div>
-              ) : flashSaleProducts.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">Chưa có sản phẩm Flash Sale trong ca này</div>
-              ) : (
-                <div className="flash-sale-grid">
-                  {flashSaleProducts.slice(0, 5).map((product) => {
-                    const imgUrl = getProductImage(product)
-                    const { originalPrice, currentPrice } = getProductPriceInfo(product)
-                    const discountPct = product.flash_sale_discount || 25
-                    const flashPrice = currentPrice && currentPrice < originalPrice ? currentPrice : Math.round(originalPrice * (1 - discountPct / 100))
-
-                    return (
-                      <div key={product._id} className="flash-card">
-                        <div className="flash-badge">FLASH -{discountPct}%</div>
-                        
-                        <Link to={`/product/${product.slug || product._id}`}>
-                          <img 
-                            src={imgUrl || 'https://placehold.co/200x150?text=No+Image'} 
-                            alt={product.name} 
-                            className="flash-card-img" 
-                          />
-                        </Link>
-
-                        <div>
-                          <h4 className="flash-card-title">
-                            <Link to={`/product/${product.slug || product._id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                              {product.name}
-                            </Link>
-                          </h4>
-
-                          <div className="flash-price-box">
-                            <span className="flash-price-current">{formatPrice(flashPrice)}</span>
-                            {originalPrice > flashPrice && (
-                              <span className="flash-price-old">{formatPrice(originalPrice)}</span>
-                            )}
-                          </div>
-
-
-                          <button 
-                            onClick={() => handleQuickAddToCart(product)} 
-                            className="btn-flash-buy"
-                          >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                              <line x1="3" y1="6" x2="21" y2="6" />
-                              <path d="M16 10a4 4 0 0 1-8 0" />
-                            </svg>
-                            THÊM GIỎ HÀNG
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-            </div>
-          </div>
-        </section>
-      )}
+      {/* ── 🔥 FLASH SALE 8H REAL-TIME (ĐÃ ẨN THEO YÊU CẦU) ── */}
 
 
       {/* ── 🔥 BÁN CHẠY NHẤT ── */}
@@ -909,21 +819,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── NEWSLETTER ── */}
-      <section className="newsletter-section">
-        <div className="newsletter-inner">
-          <div className="newsletter-left">
-            <h2 style={{ lineHeight: '1.3' }}>LUÔN CẬP NHẬT<br /><span>CÔNG NGHỆ MỚI</span></h2>
-          </div>
-          <div className="newsletter-right">
-            <div className="newsletter-form">
-              <input type="email" placeholder="Nhập email của bạn" />
-              <button>ĐĂNG KÝ</button>
-            </div>
-            <p>Nhận tin tức, ưu đãi và hướng dẫn build PC mới nhất từ GearForge.</p>
-          </div>
-        </div>
-      </section>
     </DefaultLayout>
   )
 }

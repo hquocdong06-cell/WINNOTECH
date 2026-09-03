@@ -108,8 +108,8 @@ const PromotionFormModal = ({ isOpen, onClose, promo, onSaved }) => {
               <label className="block text-sm text-gray-400 mb-2">Trạng thái *</label>
               <select name="status" value={form.status} onChange={handleChange}
                 className="w-full bg-[#1e1e1e] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white font-medium">
-                <option value="deactive">❌ Chưa kích hoạt (Deactive)</option>
-                <option value="active">✅ Kích hoạt (Active)</option>
+                <option value="deactive">Chưa kích hoạt (Deactive)</option>
+                <option value="active">Kích hoạt (Active)</option>
               </select>
             </div>
           </div>

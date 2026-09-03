@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { DollarSign, ShoppingCart, Users, Package, TrendingUp, Download, RefreshCw, AlertTriangle, Box, Clock } from 'lucide-react';
+import { DollarSign, ShoppingCart, Users, Package, TrendingUp, Download, AlertTriangle, Box, Clock } from 'lucide-react';
 import { fetchAdminUsers, fetchAdminProducts, fetchAdminOrders, fetchMonthlyRevenue, fetchRevenueByMonth, fetchRevenueByWeek, getRevenueExcelExportUrl } from '../services/adminService';
 import { Link } from 'react-router-dom';
 
@@ -126,9 +126,6 @@ const Dashboard = () => {
           <p className="text-gray-400 text-sm">Dữ liệu quản trị thời gian thực từ hệ thống backend WINNOTECH</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={loadDashboardData} className="flex items-center gap-2 px-4 py-2.5 bg-[#222] border border-[#333] hover:bg-[#333] text-white font-medium rounded-xl transition-colors text-sm">
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới
-          </button>
           <a href={getRevenueExcelExportUrl()} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-2.5 bg-[#d4ff00] hover:bg-[#bce600] text-black font-bold rounded-xl transition-colors text-sm shadow-[0_0_15px_rgba(212,255,0,0.2)]">
             <Download className="w-4 h-4" /> Xuất Excel Doanh Thu
           </a>

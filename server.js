@@ -3540,7 +3540,8 @@ const exportOrderPdfHandler = async (req, res) => {
       statusStr === "da thanh toan" ||
       orderStatusStr === "completed";
 
-    if (!isPaid && statusStr === "unpaid") {
+    // Cho phép Admin xuất hóa đơn ngay cả khi chưa thanh toán
+    if (!isPaid && statusStr === "unpaid" && req.user?.role !== "admin") {
       return res.status(400).json({
         success: false,
         message: "Hóa đơn này chưa được thanh toán, không thể xuất PDF!",
@@ -3599,9 +3600,13 @@ const exportOrderPdfHandler = async (req, res) => {
     const fontBold = fs.existsSync("C:/Windows/Fonts/arialbd.ttf")
       ? "C:/Windows/Fonts/arialbd.ttf"
       : "Helvetica-Bold";
+    const fontItalic = fs.existsSync("C:/Windows/Fonts/ariali.ttf")
+      ? "C:/Windows/Fonts/ariali.ttf"
+      : (fs.existsSync("C:/Windows/Fonts/arial.ttf") ? "C:/Windows/Fonts/arial.ttf" : "Helvetica-Oblique");
 
     doc.registerFont("Regular", fontRegular);
     doc.registerFont("Bold", fontBold);
+    doc.registerFont("Italic", fontItalic);
 
     // Header Banner
     doc.rect(40, 40, 515, 65).fill("#0F172A");
@@ -3609,7 +3614,11 @@ const exportOrderPdfHandler = async (req, res) => {
     doc.fillColor("#94A3B8").font("Regular").fontSize(9).text("Hệ thống bán lẻ thiết bị máy tính & công nghệ", 55, 78);
 
     doc.fillColor("#38BDF8").font("Bold").fontSize(14).text("HÓA ĐƠN BÁN HÀNG", 360, 52, { align: "right" });
-    doc.fillColor("#22C55E").font("Bold").fontSize(10).text("✔ ĐÃ THANH TOÁN", 360, 75, { align: "right" });
+    if (isPaid) {
+      doc.fillColor("#22C55E").font("Bold").fontSize(10).text("✔ ĐÃ THANH TOÁN", 360, 75, { align: "right" });
+    } else {
+      doc.fillColor("#F59E0B").font("Bold").fontSize(10).text("⧘ CHƯA THANH TOÁN", 360, 75, { align: "right" });
+    }
 
     doc.fillColor("#000000");
 
@@ -3623,7 +3632,9 @@ const exportOrderPdfHandler = async (req, res) => {
     doc.font("Regular").text(`Ngày tạo: ${moment(order.createdAt || order.date).format("DD/MM/YYYY HH:mm")}`, 55, y + 43);
     const paymentMethodName = order.payment_method?.name || (typeof order.payment_method === 'string' ? order.payment_method : "Chuyển khoản / VNPay / COD");
     doc.text(`Phương thức TT: ${paymentMethodName}`, 55, y + 58);
-    doc.text(`Trạng thái TT: `, 55, y + 73, { continued: true }).font("Bold").fillColor("#16A34A").text("Đã thanh toán");
+    const paymentStatusColor = isPaid ? "#16A34A" : "#D97706";
+    const paymentStatusLabel = isPaid ? "Đã thanh toán" : "Chưa thanh toán";
+    doc.text(`Trạng thái TT: `, 55, y + 73, { continued: true }).font("Bold").fillColor(paymentStatusColor).text(paymentStatusLabel);
 
     doc.fillColor("#1E293B").font("Bold").fontSize(10).text("THÔNG TIN KHÁCH HÀNG", 300, y + 10);
     doc.font("Regular").fontSize(9).fillColor("#334155");
@@ -3732,6 +3743,11 @@ app.get("/orders/:orderId/export-pdf", checklogin, exportOrderPdfHandler);
 app.post("/orders/export-pdf", checklogin, exportOrderPdfHandler);
 app.get("/api/orders/export-pdf/:id", checklogin, exportOrderPdfHandler);
 app.post("/api/orders/export-pdf", checklogin, exportOrderPdfHandler);
+
+// Admin PDF Export routes
+app.get("/admin/orders/:id/export-pdf", checklogin, exportOrderPdfHandler);
+app.get("/admin/orders/:orderId/export-pdf", checklogin, exportOrderPdfHandler);
+app.get("/admin/orders/export-pdf/:id", checklogin, exportOrderPdfHandler);
 
 
 
@@ -4652,26 +4668,38 @@ app.get("/admin/brands", async (req, res) => {
 // POST /admin/brands — Thêm thương hiệu mới (Kiểm tra trùng tên)
 app.post("/admin/brands", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { name, image, status } = req.body;
+    const { name, image, logo, status } = req.body;
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, message: "Thiếu tên thương hiệu" });
     }
 
     const trimmedName = name.trim();
-    const existing = await BrandModel.findOne({ name: trimmedName });
+    const existing = await BrandModel.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
     if (existing) {
       return res.status(400).json({ success: false, message: "Thương hiệu này đã tồn tại trên hệ thống!" });
     }
 
+    const generatedSlug = (req.body.slug || trimmedName)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+
+    const imgUrl = image || logo || "";
     const brand = await BrandModel.create({
       name: trimmedName,
-      image: image || "",
+      slug: generatedSlug,
+      logo: imgUrl,
+      image: imgUrl,
       status: status || "active"
     });
 
     return res.status(201).json({ success: true, message: "Tạo thương hiệu thành công", data: brand });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
+    console.error("Lỗi tạo thương hiệu:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
   }
 });
 
@@ -4679,41 +4707,64 @@ app.post("/admin/brands", checklogin, checkAdmin, async (req, res) => {
 app.put("/admin/brands/:id", checklogin, checkAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, image, status } = req.body;
+    const { name, image, logo, status, slug } = req.body;
 
     const brand = await BrandModel.findById(id);
     if (!brand) return res.status(404).json({ success: false, message: "Không tìm thấy thương hiệu" });
 
     if (name && name.trim()) {
-      const duplicate = await BrandModel.findOne({ name: name.trim(), _id: { $ne: id } });
+      const duplicate = await BrandModel.findOne({
+        name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
+        _id: { $ne: id }
+      });
       if (duplicate) {
         return res.status(400).json({ success: false, message: "Tên thương hiệu đã bị trùng với thương hiệu khác!" });
       }
       brand.name = name.trim();
+      if (!slug) {
+        brand.slug = name.trim()
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/đ/g, 'd')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)+/g, '');
+      }
     }
 
-    if (image !== undefined) brand.image = image;
+    if (slug) brand.slug = slug.trim();
+    if (image !== undefined || logo !== undefined) {
+      const imgUrl = image !== undefined ? image : logo;
+      brand.image = imgUrl;
+      brand.logo = imgUrl;
+    }
     if (status !== undefined) brand.status = status;
 
     await brand.save();
     return res.json({ success: true, message: "Cập nhật thương hiệu thành công", data: brand });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
+    console.error("Lỗi cập nhật thương hiệu:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
   }
 });
 
-// DELETE /admin/brands/:id — SOFT DELETE thương hiệu (Chỉ đổi status = 'inactive')
-app.delete("/admin/brands/:id", checklogin, checkAdmin, async (req, res) => {
+// PATCH /admin/brands/:id/status — Đổi trạng thái thương hiệu (active / inactive)
+app.patch("/admin/brands/:id/status", checklogin, checkAdmin, async (req, res) => {
   try {
     const brand = await BrandModel.findById(req.params.id);
     if (!brand) return res.status(404).json({ success: false, message: "Không tìm thấy thương hiệu" });
 
-    brand.status = "inactive";
-    await brand.save();
+    const nextStatus = req.body.status || (brand.status === 'active' ? 'inactive' : 'active');
+    const updated = await BrandModel.findByIdAndUpdate(
+      req.params.id,
+      { status: nextStatus },
+      { new: true }
+    );
 
-    return res.json({ success: true, message: "Đã ẩn thương hiệu (Soft delete thành công)", data: brand });
+    return res.json({ success: true, message: `Đã đổi trạng thái sang ${nextStatus}`, data: updated });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Lỗi Server" });
+    console.error("Lỗi PATCH /admin/brands/:id/status:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
   }
 });
 
@@ -4794,6 +4845,318 @@ app.delete("/admin/users/:id", checklogin, checkAdmin, async (req, res) => {
   }
 });
 
+// GET /admin/users/:id/orders — Lấy toàn bộ đơn hàng chi tiết của 1 user (kèm thống kê & items)
+app.get("/admin/users/:id/orders", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: "ID người dùng không hợp lệ" });
+    }
+
+    const user = await UserModel.findById(userId).select("-password").lean();
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+    }
+
+    const userConditions = [
+      { user_id: userId },
+      { user_id: new mongoose.Types.ObjectId(userId) }
+    ];
+    if (user.phone && user.phone.trim()) {
+      userConditions.push({ Phone: user.phone.trim(), user_id: null });
+    }
+
+    const orders = await Order.find({ $or: userConditions })
+      .populate("payment_method")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Thống kê nhanh
+    let totalSpent = 0;
+    let completedCount = 0;
+    let pendingCount = 0;
+    let processingCount = 0;
+    let cancelledCount = 0;
+
+    orders.forEach(o => {
+      const normStatus = o.status;
+      if (['completed', 'done'].includes(normStatus) || o.payment_status === 'paid') {
+        if (!['cancelled', 'canceled'].includes(normStatus)) {
+          totalSpent += (o.total_amount || 0);
+        }
+      }
+      if (['completed', 'done'].includes(normStatus)) completedCount++;
+      else if (['pending'].includes(normStatus)) pendingCount++;
+      else if (['cancelled', 'canceled'].includes(normStatus)) cancelledCount++;
+      else processingCount++;
+    });
+
+    if (orders.length === 0) {
+      return res.json({
+        success: true,
+        user,
+        stats: {
+          totalOrders: 0,
+          totalSpent: 0,
+          completedCount: 0,
+          pendingCount: 0,
+          processingCount: 0,
+          cancelledCount: 0,
+        },
+        data: []
+      });
+    }
+
+    // Lấy items của các đơn hàng
+    const orderIds = orders.map(o => o._id);
+    const rawItems = await OrderItem.find({ order_id: { $in: orderIds } }).lean();
+
+    // Populate variant + product + attributes + images
+    const variantIds = rawItems.map(i => i.variants_id).filter(Boolean);
+    const variants = await ProductVariantModel.find({ _id: { $in: variantIds } }).lean();
+    const productIds = [...new Set(variants.map(v => v.p_id).filter(Boolean))];
+    const products = await ProductModel.find({ _id: { $in: productIds } }).lean();
+    const { Image: ImageModel } = require("./models/BannerPaymentImage");
+    const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
+    const { VariantAttribute } = require("./models/ProductVariant");
+
+    const variantMap = {};
+    for (const v of variants) {
+      const attrs = await VariantAttribute.find({ id_variants: v._id })
+        .populate("id_attribute_value")
+        .lean();
+      variantMap[v._id.toString()] = {
+        ...v,
+        attributes: attrs.map(a => a.id_attribute_value?.value || '').filter(Boolean)
+      };
+    }
+    const productMap = {};
+    for (const p of products) productMap[p._id.toString()] = p;
+
+    // Gắn items vào từng đơn hàng
+    const ordersWithItems = orders.map(ord => {
+      const ordItems = rawItems
+        .filter(item => item.order_id?.toString() === ord._id.toString())
+        .map(item => {
+          const variant = variantMap[item.variants_id?.toString()] || null;
+          const product = variant ? productMap[variant.p_id?.toString()] : null;
+          const productImages = product ? images.filter(img => img.p_id?.toString() === product._id.toString()) : [];
+          return {
+            ...item,
+            variant,
+            product,
+            images: productImages
+          };
+        });
+
+      return {
+        ...ord,
+        items: ordItems
+      };
+    });
+
+    return res.json({
+      success: true,
+      user,
+      stats: {
+        totalOrders: orders.length,
+        totalSpent,
+        completedCount,
+        pendingCount,
+        processingCount,
+        cancelledCount,
+      },
+      data: ordersWithItems
+    });
+  } catch (error) {
+    console.error("Lỗi GET /admin/users/:id/orders:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ============================================================
+// ADMIN USER VOUCHER MANAGEMENT
+// ============================================================
+
+// GET /admin/user-vouchers — Lấy danh sách voucher trong ví của tất cả khách hàng
+app.get("/admin/user-vouchers", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { user_id, is_used } = req.query;
+    const filter = {};
+    if (user_id && mongoose.Types.ObjectId.isValid(user_id)) {
+      filter.user_id = user_id;
+    }
+    if (is_used !== undefined && is_used !== '') {
+      filter.is_used = is_used === 'true';
+    }
+
+    const list = await UserVoucher.find(filter)
+      .populate("user_id", "name email phone avatar role status")
+      .populate("voucher_id")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Chỉ lấy voucher của các tài khoản có role khách hàng (khác admin)
+    const customerVouchers = list.filter(item => item.user_id && item.user_id.role !== 'admin');
+
+    return res.json({ success: true, count: customerVouchers.length, data: customerVouchers });
+  } catch (error) {
+    console.error("Lỗi GET /admin/user-vouchers:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// POST /admin/user-vouchers — Admin thêm voucher có sẵn vào ví của khách hàng
+app.post("/admin/user-vouchers", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { user_id, voucher_id } = req.body;
+    if (!user_id || !voucher_id) {
+      return res.status(400).json({ success: false, message: "Vui lòng chọn khách hàng và voucher" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(user_id) || !mongoose.Types.ObjectId.isValid(voucher_id)) {
+      return res.status(400).json({ success: false, message: "ID không hợp lệ" });
+    }
+
+    const user = await UserModel.findById(user_id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy khách hàng" });
+    }
+
+    if (user.role === 'admin') {
+      return res.status(400).json({ success: false, message: "Không thể thêm voucher vào ví của tài khoản Admin!" });
+    }
+
+    const voucher = await Voucher.findById(voucher_id);
+    if (!voucher) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy voucher trên hệ thống" });
+    }
+
+    if (voucher.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        message: `Voucher [${voucher.code}] hiện đang ngừng hoạt động, chỉ được thêm voucher đang hoạt động vào ví!`,
+      });
+    }
+
+    // Kiểm tra xem khách hàng đã có voucher này trong ví chưa (chưa sử dụng)
+    const existing = await UserVoucher.findOne({
+      user_id,
+      voucher_id,
+      is_used: false,
+    });
+
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: `Khách hàng "${user.name || user.email}" đã có voucher [${voucher.code}] trong ví và chưa sử dụng!`,
+      });
+    }
+
+    const newUserVoucher = await UserVoucher.create({
+      user_id,
+      voucher_id,
+      is_used: false,
+      save_at: new Date(),
+      savedAt: new Date(),
+    });
+
+    const populated = await UserVoucher.findById(newUserVoucher._id)
+      .populate("user_id", "name email phone avatar role status")
+      .populate("voucher_id")
+      .lean();
+
+    return res.status(201).json({
+      success: true,
+      message: `Đã thêm voucher [${voucher.code}] vào ví khách hàng "${user.name || user.email}" thành công!`,
+      data: populated,
+    });
+  } catch (error) {
+    console.error("Lỗi POST /admin/user-vouchers:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// PUT /admin/user-vouchers/:id — Sửa voucher trong ví của khách hàng thành voucher khác
+app.put("/admin/user-vouchers/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { voucher_id } = req.body;
+    if (!voucher_id || !mongoose.Types.ObjectId.isValid(voucher_id)) {
+      return res.status(400).json({ success: false, message: "ID voucher không hợp lệ" });
+    }
+
+    const currentRecord = await UserVoucher.findById(req.params.id);
+    if (!currentRecord) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy bản ghi voucher trong ví" });
+    }
+
+    const newVoucher = await Voucher.findById(voucher_id);
+    if (!newVoucher) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy voucher mới trên hệ thống" });
+    }
+
+    if (newVoucher.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        message: `Voucher [${newVoucher.code}] hiện đang ngừng hoạt động, chỉ được đổi sang voucher đang hoạt động!`,
+      });
+    }
+
+    // Nếu chọn cùng voucher cũ
+    if (currentRecord.voucher_id.toString() === voucher_id) {
+      return res.status(400).json({ success: false, message: "Voucher được chọn trùng với voucher hiện tại trong ví" });
+    }
+
+    // Kiểm tra xem khách hàng này đã có voucher mới này trong ví chưa (chưa sử dụng)
+    const existing = await UserVoucher.findOne({
+      user_id: currentRecord.user_id,
+      voucher_id: voucher_id,
+      _id: { $ne: req.params.id },
+      is_used: false,
+    });
+
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: `Khách hàng đã có voucher [${newVoucher.code}] trong ví và chưa sử dụng!`,
+      });
+    }
+
+    currentRecord.voucher_id = voucher_id;
+    currentRecord.save_at = new Date();
+    currentRecord.savedAt = new Date();
+    await currentRecord.save();
+
+    const populated = await UserVoucher.findById(currentRecord._id)
+      .populate("user_id", "name email phone avatar role status")
+      .populate("voucher_id")
+      .lean();
+
+    return res.json({
+      success: true,
+      message: `Đã đổi voucher trong ví sang [${newVoucher.code}] thành công!`,
+      data: populated,
+    });
+  } catch (error) {
+    console.error("Lỗi PUT /admin/user-vouchers/:id:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// DELETE /admin/user-vouchers/:id — Thu hồi / xóa voucher khỏi ví của khách hàng
+app.delete("/admin/user-vouchers/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const item = await UserVoucher.findById(req.params.id);
+    if (!item) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy bản ghi voucher trong ví" });
+    }
+    await UserVoucher.findByIdAndDelete(req.params.id);
+    return res.json({ success: true, message: "Đã xóa voucher khỏi ví của khách hàng thành công" });
+  } catch (error) {
+    console.error("Lỗi DELETE /admin/user-vouchers/:id:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
 
 // 4. QUẢN LÝ ĐƠN HÀNG (ADMIN ORDER MANAGEMENT)
 
@@ -5634,6 +5997,31 @@ app.put("/admin/post-categories/:id/status", checklogin, checkAdmin, async (req,
   } catch (error) {
     console.error("Lỗi status post-categories:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// DELETE /admin/post-categories/:id — Xóa danh mục bài viết (có kiểm tra an toàn bài viết liên kết)
+app.delete("/admin/post-categories/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const cat = await PostCategoryModel.findById(req.params.id);
+    if (!cat) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy danh mục bài viết" });
+    }
+
+    // Kiểm tra xem có bài viết nào thuộc danh mục này không
+    const postCount = await PostModel.countDocuments({ categories_post_id: req.params.id });
+    if (postCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể xóa vì đang có ${postCount} bài viết thuộc danh mục này! Vui lòng chuyển danh mục hoặc xóa bài viết trước.`
+      });
+    }
+
+    await PostCategoryModel.findByIdAndDelete(req.params.id);
+    return res.json({ success: true, message: `Đã xóa danh mục bài viết "${cat.name}" thành công!` });
+  } catch (error) {
+    console.error("Lỗi DELETE post-categories:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
   }
 });
 

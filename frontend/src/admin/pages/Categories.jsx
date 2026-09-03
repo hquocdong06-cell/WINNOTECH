@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Edit, Trash2, Image as ImageIcon, Loader2, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { Plus, Search, Edit, Image as ImageIcon, Loader2, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { fetchCategories, deleteCategory, toggleCategoryStatus, API_BASE } from '../services/adminService';
 import CategoryFormModal from '../components/CategoryFormModal';
@@ -150,7 +150,7 @@ const Categories = () => {
         </div>
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#d4ff00] hover:bg-[#bce600] text-black font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(212,255,0,0.2)]"
+          className="flex items-center gap-2 px-5 py-2.5 bg-black border border-[#D3FC00] text-[#D3FC00] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(211,252,0,0.15)] hover:bg-[#D3FC00]/10"
         >
           <Plus className="w-5 h-5" /> Thêm Danh mục
         </button>
@@ -172,100 +172,96 @@ const Categories = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-[#141414] border border-[#333] rounded-xl overflow-hidden">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-[#1a1a1a] border-b border-[#333] text-gray-400">
-            <tr>
-              <th className="px-6 py-4 font-medium">HÌNH ẢNH</th>
-              <th className="px-6 py-4 font-medium">TÊN DANH MỤC</th>
-              <th className="px-6 py-4 font-medium">SLUG</th>
-              <th className="px-6 py-4 font-medium">SẢN PHẨM</th>
-              <th className="px-6 py-4 font-medium">TRẠNG THÁI</th>
-              <th className="px-6 py-4 font-medium text-right">HÀNH ĐỘNG</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#333]">
-            {isLoading ? (
+      <div className="bg-[#141414] border border-[#333] rounded-xl overflow-hidden shadow-xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-[#1a1a1a] border-b border-[#333] text-gray-400 text-xs uppercase">
               <tr>
-                <td colSpan="6" className="px-6 py-16 text-center">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#d4ff00] mb-2" />
-                  <p className="text-gray-500 text-sm">Đang tải dữ liệu...</p>
-                </td>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap w-24">HÌNH ẢNH</th>
+                <th className="px-6 py-4 font-semibold">TÊN DANH MỤC</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">SLUG</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">SẢN PHẨM</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">TRẠNG THÁI</th>
+                <th className="px-6 py-4 font-semibold text-right whitespace-nowrap">HÀNH ĐỘNG</th>
               </tr>
-            ) : filteredCategories.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="px-6 py-16 text-center text-gray-500">
-                  {searchQuery ? 'Không tìm thấy danh mục phù hợp.' : 'Chưa có danh mục nào.'}
-                </td>
-              </tr>
-            ) : (
-              filteredCategories.map((cat) => (
-                <tr key={cat._id} className="hover:bg-[#1e1e1e] transition-colors">
-                  <td className="px-6 py-4">
-                    {cat.image ? (
-                      <img
-                        src={getImageUrl(cat.image)}
-                        alt={cat.name}
-                        className="w-14 h-14 rounded-lg object-cover border border-[#333]"
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded-lg bg-[#222] border border-[#333] flex items-center justify-center">
-                        <ImageIcon className="w-6 h-6 text-gray-500" />
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="font-semibold text-base">{cat.name}</div>
-                    <div className="text-xs text-gray-500 mt-1 font-mono">{cat._id?.slice(-8)}</div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-300 font-mono text-sm">/{cat.slug}</td>
-                  <td className="px-6 py-4">
-                    <span className="text-gray-300 font-bold">
-                      {productCounts[cat._id] || 0} sản phẩm
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                      cat.status === 'inactive' ? 'bg-gray-800 text-gray-400' : 'bg-green-500/10 text-green-400 border border-green-500/30'
-                    }`}>
-                      {cat.status === 'inactive' ? 'Đã ẩn' : 'Hoạt động'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => handleToggleCategoryStatus(cat)}
-                        className={`p-2 rounded-md border transition-colors ${
-                          cat.status === 'inactive'
-                            ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                            : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
-                        }`}
-                        title={cat.status === 'inactive' ? 'Hiện danh mục' : 'Ẩn danh mục (Soft delete)'}
-                      >
-                        {cat.status === 'inactive' ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                      </button>
-                      <button
-                        onClick={() => handleOpenEditModal(cat)}
-                        className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-md text-gray-300 hover:text-blue-400 transition-colors"
-                        title="Sửa danh mục"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(cat)}
-                        className="p-2 bg-[#222] hover:bg-red-500/20 border border-[#444] hover:border-red-500/50 rounded-md text-gray-300 hover:text-red-500 transition-colors"
-                        title="Ẩn danh mục"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+            </thead>
+            <tbody className="divide-y divide-[#333]">
+              {isLoading ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-16 text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#d4ff00] mb-2" />
+                    <p className="text-gray-500 text-sm">Đang tải dữ liệu...</p>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : filteredCategories.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-16 text-center text-gray-500">
+                    {searchQuery ? 'Không tìm thấy danh mục phù hợp.' : 'Chưa có danh mục nào.'}
+                  </td>
+                </tr>
+              ) : (
+                filteredCategories.map((cat) => {
+                  const isActive = cat.status !== 'inactive';
+                  return (
+                    <tr key={cat._id} className="hover:bg-[#1e1e1e] transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap w-24">
+                        {cat.image ? (
+                          <img
+                            src={getImageUrl(cat.image)}
+                            alt={cat.name}
+                            className="w-12 h-12 rounded-lg object-cover border border-[#333]"
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-[#222] border border-[#333] flex items-center justify-center">
+                            <ImageIcon className="w-6 h-6 text-gray-500" />
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-semibold text-base text-white">{cat.name}</div>
+                        <div className="text-xs text-gray-500 mt-1 font-mono">ID: {cat._id?.slice(-8)}</div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-300 font-mono text-xs whitespace-nowrap">/{cat.slug}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-gray-300 font-medium text-xs">
+                          {productCounts[cat._id] || 0} sản phẩm
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                          !isActive
+                            ? 'bg-gray-800 text-gray-400 border border-gray-700'
+                            : 'bg-[#d4ff00]/10 text-[#d4ff00] border border-[#d4ff00]/30'
+                        }`}>
+                          {!isActive ? 'Đã ẩn' : 'Hoạt động'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right whitespace-nowrap">
+                        <div className="flex justify-end gap-2 whitespace-nowrap">
+                          <button
+                            onClick={() => handleOpenEditModal(cat)}
+                            className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
+                            title="Sửa danh mục"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleCategoryStatus(cat)}
+                            className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
+                            title={!isActive ? 'Hiện danh mục' : 'Ẩn danh mục (Soft delete)'}
+                          >
+                            {!isActive ? <EyeOff className="w-4 h-4 text-gray-500" /> : <Eye className="w-4 h-4 text-[#d4ff00]" />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modals */}

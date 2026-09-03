@@ -6,14 +6,15 @@ const Sidebar = () => {
     { title: 'Dashboard', path: '/admin/dashboard', icon: '🏠' },
     { title: 'Sản phẩm', path: '/admin/products', icon: '📦' },
     { title: 'Danh mục', path: '/admin/categories', icon: '📂' },
+    { title: 'Thương hiệu', path: '/admin/brands', icon: '🏢' },
     { title: 'Banner', path: '/admin/banners', icon: '🖼️' },
-    { title: 'Flash Sale 8h', path: '/admin/flash-sale', icon: '🔥' },
     { title: 'Đơn hàng', path: '/admin/orders', icon: '🛒' },
     { title: 'Khách hàng', path: '/admin/customers', icon: '👥' },
+    { title: 'Ví voucher KH', path: '/admin/user-vouchers', icon: '🎟️' },
     { title: 'Đánh giá', path: '/admin/reviews', icon: '⭐' },
     { title: 'Khuyến mãi', path: '/admin/promotions', icon: '🏷️' },
-    { title: 'Báo cáo', path: '/admin/reports', icon: '📊' },
     { title: 'Bài viết', path: '/admin/posts', icon: '📝' },
+    { title: 'DM Bài viết', path: '/admin/post-categories', icon: '📑' },
     { title: 'Cài đặt', path: '/admin/settings', icon: '⚙️' },
   ];
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Trash2, Save, Loader2 } from 'lucide-react';
+import { Plus, X, Save, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { API_BASE as API_URL } from '../../services/apiService';
 
@@ -7,7 +7,6 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
   const [variants, setVariants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
 
   // Form thêm mới biến thể
   const [showAddForm, setShowAddForm] = useState(false);
@@ -85,29 +84,6 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
     }
   };
 
-  const handleDeleteVariant = async (variantId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa biến thể này?')) return;
-    setDeletingId(variantId);
-    try {
-      const res = await fetch(`${API_URL}/admin/variants/${variantId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Xóa biến thể thành công!');
-        setVariants(prev => prev.filter(v => v._id !== variantId));
-        onSuccess?.();
-      } else {
-        toast.error(data.message || 'Lỗi khi xóa biến thể');
-      }
-    } catch (err) {
-      toast.error('Lỗi kết nối server');
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
   const handleAddVariant = async () => {
     if (!newVariant.variant_name.trim()) return toast.error('Vui lòng nhập tên biến thể!');
     if (!newVariant.sku.trim()) return toast.error('Vui lòng nhập mã SKU!');
@@ -163,8 +139,12 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
             <h2 className="text-xl font-bold text-[#d4ff00]">Biến thể (Variants)</h2>
             <p className="text-sm text-gray-400 mt-1 line-clamp-1">{product.name}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-            <X className="w-6 h-6" />
+          <button
+            onClick={onClose}
+            className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-400 hover:text-white transition-colors"
+            title="Đóng"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -177,7 +157,7 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
             </div>
             <button 
               onClick={() => setShowAddForm(!showAddForm)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#222] border border-[#444] hover:border-[#d4ff00] hover:text-[#d4ff00] rounded-lg text-sm transition-colors text-white font-semibold"
+              className="flex items-center gap-2 px-4 py-2 bg-black border border-[#D3FC00] text-[#D3FC00] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(211,252,0,0.15)] hover:bg-[#D3FC00]/10 text-sm"
             >
               <Plus className="w-4 h-4" /> {showAddForm ? 'Hủy' : 'Thêm biến thể mới'}
             </button>
@@ -341,29 +321,17 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
                           </select>
                         </td>
                         <td className="px-4 py-2 text-right">
-                          <div className="flex justify-end gap-1">
+                          <div className="flex justify-end">
                             <button 
                               onClick={() => handleSaveVariant(v)}
                               disabled={savingId === v._id}
-                              className="p-1.5 text-gray-400 hover:text-[#d4ff00] hover:bg-[#d4ff00]/10 rounded transition-colors"
+                              className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
                               title="Lưu thay đổi"
                             >
                               {savingId === v._id ? (
                                 <Loader2 className="w-4 h-4 animate-spin text-[#d4ff00]" />
                               ) : (
-                                <Save className="w-4 h-4" />
-                              )}
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteVariant(v._id)}
-                              disabled={deletingId === v._id}
-                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
-                              title="Xóa biến thể"
-                            >
-                              {deletingId === v._id ? (
-                                <Loader2 className="w-4 h-4 animate-spin text-red-500" />
-                              ) : (
-                                <Trash2 className="w-4 h-4" />
+                                <Save className="w-4 h-4 text-[#d4ff00]" />
                               )}
                             </button>
                           </div>
@@ -381,17 +349,11 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
               </table>
             </div>
           </div>
-
-          <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
-            <p className="text-xs text-gray-400 leading-relaxed">
-              💡 <span className="font-semibold text-white">Lưu ý:</span> Khi cập nhật số lượng tồn kho của biến thể ở đây, số lượng tồn kho hiển thị tại bảng danh mục sản phẩm phía admin và trang bán hàng phía khách hàng sẽ tự động đồng bộ hóa tương ứng theo thời gian thực.
-            </p>
-          </div>
         </div>
 
         <div className="border-t border-[#333] px-6 py-4 flex justify-end gap-3 bg-[#141414] rounded-b-xl">
           <button onClick={onClose}
-            className="px-5 py-2.5 text-sm font-semibold text-gray-300 hover:text-white bg-transparent border border-[#444] rounded-lg hover:bg-[#222] transition-colors">
+            className="px-5 py-2.5 text-sm font-semibold text-gray-300 hover:text-white bg-[#222] border border-[#444] rounded-lg hover:bg-[#333] transition-colors">
             Đóng
           </button>
         </div>
