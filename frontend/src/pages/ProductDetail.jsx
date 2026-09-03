@@ -1222,7 +1222,37 @@ export default function ProductDetail() {
   // Sync selected variant id
   useEffect(() => {
     if (productData?.Variants && productData.Variants.length > 0) {
-      setSelectedVariantId(productData.Variants[0]._id)
+      let initialVar = productData.Variants[0]
+      const pName = (productData.product?.name || '').toLowerCase()
+
+      // Ưu tiên chọn biến thể khớp với dung lượng được định danh trong tên sản phẩm (VD: 32GB)
+      if (pName.includes('32gb') || pName.includes('32 gb')) {
+        const var32 = productData.Variants.find(v => {
+          const vName = (v.variant_name || '').toLowerCase()
+          const attrs = v.Attributes || v.attributes || []
+          return vName.includes('32gb') || attrs.some(a => (a.value_name || a.value || '').toLowerCase() === '32gb')
+        })
+        if (var32) initialVar = var32
+      } else if (pName.includes('16gb') || pName.includes('16 gb')) {
+        const var16 = productData.Variants.find(v => {
+          const vName = (v.variant_name || '').toLowerCase()
+          const attrs = v.Attributes || v.attributes || []
+          return vName.includes('16gb') || attrs.some(a => (a.value_name || a.value || '').toLowerCase() === '16gb')
+        })
+        if (var16) initialVar = var16
+      }
+
+      setSelectedVariantId(initialVar._id)
+
+      // Khởi tạo selectedAttributes từ biến thể ban đầu
+      const curAttrs = initialVar?.Attributes || initialVar?.attributes || []
+      const initAttrMap = {}
+      curAttrs.forEach(a => {
+        const gName = a.attribute_name || a.name
+        const gVal = a.value_name || a.value
+        if (gName && gVal) initAttrMap[gName] = gVal
+      })
+      setSelectedAttributes(initAttrMap)
     }
   }, [productData])
 
@@ -1241,7 +1271,7 @@ export default function ProductDetail() {
       curAttrs.forEach(a => {
         const gName = a.attribute_name || a.name
         const gVal = a.value_name || a.value
-        if (gName && gVal && !next[gName]) {
+        if (gName && gVal) {
           next[gName] = gVal
         }
       })
@@ -1391,9 +1421,12 @@ export default function ProductDetail() {
           const valName = a.value_name || a.value
           if (!groupName || !valName) return
 
-          // Lọc bỏ các thông số kỹ thuật cố định
+          // Lọc bỏ các thông số kỹ thuật cố định, nhưng luôn giữ lại các thuộc tính chọn mua cốt lõi
           const lowerName = groupName.trim().toLowerCase()
-          if (specFilterOut.some(s => lowerName === s || lowerName.includes(s) || s.includes(lowerName))) return
+          const isCoreVariantAttr = ['màu sắc', 'dung lượng', 'dung lượng ram', 'dung lượng lưu trữ', 'phiên bản', 'phiên bản / dung lượng'].includes(lowerName)
+          if (!isCoreVariantAttr) {
+            if (specFilterOut.some(s => lowerName === s || lowerName.includes(s) || (s.length > 5 && s.includes(lowerName)))) return
+          }
 
           // Nếu là màn hình máy tính, loại bỏ hoàn toàn các thuộc tính chứa "dung lượng" hoặc "phiên bản / dung lượng"
           if (isMonitor && (lowerName.includes('dung lượng') || lowerName.includes('dung luong'))) return
@@ -1412,6 +1445,18 @@ export default function ProductDetail() {
             })
           }
         })
+      })
+
+      // Sắp xếp các lựa chọn dung lượng (RAM/Ổ cứng) theo thứ tự tăng dần: 8GB -> 16GB -> 32GB -> 64GB
+      Object.keys(groups).forEach(gName => {
+        const lowerG = gName.toLowerCase()
+        if (lowerG.includes('dung lượng') || lowerG.includes('ram')) {
+          groups[gName].options.sort((a, b) => {
+            const numA = parseInt(a.value_name) || 0
+            const numB = parseInt(b.value_name) || 0
+            return numA - numB
+          })
+        }
       })
 
       const filteredGroups = Object.values(groups)
@@ -1539,6 +1584,11 @@ export default function ProductDetail() {
         bestVariant = v
       }
     })
+
+    // Fallback nếu chưa tìm được theo score hoặc chỉ có 1 thuộc tính đơn
+    if ((!bestVariant || maxScore <= 0) && opt.variant_id) {
+      bestVariant = Variants.find(v => v._id === opt.variant_id)
+    }
 
     if (bestVariant && bestVariant._id !== selectedVariantId) {
       setSelectedVariantId(bestVariant._id)

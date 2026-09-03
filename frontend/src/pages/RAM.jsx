@@ -10,6 +10,7 @@ import { useAuth } from '../hooks/useAuth'
 import '../assets/styles/cpu.css' // Reuse the sidebar layout styles
 
 import { API_BASE as API_URL } from '../services/apiService';
+import PriceRangeFilter from '../components/PriceRangeFilter';
 
 // --- FILTER OPTIONS DATA MATCHING USER'S RAM IMAGE ---
 const brandsData = [
@@ -97,6 +98,24 @@ export default function RAM() {
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState('grid')
   const [sortBy, setSortBy] = useState('popular')
+  const [priceFilter, setPriceFilter] = useState({ min: 0, max: 0 })
+  const [maxCategoryPrice, setMaxCategoryPrice] = useState(100000000)
+
+  useEffect(() => {
+    if (products.length > 0) {
+      let max = 0
+      products.forEach(p => {
+        const pr = (p.Variants && p.Variants[0]) ? (p.Variants[0].sale_price || p.Variants[0].price || 0) : 0
+        if (pr > max) max = pr
+      })
+      const roundedMax = max > 0 ? Math.ceil(max / 1000000) * 1000000 : 20000000
+      setMaxCategoryPrice(roundedMax)
+      setPriceFilter(prev => ({
+        min: prev.min || 0,
+        max: prev.max > 0 ? prev.max : roundedMax
+      }))
+    }
+  }, [products])
 
   const handleQuickAddToCart = async (product) => {
     const variantsList = product.Variants || product.variants;
@@ -252,6 +271,12 @@ export default function RAM() {
 
   // --- FILTER & SORT LOGIC ---
   const filteredProducts = products.filter(product => {
+    // 0. Lọc theo Khoảng giá
+    if (priceFilter.max > 0) {
+      const price = getProductPrice(product)
+      if (price < priceFilter.min || price > priceFilter.max) return false
+    }
+
     const nameLower = product.name.toLowerCase()
     const descLower = (product.description || '').toLowerCase()
     const specsLower = (product.short_desc || '').toLowerCase()
@@ -383,20 +408,16 @@ export default function RAM() {
                   </span>
                 </div>
                 {openFilters.priceRange && (
-                  <div className="price-range">
-                    <div className="price-inputs" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <input type="text" value="0đ" disabled style={{ width: '100%', background: 'var(--dark2)', border: '1.5px solid var(--border)', color: 'var(--white)', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px' }} />
-                      <span style={{ color: 'var(--text-muted)' }}>-</span>
-                      <input type="text" value="15.000.000đ" disabled style={{ width: '100%', background: 'var(--dark2)', border: '1.5px solid var(--border)', color: 'var(--white)', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px' }} />
-                    </div>
-                    <div className="custom-slider-wrapper">
-                      <div className="slider-track-line">
-                        <span className="slider-dot active" style={{left: '0%'}}></span>
-                        <span className="slider-dot active" style={{left: '100%'}}></span>
-                        <div className="slider-active-line" style={{left: '0%', width: '100%'}}></div>
-                      </div>
-                    </div>
-                  </div>
+                  <PriceRangeFilter
+                    minPrice={priceFilter.min}
+                    maxPrice={priceFilter.max || maxCategoryPrice}
+                    minLimit={0}
+                    maxLimit={maxCategoryPrice}
+                    onPriceChange={({ min, max }) => {
+                      setPriceFilter({ min, max })
+                      setCurrentPage(1)
+                    }}
+                  />
                 )}
               </div>
 
@@ -441,181 +462,6 @@ export default function RAM() {
                         {expandedFilters.brands ? 'Thu gọn' : 'Xem thêm'}
                       </button>
                     )}
-                  </div>
-                )}
-              </div>
-
-              {/* SERIES */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('series')}>
-                  Series
-                  <span className={`accordion-icon ${openFilters.series ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.series && (
-                  <div className="filter-options">
-                    {(expandedFilters.series ? seriesData : seriesData.slice(0, 4)).map(ser => (
-                      <label key={ser.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.series.includes(ser.value)}
-                          onChange={(e) => handleFilterChange('series', ser.value, e.target.checked)}
-                        />
-                        <span>{ser.label}</span>
-                      </label>
-                    ))}
-                    {seriesData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('series')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500'
-                        }}
-                      >
-                        {expandedFilters.series ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* NHU CẦU */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('useCase')}>
-                  Nhu cầu
-                  <span className={`accordion-icon ${openFilters.useCase ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.useCase && (
-                  <div className="filter-options">
-                    {useCaseData.map(uc => (
-                      <label key={uc.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.useCase.includes(uc.value)}
-                          onChange={(e) => handleFilterChange('useCase', uc.value, e.target.checked)}
-                        />
-                        <span>{uc.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* LOẠI RAM */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('ramType')}>
-                  Loại RAM
-                  <span className={`accordion-icon ${openFilters.ramType ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.ramType && (
-                  <div className="filter-options">
-                    {ramTypesData.map(type => (
-                      <label key={type.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.ramType.includes(type.value)}
-                          onChange={(e) => handleFilterChange('ramType', type.value, e.target.checked)}
-                        />
-                        <span>{type.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* DUNG LƯỢNG RAM */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('capacity')}>
-                  Dung lượng RAM
-                  <span className={`accordion-icon ${openFilters.capacity ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.capacity && (
-                  <div className="filter-options" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {ramCapacitiesData.map(cap => (
-                      <label key={cap.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.capacity.includes(cap.value)}
-                          onChange={(e) => handleFilterChange('capacity', cap.value, e.target.checked)}
-                        />
-                        <span>{cap.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* THẾ HỆ BỘ NHỚ (DDR) */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('memoryGen')}>
-                  Thế hệ bộ nhớ (DDR)
-                  <span className={`accordion-icon ${openFilters.memoryGen ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.memoryGen && (
-                  <div className="filter-options" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {memoryGenData.map(gen => (
-                      <label key={gen.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.memoryGen.includes(gen.value)}
-                          onChange={(e) => handleFilterChange('memoryGen', gen.value, e.target.checked)}
-                        />
-                        <span>{gen.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* BUS RAM */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('bus')}>
-                  Bus RAM
-                  <span className={`accordion-icon ${openFilters.bus ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.bus && (
-                  <div className="filter-options">
-                    {ramBusData.map(b => (
-                      <label key={b.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.bus.includes(b.value)}
-                          onChange={(e) => handleFilterChange('bus', b.value, e.target.checked)}
-                        />
-                        <span>{b.label}</span>
-                      </label>
-                    ))}
                   </div>
                 )}
               </div>
