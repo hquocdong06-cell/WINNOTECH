@@ -8307,9 +8307,19 @@ app.patch(["/admin/banners/:id/status", "/api/banners/:id/status"], async (req, 
 });
 
 // ============================================================
-// AI CHATBOT ROUTER
+// AI CHATBOT ROUTER (Tư vấn linh kiện máy tính & Gemini AI)
 // ============================================================
-app.use("/api/chatbot", require("./routers/AI_chatbot"));
+const getAiChatbotRouter = (req, res, next) => {
+  try {
+    delete require.cache[require.resolve("./routers/AI_chatbot")];
+  } catch (e) {}
+  return require("./routers/AI_chatbot")(req, res, next);
+};
+
+app.use("/api/chatbot", getAiChatbotRouter);
+app.use("/api/api/chatbot", getAiChatbotRouter);
+app.use("/chatbot", getAiChatbotRouter);
+app.use("/api/chat", getAiChatbotRouter);
 
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
