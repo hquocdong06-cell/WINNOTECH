@@ -12,7 +12,7 @@ const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const DUMP_DIR = path.join(__dirname, 'WINNOTech');
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/WINNOTech';
+const MONGO_URI = process.argv[2] || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/WINNOTech';
 
 function parseBsonFile(filePath) {
   if (!fs.existsSync(filePath)) return [];
