@@ -11,7 +11,11 @@ import {
   Award,
   ArrowUpDown,
   ArrowDownWideNarrow,
-  ArrowUpWideNarrow
+  ArrowUpWideNarrow,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { fetchAdminProducts, fetchCategories, deleteProduct, toggleProductStatus, API_BASE } from '../services/adminService';
@@ -67,6 +71,15 @@ const Products = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [stockFilter, setStockFilter] = useState('all'); // 'all' | 'in_stock' | 'low_stock'
   const [stockSort, setStockSort] = useState('none'); // 'none' | 'desc' | 'asc'
+
+  // State Phân trang
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // Reset về trang 1 khi filter hoặc tìm kiếm thay đổi
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, stockFilter, stockSort]);
 
   const getTotalStock = (product) => product.Variants?.reduce((s, v) => s + (v.stock_quantity || 0), 0) || 0;
 
@@ -152,6 +165,29 @@ const Products = () => {
     return result;
   }, [products, searchQuery, selectedCategory, stockFilter, stockSort]);
 
+  // Logic Phân Trang
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredProducts.slice(start, start + pageSize);
+  }, [filteredProducts, safePage, pageSize]);
+
+  const pageNumbers = useMemo(() => {
+    const pages = [];
+    const maxButtons = 5;
+    let start = Math.max(1, safePage - 2);
+    let end = Math.min(totalPages, start + maxButtons - 1);
+    if (end - start + 1 < maxButtons) {
+      start = Math.max(1, end - maxButtons + 1);
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }, [safePage, totalPages]);
+
   const handleToggleStatus = async (product) => {
     const newStatus = product.status === 'active' ? 'hidden' : 'active';
     try {
@@ -191,13 +227,13 @@ const Products = () => {
   };
 
   return (
-    <div className="p-8 text-white min-h-screen">
+    <div className="p-4 sm:p-6 text-white min-h-screen">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold mb-2">Quản lý Sản phẩm</h1>
           <p className="text-gray-400 text-sm">{products.length} sản phẩm trong hệ thống</p>
         </div>
-        {/* Nút Thêm Sản phẩm chuẩn Ảnh 2: Nền đen, viền + chữ #D3FC00 */}
+        {/* Nút Thêm Sản phẩm */}
         <button
           onClick={() => { setEditingProduct(null); setIsFormModalOpen(true); }}
           className="flex items-center gap-2 px-5 py-2.5 bg-black border border-[#D3FC00] text-[#D3FC00] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(211,252,0,0.15)] hover:bg-[#D3FC00]/10"
@@ -206,44 +242,45 @@ const Products = () => {
         </button>
       </div>
 
-      <div className="bg-[#141414] border border-[#333] rounded-xl p-5 mb-6 flex flex-wrap gap-4 items-center justify-between">
+      <div className="bg-[#141414] border border-[#333] rounded-xl p-4 mb-6 flex flex-wrap gap-4 items-center justify-between">
         <div className="relative flex-1 min-w-[250px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input type="text" placeholder="Tìm kiếm sản phẩm..." value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[#1e1e1e] border border-[#333] rounded-lg text-sm focus:border-[#d4ff00] outline-none text-white placeholder-gray-400 transition-colors" />
+            className="w-full pl-10 pr-4 py-2 bg-[#1e1e1e] border border-[#333] rounded-lg text-xs focus:border-[#d4ff00] outline-none text-white placeholder-gray-400 transition-colors" />
         </div>
         <div className="flex flex-wrap gap-3 items-center">
-          {/* Bộ lọc tồn kho: Hàng tồn và Hàng sắp hết */}
+          {/* Bộ lọc tồn kho */}
           <select
             value={stockFilter}
             onChange={(e) => setStockFilter(e.target.value)}
-            className="bg-[#1e1e1e] border border-[#333] rounded-lg px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white cursor-pointer"
+            className="bg-[#1e1e1e] border border-[#333] rounded-lg px-3 py-2 text-xs focus:border-[#d4ff00] outline-none text-white cursor-pointer"
           >
-            <option value="all">Tất cả sản phẩm</option>
+            <option value="all">Tất cả sản phẩm ({products.length})</option>
             <option value="in_stock">Hàng tồn</option>
             <option value="low_stock">Hàng sắp hết</option>
           </select>
 
           <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-[#1e1e1e] border border-[#333] rounded-lg px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white cursor-pointer">
+            className="bg-[#1e1e1e] border border-[#333] rounded-lg px-3 py-2 text-xs focus:border-[#d4ff00] outline-none text-white cursor-pointer">
             <option value="">Tất cả danh mục</option>
             {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
           </select>
-          <span className="text-sm text-gray-500 whitespace-nowrap">{filteredProducts.length} kết quả</span>
+          <span className="text-xs text-gray-500 whitespace-nowrap">{filteredProducts.length} kết quả</span>
         </div>
       </div>
 
+      {/* Bảng sản phẩm */}
       <div className="bg-[#141414] border border-[#333] rounded-xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
+          <table className="w-full text-xs text-left">
             <thead className="bg-[#1a1a1a] border-b border-[#333] text-gray-400 text-xs uppercase">
               <tr>
-                <th className="px-6 py-4 font-semibold whitespace-nowrap">Sản phẩm</th>
-                <th className="px-6 py-4 font-semibold whitespace-nowrap">Danh mục</th>
-                <th className="px-6 py-4 font-semibold whitespace-nowrap">Giá bán</th>
+                <th className="px-3.5 py-3 font-semibold whitespace-nowrap">Sản phẩm</th>
+                <th className="px-3.5 py-3 font-semibold whitespace-nowrap">Danh mục</th>
+                <th className="px-3.5 py-3 font-semibold whitespace-nowrap">Giá bán</th>
                 <th
-                  className="px-6 py-4 font-semibold whitespace-nowrap cursor-pointer hover:text-white select-none transition-colors"
+                  className="px-3.5 py-3 font-semibold whitespace-nowrap cursor-pointer hover:text-white select-none transition-colors"
                   onClick={handleToggleStockSort}
                   title="Bấm để đổi sắp xếp tồn kho: Cao → Thấp / Thấp → Cao"
                 >
@@ -258,86 +295,86 @@ const Products = () => {
                     )}
                   </div>
                 </th>
-                <th className="px-6 py-4 font-semibold whitespace-nowrap">Trạng thái</th>
-                <th className="px-6 py-4 font-semibold text-right whitespace-nowrap">Hành động</th>
+                <th className="px-3.5 py-3 font-semibold whitespace-nowrap">Trạng thái</th>
+                <th className="px-3.5 py-3 font-semibold text-right whitespace-nowrap">Hành động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#333]">
               {isLoading ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-16 text-center">
+                  <td colSpan="6" className="px-6 py-12 text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-[#d4ff00] mx-auto mb-3" />
-                    <p className="text-gray-500 text-sm">Đang tải dữ liệu...</p>
+                    <p className="text-gray-500 text-xs">Đang tải dữ liệu...</p>
                   </td>
                 </tr>
-              ) : filteredProducts.length === 0 ? (
+              ) : paginatedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-16 text-center text-gray-500">
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
                     {searchQuery || selectedCategory ? 'Không tìm thấy sản phẩm phù hợp.' : 'Chưa có sản phẩm nào.'}
                   </td>
                 </tr>
-              ) : filteredProducts.map((product) => {
+              ) : paginatedProducts.map((product) => {
                 const imgUrl = getImageUrl(product);
                 const { price, salePrice } = getDisplayPrice(product);
                 const isActive = product.status === 'active';
                 return (
                   <tr key={product._id} className="hover:bg-[#1e1e1e] transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-4">
+                    <td className="px-3.5 py-3">
+                      <div className="flex items-center gap-3">
                         {imgUrl ? (
                           <img src={imgUrl} alt={product.name}
-                            className="w-12 h-12 rounded-lg object-cover border border-[#333] shrink-0"
+                            className="w-10 h-10 rounded-lg object-cover border border-[#333] shrink-0"
                             onError={(e) => { e.target.style.display = 'none'; }} />
                         ) : (
-                          <div className="w-12 h-12 rounded-lg bg-[#222] border border-[#333] flex items-center justify-center shrink-0">
-                            <span className="text-xs text-gray-500">N/A</span>
+                          <div className="w-10 h-10 rounded-lg bg-[#222] border border-[#333] flex items-center justify-center shrink-0">
+                            <span className="text-[10px] text-gray-500">N/A</span>
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="font-semibold line-clamp-1">{product.name}</div>
-                          <div className="text-xs text-gray-500 mt-1">{product.brand_id?.name || '—'}</div>
+                          <div className="font-semibold max-w-[180px] truncate text-xs" title={product.name}>{product.name}</div>
+                          <div className="text-[11px] text-gray-500 mt-0.5">{product.brand_id?.name || '—'}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-300 whitespace-nowrap">{product.cat_id?.name || '—'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 whitespace-nowrap">
-                        <span className="font-medium text-[#d4ff00]">{(salePrice || price).toLocaleString('vi-VN')}đ</span>
-                        {salePrice && <span className="text-xs text-gray-500 line-through">{price.toLocaleString('vi-VN')}đ</span>}
+                    <td className="px-3.5 py-3 text-gray-300 text-xs whitespace-nowrap">{product.cat_id?.name || '—'}</td>
+                    <td className="px-3.5 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        <span className="font-bold text-[#d4ff00] text-xs">{(salePrice || price).toLocaleString('vi-VN')}₫</span>
+                        {salePrice && <span className="text-[11px] text-gray-500 line-through">{price.toLocaleString('vi-VN')}₫</span>}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <td className="px-3.5 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 whitespace-nowrap text-xs">
                         <span className="text-gray-300 font-medium">{getTotalStock(product)} trong kho</span>
                         <span className="text-gray-600">•</span>
-                        <span className="text-xs text-gray-400">{product.Variants?.length || 0} biến thể</span>
+                        <span className="text-[11px] text-gray-400">{product.Variants?.length || 0} biến thể</span>
                       </div>
                       {getLowStockNotice(product) && (
-                        <div className="text-[11px] text-amber-400 flex items-center gap-1 mt-1 font-medium whitespace-nowrap">
+                        <div className="text-[10px] text-amber-400 flex items-center gap-1 mt-0.5 font-medium whitespace-nowrap">
                           <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
                           <span>{getLowStockNotice(product)}</span>
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${isActive ? 'bg-[#d4ff00]/10 text-[#d4ff00] border border-[#d4ff00]/30' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>
+                    <td className="px-3.5 py-3 whitespace-nowrap">
+                      <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap ${isActive ? 'bg-[#d4ff00]/10 text-[#d4ff00] border border-[#d4ff00]/30' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>
                         {isActive ? 'Đang bán' : 'Đã ẩn'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right whitespace-nowrap">
-                      <div className="flex justify-end gap-2 whitespace-nowrap">
+                    <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                      <div className="flex justify-end gap-1.5 whitespace-nowrap">
                         <button onClick={() => { setEditingProduct(product); setIsVariantModalOpen(true); }}
-                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-[#d4ff00] transition-colors" title="Quản lý biến thể">
-                          <Settings2 className="w-4 h-4" />
+                          className="p-1.5 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-[#d4ff00] transition-colors" title="Quản lý biến thể">
+                          <Settings2 className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => { setEditingProduct(product); setIsFormModalOpen(true); }}
-                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors" title="Sửa sản phẩm">
-                          <Edit className="w-4 h-4" />
+                          className="p-1.5 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors" title="Sửa sản phẩm">
+                          <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => handleToggleStatus(product)}
-                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
+                          className="p-1.5 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
                           title={isActive ? 'Ẩn sản phẩm' : 'Hiện sản phẩm'}>
-                          {isActive ? <Eye className="w-4 h-4 text-[#d4ff00]" /> : <EyeOff className="w-4 h-4 text-gray-500" />}
+                          {isActive ? <Eye className="w-3.5 h-3.5 text-[#d4ff00]" /> : <EyeOff className="w-3.5 h-3.5 text-gray-500" />}
                         </button>
                       </div>
                     </td>
@@ -347,6 +384,93 @@ const Products = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Thanh Phân Trang (Pagination Controls) */}
+        {!isLoading && filteredProducts.length > 0 && (
+          <div className="bg-[#191919] border-t border-[#333] px-4 py-3 flex flex-wrap items-center justify-between gap-4 text-xs">
+            {/* Thông tin số lượng & Chọn dòng / trang */}
+            <div className="flex items-center gap-4 text-gray-400">
+              <span>
+                Hiển thị <strong className="text-white">{(safePage - 1) * pageSize + 1}</strong> - <strong className="text-white">{Math.min(safePage * pageSize, filteredProducts.length)}</strong> trên tổng số <strong className="text-[#d4ff00]">{filteredProducts.length.toLocaleString('vi-VN')}</strong> sản phẩm
+              </span>
+
+              <div className="flex items-center gap-2">
+                <span>Hiển thị:</span>
+                <select
+                  value={pageSize}
+                  onChange={e => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="bg-[#1f1f1f] border border-[#333] rounded-lg px-2 py-1 text-white text-xs outline-none focus:border-[#d4ff00] cursor-pointer"
+                >
+                  <option value={15}>15 dòng</option>
+                  <option value={20}>20 dòng</option>
+                  <option value={50}>50 dòng</option>
+                  <option value={100}>100 dòng</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Các nút chuyển trang */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCurrentPage(1)}
+                disabled={safePage === 1}
+                className="p-1.5 rounded-lg bg-[#1f1f1f] border border-[#333] text-gray-300 hover:text-white hover:border-[#d4ff00] disabled:opacity-30 disabled:hover:border-[#333] disabled:cursor-not-allowed transition-colors"
+                title="Trang đầu"
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={safePage === 1}
+                className="p-1.5 rounded-lg bg-[#1f1f1f] border border-[#333] text-gray-300 hover:text-white hover:border-[#d4ff00] disabled:opacity-30 disabled:hover:border-[#333] disabled:cursor-not-allowed transition-colors"
+                title="Trang trước"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {pageNumbers.map(pageNum => (
+                <button
+                  type="button"
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`min-w-[32px] h-8 px-2 rounded-lg font-bold transition-all ${
+                    safePage === pageNum
+                      ? 'bg-[#d4ff00] text-black shadow-md shadow-[#d4ff00]/20'
+                      : 'bg-[#1f1f1f] border border-[#333] text-gray-300 hover:text-white hover:border-[#555]'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={safePage === totalPages}
+                className="p-1.5 rounded-lg bg-[#1f1f1f] border border-[#333] text-gray-300 hover:text-white hover:border-[#d4ff00] disabled:opacity-30 disabled:hover:border-[#333] disabled:cursor-not-allowed transition-colors"
+                title="Trang sau"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={safePage === totalPages}
+                className="p-1.5 rounded-lg bg-[#1f1f1f] border border-[#333] text-gray-300 hover:text-white hover:border-[#d4ff00] disabled:opacity-30 disabled:hover:border-[#333] disabled:cursor-not-allowed transition-colors"
+                title="Trang cuối"
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <ProductFormModal isOpen={isFormModalOpen} onClose={() => setIsFormModalOpen(false)}
