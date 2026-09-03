@@ -10,6 +10,7 @@ import { useAuth } from '../hooks/useAuth'
 import '../assets/styles/cpu.css' // Reuse the sidebar layout styles
 
 import { API_BASE as API_URL } from '../services/apiService';
+import PriceRangeFilter from '../components/PriceRangeFilter';
 
 // --- FILTER OPTIONS DATA MATCHING USER'S GPU IMAGE ---
 const brandsData = [
@@ -195,6 +196,24 @@ export default function GPU() {
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState('grid')
   const [sortBy, setSortBy] = useState('popular')
+  const [priceFilter, setPriceFilter] = useState({ min: 0, max: 0 })
+  const [maxCategoryPrice, setMaxCategoryPrice] = useState(100000000)
+
+  useEffect(() => {
+    if (products.length > 0) {
+      let max = 0
+      products.forEach(p => {
+        const pr = (p.Variants && p.Variants[0]) ? (p.Variants[0].sale_price || p.Variants[0].price || 0) : 0
+        if (pr > max) max = pr
+      })
+      const roundedMax = max > 0 ? Math.ceil(max / 1000000) * 1000000 : 50000000
+      setMaxCategoryPrice(roundedMax)
+      setPriceFilter(prev => ({
+        min: prev.min || 0,
+        max: prev.max > 0 ? prev.max : roundedMax
+      }))
+    }
+  }, [products])
 
   const handleQuickAddToCart = async (product) => {
     const variantsList = product.Variants || product.variants;
@@ -353,6 +372,12 @@ export default function GPU() {
 
   // --- FILTER & SORT LOGIC ---
   const filteredProducts = products.filter(product => {
+    // 0. Lọc theo Khoảng giá
+    if (priceFilter.max > 0) {
+      const price = getProductPrice(product)
+      if (price < priceFilter.min || price > priceFilter.max) return false
+    }
+
     const nameLower = product.name.toLowerCase()
     const descLower = (product.description || '').toLowerCase()
     const specsLower = (product.short_desc || '').toLowerCase()
@@ -470,20 +495,16 @@ export default function GPU() {
                   </span>
                 </div>
                 {openFilters.priceRange && (
-                  <div className="price-range">
-                    <div className="price-inputs" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <input type="text" value="0đ" disabled style={{ width: '100%', background: 'var(--dark2)', border: '1.5px solid var(--border)', color: 'var(--white)', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px' }} />
-                      <span style={{ color: 'var(--text-muted)' }}>-</span>
-                      <input type="text" value="410.000.000đ" disabled style={{ width: '100%', background: 'var(--dark2)', border: '1.5px solid var(--border)', color: 'var(--white)', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px' }} />
-                    </div>
-                    <div className="custom-slider-wrapper">
-                      <div className="slider-track-line">
-                        <span className="slider-dot active" style={{left: '0%'}}></span>
-                        <span className="slider-dot active" style={{left: '100%'}}></span>
-                        <div className="slider-active-line" style={{left: '0%', width: '100%'}}></div>
-                      </div>
-                    </div>
-                  </div>
+                  <PriceRangeFilter
+                    minPrice={priceFilter.min}
+                    maxPrice={priceFilter.max || maxCategoryPrice}
+                    minLimit={0}
+                    maxLimit={maxCategoryPrice}
+                    onPriceChange={({ min, max }) => {
+                      setPriceFilter({ min, max })
+                      setCurrentPage(1)
+                    }}
+                  />
                 )}
               </div>
 
@@ -526,259 +547,6 @@ export default function GPU() {
                         }}
                       >
                         {expandedFilters.brands ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* NHÀ SẢN XUẤT CHIPSET */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('chipsetMan')}>
-                  Nhà sản xuất chipset
-                  <span className={`accordion-icon ${openFilters.chipsetMan ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.chipsetMan && (
-                  <div className="filter-options" style={{ display: 'flex', flexDirection: 'row', gap: '20px' }}>
-                    {chipsetManufacturersData.map(man => (
-                      <label key={man.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.chipsetMan.includes(man.value)}
-                          onChange={(e) => handleFilterChange('chipsetMan', man.value, e.target.checked)}
-                        />
-                        <span>{man.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* SERIES CHIP ĐỒ HỌA */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('gpuSeries')}>
-                  Series chip đồ họa
-                  <span className={`accordion-icon ${openFilters.gpuSeries ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.gpuSeries && (
-                  <div className="filter-options">
-                    {(expandedFilters.gpuSeries ? gpuSeriesData : gpuSeriesData.slice(0, 4)).map(ser => (
-                      <label key={ser.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.gpuSeries.includes(ser.value)}
-                          onChange={(e) => handleFilterChange('gpuSeries', ser.value, e.target.checked)}
-                        />
-                        <span>{ser.label}</span>
-                      </label>
-                    ))}
-                    {gpuSeriesData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('gpuSeries')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500'
-                        }}
-                      >
-                        {expandedFilters.gpuSeries ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* TÊN CHIP ĐỒ HỌA */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('chipName')}>
-                  Tên chip đồ họa
-                  <span className={`accordion-icon ${openFilters.chipName ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.chipName && (
-                  <div className="filter-options">
-                    {(expandedFilters.chipName ? chipNamesData : chipNamesData.slice(0, 4)).map(name => (
-                      <label key={name.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.chipName.includes(name.value)}
-                          onChange={(e) => handleFilterChange('chipName', name.value, e.target.checked)}
-                        />
-                        <span>{name.label}</span>
-                      </label>
-                    ))}
-                    {chipNamesData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('chipName')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500'
-                        }}
-                      >
-                        {expandedFilters.chipName ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* DUNG LƯỢNG BỘ NHỚ VRAM */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('vram')}>
-                  Dung lượng bộ nhớ VRAM
-                  <span className={`accordion-icon ${openFilters.vram ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.vram && (
-                  <div className="filter-options" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {(expandedFilters.vram ? vramData : vramData.slice(0, 4)).map(v => (
-                      <label key={v.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.vram.includes(v.value)}
-                          onChange={(e) => handleFilterChange('vram', v.value, e.target.checked)}
-                        />
-                        <span>{v.label}</span>
-                      </label>
-                    ))}
-                    {vramData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('vram')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500',
-                          gridColumn: 'span 2'
-                        }}
-                      >
-                        {expandedFilters.vram ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* THẾ HỆ BỘ NHỚ */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('memoryGen')}>
-                  Thế hệ bộ nhớ (GDDR/HBM)
-                  <span className={`accordion-icon ${openFilters.memoryGen ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.memoryGen && (
-                  <div className="filter-options" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {(expandedFilters.memoryGen ? memoryGenData : memoryGenData.slice(0, 4)).map(gen => (
-                      <label key={gen.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.memoryGen.includes(gen.value)}
-                          onChange={(e) => handleFilterChange('memoryGen', gen.value, e.target.checked)}
-                        />
-                        <span>{gen.label}</span>
-                      </label>
-                    ))}
-                    {memoryGenData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('memoryGen')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500',
-                          gridColumn: 'span 2'
-                        }}
-                      >
-                        {expandedFilters.memoryGen ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* SERIES (Sub-brand) */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('series')}>
-                  Series
-                  <span className={`accordion-icon ${openFilters.series ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.series && (
-                  <div className="filter-options">
-                    {(expandedFilters.series ? seriesData : seriesData.slice(0, 4)).map(ser => (
-                      <label key={ser.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.series.includes(ser.value)}
-                          onChange={(e) => handleFilterChange('series', ser.value, e.target.checked)}
-                        />
-                        <span>{ser.label}</span>
-                      </label>
-                    ))}
-                    {seriesData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('series')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500'
-                        }}
-                      >
-                        {expandedFilters.series ? 'Thu gọn' : 'Xem thêm'}
                       </button>
                     )}
                   </div>

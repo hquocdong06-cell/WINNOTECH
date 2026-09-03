@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
+import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
 import { useAuth } from '../hooks/useAuth'
 import DefaultLayout from '../layouts/DefaultLayout'
@@ -16,10 +18,15 @@ const fmt = (n) => {
 
 const getImg = (product) => {
   if (!product) return ''
+  if (product.AnhSP && product.AnhSP.length > 0) {
+    const main = product.AnhSP.find(img => img.is_main) || product.AnhSP[0]
+    const url = main?.url || ''
+    if (url) return url.startsWith('http') ? url : `${API_URL}${url}`
+  }
   const imgs = product.images || []
   if (imgs.length > 0) {
-    const url = imgs[0].url || imgs[0]
-    return url?.startsWith('http') ? url : `${API_URL}${url}`
+    const url = imgs[0]?.url || imgs[0]
+    if (url) return typeof url === 'string' && url.startsWith('http') ? url : `${API_URL}${url}`
   }
   if (product.thumnail) {
     return product.thumnail.startsWith('http') ? product.thumnail : `${API_URL}${product.thumnail}`
@@ -46,38 +53,122 @@ const getVariantId = (product) => {
   return def?._id
 }
 
+// Danh sách các thương hiệu phần cứng máy tính để nhận diện từ tên
+const KNOWN_BRANDS = [
+  'Intel', 'AMD', 'NVIDIA', 'Asus', 'ASUS', 'MSI', 'Gigabyte', 'Aorus',
+  'Corsair', 'G.Skill', 'Kingston', 'Samsung', 'Western Digital', 'WD',
+  'Seagate', 'Crucial', 'Lexar', 'Kioxia', 'TeamGroup', 'T-Force',
+  'ADATA', 'XPG', 'Patriot', 'Colorful', 'Gainward', 'Galax', 'Zotac',
+  'Inno3D', 'Palit', 'ASRock', 'Sapphire', 'PowerColor', 'XFX',
+  'Deepcool', 'Thermalright', 'NZXT', 'Cooler Master', 'Lian Li',
+  'Seasonic', 'Super Flower', 'be quiet!', 'Be Quiet', 'Noctua', 'Arctic',
+  'ID-Cooling', 'Antec', 'Aigo', 'Jonsbo', 'Montech', 'Xigmatek',
+  'MIK', 'SAMA', 'VSP', 'Segotep', 'Gamdias', 'ViewSonic', 'LG',
+  'Dell', 'BenQ', 'Acer', 'AOC', 'Philips', 'Logitech', 'Razer',
+  'SteelSeries', 'Akko', 'Dareu', 'Keychron'
+]
+
+const getBrandName = (product) => {
+  if (!product) return '—'
+  // 1. Trích xuất từ dữ liệu thương hiệu trong DB nếu có
+  if (product.brand_id?.name) return product.brand_id.name
+  if (product.brand?.name) return product.brand.name
+  if (typeof product.brand_id === 'string' && product.brand_id.length > 0 && !/^[0-9a-fA-F]{24}$/.test(product.brand_id)) {
+    return product.brand_id
+  }
+
+  // 2. Lọc tự động dựa vào tên sản phẩm (theo yêu cầu người dùng)
+  const name = product.name || ''
+  for (const b of KNOWN_BRANDS) {
+    const escaped = b.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')
+    const regex = new RegExp(`(^|\\s|[._-])${escaped}($|\\s|[._-])`, 'i')
+    if (regex.test(name)) {
+      if (b.toUpperCase() === 'WD') return 'Western Digital'
+      if (b.toLowerCase() === 'asus') return 'ASUS'
+      if (b.toLowerCase() === 'asrock') return 'ASRock'
+      if (b.toLowerCase() === 'msi') return 'MSI'
+      return b
+    }
+  }
+
+  // Nhận diện theo dòng vi xử lý / card
+  const lower = name.toLowerCase()
+  if (lower.includes('ryzen')) return 'AMD'
+  if (lower.includes('core i') || lower.includes('xeon')) return 'Intel'
+  if (lower.includes('radeon')) return 'AMD'
+  if (lower.includes('geforce')) return 'NVIDIA'
+
+  return '—'
+}
+
+const getCategoryName = (product) => {
+  if (!product) return '—'
+  // 1. Trỏ từ Danh mục lưu trong Database
+  const catName = product.cat_id?.name || product.category_id?.name || product.category?.name
+  if (catName && catName !== '—') return catName
+
+  // 2. Dựa vào slug danh mục lưu trong Database nếu có
+  const catSlug = (product.cat_id?.slug || product.category_id?.slug || product.category_slug || '').toLowerCase()
+  if (catSlug.includes('cpu')) return 'Bộ vi xử lý (CPU)'
+  if (catSlug.includes('vga') || catSlug.includes('gpu')) return 'Card đồ họa (VGA)'
+  if (catSlug.includes('ram')) return 'Bộ nhớ trong (RAM)'
+  if (catSlug.includes('ssd') || catSlug.includes('o-cung') || catSlug.includes('storage')) return 'Ổ cứng SSD'
+  if (catSlug.includes('main')) return 'Bo mạch chủ (Mainboard)'
+  if (catSlug.includes('psu') || catSlug.includes('nguon')) return 'Nguồn máy tính (PSU)'
+  if (catSlug.includes('case')) return 'Vỏ Case'
+  if (catSlug.includes('tan-nhiet') || catSlug.includes('cooling')) return 'Tản nhiệt PC'
+  if (catSlug.includes('man-hinh') || catSlug.includes('monitor')) return 'Màn hình máy tính'
+
+  // 3. Dự đoán thông minh dựa theo tên / slug sản phẩm nếu chưa có danh mục trong DB
+  const text = ((product.name || '') + ' ' + (product.slug || '')).toLowerCase()
+  if (text.includes('cpu') || text.includes('ryzen') || text.includes('core i3') || text.includes('core i5') || text.includes('core i7') || text.includes('core i9') || text.includes('ultra 5') || text.includes('ultra 7') || text.includes('ultra 9')) {
+    return 'Bộ vi xử lý (CPU)'
+  }
+  if (text.includes('vga') || text.includes('card màn hình') || text.includes('rtx') || text.includes('gtx') || text.includes('radeon rx') || text.includes('geforce')) {
+    return 'Card đồ họa (VGA)'
+  }
+  if (text.includes('ram') || text.includes('ddr4') || text.includes('ddr5')) {
+    return 'Bộ nhớ trong (RAM)'
+  }
+  if (text.includes('ssd') || text.includes('nvme') || text.includes('m.2') || text.includes('ổ cứng') || text.includes('sata 3')) {
+    return 'Ổ cứng SSD'
+  }
+  if (text.includes('mainboard') || text.includes('bo mạch chủ') || text.includes('b760') || text.includes('z790') || text.includes('b650') || text.includes('x670') || text.includes('h610') || text.includes('a620') || text.includes('b550') || text.includes('z890')) {
+    return 'Bo mạch chủ (Mainboard)'
+  }
+  if (text.includes('nguồn') || text.includes('psu') || text.includes('power supply') || (text.includes('80 plus') && text.includes('w'))) {
+    return 'Nguồn máy tính (PSU)'
+  }
+  if (text.includes('vỏ case') || text.includes('thùng máy') || text.includes('thùng pc') || text.includes('case')) {
+    return 'Vỏ Case'
+  }
+  if (text.includes('tản nhiệt') || text.includes('cooler') || text.includes('aio') || text.includes('fan led') || text.includes('quạt')) {
+    return 'Tản nhiệt PC'
+  }
+  if (text.includes('màn hình') || text.includes('monitor') || text.includes('hz')) {
+    return 'Màn hình máy tính'
+  }
+
+  return 'Linh kiện máy tính'
+}
+
 // Danh sách các specs cần hiển thị trong bảng so sánh
 const SPEC_ROWS = [
   { group: 'Tổng quan', rows: [
-    { label: 'Thương hiệu',   key: p => p.brand_id?.name || '—' },
-    { label: 'Danh mục',      key: p => p.category_id?.name || '—' },
+    { label: 'Thương hiệu',   key: p => getBrandName(p) },
+    { label: 'Danh mục',      key: p => getCategoryName(p) },
     { label: 'Mô tả ngắn',    key: p => p.short_desc || '—' },
     { label: 'Trạng thái',    key: p => p.status === 'active' ? '✅ Đang bán' : '❌ Ngừng bán' },
   ]},
   { group: 'Giá & Kho', rows: [
     { label: 'Giá bán',           key: p => fmt(getPrice(p)), compare: 'number', getValue: p => getPrice(p) },
     { label: 'Giá gốc',          key: p => getOriginalPrice(p) ? fmt(getOriginalPrice(p)) : '—' },
-    { label: 'Số biến thể',       key: p => ((p.Variants || p.variants)?.length || 0) + ' biến thể' },
-  ]},
-  { group: 'Thông số kỹ thuật', rows: [
-    { label: 'CPU / Chip',        key: p => p.cpu || p.chip || '—' },
-    { label: 'Số nhân / luồng',   key: p => p.cores ? `${p.cores} nhân` : '—' },
-    { label: 'Tốc độ xung nhịp',  key: p => p.clock_speed || p.clock || '—' },
-    { label: 'TDP / TGP',         key: p => p.tdp || p.tgp || '—' },
-    { label: 'Dung lượng',        key: p => p.capacity || p.storage || '—' },
-    { label: 'Tốc độ đọc',        key: p => p.read_speed || '—' },
-    { label: 'Tốc độ ghi',        key: p => p.write_speed || '—' },
-    { label: 'VRAM',              key: p => p.vram || '—' },
-    { label: 'Loại RAM',          key: p => p.ram_type || p.memory_type || '—' },
-    { label: 'Socket',            key: p => p.socket || '—' },
-    { label: 'Form Factor',       key: p => p.form_factor || p.size || '—' },
-    { label: 'Kích thước',        key: p => p.dimension || p.dimensions || '—' },
-    { label: 'Bảo hành',          key: p => p.warranty || p.bao_hanh || '—' },
   ]},
 ]
 
 export default function Compare() {
   const navigate = useNavigate()
+  const dispatch = useDispatch()
   const { isLoggedIn } = useAuth()
   const [products, setProducts] = useState([])   // max 2 items
   const [loading, setLoading] = useState(true)
@@ -130,21 +221,47 @@ export default function Compare() {
 
   // Thêm vào giỏ hàng
   const handleAddToCart = async (product) => {
-    const variantId = getVariantId(product)
-    if (!variantId) {
-      toast.warning('Không tìm thấy biến thể', { position: 'bottom-right' })
+    const variantsList = product?.Variants || product?.variants || []
+    const defaultVariant = variantsList.find(v => v.variant_name === 'Mặc định') || variantsList[0]
+    if (!defaultVariant) {
+      toast.warning('Sản phẩm chưa có biến thể sẵn sàng!', { position: 'bottom-right' })
       return
     }
+    if (defaultVariant.stock_quantity !== undefined && defaultVariant.stock_quantity <= 0) {
+      toast.error('Sản phẩm này đã hết hàng!', { position: 'bottom-right' })
+      return
+    }
+
+    const currentPrice = defaultVariant.sale_price > 0 ? defaultVariant.sale_price : (defaultVariant.price || getPrice(product))
+    const imgUrl = getImg(product)
+    const cartPayload = {
+      product_id: product._id,
+      variant_id: defaultVariant._id,
+      name: product.name,
+      price: currentPrice,
+      quantity: 1,
+      image: imgUrl
+    }
+
+    if (!isLoggedIn) {
+      dispatch(addToCart(cartPayload))
+      toast.success('Đã thêm vào giỏ hàng!', { position: 'bottom-right', autoClose: 2000 })
+      return
+    }
+
     setAddingCart(product._id)
     try {
-      const data = await cartAPI.addItem(variantId, 1)
+      const data = await cartAPI.addItem(defaultVariant._id, 1)
       if (data.success) {
+        dispatch(addToCart(cartPayload))
         toast.success('Đã thêm vào giỏ hàng!', { position: 'bottom-right', autoClose: 2000 })
       } else {
         toast.error(data.message || 'Lỗi thêm vào giỏ', { position: 'bottom-right' })
       }
     } catch {
-      toast.error('Lỗi kết nối server', { position: 'bottom-right' })
+      // Fallback local dispatch nếu server network lỗi
+      dispatch(addToCart(cartPayload))
+      toast.success('Đã thêm vào giỏ hàng!', { position: 'bottom-right', autoClose: 2000 })
     } finally {
       setAddingCart(null)
     }
@@ -157,28 +274,31 @@ export default function Compare() {
       navigate('/login?redirect=/checkout')
       return
     }
-    const variant = p.Variants?.[0] || {}
-    const price = getPrice(p)
+    const variantsList = p?.Variants || p?.variants || []
+    const defaultVariant = variantsList.find(v => v.variant_name === 'Mặc định') || variantsList[0] || {}
+    if (defaultVariant.stock_quantity !== undefined && defaultVariant.stock_quantity <= 0) {
+      toast.error('Sản phẩm này đã hết hàng!', { position: 'bottom-right' })
+      return
+    }
+
+    const price = defaultVariant.sale_price > 0 ? defaultVariant.sale_price : (defaultVariant.price || getPrice(p))
+    const imgUrl = getImg(p)
+
     const buyNowItem = {
       cartItem: {
-        _id: variant._id || p._id,
-        variant_id: variant._id || p._id,
+        _id: defaultVariant._id || p._id,
+        variant_id: defaultVariant._id || p._id,
         quantity: 1,
         price: price
       },
-      variant: {
-        _id: variant._id || p._id,
-        price: price,
-        sale_price: price,
-        variant_name: variant.variant_name || ''
-      },
+      variant: defaultVariant,
       product: {
         _id: p._id,
         name: p.name
       },
-      AnhSP: p.images?.[0] ? [{ url: p.images[0] }] : (p.thumnail ? [{ url: p.thumnail }] : []),
+      AnhSP: imgUrl ? [{ url: imgUrl }] : [],
       _localPrice: price,
-      _variantId: variant._id || p._id,
+      _variantId: defaultVariant._id || p._id,
       _isBuyNow: true
     }
     sessionStorage.setItem('buyNowItem', JSON.stringify(buyNowItem))
@@ -323,36 +443,7 @@ export default function Compare() {
                       {origPrice && (
                         <div className="compare-product-original-price">{fmt(origPrice)}</div>
                       )}
-                      <div className="compare-product-price">{fmt(getPrice(p))}</div>
-
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                        <button
-                          className="compare-product-btn"
-                          onClick={() => handleDirectBuyNow(p)}
-                          style={{ fontSize: '12px', padding: '8px 14px', background: 'var(--yellow)', color: '#000', border: 'none', fontWeight: '800' }}
-                        >
-                          ⚡ Mua ngay
-                        </button>
-                        <button
-                          className="compare-product-btn"
-                          onClick={() => handleAddToCart(p)}
-                          disabled={addingCart === p._id}
-                          style={{ fontSize: '12px', padding: '8px 14px' }}
-                        >
-                          {addingCart === p._id ? 'Đang thêm...' : '🛒 Thêm giỏ'}
-                        </button>
-                        <Link
-                          to={`/product/${p.slug || p._id}`}
-                          style={{
-                            padding: '8px 14px', background: 'transparent',
-                            border: '1px solid #444', color: '#ccc',
-                            borderRadius: '8px', fontSize: '12px',
-                            fontWeight: 600, textDecoration: 'none'
-                          }}
-                        >
-                          Chi tiết
-                        </Link>
-                      </div>
+                      <div className="compare-product-price" style={{ marginBottom: 0 }}>{fmt(getPrice(p))}</div>
                     </div>
                   )
                 })}

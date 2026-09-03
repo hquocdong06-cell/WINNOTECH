@@ -10,6 +10,7 @@ import { useAuth } from '../hooks/useAuth'
 import '../assets/styles/cpu.css' // Reuse the sidebar layout styles
 
 import { API_BASE as API_URL } from '../services/apiService';
+import PriceRangeFilter from '../components/PriceRangeFilter';
 
 // --- FILTER OPTIONS DATA MATCHING USER'S CASE IMAGE ---
 const brandsData = [
@@ -111,6 +112,24 @@ export default function Case() {
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState('grid')
   const [sortBy, setSortBy] = useState('popular')
+  const [priceFilter, setPriceFilter] = useState({ min: 0, max: 0 })
+  const [maxCategoryPrice, setMaxCategoryPrice] = useState(100000000)
+
+  useEffect(() => {
+    if (products.length > 0) {
+      let max = 0
+      products.forEach(p => {
+        const pr = (p.Variants && p.Variants[0]) ? (p.Variants[0].sale_price || p.Variants[0].price || 0) : 0
+        if (pr > max) max = pr
+      })
+      const roundedMax = max > 0 ? Math.ceil(max / 1000000) * 1000000 : 20000000
+      setMaxCategoryPrice(roundedMax)
+      setPriceFilter(prev => ({
+        min: prev.min || 0,
+        max: prev.max > 0 ? prev.max : roundedMax
+      }))
+    }
+  }, [products])
 
   const handleQuickAddToCart = async (product) => {
     const variantsList = product.Variants || product.variants;
@@ -273,10 +292,12 @@ export default function Case() {
 
   // --- FILTER & SORT LOGIC ---
   const filteredProducts = products.filter(product => {
-    const nameLower = product.name.toLowerCase()
-    const descLower = (product.description || '').toLowerCase()
-    const specsLower = (product.short_desc || '').toLowerCase()
     const price = getProductPrice(product)
+    if (priceFilter.max > 0) {
+      if (price < priceFilter.min || price > priceFilter.max) return false
+    }
+
+    const nameLower = product.name.toLowerCase()
 
     // 1. Thương hiệu (Brand)
     if (filters.brands.length > 0) {
@@ -434,20 +455,16 @@ export default function Case() {
                   </span>
                 </div>
                 {openFilters.priceRange && (
-                  <div className="price-range">
-                    <div className="price-inputs" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <input type="text" value="0đ" disabled style={{ width: '100%', background: 'var(--dark2)', border: '1.5px solid var(--border)', color: 'var(--white)', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px' }} />
-                      <span style={{ color: 'var(--text-muted)' }}>-</span>
-                      <input type="text" value="90.000.000đ" disabled style={{ width: '100%', background: 'var(--dark2)', border: '1.5px solid var(--border)', color: 'var(--white)', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px' }} />
-                    </div>
-                    <div className="custom-slider-wrapper">
-                      <div className="slider-track-line">
-                        <span className="slider-dot active" style={{left: '0%'}}></span>
-                        <span className="slider-dot active" style={{left: '100%'}}></span>
-                        <div className="slider-active-line" style={{left: '0%', width: '100%'}}></div>
-                      </div>
-                    </div>
-                  </div>
+                  <PriceRangeFilter
+                    minPrice={priceFilter.min}
+                    maxPrice={priceFilter.max || maxCategoryPrice}
+                    minLimit={0}
+                    maxLimit={maxCategoryPrice}
+                    onPriceChange={({ min, max }) => {
+                      setPriceFilter({ min, max })
+                      setCurrentPage(1)
+                    }}
+                  />
                 )}
               </div>
 
@@ -491,324 +508,6 @@ export default function Case() {
                         }}
                       >
                         {expandedFilters.brands ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* NHU CẦU */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('useCase')}>
-                  Nhu cầu
-                  <span className={`accordion-icon ${openFilters.useCase ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.useCase && (
-                  <div className="filter-options">
-                    {(expandedFilters.useCase ? useCaseData : useCaseData.slice(0, 4)).map(uc => (
-                      <label key={uc.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.useCase.includes(uc.value)}
-                          onChange={(e) => handleFilterChange('useCase', uc.value, e.target.checked)}
-                        />
-                        <span>{uc.label}</span>
-                      </label>
-                    ))}
-                    {useCaseData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('useCase')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500'
-                        }}
-                      >
-                        {expandedFilters.useCase ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* SERIES */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('series')}>
-                  Series
-                  <span className={`accordion-icon ${openFilters.series ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.series && (
-                  <div className="filter-options" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {(expandedFilters.series ? seriesData : seriesData.slice(0, 4)).map(ser => (
-                      <label key={ser.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.series.includes(ser.value)}
-                          onChange={(e) => handleFilterChange('series', ser.value, e.target.checked)}
-                        />
-                        <span>{ser.label}</span>
-                      </label>
-                    ))}
-                    {seriesData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('series')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500',
-                          gridColumn: 'span 2'
-                        }}
-                      >
-                        {expandedFilters.series ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* MÀU SẮC */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('colors')}>
-                  Màu sắc
-                  <span className={`accordion-icon ${openFilters.colors ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.colors && (
-                  <div className="filter-options" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {(expandedFilters.colors ? colorsData : colorsData.slice(0, 4)).map(col => (
-                      <label key={col.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.colors.includes(col.value)}
-                          onChange={(e) => handleFilterChange('colors', col.value, e.target.checked)}
-                        />
-                        <span>{col.label}</span>
-                      </label>
-                    ))}
-                    {colorsData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('colors')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500',
-                          gridColumn: 'span 2'
-                        }}
-                      >
-                        {expandedFilters.colors ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* CHẤT LIỆU */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('materials')}>
-                  Chất liệu
-                  <span className={`accordion-icon ${openFilters.materials ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.materials && (
-                  <div className="filter-options" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {(expandedFilters.materials ? materialsData : materialsData.slice(0, 4)).map(mat => (
-                      <label key={mat.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.materials.includes(mat.value)}
-                          onChange={(e) => handleFilterChange('materials', mat.value, e.target.checked)}
-                        />
-                        <span>{mat.label}</span>
-                      </label>
-                    ))}
-                    {materialsData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('materials')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500',
-                          gridColumn: 'span 2'
-                        }}
-                      >
-                        {expandedFilters.materials ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* CHẤT LIỆU NẮP HÔNG */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('sideMaterials')}>
-                  Chất liệu nắp hông
-                  <span className={`accordion-icon ${openFilters.sideMaterials ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.sideMaterials && (
-                  <div className="filter-options">
-                    {(expandedFilters.sideMaterials ? sideMaterialsData : sideMaterialsData.slice(0, 4)).map(side => (
-                      <label key={side.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.sideMaterials.includes(side.value)}
-                          onChange={(e) => handleFilterChange('sideMaterials', side.value, e.target.checked)}
-                        />
-                        <span>{side.label}</span>
-                      </label>
-                    ))}
-                    {sideMaterialsData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('sideMaterials')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500'
-                        }}
-                      >
-                        {expandedFilters.sideMaterials ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* KIỂU CASE */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('caseTypes')}>
-                  Kiểu case
-                  <span className={`accordion-icon ${openFilters.caseTypes ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.caseTypes && (
-                  <div className="filter-options">
-                    {(expandedFilters.caseTypes ? caseTypesData : caseTypesData.slice(0, 4)).map(type => (
-                      <label key={type.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.caseTypes.includes(type.value)}
-                          onChange={(e) => handleFilterChange('caseTypes', type.value, e.target.checked)}
-                        />
-                        <span>{type.label}</span>
-                      </label>
-                    ))}
-                    {caseTypesData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('caseTypes')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500'
-                        }}
-                      >
-                        {expandedFilters.caseTypes ? 'Thu gọn' : 'Xem thêm'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* KÍCH THƯỚC MAINBOARD HỖ TRỢ */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('supportMbs')}>
-                  Kích thước mainboard hỗ trợ
-                  <span className={`accordion-icon ${openFilters.supportMbs ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.supportMbs && (
-                  <div className="filter-options">
-                    {(expandedFilters.supportMbs ? supportMbsData : supportMbsData.slice(0, 4)).map(mb => (
-                      <label key={mb.value} className="filter-label">
-                        <input
-                          type="checkbox"
-                          checked={filters.supportMbs.includes(mb.value)}
-                          onChange={(e) => handleFilterChange('supportMbs', mb.value, e.target.checked)}
-                        />
-                        <span>{mb.label}</span>
-                      </label>
-                    ))}
-                    {supportMbsData.length > 4 && (
-                      <button 
-                        onClick={() => toggleExpand('supportMbs')} 
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3b82f6',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          padding: '4px 0 0 0',
-                          textAlign: 'left',
-                          marginTop: '4px',
-                          display: 'block',
-                          fontWeight: '500'
-                        }}
-                      >
-                        {expandedFilters.supportMbs ? 'Thu gọn' : 'Xem thêm'}
                       </button>
                     )}
                   </div>

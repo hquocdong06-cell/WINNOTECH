@@ -257,11 +257,15 @@ export async function fetchAdminOrderDetail(id) {
   return apiFetch(`/admin/orders/${id}`);
 }
 
-export async function updateAdminOrderStatus(id, status, note = '') {
+export async function updateAdminOrderStatus(id, status, note = '', payment_status = undefined) {
+  const body = { status, note };
+  if (payment_status !== undefined) {
+    body.payment_status = payment_status;
+  }
   return apiFetch(`/admin/orders/${id}/status`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status, note }),
+    body: JSON.stringify(body),
   });
 }
 

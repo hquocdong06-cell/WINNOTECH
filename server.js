@@ -5221,8 +5221,10 @@ app.get("/admin/orders/:id", checklogin, checkAdmin, async (req, res) => {
 // PUT /admin/orders/:id/status — Cập nhật trạng thái + ghi statusHistory + logic tự động hoàn thành
 app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { status, note } = req.body;
-    if (!status) return res.status(400).json({ success: false, message: "Thiếu trạng thái status" });
+    const { status, note, payment_status } = req.body;
+    if (!status && !payment_status) {
+      return res.status(400).json({ success: false, message: "Thiếu trạng thái status hoặc payment_status" });
+    }
 
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
@@ -5258,14 +5260,51 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
     };
 
     const currentStatus = normalizeStatus(order.status);
+    let paymentChanged = false;
 
-    if (currentStatus === status) {
-      return res.status(400).json({
-        success: false,
-        message: `Đơn hàng đã ở trạng thái "${STATUS_LABELS_VI[currentStatus] || currentStatus}".`
+    // Cập nhật payment_status nếu được gửi lên
+    if (payment_status && ['unpaid', 'paid'].includes(payment_status)) {
+      if (order.payment_status !== payment_status) {
+        order.payment_status = payment_status;
+        paymentChanged = true;
+        order.statusHistory.push({
+          status: order.status,
+          note: `[Thanh toán] ${payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}${note ? ': ' + note : ''}`,
+          changedBy: adminName,
+          changedAt: new Date()
+        });
+      }
+    }
+
+    // Nếu không thay đổi status hoặc status trùng hiện tại
+    if (!status || currentStatus === status) {
+      if (!paymentChanged) {
+        return res.status(400).json({
+          success: false,
+          message: `Đơn hàng đã ở trạng thái "${STATUS_LABELS_VI[currentStatus] || currentStatus}".`
+        });
+      }
+
+      // Khi payment_status chuyển thành 'paid' và đơn đã giao hàng → tự động completed
+      if (order.payment_status === 'paid' && currentStatus === 'delivered') {
+        order.status = 'completed';
+        order.statusHistory.push({
+          status: 'completed',
+          note: 'Tự động hoàn thành: Đã giao hàng và đã thanh toán',
+          changedBy: 'Hệ thống',
+          changedAt: new Date()
+        });
+      }
+
+      await order.save();
+      return res.json({
+        success: true,
+        message: `Cập nhật trạng thái thanh toán thành công${order.status === 'completed' ? ' — Đơn hàng đã tự động chuyển sang Hoàn thành' : ''}`,
+        data: order
       });
     }
 
+    // Xử lý thay đổi status
     const allowedNext = ORDER_TRANSITIONS[currentStatus] || [];
     if (!allowedNext.includes(status)) {
       const allowedText = allowedNext.length > 0 
@@ -5307,7 +5346,11 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
 
     await order.save();
 
-    return res.json({ success: true, message: "Cập nhật trạng thái đơn hàng thành công", data: order });
+    let msg = "Cập nhật trạng thái đơn hàng thành công";
+    if (paymentChanged) {
+      msg = `Cập nhật trạng thái (${STATUS_LABELS_VI[status] || status}) và thanh toán (${order.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}) thành công`;
+    }
+    return res.json({ success: true, message: msg, data: order });
   } catch (error) {
     console.error("Lỗi PUT /admin/orders/:id/status:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
@@ -6691,15 +6734,23 @@ app.get("/compare/my-list", checklogin, async (req, res) => {
     const productIds = compareItems.map(item => item.product_id);
 
     const [products, variants, images] = await Promise.all([
-      ProductModel.find({ _id: { $in: productIds } }).lean(),
+      ProductModel.find({ _id: { $in: productIds } })
+        .populate('cat_id', 'name slug')
+        .populate('brand_id', 'name slug')
+        .lean(),
       ProductVariantModel.find({ p_id: { $in: productIds } }).lean(),
       ImageModel.find({ p_id: { $in: productIds } }).lean()
     ]);
 
     // 3. Ghép Data lại để Frontend dễ dàng vẽ bảng
     const data = products.map(product => {
+      const cat = product.cat_id || product.category_id;
+      const brand = product.brand_id;
       return {
         ...product,
+        cat_id: cat,
+        category_id: cat,
+        brand_id: brand,
         variants: variants.filter(v => v.p_id?.toString() === product._id.toString()),
         images: images.filter(img => img.p_id?.toString() === product._id.toString())
       };
@@ -6730,8 +6781,8 @@ app.get("/api/compare/guest", async (req, res) => {
 
     // 1. Lấy thông tin gốc của 2 sản phẩm chạy song song
     const [product1, product2] = await Promise.all([
-      ProductModel.findById(id1).lean(), 
-      ProductModel.findById(id2).lean()
+      ProductModel.findById(id1).populate('cat_id', 'name slug').populate('brand_id', 'name slug').lean(), 
+      ProductModel.findById(id2).populate('cat_id', 'name slug').populate('brand_id', 'name slug').lean()
     ]);
 
     if (!product1 || !product2) {
@@ -6739,8 +6790,9 @@ app.get("/api/compare/guest", async (req, res) => {
     }
 
     // 2. CHECK LUẬT: Bắt buộc cùng Danh mục (Category)
-    // Lưu ý: Đổi "category_id" thành đúng tên cột trong DB của bác
-    if (product1.category_id?.toString() !== product2.category_id?.toString()) {
+    const cat1 = (product1.cat_id?._id || product1.cat_id || product1.category_id)?.toString();
+    const cat2 = (product2.cat_id?._id || product2.cat_id || product2.category_id)?.toString();
+    if (cat1 && cat2 && cat1 !== cat2) {
       return res.status(400).json({ 
         success: false, 
         message: "Chỉ có thể so sánh 2 sản phẩm cùng một danh mục!" 

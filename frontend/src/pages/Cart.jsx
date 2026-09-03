@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
-import { setCart, clearCart, removeFromCart, selectCartItems } from '../redux/cartSlice'
+import { setCart, clearCart, removeFromCart, selectCartItems, clearGuestCartAPI } from '../redux/cartSlice'
 import DefaultLayout from '../layouts/DefaultLayout'
 import '../assets/styles/cart.css'
 
@@ -29,6 +29,8 @@ export default function Cart() {
   const [updatingId, setUpdatingId]     = useState(null)   // cartItemId đang update
   const [deletingId, setDeletingId]     = useState(null)   // cartItemId đang xóa
   const [error, setError]               = useState(null)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [clearing, setClearing]         = useState(false)
 
   // Checkbox selection state
   const [checkedIds, setCheckedIds]     = useState(new Set())  // Set<cartItemId>
@@ -179,28 +181,49 @@ export default function Cart() {
     }
   }
 
-  // ── Xóa tất cả giỏ hàng (Đã login) ──────────────────────────────────
-  const handleClearAllCart = async () => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa tất cả sản phẩm trong giỏ hàng?')) return
-    setLoading(true)
+  // ── Xóa tất cả giỏ hàng (Hỗ trợ cả Đã login & Guest) ────────────────
+  const handleExecuteClearCart = async () => {
+    setClearing(true)
     try {
-      const res = await fetch(`${API_URL}/cart`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-      const data = await res.json()
-      if (data.success) {
-        setCartItems([])
-        dispatch(clearCart())
-        toast.success('Đã xóa tất cả sản phẩm trong giỏ hàng!', { position: 'bottom-right' })
-        window.dispatchEvent(new CustomEvent('cartUpdated'))
-      } else {
-        toast.error(data.message || 'Không thể xóa giỏ hàng', { position: 'bottom-right' })
+      if (isLoggedIn) {
+        try {
+          const res = await fetch(`${API_URL}/cart`, {
+            method: 'DELETE',
+            credentials: 'include',
+          })
+          const data = await res.json()
+          if (!data.success && res.status !== 401) {
+            console.warn('Clear cart server message:', data.message)
+          }
+        } catch (serverErr) {
+          console.warn('Lỗi gọi API xóa giỏ hàng server:', serverErr)
+        }
       }
-    } catch {
-      toast.error('Lỗi kết nối máy chủ', { position: 'bottom-right' })
+
+      // Xóa giỏ guest API nếu có
+      try {
+        await dispatch(clearGuestCartAPI()).unwrap()
+      } catch {
+        // ignore
+      }
+
+      // Luôn xóa sạch Redux store & localStorage phía client
+      dispatch(clearCart())
+      setCartItems([])
+      setCheckedIds(new Set())
+      toast.success('Đã xóa tất cả sản phẩm trong giỏ hàng!', { position: 'bottom-right' })
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
+      setShowClearConfirm(false)
+    } catch (err) {
+      console.error('Lỗi khi xóa giỏ hàng:', err)
+      dispatch(clearCart())
+      setCartItems([])
+      setCheckedIds(new Set())
+      toast.success('Đã xóa tất cả sản phẩm trong giỏ hàng!', { position: 'bottom-right' })
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
+      setShowClearConfirm(false)
     } finally {
-      setLoading(false)
+      setClearing(false)
     }
   }
 
@@ -216,12 +239,6 @@ export default function Cart() {
   const handleLocalRemoveItem = (product_id, variant_id) => {
     dispatch(removeFromCart({ product_id, variant_id }))
     toast.info('Đã xóa sản phẩm khỏi giỏ hàng tạm thời', { position: 'bottom-right', autoClose: 1500 })
-  }
-
-  const handleLocalClearAll = () => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa tất cả sản phẩm trong giỏ hàng tạm thời?')) return
-    dispatch(clearCart())
-    toast.info('Đã xóa toàn bộ sản phẩm trong giỏ hàng tạm thời', { position: 'bottom-right', autoClose: 1500 })
   }
 
   // ── Mã giảm giá (demo) ────────────────────────────────────────────────
@@ -321,7 +338,9 @@ export default function Cart() {
               <h1 className="cart-title" style={{ margin: 0 }}>GIỎ HÀNG CỦA BẠN</h1>
               {localCartItems.length > 0 && (
                 <button
-                  onClick={handleLocalClearAll}
+                  type="button"
+                  onClick={() => setShowClearConfirm(true)}
+                  className="btn-clear-all-cart"
                   style={{
                     background: 'rgba(239, 68, 68, 0.15)',
                     color: '#ef4444',
@@ -535,7 +554,9 @@ export default function Cart() {
             <h1 className="cart-title" style={{ margin: 0 }}>GIỎ HÀNG CỦA BẠN</h1>
             {cartItems.length > 0 && (
               <button
-                onClick={handleClearAllCart}
+                type="button"
+                onClick={() => setShowClearConfirm(true)}
+                className="btn-clear-all-cart"
                 style={{
                   background: 'rgba(239, 68, 68, 0.15)',
                   color: '#ef4444',
@@ -896,6 +917,99 @@ export default function Cart() {
           )}
         </div>
       </div>
+
+      {/* MODAL XÁC NHẬN XÓA TOÀN BỘ GIỎ HÀNG */}
+      {showClearConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#18181b',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '12px',
+            padding: '28px',
+            maxWidth: '440px',
+            width: '100%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              background: 'rgba(239, 68, 68, 0.15)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+              color: '#ef4444',
+              fontSize: '24px'
+            }}>
+              🗑️
+            </div>
+            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>
+              Xác nhận xóa toàn bộ giỏ hàng?
+            </h3>
+            <p style={{ color: '#a1a1aa', fontSize: '14px', lineHeight: '1.5', marginBottom: '24px' }}>
+              Bạn có chắc chắn muốn xóa tất cả sản phẩm khỏi giỏ hàng? Thao tác này không thể hoàn tác.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm(false)}
+                disabled={clearing}
+                style={{
+                  flex: 1,
+                  padding: '10px 18px',
+                  borderRadius: '8px',
+                  background: '#27272a',
+                  color: '#e4e4e7',
+                  border: '1px solid #3f3f46',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteClearCart}
+                disabled={clearing}
+                style={{
+                  flex: 1,
+                  padding: '10px 18px',
+                  borderRadius: '8px',
+                  background: '#ef4444',
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  cursor: clearing ? 'not-allowed' : 'pointer',
+                  opacity: clearing ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                {clearing ? 'Đang xóa...' : 'Xác nhận xóa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </DefaultLayout>

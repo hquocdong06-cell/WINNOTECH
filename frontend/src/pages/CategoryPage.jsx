@@ -8,6 +8,7 @@ import useFavorite from '../hooks/useFavorite'
 import useCompare from '../hooks/useCompare'
 import { useAuth } from '../hooks/useAuth'
 import RecentlyViewedSidebar from '../components/RecentlyViewedSidebar'
+import PriceRangeFilter from '../components/PriceRangeFilter'
 import '../assets/styles/cpu.css'
 
 import { API_BASE as API_URL } from '../services/apiService';
@@ -355,6 +356,7 @@ export default function CategoryPage({ slug: propSlug, title: propTitle }) {
   const [selectedSubFilters, setSelectedSubFilters] = useState({})
   const [onlyInStock, setOnlyInStock] = useState(false)
   const [onlyOnSale, setOnlyOnSale] = useState(false)
+  const [minPriceLimit, setMinPriceLimit] = useState(0)
   const [maxPriceLimit, setMaxPriceLimit] = useState(100000000)
 
   // Trạng thái đóng mở Accordion
@@ -479,6 +481,7 @@ export default function CategoryPage({ slug: propSlug, title: propTitle }) {
     setSelectedSubFilters({})
     setOnlyInStock(false)
     setOnlyOnSale(false)
+    setMinPriceLimit(0)
     setMaxPriceLimit(maxCategoryPrice)
     setCurrentPage(1)
   }
@@ -520,9 +523,9 @@ export default function CategoryPage({ slug: propSlug, title: propTitle }) {
       if (onlyInStock && stock <= 0) return false
       if (onlyOnSale && !(product.sale > 0)) return false
 
-      // 3. Lọc theo thanh kéo giá (Từ 0 đến maxPriceLimit)
+      // 3. Lọc theo thanh kéo giá (Từ minPriceLimit đến maxPriceLimit)
       const price = getProductPrice(product)
-      if (price > maxPriceLimit) return false
+      if (price < minPriceLimit || price > maxPriceLimit) return false
 
       // 5. Lọc theo các nhóm thuộc tính con (CPU, GPU, RAM, Tần số quét, Kích thước...)
       for (const [groupKey, selectedOptions] of Object.entries(selectedSubFilters)) {
@@ -537,7 +540,7 @@ export default function CategoryPage({ slug: propSlug, title: propTitle }) {
 
       return true
     })
-  }, [products, selectedBrands, onlyInStock, onlyOnSale, maxPriceLimit, selectedSubFilters])
+  }, [products, selectedBrands, onlyInStock, onlyOnSale, minPriceLimit, maxPriceLimit, selectedSubFilters])
 
   // Sắp xếp
   const sortedProducts = useMemo(() => {
@@ -707,75 +710,17 @@ export default function CategoryPage({ slug: propSlug, title: propTitle }) {
                   </span>
                 </div>
                 {openFilters.priceRange && (
-                  <div className="price-range">
-                    <div className="price-inputs" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <input
-                        type="text"
-                        value="0đ"
-                        disabled
-                        style={{ width: '100%', background: 'var(--dark2)', border: '1.5px solid var(--border)', color: 'var(--white)', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px', fontWeight: 600 }}
-                      />
-                      <span style={{ color: 'var(--text-muted)' }}>-</span>
-                      <input
-                        type="text"
-                        value={formatPrice(maxPriceLimit)}
-                        disabled
-                        style={{ width: '100%', background: 'var(--dark2)', border: '1.5px solid var(--border)', color: 'var(--yellow)', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px', fontWeight: 700 }}
-                      />
-                    </div>
-                    <div className="custom-slider-wrapper" style={{ marginTop: '8px' }}>
-                      <input
-                        type="range"
-                        min={0}
-                        max={maxCategoryPrice}
-                        step={maxCategoryPrice > 20000000 ? 500000 : 100000}
-                        value={maxPriceLimit}
-                        onChange={(e) => {
-                          setMaxPriceLimit(Number(e.target.value))
-                          setCurrentPage(1)
-                        }}
-                        style={{
-                          width: '100%',
-                          cursor: 'pointer',
-                          accentColor: 'var(--yellow)',
-                          height: '6px',
-                          borderRadius: '3px'
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* TÌNH TRẠNG & KHUYẾN MÃI */}
-              <div className="filter-group">
-                <div className="filter-title" onClick={() => toggleFilter('status')}>
-                  Tình trạng hàng
-                  <span className={`accordion-icon ${openFilters.status ? 'open' : ''}`}>
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                      <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </div>
-                {openFilters.status && (
-                  <div className="filter-options" style={{ marginTop: '10px' }}>
-                    <label className="filter-label">
-                      <input
-                        type="checkbox"
-                        checked={onlyInStock}
-                        onChange={(e) => { setOnlyInStock(e.target.checked); setCurrentPage(1); }}
-                      />
-                      <span>Chỉ sản phẩm còn hàng</span>
-                    </label>
-                    <label className="filter-label">
-                      <input
-                        type="checkbox"
-                        checked={onlyOnSale}
-                        onChange={(e) => { setOnlyOnSale(e.target.checked); setCurrentPage(1); }}
-                      />
-                      <span style={{ color: 'var(--yellow)', fontWeight: 600 }}>⚡ Đang giảm giá sốc</span>
-                    </label>
-                  </div>
+                  <PriceRangeFilter
+                    minPrice={minPriceLimit}
+                    maxPrice={maxPriceLimit || maxCategoryPrice}
+                    minLimit={0}
+                    maxLimit={maxCategoryPrice}
+                    onPriceChange={({ min, max }) => {
+                      setMinPriceLimit(min)
+                      setMaxPriceLimit(max)
+                      setCurrentPage(1)
+                    }}
+                  />
                 )}
               </div>
 
@@ -804,39 +749,6 @@ export default function CategoryPage({ slug: propSlug, title: propTitle }) {
                   </div>
                 )}
               </div>
-
-              {/* CÁC BỘ LỌC ĐẶC THÙ THEO DANH MỤC (NẾU CÓ) */}
-              {currentCategoryConfig?.groups?.map(group => {
-                const isOpen = openFilters[group.key] ?? true
-                const selectedList = selectedSubFilters[group.key] || []
-
-                return (
-                  <div className="filter-group" key={group.key}>
-                    <div className="filter-title" onClick={() => toggleFilter(group.key)}>
-                      {group.title}
-                      <span className={`accordion-icon ${isOpen ? 'open' : ''}`}>
-                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor">
-                          <path d="M1 5L5 1L9 5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </span>
-                    </div>
-                    {isOpen && (
-                      <div className="filter-options" style={{ marginTop: '10px' }}>
-                        {group.options.map(opt => (
-                          <label key={opt.value} className="filter-label">
-                            <input
-                              type="checkbox"
-                              checked={selectedList.includes(opt.value)}
-                              onChange={(e) => handleSubFilterChange(group.key, opt.value, e.target.checked)}
-                            />
-                            <span>{opt.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
 
               {/* SẢN PHẨM ĐÃ XEM WIDGET */}
               <RecentlyViewedSidebar />
@@ -902,11 +814,6 @@ export default function CategoryPage({ slug: propSlug, title: propTitle }) {
                             <span className="cpu-card-sale-badge" style={{ background: '#ef4444' }}>Hết hàng</span>
                           ) : (
                             product.sale > 0 && <span className="cpu-card-sale-badge">-{product.sale}%</span>
-                          )}
-                          {!['pc-gaming', 'pc-do-hoa', 'pc-van-phong'].includes(activeSlug) && variantCount > 1 && (
-                            <span className="cpu-card-variant-badge">
-                              {variantCount} Biến thể
-                            </span>
                           )}
                         </div>
 
