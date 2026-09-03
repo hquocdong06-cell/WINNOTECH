@@ -6,6 +6,7 @@ import { store } from './redux/store.js'
 import App from './App.jsx'
 import './assets/styles/globals.css'
 import './assets/styles/tailwind.css'
+import './assets/styles/client-theme.css'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Provider store={store}>

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Store, Mail, Phone, MapPin, Bell, Shield, Moon } from 'lucide-react';
+import { Save, Store, Mail, Phone, MapPin, Bell, Shield, Moon, Sun } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useAdminTheme } from '../context/AdminThemeContext';
 
 const Settings = () => {
+  const { isDark, setTheme } = useAdminTheme();
   const [storeInfo, setStoreInfo] = useState({
     storeName: 'WINNO TECH',
     email: 'sgdeath21@gmail.com',
@@ -10,21 +12,31 @@ const Settings = () => {
     address: '123 Đường Công Nghệ, Q. 1, TP. Hồ Chí Minh',
     enableNotifications: true,
     autoApproveOrders: false,
-    darkMode: true,
+    darkMode: isDark,
   });
 
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    setStoreInfo(prev => ({ ...prev, darkMode: isDark }));
+  }, [isDark]);
+
+  useEffect(() => {
     const saved = localStorage.getItem('winnotech_admin_settings');
     if (saved) {
       try {
-        setStoreInfo(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setStoreInfo(prev => ({ ...prev, ...parsed, darkMode: isDark }));
       } catch (e) {
         console.error(e);
       }
     }
-  }, []);
+  }, [isDark]);
+
+  const handleDarkModeToggle = (checked) => {
+    setStoreInfo(prev => ({ ...prev, darkMode: checked }));
+    setTheme(checked ? 'dark' : 'light');
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -35,6 +47,7 @@ const Settings = () => {
       toast.success('Đã lưu cấu hình hệ thống cửa hàng!');
     }, 400);
   };
+
 
   return (
     <div className="p-8 text-white min-h-screen">
@@ -129,16 +142,24 @@ const Settings = () => {
 
             <div className="flex items-center justify-between p-4 bg-[#1a1a24] rounded-xl border border-[#333]">
               <div className="flex items-center gap-3">
-                <Moon className="w-5 h-5 text-purple-400" />
+                {storeInfo.darkMode ? (
+                  <Moon className="w-5 h-5 text-purple-400" />
+                ) : (
+                  <Sun className="w-5 h-5 text-amber-500" />
+                )}
                 <div>
-                  <div className="font-bold text-sm">Giao diện tối chuyên nghiệp (Dark Mode)</div>
-                  <div className="text-xs text-gray-400">Giữ giao diện Admin ở chế độ tối tối ưu độ tương phản</div>
+                  <div className="font-bold text-sm">
+                    {storeInfo.darkMode ? 'Giao diện tối chuyên nghiệp (Dark Mode)' : 'Giao diện sáng thanh lịch (Light Mode)'}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {storeInfo.darkMode ? 'Đang kích hoạt chế độ tối độ tương phản cao' : 'Đang kích hoạt chế độ sáng hiện đại dịu mắt'}
+                  </div>
                 </div>
               </div>
               <input
                 type="checkbox"
                 checked={storeInfo.darkMode}
-                onChange={e => setStoreInfo({ ...storeInfo, darkMode: e.target.checked })}
+                onChange={e => handleDarkModeToggle(e.target.checked)}
                 className="w-5 h-5 accent-[#d4ff00] cursor-pointer"
               />
             </div>

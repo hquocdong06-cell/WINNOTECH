@@ -6,6 +6,8 @@ import CartDrawer from '../components/CartDrawer'
 import AIChatbot from '../components/AIChatbot'
 import { compareAPI } from '../services/apiService'
 import { useAuth } from '../hooks/useAuth'
+import { Sun, Moon } from 'lucide-react'
+import { useClientTheme } from '../context/ClientThemeContext'
 
 import { API_BASE as API_URL } from '../services/apiService';
 
@@ -25,6 +27,7 @@ const getUserDisplayName = (u) => {
 
 export default function DefaultLayout({ children }) {
   const { isLoggedIn, user } = useAuth()
+  const { theme, isDark, toggleTheme } = useClientTheme()
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [compareCount, setCompareCount] = useState(0)
   const dispatch = useDispatch()
@@ -72,7 +75,7 @@ export default function DefaultLayout({ children }) {
   }, [])
 
   return (
-    <>
+    <div className={`default-layout ${theme} ${isDark ? 'dark-mode' : 'light-mode'}`} data-theme={theme}>
       {/* TOP BAR */}
       <div className="topbar">
         <div className="inner">
@@ -101,6 +104,25 @@ export default function DefaultLayout({ children }) {
             <Link to="/contact">Hỗ trợ</Link>
             <Link to="/blog">Blog</Link>
             <Link to="/contact">FAQ</Link>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="client-theme-toggle-topbar"
+              title={isDark ? "Chuyển sang Giao diện Sáng (Light Mode)" : "Chuyển sang Giao diện Tối (Dark Mode)"}
+              aria-label="Đổi giao diện Sáng / Tối"
+            >
+              {isDark ? (
+                <>
+                  <Sun size={13} className="text-amber-400" />
+                  <span>Chế độ Sáng</span>
+                </>
+              ) : (
+                <>
+                  <Moon size={13} className="text-indigo-400" />
+                  <span>Chế độ Tối</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -171,6 +193,21 @@ export default function DefaultLayout({ children }) {
                     : 'Đăng ký/Đăng nhập'}
                 </span>
               </Link>
+              {/* Theme Toggle Button in Header */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="nav-action-btn nav-theme-toggle-btn"
+                title={isDark ? "Chuyển sang Giao diện Sáng (Light Mode)" : "Chuyển sang Giao diện Tối (Dark Mode)"}
+                aria-label="Đổi giao diện Sáng / Tối"
+              >
+                {isDark ? (
+                  <Sun size={18} className="theme-toggle-sun" />
+                ) : (
+                  <Moon size={18} className="theme-toggle-moon" />
+                )}
+                <span>{isDark ? "Sáng" : "Tối"}</span>
+              </button>
               <button className="nav-cart-btn" onClick={() => setIsCartOpen(true)}>
                 <div className="cart-btn-inner">
                   <div style={{ position: 'relative' }}>
@@ -270,7 +307,7 @@ export default function DefaultLayout({ children }) {
                                       <div className="footer-grid">
             <div className="footer-brand">
               <div className="logo">
-                WINNO<span style={{ color: 'var(--yellow)' }}>TECH</span>
+                <span className="footer-logo-winno">WINNO</span><span style={{ color: 'var(--yellow)' }}>TECH</span>
               </div>
               <p>WINNO TECH – Nơi đam mê công nghệ và hiệu năng gặp nhau.</p>
               <div className="footer-social">
@@ -340,6 +377,6 @@ export default function DefaultLayout({ children }) {
           </div>
         </div>
       </footer>
-    </>
+    </div>
   )
 }
