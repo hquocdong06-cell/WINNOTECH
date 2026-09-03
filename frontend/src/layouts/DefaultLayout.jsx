@@ -104,25 +104,6 @@ export default function DefaultLayout({ children }) {
             <Link to="/contact">Hỗ trợ</Link>
             <Link to="/blog">Blog</Link>
             <Link to="/contact">FAQ</Link>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="client-theme-toggle-topbar"
-              title={isDark ? "Chuyển sang Giao diện Sáng (Light Mode)" : "Chuyển sang Giao diện Tối (Dark Mode)"}
-              aria-label="Đổi giao diện Sáng / Tối"
-            >
-              {isDark ? (
-                <>
-                  <Sun size={13} className="text-amber-400" />
-                  <span>Chế độ Sáng</span>
-                </>
-              ) : (
-                <>
-                  <Moon size={13} className="text-indigo-400" />
-                  <span>Chế độ Tối</span>
-                </>
-              )}
-            </button>
           </div>
         </div>
       </div>
@@ -193,21 +174,6 @@ export default function DefaultLayout({ children }) {
                     : 'Đăng ký/Đăng nhập'}
                 </span>
               </Link>
-              {/* Theme Toggle Button in Header */}
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="nav-action-btn nav-theme-toggle-btn"
-                title={isDark ? "Chuyển sang Giao diện Sáng (Light Mode)" : "Chuyển sang Giao diện Tối (Dark Mode)"}
-                aria-label="Đổi giao diện Sáng / Tối"
-              >
-                {isDark ? (
-                  <Sun size={18} className="theme-toggle-sun" />
-                ) : (
-                  <Moon size={18} className="theme-toggle-moon" />
-                )}
-                <span>{isDark ? "Sáng" : "Tối"}</span>
-              </button>
               <button className="nav-cart-btn" onClick={() => setIsCartOpen(true)}>
                 <div className="cart-btn-inner">
                   <div style={{ position: 'relative' }}>

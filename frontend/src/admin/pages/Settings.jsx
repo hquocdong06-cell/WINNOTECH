@@ -139,30 +139,6 @@ const Settings = () => {
                 className="w-5 h-5 accent-[#d4ff00] cursor-pointer"
               />
             </div>
-
-            <div className="flex items-center justify-between p-4 bg-[#1a1a24] rounded-xl border border-[#333]">
-              <div className="flex items-center gap-3">
-                {storeInfo.darkMode ? (
-                  <Moon className="w-5 h-5 text-purple-400" />
-                ) : (
-                  <Sun className="w-5 h-5 text-amber-500" />
-                )}
-                <div>
-                  <div className="font-bold text-sm">
-                    {storeInfo.darkMode ? 'Giao diện tối chuyên nghiệp (Dark Mode)' : 'Giao diện sáng thanh lịch (Light Mode)'}
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {storeInfo.darkMode ? 'Đang kích hoạt chế độ tối độ tương phản cao' : 'Đang kích hoạt chế độ sáng hiện đại dịu mắt'}
-                  </div>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={storeInfo.darkMode}
-                onChange={e => handleDarkModeToggle(e.target.checked)}
-                className="w-5 h-5 accent-[#d4ff00] cursor-pointer"
-              />
-            </div>
           </div>
 
           <div className="pt-4 border-t border-[#2b2b36] flex justify-end">

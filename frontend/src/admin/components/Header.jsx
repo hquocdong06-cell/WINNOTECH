@@ -40,29 +40,6 @@ const Header = () => {
       </div>
 
       <div className="header-actions flex items-center gap-3">
-        {/* Nút Toggle Theme Sáng / Tối */}
-        <button
-          onClick={toggleTheme}
-          className={`theme-toggle-btn flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all cursor-pointer ${
-            isDark 
-              ? 'bg-[#1e1e2d] hover:bg-[#28283d] text-amber-400 border-[#333]' 
-              : 'bg-white hover:bg-slate-100 text-indigo-600 border-slate-200 shadow-sm'
-          }`}
-          title={isDark ? 'Chuyển sang Giao diện Sáng (Light Mode)' : 'Chuyển sang Giao diện Tối (Dark Mode)'}
-          aria-label="Chuyển chế độ Sáng / Tối"
-        >
-          {isDark ? (
-            <>
-              <Sun className="w-4 h-4 text-amber-400" />
-              <span className="text-xs font-semibold text-gray-200 hidden md:inline">Giao diện Sáng</span>
-            </>
-          ) : (
-            <>
-              <Moon className="w-4 h-4 text-indigo-600" />
-              <span className="text-xs font-semibold text-slate-800 hidden md:inline">Giao diện Tối</span>
-            </>
-          )}
-        </button>
 
         <div className="user-profile flex items-center gap-3 bg-[#1e1e2d] px-3 py-1.5 rounded-xl border border-[#333]">
           {adminUser?.avatar && !imgError ? (
