@@ -967,15 +967,20 @@ app.get("/products", async (req, res, next) => {
       Attributes: variantAttrMap[variant._id.toString()] || [],
     }));
 
-    const finalProducts = products.map((product) => ({
-      ...product,
-      AnhSP: images.filter(
-        (img) => img.p_id.toString() === product._id.toString(),
-      ),
-      Variants: variantsWithAttributes.filter(
-        (v) => v.p_id.toString() === product._id.toString(),
-      ),
-    }));
+    const finalProducts = products.map((product) => {
+      const sold = product.sold_count ?? product.sold_quantity ?? 0;
+      return {
+        ...product,
+        sold_count: sold,
+        sold_quantity: sold,
+        AnhSP: images.filter(
+          (img) => img.p_id.toString() === product._id.toString(),
+        ),
+        Variants: variantsWithAttributes.filter(
+          (v) => v.p_id.toString() === product._id.toString(),
+        ),
+      };
+    });
 
     return res.json({
       success: true,
@@ -1046,7 +1051,7 @@ app.get("/products/home/newest", async (req, res) => {
 
     const finalProducts = newestProducts.map((product) => {
       const pIdStr = product._id.toString();
-      const soldCount = productSalesMapNewest[pIdStr] || product.sold_quantity || product.buyturn || 0;
+      const soldCount = product.sold_count || product.sold_quantity || productSalesMapNewest[pIdStr] || product.buyturn || 0;
       return {
         ...product,
         sold_count: soldCount,
@@ -1114,7 +1119,7 @@ app.get("/products/home/featured", async (req, res) => {
 
     const finalProducts = featuredProducts.map((product) => {
       const pIdStr = product._id.toString();
-      const soldCount = productSalesMapFeatured[pIdStr] || product.sold_quantity || product.buyturn || 0;
+      const soldCount = product.sold_count || product.sold_quantity || productSalesMapFeatured[pIdStr] || product.buyturn || 0;
       return {
         ...product,
         sold_count: soldCount,

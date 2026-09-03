@@ -4,6 +4,8 @@ const ProductSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     sale: { type: Number, default: 0 },
+    sold_count: { type: Number, default: 0 },
+    sold_quantity: { type: Number, default: 0 },
     thumnail: { type: String },
     slug: { type: String, required: true, unique: true },
     description: { type: String },

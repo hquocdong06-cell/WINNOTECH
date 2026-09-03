@@ -1924,6 +1924,10 @@ export default function ProductDetail() {
                         <span style={{ color: 'var(--text-muted)' }}>({reviewsList.length} đánh giá)</span>
                       </div>
                       <span style={{ color: '#333' }}>|</span>
+                      <span style={{ color: '#ffb703', fontWeight: 600 }}>
+                        Đã bán: {product.sold_count ?? product.sold_quantity ?? 0}
+                      </span>
+                      <span style={{ color: '#333' }}>|</span>
                       <span className="status-badge" style={{ 
                         background: isOutOfStock ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)', 
                         color: isOutOfStock ? '#ef4444' : '#22c55e', 
