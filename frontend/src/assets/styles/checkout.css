@@ -749,3 +749,138 @@
   .asm-overlay { padding: 12px; align-items: flex-end; }
   .asm-panel { max-height: 90vh; border-radius: 14px 14px 0 0; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE OPTIMIZATION — TABLET & MOBILE (≤1024px, ≤768px, ≤480px)
+   Chỉ tác động thiết bị di động, không ảnh hưởng PC
+══════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .checkout-breadcrumb {
+    padding: 12px 20px;
+  }
+  .checkout-top-bar {
+    padding: 10px 20px;
+  }
+  .checkout-inner {
+    grid-template-columns: 1fr;
+    padding: 0 20px 32px;
+    gap: 24px;
+  }
+  .co-right {
+    position: static;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .checkout-wrapper {
+    padding-bottom: 40px;
+  }
+  .checkout-breadcrumb {
+    padding: 10px 14px;
+    font-size: 11px;
+    flex-wrap: wrap;
+  }
+  .checkout-top-bar {
+    padding: 8px 14px;
+  }
+  .checkout-inner {
+    padding: 0 12px 24px;
+    gap: 16px;
+  }
+  .checkout-steps {
+    padding: 0 12px;
+    margin-bottom: 20px;
+    max-width: 100%;
+  }
+  .step-item:not(:last-child)::after {
+    display: none !important;
+  }
+  .step-connector {
+    min-width: 12px;
+    margin: 0 6px;
+  }
+  .step-num {
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+  }
+  .step-label {
+    font-size: 11px;
+  }
+  .co-card {
+    padding: 16px 14px;
+    border-radius: 10px;
+  }
+  .co-section-title {
+    font-size: 13px;
+    margin-bottom: 14px;
+    padding-bottom: 6px;
+  }
+  .co-form {
+    gap: 12px;
+  }
+  .co-field input,
+  .co-field select,
+  .co-field textarea {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+  .co-payment-option {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .co-payment-name {
+    font-size: 12px;
+  }
+  .co-payment-desc {
+    font-size: 10px;
+  }
+  .co-summary-header {
+    padding: 14px 14px 0;
+  }
+  .co-items-list {
+    padding: 12px 14px;
+    max-height: 260px;
+  }
+  .co-item-img {
+    width: 48px;
+    height: 48px;
+  }
+  .co-item-name {
+    font-size: 12px;
+  }
+  .co-summary-body {
+    padding: 14px;
+  }
+  .co-btn-place-order {
+    padding: 14px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .checkout-steps {
+    justify-content: space-around;
+  }
+  .step-label {
+    font-size: 10px;
+  }
+  .step-num {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+  }
+  .step-connector {
+    margin: 0 4px;
+    min-width: 8px;
+  }
+  .co-summary-total-val {
+    font-size: 18px;
+  }
+  .co-badge-momo,
+  .co-badge-zalo {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+}

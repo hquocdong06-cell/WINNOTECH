@@ -400,6 +400,35 @@ input[type=range]::-moz-range-thumb {
   letter-spacing: .3px;
 }
 
+.cpu-card-badge-wrap {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.cpu-card-badge-wrap .cpu-card-sale-badge {
+  position: static;
+  top: auto;
+  left: auto;
+}
+
+.cpu-card-variant-badge {
+  background: rgba(0, 0, 0, 0.75);
+  color: var(--yellow);
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(212, 255, 0, 0.4);
+  white-space: nowrap;
+}
+
 .cpu-card-img {
   background: #fff;
   margin: 10px;
@@ -483,6 +512,7 @@ input[type=range]::-moz-range-thumb {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex-shrink: 1;
 }
 
 .cpu-card-price {
@@ -490,6 +520,8 @@ input[type=range]::-moz-range-thumb {
   font-weight: 700;
   color: #ffffff;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cpu-card-original-price {
@@ -497,6 +529,9 @@ input[type=range]::-moz-range-thumb {
   color: var(--text-muted);
   font-size: 11px;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cpu-card-actions {
@@ -727,10 +762,10 @@ input[type=range]::-moz-range-thumb {
 }
 
 /* ════════════════════════════════════════ */
-/* ──  RESPONSIVE - MOBILE (<768px)       ── */
+/* ──  RESPONSIVE - TABLET & MOBILE (<860px) ── */
 /* ════════════════════════════════════════ */
 
-@media (max-width: 768px) {
+@media (max-width: 860px) {
   .cpu-section {
     padding: 20px 0;
   }
@@ -773,20 +808,143 @@ input[type=range]::-moz-range-thumb {
     gap: 12px;
   }
 
+  .cpu-card {
+    border-radius: 12px;
+  }
+
+  .cpu-card-sale-badge {
+    top: 8px;
+    left: 8px;
+    font-size: 9.5px;
+    padding: 3px 7px;
+    border-radius: 4px;
+  }
+
   .cpu-card-img {
-    height: 130px;
+    height: 135px;
+    margin: 8px 8px 0 8px;
+    border-radius: 8px;
+  }
+
+  .cpu-card-img img {
+    padding: 8px;
   }
 
   .cpu-card-info {
-    padding: 12px;
+    padding: 10px 12px 12px;
   }
 
   .cpu-card-name {
-    font-size: 12px;
+    font-size: 12.5px;
+    line-height: 1.35;
+    margin: 0 0 4px 0;
+    min-height: 2.7em;
+    height: auto;
   }
 
   .cpu-card-specs {
     font-size: 10px;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── FIX: STACK PRICE AND ACTIONS ON MOBILE TO PREVENT OVERLAPPING ── */
+  .cpu-card-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .cpu-card-price-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 34px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .cpu-card-price {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cpu-card-original-price {
+    font-size: 10.5px;
+    text-decoration: line-through;
+    color: var(--text-muted);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cpu-card-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .cpu-card .btn-add-cart {
+    flex: 1.3;
+    width: auto;
+    height: 34px;
+    background: rgba(212, 255, 0, 0.1);
+    border: 1px solid rgba(212, 255, 0, 0.4);
+    color: var(--yellow);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .cpu-card .btn-add-cart:hover,
+  .cpu-card .btn-add-cart:active {
+    background: rgba(212, 255, 0, 0.25);
+    border-color: var(--yellow);
+    transform: scale(0.97);
+  }
+
+  .cpu-card .btn-add-cart.added-active {
+    background: var(--yellow) !important;
+    color: #000 !important;
+    box-shadow: 0 0 10px rgba(212, 255, 0, 0.45);
+  }
+
+  .cpu-card .btn-add-cart.added-active svg {
+    fill: #000 !important;
+  }
+
+  .cpu-card .btn-wishlist {
+    flex: 1;
+    width: auto;
+    height: 34px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cpu-card .btn-add-cart svg,
+  .cpu-card .btn-wishlist svg {
+    width: 14px;
+    height: 14px;
   }
 
   .cpu-main-header h1 {
@@ -798,43 +956,119 @@ input[type=range]::-moz-range-thumb {
     height: 32px;
     font-size: 11px;
   }
+
+  .cpu-footer-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+    padding-top: 16px;
+  }
+
+  .cpu-pagination-right {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 440px) {
   .cpu-section {
     padding: 14px 0;
   }
+
   .cpu-section-inner {
     padding: 0 10px;
   }
+
   .breadcrumb {
     font-size: 10px;
     margin-bottom: 12px;
   }
+
   .cpu-sidebar {
     grid-template-columns: 1fr;
   }
+
   .cpu-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;
   }
+
+  /* Remove outer padding to avoid double-nesting that crushed content width */
   .cpu-card {
-    padding: 10px !important;
+    padding: 0 !important;
   }
+
+  .cpu-card-sale-badge {
+    top: 6px !important;
+    left: 6px !important;
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+  }
+
   .cpu-card-img {
     height: 125px !important;
+    margin: 6px 6px 0 6px !important;
   }
+
+  .cpu-card-img img {
+    padding: 6px !important;
+  }
+
+  .cpu-card-info {
+    padding: 8px 8px 10px !important;
+  }
+
   .cpu-card-name {
-    font-size: 12px !important;
-    height: 32px !important;
+    font-size: 11.5px !important;
+    height: auto !important;
+    min-height: 2.6em !important;
     line-height: 1.3 !important;
+    margin-bottom: 3px !important;
   }
+
+  .cpu-card-specs {
+    font-size: 9.5px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .cpu-card-footer {
+    gap: 6px !important;
+    padding-top: 6px !important;
+  }
+
+  .cpu-card-price-wrap {
+    min-height: 32px !important;
+    gap: 1px !important;
+  }
+
   .cpu-card-price {
-    font-size: 13px !important;
+    font-size: 12.5px !important;
   }
+
+  .cpu-card-original-price {
+    font-size: 10px !important;
+  }
+
+  .cpu-card-actions {
+    gap: 4px !important;
+  }
+
+  .cpu-card .btn-add-cart,
+  .cpu-card .btn-wishlist {
+    height: 30px !important;
+  }
+
+  .cpu-card .btn-add-cart svg,
+  .cpu-card .btn-wishlist svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
   .cpu-main-header h1 {
-    font-size: 16px !important;
+    font-size: 17px !important;
   }
+
   .filter-title {
     font-size: 12px !important;
   }

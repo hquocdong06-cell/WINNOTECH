@@ -1263,22 +1263,24 @@ export default function Profile() {
                     <div className="profile-card-title">ĐƠN HÀNG GẦN ĐÂY</div>
                     <button className="profile-orders-viewall" onClick={() => setActiveTab('orders')}>Xem tất cả <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg></button>
                   </div>
-                   <table className="profile-orders-table">
-                    <thead><tr><th>MÃ ĐƠN</th><th>NGÀY ĐẶT</th><th>TỔNG TIỀN</th><th>TRẠNG THÁI</th><th>THAO TÁC</th></tr></thead>
-                    <tbody>
-                      {ordersLoading ? (
-                        <tr><td colSpan="5" style={{textAlign:'center',color:'var(--text-muted)',padding:'20px'}}>Đang tải...</td></tr>
-                      ) : orders_for_table.slice(0, 3).map(order => (
-                        <tr key={order.id}>
-                          <td><span className="order-id">#{order.code}</span></td>
-                          <td><span className="order-date">{order.date}</span></td>
-                          <td><span className="order-total">{order.total}</span></td>
-                          <td><span className={'order-status status-' + order.status}>{statusMap[order.status]}</span></td>
-                          <td><button className="btn-view-detail" onClick={() => handleViewOrder(order.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết</button></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="profile-table-wrapper">
+                    <table className="profile-orders-table">
+                      <thead><tr><th>MÃ ĐƠN</th><th>NGÀY ĐẶT</th><th>TỔNG TIỀN</th><th>TRẠNG THÁI</th><th>THAO TÁC</th></tr></thead>
+                      <tbody>
+                        {ordersLoading ? (
+                          <tr><td colSpan="5" style={{textAlign:'center',color:'var(--text-muted)',padding:'20px'}}>Đang tải...</td></tr>
+                        ) : orders_for_table.slice(0, 3).map(order => (
+                          <tr key={order.id}>
+                            <td><span className="order-id">#{order.code}</span></td>
+                            <td><span className="order-date">{order.date}</span></td>
+                            <td><span className="order-total">{order.total}</span></td>
+                            <td><span className={'order-status status-' + order.status}>{statusMap[order.status]}</span></td>
+                            <td><button className="btn-view-detail" onClick={() => handleViewOrder(order.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết</button></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 <div className="profile-card">
