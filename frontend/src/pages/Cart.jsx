@@ -374,8 +374,16 @@ export default function Cart() {
             ) : (
               <div className="cart-grid">
                 <div className="cart-items">
+                  <div className="cart-table-header">
+                    <span>Hình ảnh</span>
+                    <span>Sản phẩm</span>
+                    <span style={{ textAlign: 'right' }}>Đơn giá</span>
+                    <span style={{ textAlign: 'center' }}>Số lượng</span>
+                    <span style={{ textAlign: 'right' }}>Thành tiền</span>
+                    <span></span>
+                  </div>
                   {localCartItems.map((item, idx) => (
-                    <div key={`${item.product_id}-${item.variant_id}-${idx}`} className="cart-item">
+                    <div key={`${item.product_id}-${item.variant_id}-${idx}`} className="cart-item no-checkbox">
                       <div className="item-image" style={{ background: '#1a1a1a', borderRadius: '6px', overflow: 'hidden' }}>
                         {item.image
                           ? <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -383,9 +391,18 @@ export default function Cart() {
                         }
                       </div>
                       <div className="item-info">
-                        <div className="item-name">{item.name}</div>
+                        <div className="item-name">
+                          <Link
+                            to={`/product/${item.sku || item.product_id}`}
+                            style={{ color: 'inherit', textDecoration: 'none' }}
+                            onMouseEnter={e => e.target.style.color = '#c8e600'}
+                            onMouseLeave={e => e.target.style.color = 'inherit'}
+                          >
+                            {item.name}
+                          </Link>
+                        </div>
                         {(item.sku || item.variantName) && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '4px' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px', alignItems: 'center' }}>
                             {item.sku && (
                               <div style={{ fontSize: '11.5px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <span style={{ fontWeight: 600, color: '#6b7280' }}>SKU:</span>
@@ -430,7 +447,7 @@ export default function Cart() {
                           className="qty-btn"
                         >+</button>
                       </div>
-                      <div className="item-subtotal" style={{ minWidth: '110px', textAlign: 'right', fontWeight: 700, color: '#c8e600', fontSize: '14px' }}>
+                      <div className="item-subtotal">
                         {formatPrice(item.price * item.quantity)}
                       </div>
                       <button
@@ -549,26 +566,29 @@ export default function Cart() {
             <div className="cart-grid">
               {/* LEFT: CART ITEMS */}
               <div className="cart-items">
-                {/* HEADER ROW: Chọn tất cả */}
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '12px 16px 14px 16px', borderBottom: '1px solid #2a2a2a', marginBottom: '4px'
-                }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
+                {/* HEADER ROW: Table Header */}
+                <div className="cart-table-header has-checkbox">
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
                     <input
                       type="checkbox"
                       checked={isAllChecked}
                       ref={el => { if (el) el.indeterminate = isSomeChecked && !isAllChecked }}
                       onChange={toggleSelectAll}
-                      style={{ width: '17px', height: '17px', accentColor: '#c8e600', cursor: 'pointer' }}
+                      style={{ width: '17px', height: '17px', accentColor: '#c8e600', cursor: 'pointer', display: 'block' }}
+                      title="Chọn tất cả"
                     />
-                    <span style={{ color: '#ccc', fontSize: '13px', fontWeight: 600 }}>
-                      Chọn tất cả ({allIds.length})
+                  </div>
+                  <span>Hình ảnh</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>Sản phẩm</span>
+                    <span style={{ fontSize: '11px', color: '#888', textTransform: 'none', fontWeight: 500 }}>
+                      ({allIds.length}{checkedIds.size > 0 && checkedIds.size < allIds.length ? ` - ${checkedIds.size} đã chọn` : ''})
                     </span>
-                  </label>
-                  {checkedIds.size > 0 && checkedIds.size < allIds.length && (
-                    <span style={{ color: '#888', fontSize: '12px' }}>({checkedIds.size} đã chọn)</span>
-                  )}
+                  </span>
+                  <span style={{ textAlign: 'right' }}>Đơn giá</span>
+                  <span style={{ textAlign: 'center' }}>Số lượng</span>
+                  <span style={{ textAlign: 'right' }}>Thành tiền</span>
+                  <span></span>
                 </div>
 
                 {cartItems.map((item) => {
@@ -604,7 +624,7 @@ export default function Cart() {
                   return (
                     <div
                       key={cartItemId}
-                      className="cart-item"
+                      className="cart-item has-checkbox"
                       style={{
                         opacity: isDeleting ? 0.4 : 1,
                         transition: 'opacity 0.3s',
@@ -634,7 +654,7 @@ export default function Cart() {
                       <div className="item-info">
                         <div className="item-name">
                           <Link
-                            to={`/products/${item.product?.slug || item.product?._id}`}
+                            to={`/product/${item.product?.slug || item.product?._id}`}
                             style={{ color: 'inherit', textDecoration: 'none' }}
                             onMouseEnter={e => e.target.style.color = '#c8e600'}
                             onMouseLeave={e => e.target.style.color = 'inherit'}
@@ -644,7 +664,7 @@ export default function Cart() {
                         </div>
 
                         {/* Display SKU & Biến thể */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px', alignItems: 'center' }}>
                           {(item.variant?.sku || item.product?.sku || item.product?.code) && (
                             <div style={{ fontSize: '11.5px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <span style={{ fontWeight: 600, color: '#6b7280' }}>SKU:</span>
@@ -711,7 +731,7 @@ export default function Cart() {
                       </div>
 
                       {/* THÀNH TIỀN */}
-                      <div className="item-subtotal" style={{ minWidth: '110px', textAlign: 'right', fontWeight: 700, color: '#c8e600', fontSize: '14px' }}>
+                      <div className="item-subtotal">
                         {formatPrice(price * qty)}
                       </div>
 

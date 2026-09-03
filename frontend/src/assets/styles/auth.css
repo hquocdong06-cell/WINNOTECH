@@ -288,26 +288,45 @@
 
 /* ── SOCIAL BUTTONS ── */
 .social-buttons {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 0 auto;
+}
+
+#google-btn-login,
+#google-btn-register {
+  width: 100%;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+#google-btn-login > div,
+#google-btn-register > div,
+#google-btn-login iframe,
+#google-btn-register iframe {
+  margin: 0 auto !important;
 }
 
 .social-btn {
   background: rgba(50, 50, 60, 0.5);
   border: 1px solid rgba(200, 230, 0, 0.2);
   border-radius: 6px;
-  padding: 10px 12px;
-  font-size: 11px;
+  padding: 11px 20px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--white);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 10px;
   transition: all 0.2s;
   font-family: inherit;
+  width: 100%;
+  max-width: 320px;
 }
 
 .social-btn:hover {
@@ -362,7 +381,8 @@
   }
 
   .social-buttons {
-    grid-template-columns: 1fr;
+    display: flex;
+    justify-content: center;
   }
 
   .form-group input {
