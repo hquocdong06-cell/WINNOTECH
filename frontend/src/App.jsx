@@ -23,10 +23,12 @@ import AdminLayout from './admin/layouts/AdminLayout'
 import Dashboard from './admin/pages/Dashboard'
 import Products from './admin/pages/Products'
 import Categories from './admin/pages/Categories'
+import Brands from './admin/pages/Brands'
 import Banners from './admin/pages/Banners'
 import AdminFlashSale from './admin/pages/FlashSale'
 import Orders from './admin/pages/Orders'
 import Customers from './admin/pages/Customers'
+import UserVouchers from './admin/pages/UserVouchers'
 import Reviews from './admin/pages/Reviews'
 import Promotions from './admin/pages/Promotions'
 import Reports from './admin/pages/Reports'
@@ -34,6 +36,7 @@ import Settings from './admin/pages/Settings'
 import Blog from './pages/Blog'
 import BlogPostDetail from './pages/BlogPostDetail'
 import AdminPosts from './admin/pages/Posts'
+import PostCategories from './admin/pages/PostCategories'
 import Contact from './pages/Contact'
 import Compare from './pages/Compare'
 import UuDai from './pages/UuDai'
@@ -96,14 +99,18 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="products" element={<Products />} />
           <Route path="categories" element={<Categories />} />
+          <Route path="brands" element={<Brands />} />
           <Route path="banners" element={<Banners />} />
-          <Route path="flash-sale" element={<AdminFlashSale />} />
+          {/* Flash Sale - Đã ẩn theo yêu cầu */}
+          <Route path="flash-sale" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="orders" element={<Orders />} />
           <Route path="customers" element={<Customers />} />
+          <Route path="user-vouchers" element={<UserVouchers />} />
           <Route path="reviews" element={<Reviews />} />
           <Route path="promotions" element={<Promotions />} />
-          <Route path="reports" element={<Reports />} />
+          <Route path="reports" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="posts" element={<AdminPosts />} />
+          <Route path="post-categories" element={<PostCategories />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

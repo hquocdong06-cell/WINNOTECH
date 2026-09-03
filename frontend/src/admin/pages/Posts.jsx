@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Edit, Trash2, Loader2, AlertTriangle, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Search, Edit, Trash2, Loader2, AlertTriangle, FileText, FolderOpen, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { fetchPosts, fetchPostCategories, createPost, updatePost, deletePost, uploadImage, API_BASE } from '../services/adminService';
 
@@ -63,7 +64,7 @@ const PostFormModal = ({ isOpen, onClose, onSuccess, post, categories }) => {
         slug: post.slug || '',
         categories_post_id: post.categories_post_id?._id || post.categories_post_id || '',
         status: post.status || 'draft',
-        image: post.image || '',
+        image: post.image || post.thumnail || '',
         content: post.content || ''
       });
     } else {
@@ -343,56 +344,71 @@ const Posts = () => {
     return titleMatch && catMatch;
   });
 
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('/src/')) return url;
+    return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
   return (
-    <div className="admin-page text-white p-6">
+    <div className="p-8 text-white min-h-screen">
       {/* Title */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold font-oswald text-yellow-400">QUẢN LÝ BÀI VIẾT / BLOG</h1>
-          <p className="text-gray-400 text-xs mt-1">Quản lý bài viết hướng dẫn cấu hình, tin tức công nghệ</p>
+          <h1 className="text-3xl font-bold mb-2">Quản lý Bài viết</h1>
+          <p className="text-gray-400 text-sm">Quản lý bài viết hướng dẫn cấu hình, tin tức công nghệ</p>
         </div>
-        <button
-          onClick={handleOpenAddModal}
-          className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition text-sm"
-        >
-          <Plus className="w-4 h-4" /> Thêm bài viết
-        </button>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/admin/post-categories"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#222] hover:bg-[#333] border border-[#444] text-white font-medium rounded-lg transition-colors text-sm"
+          >
+            <FolderOpen className="w-4 h-4 text-[#d4ff00]" /> Danh mục bài viết
+          </Link>
+          <button
+            onClick={handleOpenAddModal}
+            className="flex items-center gap-2 px-5 py-2.5 bg-black border border-[#D3FC00] text-[#D3FC00] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(211,252,0,0.15)] hover:bg-[#D3FC00]/10 text-sm"
+          >
+            <Plus className="w-5 h-5" /> Thêm bài viết
+          </button>
+        </div>
       </div>
 
       {/* Filter panel */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      <div className="bg-[#141414] border border-[#333] rounded-xl p-5 mb-6 flex flex-wrap gap-4 items-center justify-between">
         {/* Search */}
-        <div className="relative flex-grow">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-500" />
+        <div className="relative flex-1 min-w-[250px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             placeholder="Tìm kiếm bài viết..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#111] border border-[#222] rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-gray-400 focus:border-yellow-400 outline-none"
+            className="w-full pl-10 pr-4 py-2.5 bg-[#1e1e1e] border border-[#333] rounded-lg text-sm focus:border-[#d4ff00] outline-none text-white placeholder-gray-400 transition-colors"
           />
         </div>
 
-        {/* Category */}
-        <div className="w-full sm:w-48">
+        {/* Category & Results count */}
+        <div className="flex items-center gap-3">
           <select
             value={selectedCat}
             onChange={(e) => setSelectedCat(e.target.value)}
-            className="w-full bg-[#111] border border-[#222] rounded-lg px-3 py-2 text-sm text-white focus:border-yellow-400 outline-none"
+            className="bg-[#1e1e1e] border border-[#333] rounded-lg px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white cursor-pointer"
           >
             <option value="all">Tất cả danh mục</option>
             {categories.map(cat => (
               <option key={cat._id} value={cat._id}>{cat.name}</option>
             ))}
           </select>
+          <span className="text-sm text-gray-500 whitespace-nowrap">{filteredPosts.length} kết quả</span>
         </div>
       </div>
 
       {/* Table view */}
-      <div className="bg-[#111] border border-[#222] rounded-xl overflow-hidden shadow-2xl">
+      <div className="bg-[#141414] border border-[#333] rounded-xl overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400">
-            <Loader2 className="w-8 h-8 animate-spin text-yellow-400" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#d4ff00]" />
             <p className="text-sm">Đang tải dữ liệu bài viết...</p>
           </div>
         ) : filteredPosts.length === 0 ? (
@@ -401,62 +417,101 @@ const Posts = () => {
             <p className="text-sm">Không tìm thấy bài viết nào.</p>
           </div>
         ) : (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-[#222] bg-[#1a1a1a]/50 text-gray-400 text-xs font-semibold uppercase">
-                <th className="p-4">Tiêu đề bài viết</th>
-                <th className="p-4">Danh mục</th>
-                <th className="p-4">Trạng thái</th>
-                <th className="p-4">Ngày đăng</th>
-                <th className="p-4 text-center">Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPosts.map(post => (
-                <tr key={post._id} className="border-b border-[#222] hover:bg-[#1e1e1e]/20 transition-colors text-sm">
-                  <td className="p-4 font-semibold text-white">
-                    <div>{post.tittle}</div>
-                    <div className="text-xs text-gray-500 font-mono mt-0.5">{post.slug}</div>
-                  </td>
-                  <td className="p-4 text-gray-300">
-                    <span className="bg-[#222] px-2.5 py-1 rounded text-xs">
-                      {post.categories_post_id?.name || 'Chưa phân loại'}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-2.5 py-1 rounded text-xs font-bold ${
-                      post.status === 'published'
-                        ? 'bg-green-500/10 text-green-500'
-                        : 'bg-yellow-500/10 text-yellow-500'
-                    }`}>
-                      {post.status === 'published' ? 'Đã đăng' : 'Bản nháp'}
-                    </span>
-                  </td>
-                  <td className="p-4 text-gray-400">
-                    {post.createdAt ? new Date(post.createdAt).toLocaleDateString('vi-VN') : ''}
-                  </td>
-                  <td className="p-4 text-center">
-                    <div className="flex justify-center gap-3">
-                      <button
-                        onClick={() => handleOpenEditModal(post)}
-                        className="p-1.5 bg-[#222] hover:bg-blue-600 hover:text-white rounded transition"
-                        title="Chỉnh sửa bài viết"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleOpenDeleteDialog(post)}
-                        className="p-1.5 bg-[#222] hover:bg-red-600 hover:text-white rounded transition"
-                        title="Xóa bài viết"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-[#1a1a1a] border-b border-[#333] text-gray-400 font-medium">
+                <tr>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap w-24">HÌNH ẢNH</th>
+                  <th className="px-6 py-4 font-medium min-w-[260px]">TIÊU ĐỀ BÀI VIẾT</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">DANH MỤC</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">TRẠNG THÁI</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">NGÀY ĐĂNG</th>
+                  <th className="px-6 py-4 font-medium text-right whitespace-nowrap">HÀNH ĐỘNG</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#333]">
+                {filteredPosts.map(post => {
+                  const postImg = post.thumnail || post.image;
+                  const imgUrl = getImageUrl(postImg);
+
+                  return (
+                    <tr key={post._id} className="hover:bg-[#1e1e1e] transition-colors">
+                      {/* Hình ảnh */}
+                      <td className="px-6 py-4 whitespace-nowrap w-24">
+                        <div className="w-20 h-14 bg-white/5 border border-[#333] rounded-lg overflow-hidden flex items-center justify-center shrink-0">
+                          {imgUrl ? (
+                            <img
+                              src={imgUrl}
+                              alt={post.tittle}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <ImageIcon className="w-5 h-5 text-gray-600" />
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Tiêu đề & Slug */}
+                      <td className="px-6 py-4 font-semibold text-white">
+                        <div className="font-bold text-white text-base leading-snug line-clamp-2" title={post.tittle}>
+                          {post.tittle}
+                        </div>
+                        <div className="text-xs text-gray-500 font-mono mt-1 break-all">
+                          {post.slug}
+                        </div>
+                      </td>
+
+                      {/* Danh mục */}
+                      <td className="px-6 py-4 text-gray-300 whitespace-nowrap">
+                        <span className="inline-block bg-[#222] border border-[#333] px-3 py-1 rounded text-xs whitespace-nowrap font-medium">
+                          {post.categories_post_id?.name || 'Chưa phân loại'}
+                        </span>
+                      </td>
+
+                      {/* Trạng thái */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                          post.status === 'published'
+                            ? 'bg-[#d4ff00]/10 text-[#d4ff00]'
+                            : 'bg-gray-800 text-gray-400'
+                        }`}>
+                          {post.status === 'published' ? 'Đã đăng' : 'Bản nháp'}
+                        </span>
+                      </td>
+
+                      {/* Ngày đăng */}
+                      <td className="px-6 py-4 text-gray-400 whitespace-nowrap font-mono text-xs">
+                        {post.createdAt ? new Date(post.createdAt).toLocaleDateString('vi-VN') : '—'}
+                      </td>
+
+                      {/* Hành động */}
+                      <td className="px-6 py-4 text-right whitespace-nowrap">
+                        <div className="flex justify-end gap-2 whitespace-nowrap">
+                          <button
+                            onClick={() => handleOpenEditModal(post)}
+                            className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-md text-gray-300 hover:text-[#d4ff00] transition-colors"
+                            title="Chỉnh sửa bài viết"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenDeleteDialog(post)}
+                            className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-md text-gray-300 hover:text-red-400 transition-colors"
+                            title="Xóa bài viết"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

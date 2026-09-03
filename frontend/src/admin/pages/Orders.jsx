@@ -871,12 +871,6 @@ const Orders = () => {
           <h1 className="text-3xl font-bold mb-2">Quản lý Đơn hàng</h1>
           <p className="text-gray-400 text-sm">Dữ liệu thời gian thực — Tổng: <strong>{orders.length}</strong> đơn</p>
         </div>
-        <button
-          onClick={fetchOrders}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#222] border border-[#333] hover:bg-[#333] text-white font-medium rounded-xl transition-colors text-sm"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới
-        </button>
       </div>
 
       {error && (
@@ -887,9 +881,9 @@ const Orders = () => {
       <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
         <button
           onClick={() => setFilterStatus('all')}
-          className={`p-3 rounded-2xl border text-center transition-all ${filterStatus === 'all' ? 'border-[#d4ff00] bg-[#d4ff00]/10' : 'border-[#333] bg-[#14141d] hover:bg-[#1a1a24]'}`}
+          className={`p-3 rounded-xl border text-center transition-all ${filterStatus === 'all' ? 'border-[#d4ff00] bg-[#d4ff00]/10 text-[#d4ff00]' : 'border-[#262626] bg-[#141414] hover:bg-[#1a1a1a] text-white'}`}
         >
-          <div className="text-xl font-bold text-white">{orders.length}</div>
+          <div className="text-xl font-bold">{orders.length}</div>
           <div className="text-[10px] text-gray-400 mt-1">Tất cả</div>
         </button>
         {[
@@ -897,13 +891,13 @@ const Orders = () => {
           { key: 'preparing', label: 'Đang chuẩn bị',   color: 'text-indigo-400' },
           { key: 'shipping',  label: 'Đang giao',       color: 'text-purple-400' },
           { key: 'delivered', label: 'Đã giao hàng',    color: 'text-cyan-400' },
-          { key: 'completed', label: 'Hoàn thành',      color: 'text-green-400' },
+          { key: 'completed', label: 'Hoàn thành',      color: 'text-[#d4ff00]' },
           { key: 'cancelled', label: 'Đã hủy',          color: 'text-red-400' },
         ].map(({ key, label, color }) => (
           <button
             key={key}
             onClick={() => setFilterStatus(key)}
-            className={`p-3 rounded-2xl border text-center transition-all ${filterStatus === key ? 'border-[#d4ff00] bg-[#d4ff00]/10' : 'border-[#333] bg-[#14141d] hover:bg-[#1a1a24]'}`}
+            className={`p-3 rounded-xl border text-center transition-all ${filterStatus === key ? 'border-[#d4ff00] bg-[#d4ff00]/10' : 'border-[#262626] bg-[#141414] hover:bg-[#1a1a1a]'}`}
           >
             <div className={`text-xl font-bold ${color}`}>{counts[key] || 0}</div>
             <div className="text-[10px] text-gray-400 mt-1 leading-tight">{label}</div>
@@ -912,7 +906,7 @@ const Orders = () => {
       </div>
 
       {/* Tìm kiếm & Lọc */}
-      <div className="bg-[#14141d] border border-[#333] rounded-2xl p-5 mb-6 flex flex-wrap gap-4 items-center justify-between">
+      <div className="bg-[#141414] border border-[#262626] rounded-xl p-4 mb-6 flex flex-wrap gap-4 items-center justify-between">
         <div className="relative flex-1 min-w-[250px]">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -920,13 +914,13 @@ const Orders = () => {
             placeholder="Tìm mã đơn, tên khách, SĐT..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[#1e1e2d] border border-[#333] rounded-xl text-sm outline-none focus:border-[#d4ff00] text-white placeholder-gray-400"
+            className="w-full pl-10 pr-4 py-2 bg-[#1f1f1f] border border-[#333] rounded-lg text-xs outline-none focus:border-[#d4ff00] text-white placeholder-gray-400"
           />
         </div>
         <select
           value={filterStatus}
           onChange={e => setFilterStatus(e.target.value)}
-          className="bg-[#1e1e2d] border border-[#333] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#d4ff00] min-w-[200px] text-white"
+          className="bg-[#1f1f1f] border border-[#333] rounded-lg px-3 py-2 text-xs outline-none focus:border-[#d4ff00] min-w-[200px] text-white"
         >
           <option value="all">Tất cả trạng thái ({orders.length})</option>
           <option value="pending">Chờ xác nhận ({counts['pending'] || 0})</option>
@@ -939,68 +933,67 @@ const Orders = () => {
       </div>
 
       {/* Bảng đơn hàng */}
-      <div className="bg-[#14141d] border border-[#333] rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-[#141414] border border-[#262626] rounded-xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-[#1e1e2d] text-gray-400 text-xs uppercase border-b border-[#333]">
+          <table className="w-full text-xs text-left">
+            <thead className="bg-[#1f1f1f] text-gray-400 uppercase border-b border-[#262626]">
               <tr>
-                <th className="px-5 py-4 font-semibold whitespace-nowrap">MÃ ĐƠN</th>
-                <th className="px-5 py-4 font-semibold whitespace-nowrap">KHÁCH HÀNG</th>
-                <th className="px-5 py-4 font-semibold whitespace-nowrap">SĐT</th>
-                <th className="px-5 py-4 font-semibold whitespace-nowrap">TỔNG TIỀN</th>
-                <th className="px-4 py-4 font-semibold whitespace-nowrap" style={{minWidth:'160px'}}>TRẠNG THÁI</th>
-                <th className="px-4 py-4 font-semibold whitespace-nowrap" style={{minWidth:'140px'}}>THANH TOÁN</th>
-                <th className="px-5 py-4 font-semibold whitespace-nowrap">NGÀY TẠO</th>
-                <th className="px-5 py-4 font-semibold whitespace-nowrap text-right">HÀNH ĐỘNG</th>
+                <th className="px-5 py-3.5 font-semibold whitespace-nowrap">MÃ ĐƠN</th>
+                <th className="px-5 py-3.5 font-semibold whitespace-nowrap">KHÁCH HÀNG</th>
+                <th className="px-5 py-3.5 font-semibold whitespace-nowrap">SĐT</th>
+                <th className="px-5 py-3.5 font-semibold whitespace-nowrap">TỔNG TIỀN</th>
+                <th className="px-4 py-3.5 font-semibold whitespace-nowrap" style={{minWidth:'150px'}}>TRẠNG THÁI</th>
+                <th className="px-4 py-3.5 font-semibold whitespace-nowrap" style={{minWidth:'130px'}}>THANH TOÁN</th>
+                <th className="px-5 py-3.5 font-semibold whitespace-nowrap">NGÀY TẠO</th>
+                <th className="px-5 py-3.5 font-semibold whitespace-nowrap text-right">HÀNH ĐỘNG</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#222]">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
                     <RefreshCw className="w-5 h-5 animate-spin inline mr-2" />Đang tải...
                   </td>
                 </tr>
               ) : (
                 filteredOrders.map(order => (
-                  <tr key={order.id} className="hover:bg-[#1a1a24] transition-colors">
-                    <td className="px-5 py-4 font-bold text-[#d4ff00] font-mono text-xs whitespace-nowrap">{order.code}</td>
-                    <td className="px-5 py-4 font-semibold text-white max-w-[160px] truncate">{order.customer}</td>
-                    <td className="px-5 py-4 text-gray-400 font-mono text-xs whitespace-nowrap">{order.phone}</td>
-                    <td className="px-5 py-4 text-white font-bold whitespace-nowrap">{order.total.toLocaleString('vi-VN')}₫</td>
-                    <td className="px-4 py-4">
+                  <tr key={order.id} className="hover:bg-[#1a1a1a] transition-colors">
+                    <td className="px-5 py-3.5 font-bold text-[#d4ff00] font-mono text-xs whitespace-nowrap">{order.code}</td>
+                    <td className="px-5 py-3.5 font-semibold text-white max-w-[160px] truncate">{order.customer}</td>
+                    <td className="px-5 py-3.5 text-gray-400 font-mono text-xs whitespace-nowrap">{order.phone}</td>
+                    <td className="px-5 py-3.5 text-white font-bold whitespace-nowrap">{order.total.toLocaleString('vi-VN')}₫</td>
+                    <td className="px-4 py-3.5">
                       <StatusBadge status={order.status} />
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3.5">
                       <PaymentBadge payment_status={order.payment_status} />
                     </td>
-                    <td className="px-5 py-4 text-gray-400 text-xs whitespace-nowrap">{order.date}</td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-5 py-3.5 text-gray-400 text-xs whitespace-nowrap">{order.date}</td>
+                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-2">
                         <button
-                          onClick={() => setSelectedOrderId(order.id)}
-                          className="p-2 bg-[#222] hover:bg-[#d4ff00]/10 border border-[#444] hover:border-[#d4ff00]/40 rounded-lg text-gray-300 hover:text-[#d4ff00] transition-colors"
-                          title="Xem chi tiết đơn hàng"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
                           onClick={() => setSelectedOrderEdit(order)}
-                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-[#d4ff00] transition-colors"
+                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
                           title="Cập nhật trạng thái"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
+                        <button
+                          onClick={() => setSelectedOrderId(order.id)}
+                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
+                          title="Xem chi tiết đơn hàng"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
                         <a
-                          href={getOrderPdfUrl(order.id)}
+                          href={getOrderPdfUrl(order._id || order.id)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-blue-400 transition-colors"
+                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
                           title="In hóa đơn PDF"
                         >
                           <FileText className="w-4 h-4" />
                         </a>
-
                       </div>
                     </td>
                   </tr>

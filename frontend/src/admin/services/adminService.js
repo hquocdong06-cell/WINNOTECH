@@ -109,6 +109,14 @@ export async function updateAdminBrand(id, payload) {
   });
 }
 
+export async function toggleAdminBrandStatus(id, status) {
+  return apiFetch(`/admin/brands/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+}
+
 export async function deleteAdminBrand(id) {
   return apiFetch(`/admin/brands/${id}`, { method: 'DELETE' });
 }
@@ -193,6 +201,48 @@ export async function updateAdminUserStatus(id, status) {
 
 export async function deleteAdminUser(id) {
   return apiFetch(`/admin/users/${id}`, { method: 'DELETE' });
+}
+
+export async function fetchAdminUserOrders(userId) {
+  return apiFetch(`/admin/users/${userId}/orders`);
+}
+
+// ============================================================
+// USER VOUCHERS (ADMIN)
+// ============================================================
+export async function fetchAdminUserVouchers(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  const data = await apiFetch(`/admin/user-vouchers${query ? `?${query}` : ''}`);
+  return data.data || [];
+}
+
+export async function addAdminUserVoucher(payload) {
+  return apiFetch('/admin/user-vouchers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAdminUserVoucher(id, payload) {
+  return apiFetch(`/admin/user-vouchers/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAdminUserVoucher(id) {
+  return apiFetch(`/admin/user-vouchers/${id}`, { method: 'DELETE' });
+}
+
+export async function fetchAllAvailableVouchers(onlyActive = true) {
+  const data = await apiFetch('/api/vouchers');
+  const list = data.data || [];
+  if (onlyActive) {
+    return list.filter((v) => v.status === 'active');
+  }
+  return list;
 }
 
 // ============================================================
@@ -351,6 +401,12 @@ export async function togglePostCategoryStatus(id, status) {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status }),
+  });
+}
+
+export async function deletePostCategory(id) {
+  return apiFetch(`/admin/post-categories/${id}`, {
+    method: 'DELETE',
   });
 }
 

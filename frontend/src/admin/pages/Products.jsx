@@ -1,5 +1,18 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Plus, Search, Settings2, Edit, Eye, EyeOff, Trash2, Loader2, AlertTriangle, Award } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Settings2,
+  Edit,
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertTriangle,
+  Award,
+  ArrowUpDown,
+  ArrowDownWideNarrow,
+  ArrowUpWideNarrow
+} from 'lucide-react';
 import { toast } from 'react-toastify';
 import { fetchAdminProducts, fetchCategories, deleteProduct, toggleProductStatus, API_BASE } from '../services/adminService';
 import ProductFormModal from '../components/ProductFormModal';
@@ -52,6 +65,46 @@ const Products = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, product: null });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [stockFilter, setStockFilter] = useState('all'); // 'all' | 'in_stock' | 'low_stock'
+  const [stockSort, setStockSort] = useState('none'); // 'none' | 'desc' | 'asc'
+
+  const getTotalStock = (product) => product.Variants?.reduce((s, v) => s + (v.stock_quantity || 0), 0) || 0;
+
+  // Kiểm tra nếu có ít nhất 1 biến thể có số lượng < 10 (hàng sắp hết)
+  const hasLowStockVariant = (product) => {
+    if (product.Variants && product.Variants.length > 0) {
+      return product.Variants.some((v) => Number(v.stock_quantity || 0) < 10);
+    }
+    return Number(product.stock_quantity || 0) < 10;
+  };
+
+  // Hàng tồn: tất cả biến thể có số lượng >= 10
+  const isHealthyInStock = (product) => {
+    if (product.Variants && product.Variants.length > 0) {
+      return product.Variants.every((v) => Number(v.stock_quantity || 0) >= 10);
+    }
+    return Number(product.stock_quantity || 0) >= 10;
+  };
+
+  // Thông báo nhỏ hiển thị bên dưới
+  const getLowStockNotice = (product) => {
+    if (!product.Variants || product.Variants.length === 0) {
+      return Number(product.stock_quantity || 0) < 10 ? 'Sắp hết hàng' : null;
+    }
+    const lowCount = product.Variants.filter((v) => Number(v.stock_quantity || 0) < 10).length;
+    if (lowCount === 0) return null;
+    if (product.Variants.length === 1) return 'Sắp hết hàng';
+    if (lowCount === product.Variants.length) return 'Tất cả biến thể sắp hết';
+    return 'Có biến thể sắp hết';
+  };
+
+  const handleToggleStockSort = () => {
+    setStockSort((prev) => {
+      if (prev === 'none') return 'desc';
+      if (prev === 'desc') return 'asc';
+      return 'none';
+    });
+  };
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -69,13 +122,35 @@ const Products = () => {
   useEffect(() => { loadData(); }, [loadData]);
 
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
+    let result = products.filter((p) => {
       const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
       const catId = p.cat_id?._id || p.cat_id || '';
       const matchCat = selectedCategory ? catId === selectedCategory : true;
-      return matchSearch && matchCat;
+
+      let matchStock = true;
+      if (stockFilter === 'in_stock') {
+        matchStock = isHealthyInStock(p);
+      } else if (stockFilter === 'low_stock') {
+        matchStock = hasLowStockVariant(p);
+      }
+
+      return matchSearch && matchCat && matchStock;
     });
-  }, [products, searchQuery, selectedCategory]);
+
+    // Sắp xếp:
+    // "hàng tồn sẽ hiển thị các sản phẩm mà biến thể của nó có số lượng lớn hơn 10 sắp xếp từ cao đến thấp"
+    if (stockFilter === 'in_stock') {
+      result = [...result].sort((a, b) => getTotalStock(b) - getTotalStock(a));
+    } else if (stockFilter === 'low_stock') {
+      result = [...result].sort((a, b) => getTotalStock(a) - getTotalStock(b));
+    } else if (stockSort === 'desc') {
+      result = [...result].sort((a, b) => getTotalStock(b) - getTotalStock(a));
+    } else if (stockSort === 'asc') {
+      result = [...result].sort((a, b) => getTotalStock(a) - getTotalStock(b));
+    }
+
+    return result;
+  }, [products, searchQuery, selectedCategory, stockFilter, stockSort]);
 
   const handleToggleStatus = async (product) => {
     const newStatus = product.status === 'active' ? 'hidden' : 'active';
@@ -115,8 +190,6 @@ const Products = () => {
     return v ? { price: v.price || 0, salePrice: v.sale_price > 0 ? v.sale_price : null } : { price: 0, salePrice: null };
   };
 
-  const getTotalStock = (product) => product.Variants?.reduce((s, v) => s + (v.stock_quantity || 0), 0) || 0;
-
   return (
     <div className="p-8 text-white min-h-screen">
       <div className="flex justify-between items-center mb-8">
@@ -124,8 +197,11 @@ const Products = () => {
           <h1 className="text-3xl font-bold mb-2">Quản lý Sản phẩm</h1>
           <p className="text-gray-400 text-sm">{products.length} sản phẩm trong hệ thống</p>
         </div>
-        <button onClick={() => { setEditingProduct(null); setIsFormModalOpen(true); }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#d4ff00] hover:bg-[#bce600] text-black font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(212,255,0,0.2)]">
+        {/* Nút Thêm Sản phẩm chuẩn Ảnh 2: Nền đen, viền + chữ #D3FC00 */}
+        <button
+          onClick={() => { setEditingProduct(null); setIsFormModalOpen(true); }}
+          className="flex items-center gap-2 px-5 py-2.5 bg-black border border-[#D3FC00] text-[#D3FC00] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(211,252,0,0.15)] hover:bg-[#D3FC00]/10"
+        >
           <Plus className="w-5 h-5" /> Thêm Sản phẩm
         </button>
       </div>
@@ -137,105 +213,140 @@ const Products = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-[#1e1e1e] border border-[#333] rounded-lg text-sm focus:border-[#d4ff00] outline-none text-white placeholder-gray-400 transition-colors" />
         </div>
-        <div className="flex gap-4 items-center">
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Bộ lọc tồn kho: Hàng tồn và Hàng sắp hết */}
+          <select
+            value={stockFilter}
+            onChange={(e) => setStockFilter(e.target.value)}
+            className="bg-[#1e1e1e] border border-[#333] rounded-lg px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white cursor-pointer"
+          >
+            <option value="all">Tất cả sản phẩm</option>
+            <option value="in_stock">Hàng tồn</option>
+            <option value="low_stock">Hàng sắp hết</option>
+          </select>
+
           <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-[#1e1e1e] border border-[#333] rounded-lg px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white">
+            className="bg-[#1e1e1e] border border-[#333] rounded-lg px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white cursor-pointer">
             <option value="">Tất cả danh mục</option>
             {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
           </select>
-          <span className="text-sm text-gray-500">{filteredProducts.length} kết quả</span>
+          <span className="text-sm text-gray-500 whitespace-nowrap">{filteredProducts.length} kết quả</span>
         </div>
       </div>
 
-      <div className="bg-[#141414] border border-[#333] rounded-xl overflow-hidden">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-[#1a1a1a] border-b border-[#333] text-gray-400">
-            <tr>
-              <th className="px-6 py-4 font-medium">Sản phẩm</th>
-              <th className="px-6 py-4 font-medium">Danh mục</th>
-              <th className="px-6 py-4 font-medium">Giá bán</th>
-              <th className="px-6 py-4 font-medium">Tồn kho / Biến thể</th>
-              <th className="px-6 py-4 font-medium">Trạng thái</th>
-              <th className="px-6 py-4 font-medium text-right">Hành động</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#333]">
-            {isLoading ? (
+      <div className="bg-[#141414] border border-[#333] rounded-xl overflow-hidden shadow-xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-[#1a1a1a] border-b border-[#333] text-gray-400 text-xs uppercase">
               <tr>
-                <td colSpan="6" className="px-6 py-16 text-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#d4ff00] mx-auto mb-3" />
-                  <p className="text-gray-500 text-sm">Đang tải dữ liệu...</p>
-                </td>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Sản phẩm</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Danh mục</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Giá bán</th>
+                <th
+                  className="px-6 py-4 font-semibold whitespace-nowrap cursor-pointer hover:text-white select-none transition-colors"
+                  onClick={handleToggleStockSort}
+                  title="Bấm để đổi sắp xếp tồn kho: Cao → Thấp / Thấp → Cao"
+                >
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <span>Tồn kho / Biến thể</span>
+                    {stockSort === 'desc' ? (
+                      <ArrowDownWideNarrow className="w-4 h-4 text-[#d4ff00]" />
+                    ) : stockSort === 'asc' ? (
+                      <ArrowUpWideNarrow className="w-4 h-4 text-blue-400" />
+                    ) : (
+                      <ArrowUpDown className="w-3.5 h-3.5 text-gray-500" />
+                    )}
+                  </div>
+                </th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Trạng thái</th>
+                <th className="px-6 py-4 font-semibold text-right whitespace-nowrap">Hành động</th>
               </tr>
-            ) : filteredProducts.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="px-6 py-16 text-center text-gray-500">
-                  {searchQuery || selectedCategory ? 'Không tìm thấy sản phẩm phù hợp.' : 'Chưa có sản phẩm nào.'}
-                </td>
-              </tr>
-            ) : filteredProducts.map((product) => {
-              const imgUrl = getImageUrl(product);
-              const { price, salePrice } = getDisplayPrice(product);
-              const isActive = product.status === 'active';
-              return (
-                <tr key={product._id} className="hover:bg-[#1e1e1e] transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      {imgUrl ? (
-                        <img src={imgUrl} alt={product.name}
-                          className="w-12 h-12 rounded-lg object-cover border border-[#333] shrink-0"
-                          onError={(e) => { e.target.style.display = 'none'; }} />
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg bg-[#222] border border-[#333] flex items-center justify-center shrink-0">
-                          <span className="text-xs text-gray-500">N/A</span>
-                        </div>
-                      )}
-                      <div>
-                        <div className="font-semibold line-clamp-1">{product.name}</div>
-                        <div className="text-xs text-gray-500 mt-1">{product.brand_id?.name || '—'}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-300">{product.cat_id?.name || '—'}</td>
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-[#d4ff00]">{(salePrice || price).toLocaleString('vi-VN')}đ</div>
-                    {salePrice && <div className="text-xs text-gray-500 line-through">{price.toLocaleString('vi-VN')}đ</div>}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-gray-300">{getTotalStock(product)} trong kho</div>
-                    <div className="text-xs text-gray-500 mt-1">{product.Variants?.length || 0} biến thể</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${isActive ? 'bg-[#d4ff00]/10 text-[#d4ff00]' : 'bg-gray-800 text-gray-400'}`}>
-                      {isActive ? 'Đang bán' : 'Đã ẩn'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => { setEditingProduct(product); setIsVariantModalOpen(true); }}
-                        className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-md text-gray-300 hover:text-[#d4ff00] transition-colors" title="Quản lý biến thể">
-                        <Settings2 className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => { setEditingProduct(product); setIsFormModalOpen(true); }}
-                        className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-md text-gray-300 hover:text-blue-400 transition-colors" title="Sửa sản phẩm">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleToggleStatus(product)}
-                        className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-md text-gray-300 hover:text-white transition-colors"
-                        title={isActive ? 'Ẩn sản phẩm' : 'Hiện sản phẩm'}>
-                        {isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4 text-gray-500" />}
-                      </button>
-                      <button onClick={() => setDeleteDialog({ open: true, product })}
-                        className="p-2 bg-[#222] hover:bg-red-500/20 border border-[#444] hover:border-red-500/50 rounded-md text-gray-300 hover:text-red-500 transition-colors" title="Xóa sản phẩm">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+            </thead>
+            <tbody className="divide-y divide-[#333]">
+              {isLoading ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-16 text-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#d4ff00] mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">Đang tải dữ liệu...</p>
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              ) : filteredProducts.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-16 text-center text-gray-500">
+                    {searchQuery || selectedCategory ? 'Không tìm thấy sản phẩm phù hợp.' : 'Chưa có sản phẩm nào.'}
+                  </td>
+                </tr>
+              ) : filteredProducts.map((product) => {
+                const imgUrl = getImageUrl(product);
+                const { price, salePrice } = getDisplayPrice(product);
+                const isActive = product.status === 'active';
+                return (
+                  <tr key={product._id} className="hover:bg-[#1e1e1e] transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-4">
+                        {imgUrl ? (
+                          <img src={imgUrl} alt={product.name}
+                            className="w-12 h-12 rounded-lg object-cover border border-[#333] shrink-0"
+                            onError={(e) => { e.target.style.display = 'none'; }} />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-[#222] border border-[#333] flex items-center justify-center shrink-0">
+                            <span className="text-xs text-gray-500">N/A</span>
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-semibold line-clamp-1">{product.name}</div>
+                          <div className="text-xs text-gray-500 mt-1">{product.brand_id?.name || '—'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-300 whitespace-nowrap">{product.cat_id?.name || '—'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2 whitespace-nowrap">
+                        <span className="font-medium text-[#d4ff00]">{(salePrice || price).toLocaleString('vi-VN')}đ</span>
+                        {salePrice && <span className="text-xs text-gray-500 line-through">{price.toLocaleString('vi-VN')}đ</span>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        <span className="text-gray-300 font-medium">{getTotalStock(product)} trong kho</span>
+                        <span className="text-gray-600">•</span>
+                        <span className="text-xs text-gray-400">{product.Variants?.length || 0} biến thể</span>
+                      </div>
+                      {getLowStockNotice(product) && (
+                        <div className="text-[11px] text-amber-400 flex items-center gap-1 mt-1 font-medium whitespace-nowrap">
+                          <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                          <span>{getLowStockNotice(product)}</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${isActive ? 'bg-[#d4ff00]/10 text-[#d4ff00] border border-[#d4ff00]/30' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>
+                        {isActive ? 'Đang bán' : 'Đã ẩn'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
+                      <div className="flex justify-end gap-2 whitespace-nowrap">
+                        <button onClick={() => { setEditingProduct(product); setIsVariantModalOpen(true); }}
+                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-[#d4ff00] transition-colors" title="Quản lý biến thể">
+                          <Settings2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => { setEditingProduct(product); setIsFormModalOpen(true); }}
+                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors" title="Sửa sản phẩm">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleToggleStatus(product)}
+                          className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
+                          title={isActive ? 'Ẩn sản phẩm' : 'Hiện sản phẩm'}>
+                          {isActive ? <Eye className="w-4 h-4 text-[#d4ff00]" /> : <EyeOff className="w-4 h-4 text-gray-500" />}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <ProductFormModal isOpen={isFormModalOpen} onClose={() => setIsFormModalOpen(false)}

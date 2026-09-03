@@ -7,7 +7,12 @@ const cert = fs.readFileSync(path.join(__dirname, '../key/publickey.crt'));
 
 const checklogin = async (req, res, next) => {
     try {
-        const token = req.cookies && req.cookies.token;
+        const token =
+            (req.cookies && req.cookies.token) ||
+            req.query.token ||
+            (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')
+                ? req.headers.authorization.split(' ')[1]
+                : null);
 
         if (!token) {
             return res.status(401).json({

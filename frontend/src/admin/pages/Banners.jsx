@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Edit, Eye, EyeOff, Loader2, Image as ImageIcon, ExternalLink, RefreshCw } from 'lucide-react';
+import { Plus, Search, Edit, Eye, EyeOff, Loader2, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { fetchAdminBanners, toggleAdminBannerStatus, API_BASE } from '../services/adminService';
 import BannerFormModal from '../components/BannerFormModal';
@@ -96,15 +96,8 @@ const Banners = () => {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={loadData}
-            className="p-2.5 bg-[#1f1f1f] border border-[#333] hover:border-[#d4ff00]/50 rounded-lg text-gray-300 hover:text-white transition-colors"
-            title="Làm mới dữ liệu"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-          <button
             onClick={handleOpenAddModal}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#d4ff00] text-black font-bold rounded-lg hover:bg-[#c0ea00] transition-colors text-sm shadow-lg shadow-[#d4ff00]/10"
+            className="flex items-center gap-2 px-5 py-2.5 bg-black border border-[#D3FC00] text-[#D3FC00] font-bold rounded-lg hover:bg-[#D3FC00]/10 transition-colors text-sm shadow-[0_0_15px_rgba(211,252,0,0.15)]"
           >
             <Plus className="w-5 h-5" />
             Thêm Banner mới
@@ -173,16 +166,16 @@ const Banners = () => {
             <p className="text-xs text-gray-500 mt-1">Bấm nút "Thêm Banner mới" ở trên để bắt đầu thêm mới banner</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="w-full overflow-x-auto">
             <table className="w-full text-left text-sm text-gray-300">
               <thead className="bg-[#1f1f1f] text-gray-400 uppercase text-xs border-b border-[#262626]">
                 <tr>
-                  <th className="py-3.5 px-6 font-semibold">STT / Vị trí (`position`)</th>
-                  <th className="py-3.5 px-6 font-semibold">Hình ảnh Banner</th>
-                  <th className="py-3.5 px-6 font-semibold">Tên Banner</th>
-                  <th className="py-3.5 px-6 font-semibold">Liên kết</th>
-                  <th className="py-3.5 px-6 font-semibold">Trạng thái</th>
-                  <th className="py-3.5 px-6 font-semibold text-right">Thao tác</th>
+                  <th className="py-3.5 px-4 font-semibold whitespace-nowrap w-20">Vị trí</th>
+                  <th className="py-3.5 px-4 font-semibold whitespace-nowrap w-32">Hình ảnh</th>
+                  <th className="py-3.5 px-4 font-semibold">Tên Banner</th>
+                  <th className="py-3.5 px-4 font-semibold whitespace-nowrap">Liên kết</th>
+                  <th className="py-3.5 px-4 font-semibold whitespace-nowrap">Trạng thái</th>
+                  <th className="py-3.5 px-4 font-semibold text-right whitespace-nowrap">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#222]">
@@ -195,7 +188,7 @@ const Banners = () => {
                     <tr key={banner._id || index} className="hover:bg-[#1a1a1a] transition-colors">
                       
                       {/* Vị trí hiển thị (Position) */}
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4 whitespace-nowrap w-20">
                         <div className="flex items-center gap-2">
                           <span className="w-8 h-8 rounded-lg bg-[#222] border border-[#333] text-[#d4ff00] font-bold text-xs flex items-center justify-center shadow-inner">
                             #{banner.position !== undefined ? banner.position : index + 1}
@@ -204,8 +197,8 @@ const Banners = () => {
                       </td>
 
                       {/* Ảnh Preview */}
-                      <td className="py-4 px-6">
-                        <div className="w-28 h-16 rounded-lg bg-[#1a1a1a] border border-[#333] overflow-hidden flex items-center justify-center shrink-0 relative group">
+                      <td className="py-3 px-4 whitespace-nowrap w-32">
+                        <div className="w-24 h-14 rounded-lg bg-[#1a1a1a] border border-[#333] overflow-hidden flex items-center justify-center shrink-0 relative group">
                           {imgUrl ? (
                             <img 
                               src={imgUrl} 
@@ -219,8 +212,8 @@ const Banners = () => {
                       </td>
 
                       {/* Tên Banner */}
-                      <td className="py-4 px-6">
-                        <div className="font-bold text-white text-base max-w-xs truncate">
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-white text-sm max-w-sm truncate" title={banner.name}>
                           {banner.name}
                         </div>
                         <span className="text-[11px] text-gray-500 font-mono">
@@ -229,13 +222,13 @@ const Banners = () => {
                       </td>
 
                       {/* Link */}
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         {banner.link ? (
                           <a 
                             href={banner.link} 
                             target="_blank" 
                             rel="noopener noreferrer" 
-                            className="text-xs text-[#d4ff00] hover:underline flex items-center gap-1 max-w-[160px] truncate"
+                            className="text-xs text-[#d4ff00] hover:underline flex items-center gap-1 max-w-[150px] truncate whitespace-nowrap"
                           >
                             <span>{banner.link}</span>
                             <ExternalLink className="w-3 h-3 shrink-0" />
@@ -246,11 +239,11 @@ const Banners = () => {
                       </td>
 
                       {/* Trạng thái (Active / Hidden) */}
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <button
                           onClick={() => handleToggleStatus(banner)}
                           disabled={isToggling}
-                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap ${
                             isActive
                               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
                               : 'bg-gray-800/80 border-gray-700 text-gray-400 hover:bg-gray-800'
@@ -264,16 +257,16 @@ const Banners = () => {
                           ) : (
                             <EyeOff className="w-3.5 h-3.5" />
                           )}
-                          <span>{isActive ? 'Active (Hiển thị)' : 'Hidden (Ẩn)'}</span>
+                          <span className="whitespace-nowrap">{isActive ? 'Active (Hiển thị)' : 'Hidden (Ẩn)'}</span>
                         </button>
                       </td>
 
                       {/* Nút thao tác Sửa (Không có nút Xóa) */}
-                      <td className="py-4 px-6 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                           <button
                             onClick={() => handleOpenEditModal(banner)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#222] hover:bg-[#333] text-gray-200 border border-[#333] hover:border-[#d4ff00]/40 rounded-lg text-xs font-semibold transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#222] hover:bg-[#333] text-gray-200 border border-[#333] hover:border-[#d4ff00]/40 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
                           >
                             <Edit className="w-3.5 h-3.5 text-[#d4ff00]" />
                             Chỉnh sửa

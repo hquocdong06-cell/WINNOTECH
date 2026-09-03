@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { DollarSign, ShoppingCart, TrendingUp, AlertTriangle, Package, Activity, Download, RefreshCw } from 'lucide-react';
+import { DollarSign, ShoppingCart, TrendingUp, AlertTriangle, Package, Activity, Download } from 'lucide-react';
 import { fetchRevenueStats, getRevenueExcelExportUrl, fetchAdminProducts, API_BASE } from '../services/adminService';
 
 const Reports = () => {
@@ -63,12 +63,6 @@ const Reports = () => {
             <option value="month">Thống kê theo Tháng</option>
             <option value="year">Thống kê theo Năm</option>
           </select>
-          <button
-            onClick={loadReportData}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#222] border border-[#333] hover:bg-[#333] text-white font-medium rounded-xl text-sm"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
           <a
             href={getRevenueExcelExportUrl()}
             target="_blank"
