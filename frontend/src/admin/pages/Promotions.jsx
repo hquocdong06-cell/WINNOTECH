@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit } from 'lucide-react';
 import PromotionFormModal from '../components/PromotionFormModal';
 import { voucherAPI } from '../../services/apiService';
 
@@ -180,13 +180,6 @@ const Promotions = () => {
                             title="Sửa"
                           >
                             <Edit className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(v._id)}
-                            className="p-1.5 bg-[#222] hover:bg-red-500/20 border border-[#444] hover:border-red-500/50 rounded-md text-gray-300 hover:text-red-500 transition-colors"
-                            title="Xóa"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>

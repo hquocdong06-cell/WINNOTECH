@@ -818,21 +818,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── NEWSLETTER ── */}
-      <section className="newsletter-section">
-        <div className="newsletter-inner">
-          <div className="newsletter-left">
-            <h2 style={{ lineHeight: '1.3' }}>LUÔN CẬP NHẬT<br /><span>CÔNG NGHỆ MỚI</span></h2>
-          </div>
-          <div className="newsletter-right">
-            <div className="newsletter-form">
-              <input type="email" placeholder="Nhập email của bạn" />
-              <button>ĐĂNG KÝ</button>
-            </div>
-            <p>Nhận tin tức, ưu đãi và hướng dẫn build PC mới nhất từ GearForge.</p>
-          </div>
-        </div>
-      </section>
     </DefaultLayout>
   )
 }

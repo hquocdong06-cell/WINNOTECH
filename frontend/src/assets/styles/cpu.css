@@ -390,14 +390,20 @@ input[type=range]::-moz-range-thumb {
   position: absolute;
   top: 10px;
   left: 10px;
-  background: var(--card-accent);
-  color: #fff;
-  font-size: 10.5px;
+  background: #000;
+  color: #D3FC00;
+  border: 1px solid #D3FC00;
+  font-size: 11px;
   font-weight: 800;
-  padding: 4px 9px;
-  border-radius: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
   z-index: 10;
   letter-spacing: .3px;
+}
+
+.cpu-card-sale-badge[style*="#ef4444"] {
+  border: none !important;
+  color: #fff !important;
 }
 
 .cpu-card-img {
