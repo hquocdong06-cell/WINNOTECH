@@ -19,6 +19,7 @@ const SpecsTable = ({ product, activeVariant, attributes, groupedAttributes }) =
   const getCategorizedSpecs = () => {
     const generalList = []
     const detailList = []
+    const dimensionList = []
     const map = new Map()
 
     const addSpec = (group, name, value) => {
@@ -28,15 +29,25 @@ const SpecsTable = ({ product, activeVariant, attributes, groupedAttributes }) =
         map.set(key, true)
         const item = { name: name.trim(), value: String(value).trim() }
         if (group === 'general') generalList.push(item)
+        else if (group === 'dimension') dimensionList.push(item)
         else detailList.push(item)
       }
     }
 
     const generalKeys = [
       'thương hiệu', 'bảo hành', 'tên của case', 'chất liệu', 'kiểu ổ cứng', 'màu sắc của ổ cứng', 'loại hàng', 
-      'part-number', 'màu sắc', 'đèn led', 'nhu cầu', 'tên', 'kết nối bàn phím', 
+      'part-number', 'màu sắc', 'đèn led', 'nhu cầu', 'tên', 'series', 'kết nối bàn phím', 
       'loại bàn phím', 'brand', 'warranty', 'tình trạng'
     ]
+
+    const dimensionKeys = [
+      'kích thước (có chân)', 'kích thước (không chân)', 'khối lượng (có chân)', 'khối lượng (không chân)',
+      'kích thước và trọng lượng', 'kích thước - khối lượng'
+    ]
+
+    const pName = (product?.name || '').toUpperCase()
+    const catName = (product?.cat_id?.name || product?.cat_id?.slug || '').toLowerCase()
+    const isMonitor = catName.includes('man-hinh') || catName.includes('màn hình') || catName.includes('monitor') || pName.includes('MÀN HÌNH') || pName.includes('MONITOR')
 
     // 1. Thêm thuộc tính từ DB (nếu có)
     if (Array.isArray(attributes) && attributes.length > 0) {
@@ -45,7 +56,11 @@ const SpecsTable = ({ product, activeVariant, attributes, groupedAttributes }) =
         const val = a.value_name || a.value
         if (name && val) {
           const k = name.trim().toLowerCase()
+          // Bỏ qua thuộc tính sai lệch "Bản ép xung" trên màn hình
+          if (isMonitor && (k.includes('ép xung') || k.includes('dung lượng') || (k.includes('phiên bản') && !k.includes('bản màu')))) return
+
           if (generalKeys.includes(k)) addSpec('general', name, val)
+          else if (dimensionKeys.includes(k)) addSpec('dimension', name, val)
           else addSpec('detail', name, val)
         }
       })
@@ -56,16 +71,16 @@ const SpecsTable = ({ product, activeVariant, attributes, groupedAttributes }) =
         const val = (g.options || []).map(o => o.value_name).join(', ')
         if (name && val) {
           const k = name.trim().toLowerCase()
+          if (isMonitor && (k.includes('ép xung') || k.includes('dung lượng') || (k.includes('phiên bản') && !k.includes('bản màu')))) return
+
           if (generalKeys.includes(k)) addSpec('general', name, val)
+          else if (dimensionKeys.includes(k)) addSpec('dimension', name, val)
           else addSpec('detail', name, val)
         }
       })
     }
 
     // 2. Phân loại theo Danh Mục & Tên Sản Phẩm để tự động bổ sung bảng thông số kỹ thuật đầy đủ
-    const pName = (product?.name || '').toUpperCase()
-    const catName = (product?.cat_id?.name || product?.cat_id?.slug || '').toLowerCase()
-
     // ── RAM ──
     if (catName.includes('ram') || pName.includes('DDR4') || pName.includes('DDR5')) {
       // Thông tin chung
@@ -668,15 +683,181 @@ const SpecsTable = ({ product, activeVariant, attributes, groupedAttributes }) =
         addSpec('detail', 'Loại quạt hỗ trợ bên dưới', '3 x 120 mm')
       }
     }
+    // ── MÀN HÌNH MÁY TÍNH / MONITOR ──
+    else if (isMonitor) {
+      const sizeNum = pName.includes('34 INCH') || pName.includes('34"') ? 34 : (pName.includes('32 INCH') || pName.includes('32"') ? 32 : (pName.includes('24 INCH') || pName.includes('24"') ? 24 : 27))
+      const isCurved = pName.includes('CONG') || sizeNum === 34
+      const isOLED = pName.includes('OLED')
+
+      // Thông tin chung
+      if (!map.has('thương hiệu')) {
+        addSpec('general', 'Thương hiệu', product?.brand_id?.name || (
+          pName.includes('ASUS') ? 'ASUS' :
+          pName.includes('DELL') ? 'Dell' :
+          pName.includes('LG') ? 'LG' :
+          pName.includes('GIGABYTE') ? 'Gigabyte' :
+          pName.includes('SAMSUNG') ? 'Samsung' :
+          pName.includes('MSI') ? 'MSI' : 'LG'
+        ))
+      }
+      if (!map.has('bảo hành')) {
+        let warranty = '36 tháng'
+        if (pName.includes('SAMSUNG') && !isOLED) warranty = '24 tháng'
+        addSpec('general', 'Bảo hành', warranty)
+      }
+      if (!map.has('tên')) {
+        addSpec('general', 'Tên', product?.name || 'Màn hình Gaming Pro')
+      }
+      if (!map.has('series')) {
+        let series = 'Gaming'
+        if (pName.includes('ASUS')) series = isOLED || pName.includes('360HZ') ? 'ROG Swift' : 'TUF Gaming'
+        else if (pName.includes('DELL')) series = isOLED ? 'Alienware Gaming' : 'UltraSharp / Gaming'
+        else if (pName.includes('LG')) series = 'UltraGear'
+        else if (pName.includes('GIGABYTE')) series = isOLED ? 'AORUS' : 'G-Series'
+        else if (pName.includes('SAMSUNG')) series = isOLED ? 'Odyssey OLED G8' : 'Odyssey G5'
+        else if (pName.includes('MSI')) series = isOLED ? 'MPG OLED' : 'MAG Gaming'
+        addSpec('general', 'Series', series)
+      }
+      if (!map.has('màu sắc')) {
+        let col = 'Đen'
+        if (pName.includes('WHITE') || pName.includes('TRẮNG')) col = 'Trắng'
+        else if (pName.includes('SILVER') || pName.includes('BẠC')) col = 'Bạc Titanium'
+        addSpec('general', 'Màu sắc', col)
+      }
+      if (!map.has('nhu cầu')) {
+        let usage = isOLED || pName.includes('4K') ? 'Gaming & Đồ họa chuyên nghiệp' : (pName.includes('360HZ') || pName.includes('240HZ') ? 'Gaming eSports' : 'Gaming & Văn phòng')
+        addSpec('general', 'Nhu cầu', usage)
+      }
+
+      // Cấu hình chi tiết
+      if (!map.has('kích thước')) {
+        addSpec('detail', 'Kích thước', `${sizeNum}"`)
+      }
+      if (!map.has('tần số quét')) {
+        let hz = '144Hz'
+        if (pName.includes('360HZ')) hz = '360Hz'
+        else if (pName.includes('240HZ')) hz = '240Hz'
+        else if (pName.includes('180HZ')) hz = '180Hz'
+        else if (pName.includes('144HZ')) hz = '144Hz'
+        else if (pName.includes('100HZ')) hz = '100Hz'
+        addSpec('detail', 'Tần số quét', hz)
+      }
+      if (!map.has('thời gian phản hồi')) {
+        let resTime = '1 ms (GTG)'
+        if (isOLED) resTime = '0.03 ms (GTG)'
+        else if (pName.includes('360HZ') || pName.includes('240HZ')) resTime = '0.3 ms (MPRT)'
+        else if (pName.includes('180HZ')) resTime = '0.5 ms (MPRT)'
+        addSpec('detail', 'Thời gian phản hồi', resTime)
+      }
+      if (!map.has('tỉ lệ')) {
+        addSpec('detail', 'Tỉ lệ', (sizeNum === 34 && isCurved) ? '21:9' : '16:9')
+      }
+      if (!map.has('độ tương phản tĩnh')) {
+        addSpec('detail', 'Độ tương phản tĩnh', isOLED ? '1,500,000:1' : '1,000:1')
+      }
+      if (!map.has('độ sáng')) {
+        let br = '300 cd/m2'
+        if (isOLED) br = '450 cd/m2 (Peak 1000 cd/m2 HDR)'
+        else if (pName.includes('4K') || pName.includes('2K')) br = '350 cd/m2 (HDR400)'
+        else if (pName.includes('100HZ')) br = '250 cd/m2'
+        addSpec('detail', 'Độ sáng', br)
+      }
+      if (!map.has('góc nhìn')) {
+        addSpec('detail', 'Góc nhìn', '178° (H) / 178° (V)')
+      }
+      if (!map.has('độ phủ màu')) {
+        let cov = '99% sRGB'
+        if (isOLED) cov = '99% DCI-P3, 135% sRGB'
+        else if (pName.includes('4K') || pName.includes('2K')) cov = '98% DCI-P3, 100% sRGB'
+        addSpec('detail', 'Độ phủ màu', cov)
+      }
+      if (!map.has('số lượng màu')) {
+        let colCount = '16.7 triệu màu'
+        if (isOLED) colCount = '1.07 tỷ màu (10-bit)'
+        else if (pName.includes('4K') || pName.includes('2K')) colCount = '1.07 tỷ màu (8-bit + FRC)'
+        addSpec('detail', 'Số lượng màu', colCount)
+      }
+      if (!map.has('tấm nền')) {
+        let pan = 'Fast IPS'
+        if (isOLED) pan = 'QD-OLED'
+        else if (pName.includes('IPS') && !pName.includes('FAST')) pan = 'IPS'
+        addSpec('detail', 'Tấm nền', pan)
+      }
+      if (!map.has('công nghệ đồng bộ')) {
+        let sync = 'Adaptive Sync'
+        if (pName.includes('ASUS')) sync = 'Adaptive Sync, G-Sync Compatible, Extreme Low Motion Blur (ELMB)'
+        else if (pName.includes('DELL')) sync = isOLED ? 'NVIDIA G-Sync Ultimate, AMD FreeSync Premium Pro' : 'NVIDIA G-Sync Compatible, AMD FreeSync Premium'
+        else if (pName.includes('LG')) sync = 'AMD FreeSync Premium, NVIDIA G-Sync Compatible'
+        else if (pName.includes('GIGABYTE')) sync = 'AMD FreeSync Premium, Adaptive Sync'
+        else if (pName.includes('SAMSUNG')) sync = 'AMD FreeSync Premium Pro, G-Sync Compatible'
+        else if (pName.includes('MSI')) sync = 'Adaptive Sync, MSI Gaming Intelligence'
+        addSpec('detail', 'Công nghệ đồng bộ', sync)
+      }
+      if (!map.has('độ phân giải')) {
+        let res = 'FHD ( 1920 x 1080 )'
+        if (sizeNum === 34) {
+          res = (pName.includes('4K') || pName.includes('2K') || isOLED) ? 'UWQHD ( 3440 x 1440 )' : 'WFHD ( 2560 x 1080 )'
+        } else {
+          if (pName.includes('4K')) res = '4K UHD ( 3840 x 2160 )'
+          else if (pName.includes('2K')) res = '2K QHD ( 2560 x 1440 )'
+        }
+        addSpec('detail', 'Độ phân giải', res)
+      }
+      if (!map.has('công suất')) {
+        let pwr = '22W'
+        if (sizeNum === 24) pwr = pName.includes('360HZ') ? '28W' : '18W'
+        else if (sizeNum === 27) pwr = isOLED ? '38W' : (pName.includes('2K') ? '26W' : '22W')
+        else if (sizeNum === 32) pwr = isOLED ? '52W' : '36W'
+        else if (sizeNum === 34) pwr = isOLED ? '68W' : '48W'
+        addSpec('detail', 'Công suất', pwr)
+      }
+      if (!map.has('kiểu màn hình')) {
+        addSpec('detail', 'Kiểu màn hình', isCurved ? (sizeNum === 34 ? 'Màn hình cong 1500R' : 'Màn hình cong 1000R') : 'Màn hình phẳng')
+      }
+      if (!map.has('kết nối')) {
+        let conn = '2 x HDMI 2.0, 1 x DisplayPort 1.4, 1 x 3.5 mm Audio'
+        if (isOLED || pName.includes('4K')) conn = '2 x HDMI 2.1, 1 x DisplayPort 1.4 (DSC), 1 x USB Type-C (90W PD), 2 x USB 3.2, 1 x 3.5 mm'
+        else if (pName.includes('360HZ')) conn = '2 x HDMI 2.0, 1 x DisplayPort 1.4 DSC, 2 x USB 3.0, 1 x 3.5 mm'
+        else if (pName.includes('100HZ')) conn = '1 x HDMI 1.4, 1 x DisplayPort 1.2, 1 x 3.5 mm'
+        addSpec('detail', 'Kết nối', conn)
+      }
+      if (!map.has('chuẩn gắn arm')) {
+        addSpec('detail', 'Chuẩn gắn ARM', 'VESA mount 100 x 100 mm')
+      }
+      if (!map.has('phụ kiện đi kèm')) {
+        let acc = isOLED || pName.includes('4K')
+          ? 'Cáp nguồn, Cáp DisplayPort 1.4, Cáp HDMI 2.1, Cáp Type-C, Báo cáo cân màu chuẩn từ nhà máy'
+          : 'Cáp nguồn, Cáp DisplayPort (hoặc Cáp HDMI tùy đợt), Chân đế công thái học, Hướng dẫn sử dụng'
+        addSpec('detail', 'Phụ kiện đi kèm', acc)
+      }
+
+      // Kích thước - Khối lượng
+      if (!map.has('kích thước (có chân)')) {
+        let dims = sizeNum === 24 ? '54.10 x 41.20 x 18.00 cm' : (sizeNum === 32 ? '71.40 x 52.00 x 24.50 cm' : (sizeNum === 34 ? '81.40 x 46.00 x 26.00 cm' : '61.50 x 45.30 x 19.30 cm'))
+        addSpec('dimension', 'Kích thước (có chân)', dims)
+      }
+      if (!map.has('kích thước (không chân)')) {
+        let dims = sizeNum === 24 ? '54.10 x 32.20 x 5.20 cm' : (sizeNum === 32 ? '71.40 x 42.50 x 6.80 cm' : (sizeNum === 34 ? '81.40 x 36.00 x 11.50 cm' : '61.50 x 36.90 x 5.90 cm'))
+        addSpec('dimension', 'Kích thước (không chân)', dims)
+      }
+      if (!map.has('khối lượng (có chân)')) {
+        let w = sizeNum === 24 ? '3.8 kg' : (sizeNum === 32 ? '6.2 kg' : (sizeNum === 34 ? '7.8 kg' : '4.5 kg'))
+        addSpec('dimension', 'Khối lượng (có chân)', w)
+      }
+      if (!map.has('khối lượng (không chân)')) {
+        let w = sizeNum === 24 ? '3.1 kg' : (sizeNum === 32 ? '5.1 kg' : (sizeNum === 34 ? '6.3 kg' : '3.7 kg'))
+        addSpec('dimension', 'Khối lượng (không chân)', w)
+      }
+    }
     // Fallback
     if (!map.has('thương hiệu')) addSpec('general', 'Thương hiệu', product?.brand_id?.name || 'Chính hãng')
     if (!map.has('bảo hành')) addSpec('general', 'Bảo hành', '12 Tháng')
 
-    return { generalList, detailList }
+    return { generalList, detailList, dimensionList }
   }
 
-  const { generalList, detailList } = getCategorizedSpecs()
-  if (generalList.length === 0 && detailList.length === 0) return null
+  const { generalList, detailList, dimensionList } = getCategorizedSpecs()
+  if (generalList.length === 0 && detailList.length === 0 && (!dimensionList || dimensionList.length === 0)) return null
 
   const renderSection = (title, items) => {
     if (!items || items.length === 0) return null
@@ -735,6 +916,7 @@ const SpecsTable = ({ product, activeVariant, attributes, groupedAttributes }) =
     <div style={{ margin: '16px 0 28px 0' }}>
       {renderSection('Thông tin chung', generalList)}
       {renderSection('Cấu hình chi tiết', detailList)}
+      {renderSection('Kích thước - Khối lượng', dimensionList)}
     </div>
   )
 }
@@ -1190,7 +1372,12 @@ export default function ProductDetail() {
       'loại quạt hỗ trợ bên dưới', 'ổ đĩa hỗ trợ', 'tản nhiệt cpu cao', 'quạt hỗ trợ',
       'kiểu ổ cứng', 'màu sắc của ổ cứng', 'tốc độ vòng quay', 'tốc độ đọc', 'tốc độ ghi',
       'giao tiếp', 'tbw', 'form factor', 'nand', 'controller',
-      'weight', 'dimensions', 'sensor'
+      'weight', 'dimensions', 'sensor',
+      'tần số quét', 'thời gian phản hồi', 'tỉ lệ', 'độ tương phản tĩnh', 'độ sáng',
+      'góc nhìn', 'độ phủ màu', 'số lượng màu', 'tấm nền', 'công nghệ đồng bộ',
+      'công suất', 'kiểu màn hình', 'chuẩn gắn arm', 'phụ kiện đi kèm',
+      'kích thước (có chân)', 'kích thước (không chân)', 'khối lượng (có chân)', 'khối lượng (không chân)',
+      'series', 'phiên bản / dung lượng', 'phiên bản'
     ]
 
     const hasExplicitAttributes = Variants.some(v => (v.Attributes && v.Attributes.length > 0))
