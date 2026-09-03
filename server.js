@@ -559,15 +559,7 @@ app.post("/login", function (req, res, next) {
             message: info?.message || "Tài khoản hoặc mật khẩu không hợp lệ",
           });
 
-      if (req.cookies && req.cookies.token) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "đã đăng nhập rồi, nếu muốn đăng nhập lại thì hãy đăng xuất trước",
-          already_logged_in: true,
-        });
-      }
-
+      // Nếu đã có token cũ, tự động thay thế bằng token mới của tài khoản đang đăng nhập
       req.user = user;
       const payload = { _id: user._id };
 

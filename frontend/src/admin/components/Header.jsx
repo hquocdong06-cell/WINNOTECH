@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, User, ShieldCheck } from 'lucide-react';
+import { LogOut, User, ShieldCheck, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE } from '../../services/apiService';
+import { useAdminTheme } from '../context/AdminThemeContext';
 
 const Header = () => {
   const [adminUser, setAdminUser] = useState(null);
+  const [imgError, setImgError] = useState(false);
   const navigate = useNavigate();
+  const { theme, isDark, toggleTheme } = useAdminTheme();
 
   useEffect(() => {
     fetch(`${API_BASE}/auth/me`, { credentials: 'include' })
@@ -30,19 +33,44 @@ const Header = () => {
   return (
     <header className="admin-header flex justify-between items-center px-6 py-4 bg-[#14141d] border-b border-[#2b2b36]">
       <div className="flex items-center gap-3">
-        <h2 className="text-lg font-bold text-white tracking-wide">Quản Trị Hệ Thống WINNOTECH</h2>
-        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#d4ff00]/10 text-[#d4ff00] border border-[#d4ff00]/30 flex items-center gap-1">
+        <h2 className="admin-header-title text-lg font-bold text-white tracking-wide">Quản Trị Hệ Thống WINNOTECH</h2>
+        <span className="admin-badge-role px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#d4ff00]/10 text-[#d4ff00] border border-[#d4ff00]/30 flex items-center gap-1">
           <ShieldCheck className="w-3 h-3" /> ADMIN SYSTEM
         </span>
       </div>
 
-      <div className="header-actions flex items-center gap-4">
+      <div className="header-actions flex items-center gap-3">
+        {/* Nút Toggle Theme Sáng / Tối */}
+        <button
+          onClick={toggleTheme}
+          className={`theme-toggle-btn flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all cursor-pointer ${
+            isDark 
+              ? 'bg-[#1e1e2d] hover:bg-[#28283d] text-amber-400 border-[#333]' 
+              : 'bg-white hover:bg-slate-100 text-indigo-600 border-slate-200 shadow-sm'
+          }`}
+          title={isDark ? 'Chuyển sang Giao diện Sáng (Light Mode)' : 'Chuyển sang Giao diện Tối (Dark Mode)'}
+          aria-label="Chuyển chế độ Sáng / Tối"
+        >
+          {isDark ? (
+            <>
+              <Sun className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-semibold text-gray-200 hidden md:inline">Giao diện Sáng</span>
+            </>
+          ) : (
+            <>
+              <Moon className="w-4 h-4 text-indigo-600" />
+              <span className="text-xs font-semibold text-slate-800 hidden md:inline">Giao diện Tối</span>
+            </>
+          )}
+        </button>
+
         <div className="user-profile flex items-center gap-3 bg-[#1e1e2d] px-3 py-1.5 rounded-xl border border-[#333]">
-          {adminUser?.avatar ? (
+          {adminUser?.avatar && !imgError ? (
             <img 
               className="w-9 h-9 rounded-full object-cover border border-[#d4ff00]" 
               src={adminUser.avatar.startsWith('http') ? adminUser.avatar : `http://localhost:3000${adminUser.avatar}`} 
               alt={adminUser.name || 'Admin'} 
+              onError={() => setImgError(true)}
             />
           ) : (
             <div className="w-9 h-9 rounded-full bg-[#d4ff00]/20 text-[#d4ff00] flex items-center justify-center font-bold border border-[#d4ff00]">
@@ -68,3 +96,4 @@ const Header = () => {
 };
 
 export default Header;
+

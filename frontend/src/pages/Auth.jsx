@@ -764,7 +764,7 @@ export default function Auth() {
                   disabled={forgotLoading}
                   style={{ width: '100%', background: '#d4ff00', color: '#000', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px', opacity: forgotLoading ? 0.6 : 1 }}
                 >
-                  {forgotLoading ? 'ĐANG GỬI OTP...' : 'GỬI MÃ OTP VIA EMAIL'}
+                  {forgotLoading ? 'ĐANG GỬI OTP...' : 'GỬI MÃ OTP QUA EMAIL'}
                 </button>
               </form>
             ) : (

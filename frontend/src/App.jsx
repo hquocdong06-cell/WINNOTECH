@@ -44,10 +44,11 @@ import ViVoucherCuaToi from './pages/ViVoucherCuaToi'
 
 import IntroPage from './pages/IntroPage'
 import AdminGuard from './admin/components/AdminGuard'
+import { ClientThemeProvider } from './context/ClientThemeContext'
 
 function App() {
   return (
-    <>
+    <ClientThemeProvider>
       <ToastContainer position="bottom-right" autoClose={3000} />
       <Routes>
         <Route path="/" element={<IntroPage />} />
@@ -114,7 +115,7 @@ function App() {
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
-    </>
+    </ClientThemeProvider>
   )
 }
 

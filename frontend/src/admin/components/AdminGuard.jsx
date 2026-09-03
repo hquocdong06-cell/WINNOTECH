@@ -35,6 +35,13 @@ export default function AdminGuard({ children }) {
     checkAdminAuth();
   }, []);
 
+  const handleGoToLogin = async () => {
+    try {
+      await fetch(`${API_BASE}/logout`, { method: 'GET', credentials: 'include' });
+    } catch (e) {}
+    window.location.href = '/login';
+  };
+
   if (checking) {
     return (
       <div className="min-h-screen bg-[#0a0a0d] flex items-center justify-center text-[#d4ff00] font-sans">
@@ -65,12 +72,12 @@ export default function AdminGuard({ children }) {
             )}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              to="/login"
+            <button
+              onClick={handleGoToLogin}
               className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#d4ff00] hover:bg-[#bce600] text-black font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(212,255,0,0.2)]"
             >
               <LogIn className="w-4 h-4" /> Đăng nhập Admin
-            </Link>
+            </button>
             <Link
               to="/"
               className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#222] hover:bg-[#333] border border-[#444] text-gray-300 hover:text-white font-medium rounded-xl transition-all"

@@ -1,0 +1,759 @@
+/**
+ * WINNOTech — Client-Facing Light & Dark Mode System
+ * Chuẩn hóa màu sắc hài hòa cho Light Mode & Dark Mode
+ * Giải quyết triệt để vấn đề mất màu logo, text chìm, footer tối trong nền sáng.
+ */
+
+/* ═════════════════════════════════════════════════════════════
+   1. CSS DESIGN TOKENS (LIGHT & DARK)
+   ═════════════════════════════════════════════════════════════ */
+
+/* DARK MODE (Chế độ ban đêm / Gaming PC Store) */
+:root,
+:root[data-theme="dark"],
+html.dark,
+html.dark-mode,
+.default-layout.dark,
+.default-layout.dark-mode {
+  --black: #0a0a0f;
+  --dark: #121218;
+  --dark2: #181822;
+  --dark3: #222230;
+  --gray: #888888;
+  --gray2: #555555;
+  --gray3: #333333;
+  --white: #ffffff;
+  --yellow: #c8e600;
+  --yellow2: #d4f000;
+  --purple: #e4e4e7;
+  --purple2: #d1d5db;
+  --text-muted: #9ca3af;
+  --border: #262635;
+
+  /* Client Specific Tokens */
+  --c-bg: #0a0a0f;
+  --c-card-bg: #14141d;
+  --c-card-hover: #1c1c28;
+  --c-header-bg: #0a0a0f;
+  --c-topbar-bg: #08080c;
+  --c-nav-bg: #0d0d14;
+  --c-catbar-bg: #12121a;
+  --c-footer-bg: #080808;
+  --c-text-main: #ffffff;
+  --c-text-sub: #cbd5e1;
+  --c-text-muted: #94a3b8;
+  --c-border: #262635;
+  --c-input-bg: #161622;
+  --c-accent: #c8e600;
+  --c-accent-hover: #d4ff00;
+  --c-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --c-badge-bg: rgba(200, 230, 0, 0.15);
+  --c-badge-text: #d4ff00;
+}
+
+/* LIGHT MODE (Chế độ ban ngày / Sang trọng, tương phản cao, dịu mắt) */
+:root[data-theme="light"],
+html.light,
+html.light-mode,
+.default-layout.light,
+.default-layout.light-mode {
+  --black: #ffffff;
+  --dark: #ffffff;
+  --dark2: #f8fafc;
+  --dark3: #f1f5f9;
+  --gray: #475569;
+  --gray2: #64748b;
+  --gray3: #cbd5e1;
+  --white: #0f172a; /* Invert text sang than chì */
+  --yellow: #16a34a; /* Xanh lá đậm thương hiệu, tương phản cao trên nền sáng */
+  --yellow2: #15803d;
+  --purple: #1e293b;
+  --purple2: #334155;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+
+  /* Client Specific Tokens */
+  --c-bg: #f8fafc;
+  --c-card-bg: #ffffff;
+  --c-card-hover: #f1f5f9;
+  --c-header-bg: #ffffff;
+  --c-topbar-bg: #f1f5f9;
+  --c-nav-bg: #ffffff;
+  --c-catbar-bg: #f8fafc;
+  --c-footer-bg: #f8fafc;
+  --c-text-main: #0f172a;
+  --c-text-sub: #334155;
+  --c-text-muted: #64748b;
+  --c-border: #e2e8f0;
+  --c-input-bg: #ffffff;
+  --c-accent: #16a34a;
+  --c-accent-hover: #15803d;
+  --c-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06);
+  --c-badge-bg: #dcfce7;
+  --c-badge-text: #15803d;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   2. NÚT CHUYỂN ĐỔI THEME (TOGGLE BUTTONS)
+   ═════════════════════════════════════════════════════════════ */
+
+.client-theme-toggle-topbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+}
+
+.client-theme-toggle-topbar:hover {
+  border-color: #d4ff00;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html.light .client-theme-toggle-topbar,
+html.light-mode .client-theme-toggle-topbar {
+  border-color: #cbd5e1;
+  color: #334155;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html.light .client-theme-toggle-topbar:hover,
+html.light-mode .client-theme-toggle-topbar:hover {
+  border-color: #16a34a;
+  color: #16a34a;
+  background: #f0fdf4;
+}
+
+.nav-theme-toggle-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px;
+  padding: 6px 12px;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-sun {
+  color: #f59e0b;
+  filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.4));
+}
+
+.theme-toggle-moon {
+  color: #6366f1;
+  filter: drop-shadow(0 0 5px rgba(99, 102, 241, 0.4));
+}
+
+/* ═════════════════════════════════════════════════════════════
+   3. ÁP DỤNG LIGHT MODE CHO LAYOUT & HEADER
+   ═════════════════════════════════════════════════════════════ */
+
+html.light,
+html.light-mode,
+.default-layout.light,
+.default-layout.light-mode {
+  background-color: var(--c-bg) !important;
+  color: var(--c-text-main) !important;
+}
+
+/* Topbar */
+html.light .topbar,
+html.light-mode .topbar {
+  background: #f1f5f9 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+html.light .topbar-left,
+html.light-mode .topbar-left {
+  color: #0f172a !important;
+}
+
+html.light .topbar-left span,
+html.light-mode .topbar-left span {
+  color: #16a34a !important;
+  font-weight: 700;
+}
+
+html.light .topbar-trust,
+html.light-mode .topbar-trust {
+  color: #64748b !important;
+}
+
+html.light .topbar-divider,
+html.light-mode .topbar-divider {
+  background: #cbd5e1 !important;
+}
+
+html.light .topbar-right a,
+html.light-mode .topbar-right a {
+  color: #475569 !important;
+}
+
+html.light .topbar-right a:hover,
+html.light-mode .topbar-right a:hover {
+  color: #16a34a !important;
+}
+
+/* Navigation Main */
+html.light nav,
+html.light-mode nav {
+  background: #ffffff !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light .nav-main,
+html.light-mode .nav-main {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+html.light .logo span:first-child,
+html.light-mode .logo span:first-child {
+  color: #0f172a !important;
+}
+
+html.light .logo span:last-child,
+html.light-mode .logo span:last-child {
+  color: #16a34a !important;
+}
+
+/* Thanh tìm kiếm */
+html.light .nav-search,
+html.light-mode .nav-search {
+  background: #f8fafc !important;
+  border: 1.5px solid #cbd5e1 !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light .nav-search input,
+html.light-mode .nav-search input {
+  background: transparent !important;
+  color: #0f172a !important;
+}
+
+html.light .nav-search input::placeholder,
+html.light-mode .nav-search input::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light .search-btn,
+html.light-mode .search-btn {
+  background: #16a34a !important;
+  color: #ffffff !important;
+}
+
+html.light .search-btn:hover,
+html.light-mode .search-btn:hover {
+  background: #15803d !important;
+}
+
+/* Nút hành động Header (So sánh, Tài khoản, Giỏ hàng) */
+html.light .nav-action-btn,
+html.light-mode .nav-action-btn {
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light .nav-action-btn:hover,
+html.light-mode .nav-action-btn:hover {
+  color: #16a34a !important;
+  border-color: #16a34a !important;
+  background: #f0fdf4 !important;
+}
+
+html.light .nav-cart-btn,
+html.light-mode .nav-cart-btn {
+  background: #f0fdf4 !important;
+  border: 1.5px solid #16a34a !important;
+}
+
+html.light .nav-cart-btn:hover,
+html.light-mode .nav-cart-btn:hover {
+  background: #dcfce7 !important;
+  box-shadow: 0 0 12px rgba(22, 163, 74, 0.25) !important;
+}
+
+html.light .cart-btn-inner,
+html.light-mode .cart-btn-inner {
+  color: #16a34a !important;
+}
+
+html.light .cart-btn-inner svg,
+html.light-mode .cart-btn-inner svg {
+  stroke: #16a34a !important;
+}
+
+html.light .cart-badge-new,
+html.light-mode .cart-badge-new {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+/* Category Bar */
+html.light .nav-catbar,
+html.light-mode .nav-catbar {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+html.light .btn-category-menu,
+html.light-mode .btn-category-menu {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+html.light .catbar-links a,
+html.light-mode .catbar-links a {
+  color: #475569 !important;
+}
+
+html.light .catbar-links a:hover,
+html.light-mode .catbar-links a:hover {
+  color: #16a34a !important;
+}
+
+/* Mega Menu Dropdown */
+html.light .mega-menu,
+html.light-mode .mega-menu {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+html.light .mega-menu-title,
+html.light-mode .mega-menu-title {
+  color: #0f172a !important;
+  border-bottom: 2px solid #16a34a !important;
+}
+
+html.light .mega-menu-links a,
+html.light-mode .mega-menu-links a {
+  color: #475569 !important;
+}
+
+html.light .mega-menu-links a:hover,
+html.light-mode .mega-menu-links a:hover {
+  color: #16a34a !important;
+  background: #f8fafc !important;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   4. THẺ SẢN PHẨM & FLASH SALE
+   ═════════════════════════════════════════════════════════════ */
+
+html.light .section-title,
+html.light-mode .section-title,
+html.light h1, html.light-mode h1,
+html.light h2, html.light-mode h2,
+html.light h3, html.light-mode h3 {
+  color: #0f172a !important;
+}
+
+/* Thẻ sản phẩm chuẩn E-commerce */
+html.light .product-card,
+html.light-mode .product-card,
+html.light .deal-card,
+html.light-mode .deal-card,
+html.light .flash-sale-card,
+html.light-mode .flash-sale-card,
+html.light .category-card,
+html.light-mode .category-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light .product-card:hover,
+html.light-mode .product-card:hover,
+html.light .deal-card:hover,
+html.light-mode .deal-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.09) !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light .product-name,
+html.light-mode .product-name,
+html.light .product-card-title,
+html.light-mode .product-card-title,
+html.light .product-title,
+html.light-mode .product-title {
+  color: #0f172a !important;
+}
+
+html.light .product-price,
+html.light-mode .product-price,
+html.light .current-price,
+html.light-mode .current-price,
+html.light .sale-price,
+html.light-mode .sale-price {
+  color: #dc2626 !important; /* Giá bán đỏ tươi nổi bật */
+  font-weight: 700 !important;
+}
+
+html.light .original-price,
+html.light-mode .original-price,
+html.light .old-price,
+html.light-mode .old-price {
+  color: #94a3b8 !important;
+}
+
+html.light .product-sale-badge,
+html.light-mode .product-sale-badge {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border: 1px solid #dc2626 !important;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3) !important;
+}
+
+html.light .product-footer,
+html.light-mode .product-footer {
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+html.light .btn-add-cart,
+html.light-mode .btn-add-cart,
+html.light .btn-cart,
+html.light-mode .btn-cart {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+html.light .btn-add-cart:hover,
+html.light-mode .btn-add-cart:hover,
+html.light .btn-cart:hover,
+html.light-mode .btn-cart:hover {
+  background: #f0fdf4 !important;
+  border-color: #16a34a !important;
+  color: #16a34a !important;
+}
+
+html.light .btn-buy-now,
+html.light-mode .btn-buy-now {
+  background: #16a34a !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+html.light .btn-buy-now:hover,
+html.light-mode .btn-buy-now:hover {
+  background: #15803d !important;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   5. BÀI VIẾT (BLOG CARDS & TAGS) — FIX LỖI MẤT MÀU
+   ═════════════════════════════════════════════════════════════ */
+
+html.light .blog-card,
+html.light-mode .blog-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light .blog-card:hover,
+html.light-mode .blog-card:hover {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light .blog-tag,
+html.light-mode .blog-tag {
+  color: #15803d !important;
+  background: #dcfce7 !important;
+  border: 1px solid #bbf7d0 !important;
+  font-weight: 700 !important;
+}
+
+html.light .blog-title,
+html.light-mode .blog-title {
+  color: #0f172a !important;
+}
+
+html.light .blog-date,
+html.light-mode .blog-date {
+  color: #64748b !important;
+}
+
+html.light .blog-footer,
+html.light-mode .blog-footer {
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+html.light .blog-footer a,
+html.light-mode .blog-footer a {
+  color: #16a34a !important;
+  font-weight: 600 !important;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   6. FOOTER SÁNG ĐỒNG BỘ — FIX LỖI MẤT LOGO & TEXT CHÌM
+   ═════════════════════════════════════════════════════════════ */
+
+html.light footer,
+html.light-mode footer,
+html.light .footer,
+html.light-mode .footer {
+  background: #f8fafc !important;
+  border-top: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+/* Logo Footer */
+html.light .footer-brand .logo,
+html.light-mode .footer-brand .logo {
+  font-size: 22px;
+  margin-bottom: 12px;
+}
+
+html.light .footer-logo-winno,
+html.light-mode .footer-logo-winno {
+  color: #0f172a !important;
+  font-weight: 800;
+}
+
+html.dark .footer-logo-winno,
+html.dark-mode .footer-logo-winno {
+  color: #ffffff !important;
+  font-weight: 800;
+}
+
+html.light .footer-brand p,
+html.light-mode .footer-brand p {
+  color: #64748b !important;
+}
+
+/* Heading cột Footer */
+html.light .footer-col h4,
+html.light-mode .footer-col h4 {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px;
+}
+
+/* Link cột Footer */
+html.light .footer-col ul li a,
+html.light-mode .footer-col ul li a {
+  color: #475569 !important;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+html.light .footer-col ul li a:hover,
+html.light-mode .footer-col ul li a:hover {
+  color: #16a34a !important;
+}
+
+/* Icon mạng xã hội */
+html.light .social-btn,
+html.light-mode .social-btn {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+html.light .social-btn:hover,
+html.light-mode .social-btn:hover {
+  background: #16a34a !important;
+  color: #ffffff !important;
+  border-color: #16a34a !important;
+}
+
+/* Copyright chân trang */
+html.light .footer-bottom,
+html.light-mode .footer-bottom {
+  background: #f1f5f9 !important;
+  border-top: 1px solid #e2e8f0 !important;
+  color: #64748b !important;
+  text-align: center;
+  padding: 16px 0;
+  font-size: 13px;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   7. KHỐI NEWSLETTER & FAQ
+   ═════════════════════════════════════════════════════════════ */
+
+html.light .newsletter-section,
+html.light-mode .newsletter-section {
+  background: #ffffff !important;
+  border-top: 1px solid #e2e8f0 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+html.light .newsletter-left h2,
+html.light-mode .newsletter-left h2 {
+  color: #0f172a !important;
+}
+
+html.light .newsletter-left h2 span,
+html.light-mode .newsletter-left h2 span {
+  color: #16a34a !important;
+}
+
+html.light .newsletter-right p,
+html.light-mode .newsletter-right p {
+  color: #64748b !important;
+}
+
+html.light .newsletter-form,
+html.light-mode .newsletter-form {
+  border: 1.5px solid #cbd5e1 !important;
+  background: #ffffff !important;
+}
+
+html.light .newsletter-form input,
+html.light-mode .newsletter-form input {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html.light .newsletter-form input::placeholder,
+html.light-mode .newsletter-form input::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light .newsletter-form button,
+html.light-mode .newsletter-form button {
+  background: #16a34a !important;
+  color: #ffffff !important;
+}
+
+html.light .newsletter-form button:hover,
+html.light-mode .newsletter-form button:hover {
+  background: #15803d !important;
+}
+
+/* FAQ */
+html.light .faq-left,
+html.light-mode .faq-left {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html.light .faq-left h3,
+html.light-mode .faq-left h3 {
+  color: #0f172a !important;
+}
+
+html.light .faq-left p,
+html.light-mode .faq-left p {
+  color: #475569 !important;
+}
+
+html.light .faq-left .btn-faq,
+html.light-mode .faq-left .btn-faq {
+  background: #16a34a !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+html.light .faq-q,
+html.light-mode .faq-q {
+  color: #0f172a !important;
+}
+
+html.light .faq-icon,
+html.light-mode .faq-icon {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #16a34a !important;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   8. BỘ LỌC, CART DRAWER & CHATBOT
+   ═════════════════════════════════════════════════════════════ */
+
+html.light .filter-sidebar,
+html.light-mode .filter-sidebar {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light .filter-group-title,
+html.light-mode .filter-group-title {
+  color: #0f172a !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+html.light .filter-option label,
+html.light-mode .filter-option label {
+  color: #334155 !important;
+}
+
+html.light .filter-option label:hover,
+html.light-mode .filter-option label:hover {
+  color: #16a34a !important;
+}
+
+html.light .cart-drawer,
+html.light-mode .cart-drawer {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: -4px 0 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+html.light .cart-item,
+html.light-mode .cart-item {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html.light .cart-item-name,
+html.light-mode .cart-item-name {
+  color: #0f172a !important;
+}
+
+html.light .ai-chat-window,
+html.light-mode .ai-chat-window {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12) !important;
+}
+
+html.light .ai-chat-bubble-bot,
+html.light-mode .ai-chat-bubble-bot {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html.light .ai-chat-input,
+html.light-mode .ai-chat-input {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   9. HIỆU ỨNG CHUYỂN ĐỔI MƯỢT MÀ (SMOOTH TRANSITIONS)
+   ═════════════════════════════════════════════════════════════ */
+body,
+nav,
+footer,
+.topbar,
+.product-card,
+.filter-sidebar,
+.mega-menu,
+.blog-card,
+.newsletter-section {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
