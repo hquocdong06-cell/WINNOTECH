@@ -1564,11 +1564,28 @@ export default function ProductDetail() {
       return
     }
 
-    // 2. Tìm biến thể phù hợp nhất trong cơ sở dữ liệu nếu có nhiều biến thể
+    // 2. Lọc các biến thể bắt buộc khớp thuộc tính vừa click
+    let candidateVariants = Variants.filter(v => {
+      const attrs = v.Attributes || v.attributes || []
+      const matchedAttr = attrs.find(a => isMatchStr(a.attribute_name || a.name, group.attribute_name))
+      if (matchedAttr) {
+        return isMatchStr(matchedAttr.value_name || matchedAttr.value, opt.value_name, group.attribute_name)
+      }
+      if (opt.variant_id && String(v._id) === String(opt.variant_id)) {
+        return true
+      }
+      return false
+    })
+
+    if (candidateVariants.length === 0) {
+      candidateVariants = Variants
+    }
+
+    // 3. Tìm biến thể phù hợp nhất trong candidates theo điểm số
     let bestVariant = null
     let maxScore = -1
 
-    Variants.forEach(v => {
+    candidateVariants.forEach(v => {
       const attrs = v.Attributes || v.attributes || []
       let score = 0
       Object.entries(newSelectedAttrs).forEach(([gName, valName]) => {
@@ -1579,15 +1596,17 @@ export default function ProductDetail() {
           score++
         }
       })
+      if (opt.variant_id && String(v._id) === String(opt.variant_id)) {
+        score += 0.5
+      }
       if (score > maxScore) {
         maxScore = score
         bestVariant = v
       }
     })
 
-    // Fallback nếu chưa tìm được theo score hoặc chỉ có 1 thuộc tính đơn
-    if ((!bestVariant || maxScore <= 0) && opt.variant_id) {
-      bestVariant = Variants.find(v => v._id === opt.variant_id)
+    if (!bestVariant && opt.variant_id) {
+      bestVariant = Variants.find(v => String(v._id) === String(opt.variant_id))
     }
 
     if (bestVariant && bestVariant._id !== selectedVariantId) {
@@ -1623,7 +1642,8 @@ export default function ProductDetail() {
       variantName: activeVariant?.variant_name && activeVariant?.variant_name !== 'Mặc định' ? activeVariant.variant_name : (activeVariant.attributes && activeVariant.attributes.length > 0 ? activeVariant.attributes.map(a => a.value).join(', ') : ''),
       price: currentPrice,
       quantity,
-      image: images[0]
+      image: images[0],
+      stock_quantity: activeVariant?.stock_quantity
     }
 
     // Chưa đăng nhập → lưu localStorage qua Redux
@@ -1655,7 +1675,8 @@ export default function ProductDetail() {
         return
       }
 
-      dispatch(addToCart(cartPayload))
+      localStorage.removeItem('cartItems')
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
       toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`, { position: 'bottom-right', autoClose: 3000 })
     } catch (err) {
       toast.error('Không thể kết nối tới server!', { position: 'bottom-right' })
@@ -1694,7 +1715,8 @@ export default function ProductDetail() {
           body: JSON.stringify({ variant_id: activeVar._id, quantity: 1 })
         });
       }
-      dispatch(addToCart(cartPayload));
+      localStorage.removeItem('cartItems')
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
       toast.success('Đã thêm sản phẩm vào giỏ hàng!', { position: 'bottom-right' });
     } catch (err) {
       toast.error('Lỗi khi thêm vào giỏ hàng!', { position: 'bottom-right' });
@@ -1716,6 +1738,15 @@ export default function ProductDetail() {
       return
     }
     const price = activeVariant.sale_price > 0 ? activeVariant.sale_price : activeVariant.price
+    const variantName = activeVariant?.variant_name && activeVariant?.variant_name !== 'Mặc định'
+      ? activeVariant.variant_name
+      : (activeVariant.attributes && activeVariant.attributes.length > 0
+          ? activeVariant.attributes.map(a => a.value).join(', ')
+          : (activeVariant.Attributes && activeVariant.Attributes.length > 0
+              ? activeVariant.Attributes.map(a => a.value_name || a.value).join(', ')
+              : ''))
+    const sku = activeVariant?.sku || product?.sku || product?.code || ''
+
     const buyNowItem = {
       cartItem: {
         _id: activeVariant._id,
@@ -1731,7 +1762,11 @@ export default function ProductDetail() {
       AnhSP: activeVariant.image ? [{ url: activeVariant.image }] : (product?.thumnail ? [{ url: product.thumnail }] : []),
       _localPrice: price,
       _variantId: activeVariant._id,
-      _isBuyNow: true
+      _isBuyNow: true,
+      _variantName: variantName,
+      _sku: sku,
+      variantName: variantName,
+      sku: sku
     }
     sessionStorage.setItem('buyNowItem', JSON.stringify(buyNowItem))
     navigate('/checkout', { state: { buyNowItem } })

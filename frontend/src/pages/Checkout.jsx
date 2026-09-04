@@ -365,13 +365,17 @@ export default function Checkout() {
   const buyNowState = React.useMemo(() => {
     try {
       if (location.state?.buyNowItem) return location.state.buyNowItem
-      const stored = sessionStorage.getItem('buyNowItem')
-      if (stored && stored !== 'undefined' && stored !== 'null') {
-        return JSON.parse(stored)
+      if (location.state?.isBuyNow) {
+        const stored = sessionStorage.getItem('buyNowItem')
+        if (stored && stored !== 'undefined' && stored !== 'null') {
+          return JSON.parse(stored)
+        }
       }
     } catch (e) {
       console.error('Error parsing buyNowItem:', e)
     }
+    // Nếu không phải luồng "Mua ngay" (chuyển từ giỏ hàng), tự động xóa buyNowItem còn lưu trong sessionStorage
+    sessionStorage.removeItem('buyNowItem')
     return null
   }, [location.state])
 
@@ -532,7 +536,15 @@ const voucherCalc = voucherInfo?.rawVoucher
       .then((r) => r.json())
       .then((data) => {
         if (data.success && data.data && data.data.length > 0) {
-          setCartItems(data.data)
+          const mapped = data.data.map(dbItem => {
+            const matchLocal = localCartItems?.find(l => String(l.variant_id) === String(dbItem.cartItem?.variant_id))
+            return {
+              ...dbItem,
+              _sku: matchLocal?.sku || dbItem.variant?.sku || '',
+              _variantName: matchLocal?.variantName || dbItem.variant?.variant_name || '',
+            }
+          })
+          setCartItems(mapped)
         } else {
           if (localCartItems && localCartItems.length > 0) {
             const mapped = localCartItems.map((item) => ({
@@ -542,8 +554,10 @@ const voucherCalc = voucherInfo?.rawVoucher
                 quantity:   item.quantity || 1,
                 price:      item.price || 0,
               },
-              variant: {
+              variant: item.variant || {
                 _id:   item.variant_id,
+                variant_name: item.variantName || '',
+                sku: item.sku || '',
                 price: item.price || 0,
                 sale_price: 0,
               },
@@ -555,6 +569,10 @@ const voucherCalc = voucherInfo?.rawVoucher
               _isLocal: true,
               _localPrice: item.price || 0,
               _variantId:  item.variant_id,
+              _sku: item.sku || '',
+              _variantName: item.variantName || '',
+              variantName: item.variantName || '',
+              sku: item.sku || '',
             }))
             setCartItems(mapped)
           } else {
@@ -566,12 +584,16 @@ const voucherCalc = voucherInfo?.rawVoucher
         if (localCartItems && localCartItems.length > 0) {
           const mapped = localCartItems.map((item) => ({
             cartItem: { _id: item.variant_id, variant_id: item.variant_id, quantity: item.quantity || 1, price: item.price || 0 },
-            variant:  { _id: item.variant_id, price: item.price || 0, sale_price: 0 },
+            variant:  item.variant || { _id: item.variant_id, variant_name: item.variantName || '', sku: item.sku || '', price: item.price || 0, sale_price: 0 },
             product:  { _id: item.product_id, name: item.name },
             AnhSP:    item.image ? [{ url: item.image }] : [],
             _isLocal: true,
             _localPrice: item.price || 0,
             _variantId:  item.variant_id,
+            _sku: item.sku || '',
+            _variantName: item.variantName || '',
+            variantName: item.variantName || '',
+            sku: item.sku || '',
           }))
           setCartItems(mapped)
         } else {
@@ -586,20 +608,42 @@ const voucherCalc = voucherInfo?.rawVoucher
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── XÓA SẢN PHẨM TỨC THÌ: Lắng nghe Redux localCartItems thay đổi ──
+  // ── SỐ LƯỢNG / XÓA SẢN PHẨM TỨC THÌ: Lắng nghe Redux localCartItems thay đổi ──
   useEffect(() => {
     if (buyNowState) return
     if (localCartItems && localCartItems.length >= 0) {
       setCartItems((prev) => {
-        if (prev.length > 0 && !prev[0]._isLocal) return prev
+        if (prev.length > 0 && !prev[0]._isLocal) {
+          return prev.map(dbItem => {
+            const matchLocal = localCartItems.find(l => String(l.variant_id) === String(dbItem.cartItem?.variant_id))
+            if (matchLocal) {
+              return {
+                ...dbItem,
+                cartItem: {
+                  ...dbItem.cartItem,
+                  quantity: matchLocal.quantity || dbItem.cartItem?.quantity
+                },
+                _sku: matchLocal.sku || dbItem._sku || dbItem.variant?.sku || '',
+                _variantName: matchLocal.variantName || dbItem._variantName || dbItem.variant?.variant_name || '',
+                variantName: matchLocal.variantName || dbItem.variantName || dbItem.variant?.variant_name || '',
+                sku: matchLocal.sku || dbItem.sku || dbItem.variant?.sku || ''
+              }
+            }
+            return dbItem
+          })
+        }
         return localCartItems.map((item) => ({
           cartItem: { _id: item.variant_id, variant_id: item.variant_id, quantity: item.quantity || 1, price: item.price || 0 },
-          variant:  { _id: item.variant_id, price: item.price || 0, sale_price: 0 },
+          variant:  item.variant || { _id: item.variant_id, variant_name: item.variantName || '', sku: item.sku || '', price: item.price || 0, sale_price: 0 },
           product:  { _id: item.product_id, name: item.name },
           AnhSP:    item.image ? [{ url: item.image }] : [],
           _isLocal: true,
           _localPrice: item.price || 0,
           _variantId:  item.variant_id,
+          _sku: item.sku || '',
+          _variantName: item.variantName || '',
+          variantName: item.variantName || '',
+          sku: item.sku || '',
         }))
       })
     }
@@ -961,14 +1005,27 @@ const voucherCalc = voucherInfo?.rawVoucher
     const variant = item.variant
     const cartItem = item.cartItem
     const mainImg = item.AnhSP?.find((img) => img.is_main) || item.AnhSP?.[0]
-    const imgUrl   = mainImg?.url || product?.thumnail || ''
+    const imgUrl   = mainImg?.url || product?.thumnail || item.image || ''
     // Nếu imgUrl đã là URL đầy đủ (http) thì không thêm prefix API_URL
-    const imgSrc   = imgUrl ? (imgUrl.startsWith('http') ? imgUrl : API_URL + imgUrl) : null
+    const imgSrc   = imgUrl ? (imgUrl.startsWith('http') ? imgUrl : API_URL + (imgUrl.startsWith('/') ? '' : '/') + imgUrl) : null
     const price    = item._localPrice ||
                      (variant?.sale_price > 0 ? variant.sale_price : (variant?.price || cartItem?.price || 0))
     const qty      = cartItem?.quantity || 1
-    const name     = product?.name || variant?.variant_name || 'Sản phẩm'
-    const specs    = (variant?.variant_name && variant.variant_name !== 'Mặc định') ? variant.variant_name : ''
+    const name     = product?.name || item.name || 'Sản phẩm'
+
+    // Lấy thông tin biến thể & SKU
+    const sku = item.sku || item._sku || variant?.sku || ''
+    let variantName = item.variantName || item._variantName || ''
+
+    if (!variantName && variant?.variant_name && variant.variant_name !== 'Mặc định') {
+      variantName = variant.variant_name
+    }
+    if (!variantName && variant?.Attributes && variant.Attributes.length > 0) {
+      variantName = variant.Attributes.map(a => a.value_name || a.value).filter(Boolean).join(' - ')
+    }
+    if (!variantName && variant?.attributes && variant.attributes.length > 0) {
+      variantName = variant.attributes.map(a => a.value_name || a.value).filter(Boolean).join(' - ')
+    }
 
     return (
       <div key={cartItem?._id || idx} className="co-item">
@@ -980,7 +1037,16 @@ const voucherCalc = voucherInfo?.rawVoucher
         </div>
         <div className="co-item-info">
           <div className="co-item-name">{name}</div>
-          {specs && <div className="co-item-specs">{specs}</div>}
+          {(variantName || sku) && (
+            <div style={{ fontSize: '11px', color: '#a1a1aa', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {variantName && (
+                <span>Phân loại: <strong style={{ color: '#e4e4e7', fontWeight: 600 }}>{variantName}</strong></span>
+              )}
+              {sku && (
+                <span>SKU: <strong style={{ color: '#71717a', fontFamily: 'monospace' }}>{sku}</strong></span>
+              )}
+            </div>
+          )}
         </div>
         <div className="co-item-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ textAlign: 'right' }}>

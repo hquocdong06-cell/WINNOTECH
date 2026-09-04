@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import { selectCartItemCount, setCart } from '../redux/cartSlice'
-import CartDrawer from '../components/CartDrawer'
+import { selectCartTotalQuantity, setDBCart } from '../redux/cartSlice'
 import AIChatbot from '../components/AIChatbot'
 import { compareAPI } from '../services/apiService'
 import { useAuth } from '../hooks/useAuth'
@@ -28,21 +27,20 @@ const getUserDisplayName = (u) => {
 export default function DefaultLayout({ children }) {
   const { isLoggedIn, user } = useAuth()
   const { theme, isDark, toggleTheme } = useClientTheme()
-  const [isCartOpen, setIsCartOpen] = useState(false)
   const [compareCount, setCompareCount] = useState(0)
   const dispatch = useDispatch()
-  const cartTotalQuantity = useSelector(selectCartItemCount)
+  const cartTotalQuantity = useSelector(selectCartTotalQuantity)
 
-  // Sync giỏ hàng từ DB vào Redux khi mount (nếu đã đăng nhập)
+  // Sync giỏ hàng từ DB vào Redux khi mount và lắng nghe sự kiện cartUpdated toàn cục
   useEffect(() => {
     const syncCartFromDB = async () => {
       try {
         const res = await fetch(`${API_URL}/cart`, { credentials: 'include' })
         if (!res.ok) return // Chưa login hoặc lỗi → bỏ qua, giữ Redux/localStorage
         const data = await res.json()
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        if (data.success && Array.isArray(data.data)) {
           const reduxItems = data.data.map(d => ({
-            cartItemId: d.cartItem?._id,       // ← lưu MongoDB _id để CartDrawer gọi DELETE API
+            cartItemId: d.cartItem?._id,
             product_id: d.product?._id,
             variant_id: d.cartItem?.variant_id,
             name: d.product?.name || 'Sản phẩm',
@@ -54,13 +52,19 @@ export default function DefaultLayout({ children }) {
               return url.startsWith('http') ? url : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
             })(),
           }))
-          dispatch(setCart(reduxItems))
+          dispatch(setDBCart(reduxItems))
         }
       } catch {
-        // Không thể kết nối server → giữ nguyên localStorage
+        // Không thể kết nối server
       }
     }
+
     syncCartFromDB()
+
+    window.addEventListener('cartUpdated', syncCartFromDB)
+    return () => {
+      window.removeEventListener('cartUpdated', syncCartFromDB)
+    }
   }, [dispatch])
 
   // Sync só luưƣng so sánh tù API
@@ -174,7 +178,7 @@ export default function DefaultLayout({ children }) {
                     : 'Đăng ký/Đăng nhập'}
                 </span>
               </Link>
-              <button className="nav-cart-btn" onClick={() => setIsCartOpen(true)}>
+              <Link to="/cart" className="nav-cart-btn" style={{ textDecoration: 'none' }}>
                 <div className="cart-btn-inner">
                   <div style={{ position: 'relative' }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -186,7 +190,7 @@ export default function DefaultLayout({ children }) {
                   </div>
                   <span>Giỏ hàng</span>
                 </div>
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -264,7 +268,6 @@ export default function DefaultLayout({ children }) {
       {/* MAIN CONTENT */}
       {children}
 
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
       <AIChatbot />
 
       {/* FOOTER */}

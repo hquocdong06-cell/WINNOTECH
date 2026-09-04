@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { useAuth } from '../hooks/useAuth';
 import { selectCartItems, selectCartTotalPrice, removeFromCart, updateQuantity } from '../redux/cartSlice';
 import '../assets/styles/cart-drawer.css'; // CSS riêng cho drawer mini cart
@@ -16,7 +17,7 @@ export default function CartDrawer({ isOpen, onClose }) {
   const [removingId, setRemovingId] = useState(null);
 
   const formatPrice = (price) => {
-    return price.toLocaleString('vi-VN') + 'đ';
+    return (price || 0).toLocaleString('vi-VN') + 'đ';
   };
 
   const getImageUrl = (image) => {
@@ -25,28 +26,62 @@ export default function CartDrawer({ isOpen, onClose }) {
     return `${API_URL}${image.startsWith('/') ? '' : '/'}${image}`;
   };
 
+  const getItemStock = (item) => {
+    if (item?.variant && item.variant.stock_quantity !== undefined) {
+      return Number(item.variant.stock_quantity);
+    }
+    if (item?.stock_quantity !== undefined) {
+      return Number(item.stock_quantity);
+    }
+    if (item?.stock !== undefined) {
+      return Number(item.stock);
+    }
+    return null;
+  };
+
   const handleUpdateQuantity = async (item, newQuantity) => {
     if (newQuantity <= 0) {
       handleRemove(item);
       return;
     }
-    // Cập nhật Redux local ngay để UX mượt
-    dispatch(updateQuantity({
-      product_id: item.product_id,
-      variant_id: item.variant_id,
-      quantity: newQuantity
-    }));
-    // Nếu có cartItemId → gọi API PUT lên DB
+
+    // 1. Kiểm tra tồn kho sẵn có ở client
+    const maxStock = getItemStock(item);
+
+    if (newQuantity > item.quantity && maxStock !== null && maxStock !== undefined) {
+      if (newQuantity > maxStock) {
+        toast.error(`Không thể cập nhật! Chỉ còn ${maxStock} sản phẩm trong kho.`, { position: 'bottom-right' });
+        return;
+      }
+    }
+
+    // 2. Nếu có cartItemId (user đã login) -> gọi API PUT lên server kiểm tra kho & ghi DB trước
     if (item.cartItemId) {
       try {
-        await fetch(`${API_URL}/cart/${item.cartItemId}`, {
+        const res = await fetch(`${API_URL}/cart/${item.cartItemId}`, {
           method: 'PUT',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ quantity: newQuantity }),
         });
-      } catch { /* bỏ qua lỗi kết nối */ }
+        const data = await res.json();
+        if (!data.success) {
+          toast.error(data.message || 'Không thể cập nhật số lượng', { position: 'bottom-right' });
+          return;
+        }
+      } catch {
+        toast.error('Lỗi kết nối server!', { position: 'bottom-right' });
+        return;
+      }
     }
+
+    // 3. Cập nhật Redux local nếu hợp lệ
+    dispatch(updateQuantity({
+      product_id: item.product_id,
+      variant_id: item.variant_id,
+      quantity: newQuantity
+    }));
+    window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { action: 'update', item, quantity: newQuantity } }));
   };
 
   const handleRemove = async (item) => {

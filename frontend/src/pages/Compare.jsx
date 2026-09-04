@@ -253,15 +253,14 @@ export default function Compare() {
     try {
       const data = await cartAPI.addItem(defaultVariant._id, 1)
       if (data.success) {
-        dispatch(addToCart(cartPayload))
+        localStorage.removeItem('cartItems')
+        window.dispatchEvent(new CustomEvent('cartUpdated'))
         toast.success('Đã thêm vào giỏ hàng!', { position: 'bottom-right', autoClose: 2000 })
       } else {
         toast.error(data.message || 'Lỗi thêm vào giỏ', { position: 'bottom-right' })
       }
     } catch {
-      // Fallback local dispatch nếu server network lỗi
-      dispatch(addToCart(cartPayload))
-      toast.success('Đã thêm vào giỏ hàng!', { position: 'bottom-right', autoClose: 2000 })
+      toast.error('Lỗi kết nối máy chủ!', { position: 'bottom-right' })
     } finally {
       setAddingCart(null)
     }

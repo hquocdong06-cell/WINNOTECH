@@ -56,12 +56,6 @@ const Sidebar = () => {
           );
         })}
       </nav>
-
-      <div className="sidebar-promo">
-        <img src="https://images.unsplash.com/photo-1587202372775-e229f172b9d7?q=80&w=2787&auto=format&fit=crop" alt="PC Build" />
-        <h4>WINNO TECH</h4>
-        <p>BUILD. PERFORM. DOMINATE.</p>
-      </div>
     </aside>
   );
 };

@@ -611,7 +611,8 @@ export default function CategoryPage({ slug: propSlug, title: propTitle }) {
         toast.error(data.message || 'Lỗi khi thêm vào giỏ hàng!')
         return
       }
-      dispatch(addToCart(cartPayload))
+      localStorage.removeItem('cartItems')
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
       toast.success('Đã thêm sản phẩm vào giỏ hàng thành công!')
     } catch {
       toast.error('Lỗi kết nối khi thêm vào giỏ hàng!')

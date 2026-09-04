@@ -318,7 +318,7 @@ export default function Home() {
         return
       }
 
-      dispatch(addToCart(cartPayload))
+      localStorage.removeItem('cartItems')
       window.dispatchEvent(new CustomEvent('cartUpdated'))
       toast.success('Đã thêm sản phẩm vào giỏ hàng!', { position: 'bottom-right' })
     } catch (err) {

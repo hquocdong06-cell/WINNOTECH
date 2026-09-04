@@ -178,7 +178,8 @@ export default function Case() {
         return
       }
 
-      dispatch(addToCart(cartPayload))
+      localStorage.removeItem('cartItems')
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
       toast.success('Đã thêm sản phẩm vào giỏ hàng!', { position: 'bottom-right' })
     } catch (err) {
       toast.error('Lỗi khi thêm vào giỏ hàng!', { position: 'bottom-right' })

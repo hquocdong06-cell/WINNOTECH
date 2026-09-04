@@ -767,16 +767,9 @@ export default function BuildPC() {
         })
         const data = await res.json()
 
-        if (res.status === 401 || data.success) {
-          const cartPayload = {
-            product_id: item._id,
-            variant_id: item.variantId,
-            name:       item.name,
-            price:      item.price,
-            quantity:   qty,
-            image:      item.image || null,
-          }
-          dispatch(addToCart(cartPayload))
+        if (data.success) {
+          localStorage.removeItem('cartItems')
+          window.dispatchEvent(new CustomEvent('cartUpdated'))
           successCount++
         } else {
           failCount++

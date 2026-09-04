@@ -38,10 +38,6 @@ export default function Cart() {
   // Cart từ localStorage (dùng khi chưa login)
   const localCartItems = useSelector(selectCartItems)
 
-  const [discountCode, setDiscountCode]     = useState('')
-  const [appliedDiscount, setAppliedDiscount] = useState(0)
-  const [discountMsg, setDiscountMsg]       = useState('')
-
   // ── Fetch giỏ hàng từ backend ──────────────────────────────────────────
   const fetchCart = useCallback(async () => {
     setLoading(true)
@@ -70,7 +66,7 @@ export default function Cart() {
       // Mặc định tick chọn tất cả sau khi fetch
       setCheckedIds(new Set(fetchedItems.map(d => d.cartItem?._id).filter(Boolean)))
 
-      // Sync về Redux store để header cart badge cập nhật đúng
+      // Sync về Redux store để header cart badge và cart drawer cập nhật đúng
       const reduxItems = fetchedItems.map(d => ({
         cartItemId: d.cartItem?._id,
         product_id: d.product?._id,
@@ -81,6 +77,8 @@ export default function Cart() {
         price:      d.variant?.sale_price > 0 ? d.variant.sale_price : (d.variant?.price || 0),
         quantity:   d.cartItem?.quantity || 1,
         image:      getProductImage(d),
+        variant:    d.variant,
+        stock_quantity: d.variant?.stock_quantity
       }))
       dispatch(setCart(reduxItems))
     } catch (err) {
@@ -92,6 +90,14 @@ export default function Cart() {
 
   useEffect(() => {
     fetchCart()
+
+    const handleCartUpdated = () => {
+      fetchCart()
+    }
+    window.addEventListener('cartUpdated', handleCartUpdated)
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdated)
+    }
   }, [fetchCart])
 
   // ── Cập nhật số lượng ──────────────────────────────────────────────────
@@ -129,14 +135,20 @@ export default function Cart() {
         // Sync Redux
         dispatch(setCart(
           cartItems.map(d => ({
+            cartItemId: d.cartItem?._id,
             product_id: d.product?._id,
             variant_id: d.cartItem?.variant_id,
             name:       d.product?.name || 'Sản phẩm',
+            sku:        d.variant?.sku || d.product?.sku || d.product?.code || '',
+            variantName:d.variant?.variant_name && d.variant?.variant_name !== 'Mặc định' ? d.variant.variant_name : '',
             price:      d.variant?.sale_price > 0 ? d.variant.sale_price : (d.variant?.price || 0),
             quantity:   d.cartItem._id === cartItemId ? newQty : d.cartItem?.quantity,
             image:      getProductImage(d),
+            variant:    d.variant,
+            stock_quantity: d.variant?.stock_quantity
           }))
         ))
+        window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { action: 'update', cartItemId, quantity: newQty } }))
       } else {
         toast.error(data.message || 'Lỗi khi cập nhật số lượng!', { position: 'bottom-right' })
       }
@@ -241,20 +253,6 @@ export default function Cart() {
     toast.info('Đã xóa sản phẩm khỏi giỏ hàng tạm thời', { position: 'bottom-right', autoClose: 1500 })
   }
 
-  // ── Mã giảm giá (demo) ────────────────────────────────────────────────
-  const handleApplyDiscount = () => {
-    if (discountCode === 'SAVE1M') {
-      setAppliedDiscount(1000000)
-      setDiscountMsg('✅ Đã áp dụng: Giảm 1.000.000đ')
-    } else if (discountCode === 'SAVE500K') {
-      setAppliedDiscount(500000)
-      setDiscountMsg('✅ Đã áp dụng: Giảm 500.000đ')
-    } else if (discountCode.trim()) {
-      setAppliedDiscount(0)
-      setDiscountMsg('❌ Mã giảm giá không hợp lệ')
-    }
-  }
-
   // ── Checkbox helpers ──────────────────────────────────────────────────
   const allIds        = cartItems.map(i => i.cartItem?._id).filter(Boolean)
   const isAllChecked  = allIds.length > 0 && allIds.every(id => checkedIds.has(id))
@@ -282,7 +280,7 @@ export default function Cart() {
   const subtotal        = selectedItems.reduce((sum, item) =>
     sum + getItemPrice(item) * (item.cartItem?.quantity || 1), 0)
   const shipping        = selectedItems.length === 0 ? 0 : (subtotal >= 1000000 ? 0 : 50000)
-  const total           = subtotal - appliedDiscount + shipping
+  const total           = subtotal + shipping
 
   // ── Checkout ──────────────────────────────────────────────────────────
   const handleCheckout = () => {
@@ -296,6 +294,102 @@ export default function Cart() {
       return
     }
     navigate('/checkout')
+  }
+
+  // ── Modal xác nhận xóa giỏ hàng ─────────────────────────────────────
+  const renderClearConfirmModal = () => {
+    if (!showClearConfirm) return null
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.75)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 99999,
+        padding: '20px'
+      }}>
+        <div style={{
+          background: '#18181b',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: '12px',
+          padding: '28px',
+          maxWidth: '440px',
+          width: '100%',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            background: 'rgba(239, 68, 68, 0.15)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px',
+            color: '#ef4444',
+            fontSize: '24px'
+          }}>
+            🗑️
+          </div>
+          <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>
+            Xác nhận xóa toàn bộ giỏ hàng?
+          </h3>
+          <p style={{ color: '#a1a1aa', fontSize: '14px', lineHeight: '1.5', marginBottom: '24px' }}>
+            Bạn có chắc chắn muốn xóa tất cả sản phẩm khỏi giỏ hàng? Thao tác này không thể hoàn tác.
+          </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setShowClearConfirm(false)}
+              disabled={clearing}
+              style={{
+                flex: 1,
+                padding: '10px 18px',
+                borderRadius: '8px',
+                background: '#27272a',
+                color: '#e4e4e7',
+                border: '1px solid #3f3f46',
+                fontWeight: '600',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              Hủy bỏ
+            </button>
+            <button
+              type="button"
+              onClick={handleExecuteClearCart}
+              disabled={clearing}
+              style={{
+                flex: 1,
+                padding: '10px 18px',
+                borderRadius: '8px',
+                background: '#ef4444',
+                color: '#fff',
+                border: 'none',
+                fontWeight: '600',
+                fontSize: '14px',
+                cursor: clearing ? 'not-allowed' : 'pointer',
+                opacity: clearing ? 0.7 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              {clearing ? 'Đang xóa...' : 'Xác nhận xóa'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // ─── RENDER STATES ────────────────────────────────────────────────────
@@ -510,6 +604,7 @@ export default function Cart() {
             )}
           </div>
         </div>
+        {renderClearConfirmModal()}
       </DefaultLayout>
     )
   }
@@ -799,13 +894,6 @@ export default function Cart() {
                 </div>
 
                 <div className="summary-item">
-                  <span>Giảm giá</span>
-                  <span className="discount">
-                    {appliedDiscount > 0 ? `-${formatPrice(appliedDiscount)}` : '—'}
-                  </span>
-                </div>
-
-                <div className="summary-item">
                   <span>Phí vận chuyển</span>
                   <span style={{ color: shipping === 0 ? '#22c55e' : 'inherit' }}>
                     {selectedItems.length === 0 ? '—' : shipping === 0 ? 'Miễn phí' : formatPrice(shipping)}
@@ -820,33 +908,6 @@ export default function Cart() {
                     💡 Mua thêm <strong style={{ color: '#c8e600' }}>{formatPrice(1000000 - subtotal)}</strong> để được miễn phí ship
                   </div>
                 )}
-
-                {/* MÃ GIẢM GIÁ */}
-                <div className="discount-section">
-                  <label>Mã giảm giá</label>
-                  <div className="discount-input-group">
-                    <input
-                      type="text"
-                      placeholder="Nhập mã giảm giá"
-                      value={discountCode}
-                      onChange={(e) => {
-                        setDiscountCode(e.target.value.toUpperCase())
-                        setDiscountMsg('')
-                      }}
-                      onKeyDown={(e) => e.key === 'Enter' && handleApplyDiscount()}
-                      className="discount-input"
-                    />
-                    <button onClick={handleApplyDiscount} className="btn-apply">ÁP DỤNG</button>
-                  </div>
-                  {discountMsg && (
-                    <div style={{ fontSize: '12px', marginTop: '6px', color: discountMsg.startsWith('✅') ? '#22c55e' : '#ef4444' }}>
-                      {discountMsg}
-                    </div>
-                  )}
-                  <small style={{ color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                    Mã test: SAVE1M · SAVE500K
-                  </small>
-                </div>
 
                 {/* TỔNG CỘNG */}
                 <div className="summary-total">
@@ -919,97 +980,7 @@ export default function Cart() {
       </div>
 
       {/* MODAL XÁC NHẬN XÓA TOÀN BỘ GIỎ HÀNG */}
-      {showClearConfirm && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 99999,
-          padding: '20px'
-        }}>
-          <div style={{
-            background: '#18181b',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '12px',
-            padding: '28px',
-            maxWidth: '440px',
-            width: '100%',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-              color: '#ef4444',
-              fontSize: '24px'
-            }}>
-              🗑️
-            </div>
-            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>
-              Xác nhận xóa toàn bộ giỏ hàng?
-            </h3>
-            <p style={{ color: '#a1a1aa', fontSize: '14px', lineHeight: '1.5', marginBottom: '24px' }}>
-              Bạn có chắc chắn muốn xóa tất cả sản phẩm khỏi giỏ hàng? Thao tác này không thể hoàn tác.
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button
-                type="button"
-                onClick={() => setShowClearConfirm(false)}
-                disabled={clearing}
-                style={{
-                  flex: 1,
-                  padding: '10px 18px',
-                  borderRadius: '8px',
-                  background: '#27272a',
-                  color: '#e4e4e7',
-                  border: '1px solid #3f3f46',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  cursor: 'pointer'
-                }}
-              >
-                Hủy bỏ
-              </button>
-              <button
-                type="button"
-                onClick={handleExecuteClearCart}
-                disabled={clearing}
-                style={{
-                  flex: 1,
-                  padding: '10px 18px',
-                  borderRadius: '8px',
-                  background: '#ef4444',
-                  color: '#fff',
-                  border: 'none',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  cursor: clearing ? 'not-allowed' : 'pointer',
-                  opacity: clearing ? 0.7 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}
-              >
-                {clearing ? 'Đang xóa...' : 'Xác nhận xóa'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderClearConfirmModal()}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </DefaultLayout>

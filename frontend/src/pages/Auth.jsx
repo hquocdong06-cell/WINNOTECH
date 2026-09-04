@@ -106,6 +106,27 @@ export default function Auth() {
       const data = await res.json()
 
       if (data.success) {
+        try {
+          const guestCartRaw = localStorage.getItem('cartItems')
+          if (guestCartRaw) {
+            const guestItems = JSON.parse(guestCartRaw)
+            if (Array.isArray(guestItems) && guestItems.length > 0) {
+              for (const gItem of guestItems) {
+                if (gItem.variant_id) {
+                  await fetch(`${API_BASE}/cart/add`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ variant_id: gItem.variant_id, quantity: gItem.quantity || 1 })
+                  }).catch(() => {})
+                }
+              }
+            }
+          }
+        } catch {}
+        localStorage.removeItem('cartItems')
+        window.dispatchEvent(new CustomEvent('cartUpdated'))
+
         if (data.user?.role === 'admin') {
           navigate('/admin/dashboard', { replace: true })
         } else {

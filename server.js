@@ -940,7 +940,7 @@ app.get("/auth/me", checklogin, async (req, res) => {
 // ============================================================
 app.get("/products", async (req, res, next) => {
   try {
-    const products = await ProductModel.find({})
+    const products = await ProductModel.find({ status: { $nin: ["hidden", "inactive", "draft"] } })
       .populate("cat_id brand_id")
       .lean();
     const productIds = products.map((p) => p._id);
@@ -994,7 +994,7 @@ app.get("/products", async (req, res, next) => {
 // ============================================================
 app.get("/products/home/newest", async (req, res) => {
   try {
-    const newestProducts = await ProductModel.find({})
+    const newestProducts = await ProductModel.find({ status: { $nin: ["hidden", "inactive", "draft"] } })
       .sort({ createdAt: -1 })
       .limit(10)
       .populate("cat_id")
@@ -1073,7 +1073,7 @@ app.get("/products/home/newest", async (req, res) => {
 // ============================================================
 app.get("/products/home/featured", async (req, res) => {
   try {
-    const featuredProducts = await ProductModel.find({})
+    const featuredProducts = await ProductModel.find({ status: { $nin: ["hidden", "inactive", "draft"] } })
       .sort({ sale: -1 })
       .lean();
 
@@ -1654,7 +1654,7 @@ app.get("/api/buildpc/suggest", async (req, res) => {
 
 app.get("/products/home/Newest", async (req, res) => {
   try {
-    const newestProducts = await ProductModel.find({})
+    const newestProducts = await ProductModel.find({ status: { $nin: ["hidden", "inactive", "draft"] } })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -1698,7 +1698,7 @@ app.get("/products/home/Newest", async (req, res) => {
 
 app.get("/products/home/Sale", async (req, res) => {
   try {
-    const products = await ProductModel.find({}).lean();
+    const products = await ProductModel.find({ status: { $nin: ["hidden", "inactive", "draft"] } }).lean();
     const productIds = products.map((p) => p._id);
 
     const variants = await ProductVariantModel.find({
@@ -1765,7 +1765,7 @@ app.get("/products/search", async (req, res) => {
     }
 
     // 2. Lấy dữ liệu sản phẩm từ DB lên (bao gồm slug, thumnail, cat_id, brand_id)
-    const products = await ProductModel.find({ status: 'active' })
+    const products = await ProductModel.find({ status: { $nin: ["hidden", "inactive", "draft"] } })
                                      .select('_id name slug price images thumnail active cat_id brand_id')
                                      .populate('cat_id brand_id')
                                      .lean();
@@ -1845,10 +1845,10 @@ app.get("/products/:slug", async (req, res, next) => {
         .lean();
     }
 
-    if (!productDetail) {
+    if (!productDetail || productDetail.status === "hidden" || productDetail.status === "inactive" || productDetail.status === "draft") {
       return res
         .status(404)
-        .json({ success: false, message: "Sản phẩm không tồn tại" });
+        .json({ success: false, message: "Sản phẩm không tồn tại hoặc đã bị ẩn" });
     }
 
     const images = await ImageModel.find({ p_id: productDetail._id }).lean();
@@ -2429,7 +2429,7 @@ app.get("/categories/:slug", async (req, res, next) => {
         .json({ success: false, message: "Danh mục không tồn tại" });
     }
 
-    const products = await ProductModel.find({ cat_id: category._id })
+    const products = await ProductModel.find({ cat_id: category._id, status: { $nin: ["hidden", "inactive", "draft"] } })
       .populate("cat_id brand_id")
       .lean();
 
@@ -4781,9 +4781,15 @@ app.post("/admin/users", checklogin, checkAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: "Thiếu email hoặc mật khẩu" });
     }
 
-    const existing = await UserModel.findOne({
-      $or: [{ email: email.trim() }, { phone: phone ? phone.trim() : null }]
-    });
+    const trimmedEmail = email.trim();
+    const trimmedPhone = phone ? phone.trim() : "";
+
+    const checkConditions = [{ email: trimmedEmail }];
+    if (trimmedPhone) {
+      checkConditions.push({ phone: trimmedPhone });
+    }
+
+    const existing = await UserModel.findOne({ $or: checkConditions });
 
     if (existing) {
       return res.status(400).json({ success: false, message: "Email hoặc Số điện thoại này đã được sử dụng!" });
@@ -6889,8 +6895,7 @@ app.get("/api/buildpc/components", async (req, res) => {
     });
     if (!cat) return res.status(404).json({ success: false, message: "Không tìm thấy danh mục" });
 
-    let filter = { cat_id: cat._id };
-    // Bỏ qua lọc status theo data hiện tại hoặc nếu cần: filter.status = 'active';
+    let filter = { cat_id: cat._id, status: { $nin: ["hidden", "inactive", "draft"] } };
     if (search) {
       filter.name = { $regex: search, $options: "i" };
     }

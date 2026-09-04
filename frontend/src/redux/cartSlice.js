@@ -143,6 +143,10 @@ const cartSlice = createSlice({
       state.items = action.payload;
       localStorage.setItem('cartItems', JSON.stringify(state.items));
     },
+    setDBCart: (state, action) => {
+      state.items = action.payload;
+      localStorage.removeItem('cartItems');
+    },
   },
 
   // ─── Extra reducers cho Guest Cart API ───
@@ -180,7 +184,7 @@ const cartSlice = createSlice({
   },
 });
 
-export const { addToCart, removeFromCart, updateQuantity, clearCart, setCart } = cartSlice.actions;
+export const { addToCart, removeFromCart, updateQuantity, clearCart, setCart, setDBCart } = cartSlice.actions;
 
 // Selectors
 export const selectCartItems = (state) => state.cart.items;
