@@ -404,7 +404,9 @@ export default function Checkout() {
   const PAYMENT_METHOD_IDS = {
     cod:     '6a3ea04fd27f601bd29ea067', // Thanh toán khi nhận hàng (COD)
     bank:    '6a3ea04fd27f601bd29ea068', // Chuyển khoản ngân hàng
-    ewallet: '6a3ea04fd27f601bd29ea069', // Ví MoMo
+    ewallet: '6a3ea04fd27f601bd29ea06a', // VNPay
+    vnpay:   '6a3ea04fd27f601bd29ea06a', // VNPay
+    momo:    '6a3ea04fd27f601bd29ea069', // Ví MoMo
   }
 
   // ── Cart ──

@@ -289,6 +289,29 @@ export async function deleteAdminOrder(id) {
   return apiFetch(`/admin/orders/${id}`, { method: 'DELETE' });
 }
 
+export async function reviewAdminReturnRequest(id, action, rejected_reason = '', admin_note = '') {
+  return apiFetch(`/admin/orders/${id}/return-request/review`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, rejected_reason, admin_note }),
+  });
+}
+
+export async function confirmAdminReturnedGoods(id) {
+  return apiFetch(`/admin/orders/${id}/return-request/receive-goods`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function processAdminOrderRefund(id, refundData) {
+  return apiFetch(`/admin/orders/${id}/process-refund`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(refundData),
+  });
+}
+
 export function getOrderPdfUrl(id) {
   return `${API_BASE}/admin/orders/${id}/export-pdf`;
 }

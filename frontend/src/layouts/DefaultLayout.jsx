@@ -78,6 +78,25 @@ export default function DefaultLayout({ children }) {
     syncCompare()
   }, [])
 
+  // Luôn đảm bảo khi ở Client pages thì html và body áp dụng đúng theme của client (mặc định Dark Mode)
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    root.setAttribute('data-theme', theme);
+    root.setAttribute('data-client-theme', theme);
+    if (theme === 'light') {
+      root.classList.add('light', 'light-mode');
+      root.classList.remove('dark', 'dark-mode');
+      body.classList.add('light-mode');
+      body.classList.remove('dark-mode');
+    } else {
+      root.classList.add('dark', 'dark-mode');
+      root.classList.remove('light', 'light-mode');
+      body.classList.add('dark-mode');
+      body.classList.remove('light-mode');
+    }
+  }, [theme]);
+
   return (
     <div className={`default-layout ${theme} ${isDark ? 'dark-mode' : 'light-mode'}`} data-theme={theme}>
       {/* TOP BAR */}
@@ -108,6 +127,15 @@ export default function DefaultLayout({ children }) {
             <Link to="/contact">Hỗ trợ</Link>
             <Link to="/blog">Blog</Link>
             <Link to="/contact">FAQ</Link>
+            <button
+              type="button"
+              className="client-theme-toggle-topbar"
+              onClick={toggleTheme}
+              title={isDark ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
+            >
+              {isDark ? <Moon size={12} className="theme-toggle-moon" /> : <Sun size={12} className="theme-toggle-sun" />}
+              <span>{isDark ? 'Giao diện tối' : 'Giao diện sáng'}</span>
+            </button>
           </div>
         </div>
       </div>

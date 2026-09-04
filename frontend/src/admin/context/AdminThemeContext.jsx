@@ -55,6 +55,21 @@ export const AdminThemeProvider = ({ children }) => {
       document.documentElement.classList.add('dark', 'dark-mode');
       document.documentElement.classList.remove('light', 'light-mode');
     }
+
+    return () => {
+      // Khi rời khỏi trang Admin, khôi phục lại theme của Client
+      const clientTheme = localStorage.getItem('winnotech_client_theme') || 'dark';
+      document.documentElement.removeAttribute('data-admin-theme');
+      document.documentElement.setAttribute('data-theme', clientTheme);
+      document.documentElement.setAttribute('data-client-theme', clientTheme);
+      if (clientTheme === 'light') {
+        document.documentElement.classList.add('light', 'light-mode');
+        document.documentElement.classList.remove('dark', 'dark-mode');
+      } else {
+        document.documentElement.classList.add('dark', 'dark-mode');
+        document.documentElement.classList.remove('light', 'light-mode');
+      }
+    };
   }, [theme]);
 
   return (

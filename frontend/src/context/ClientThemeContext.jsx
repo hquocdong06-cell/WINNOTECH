@@ -8,17 +8,19 @@ export const ClientThemeProvider = ({ children }) => {
   const [theme, setThemeState] = useState(() => {
     try {
       const saved = localStorage.getItem(THEME_STORAGE_KEY);
-      if (saved === 'light' || saved === 'dark') {
-        return saved;
+      // Nếu trước đó bị lưu 'light' do auto-detect hệ điều hành, reset ngay về 'dark'
+      if (saved === 'light') {
+        localStorage.setItem(THEME_STORAGE_KEY, 'dark');
+        return 'dark';
       }
-      // Kiểm tra preference của hệ điều hành nếu chưa lưu
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-        return 'light';
+      if (saved === 'dark') {
+        return 'dark';
       }
     } catch {
       // Bỏ qua lỗi truy cập localStorage
     }
-    return 'dark'; // Mặc định dark cho website gaming store
+    // Mặc định luôn là 'dark' cho WINNOTech Gaming Store
+    return 'dark';
   });
 
   // Đồng bộ class và attribute lên <html> và <body>

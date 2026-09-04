@@ -146,7 +146,8 @@ router.get('/vnpay_return', async function (req, res, next) {
                 }
 
                 order.payment_status = "paid";
-                order.status = "preparing";
+                order.status = "pending";
+                order.payment_method = new mongoose.Types.ObjectId("6a3ea04fd27f601bd29ea06a");
 
                 const orderItems = await OrderItem.find({ order_id: order._id });
                 for (let item of orderItems) {

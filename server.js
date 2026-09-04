@@ -299,6 +299,26 @@ const uploadReview = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
+// Cấu hình upload riêng cho ảnh Đổi trả hàng: lưu vào frontend/public/image/returns
+const returnStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const returnUploadDir = path.join(__dirname, "frontend", "public", "image", "returns");
+    fs.mkdirSync(returnUploadDir, { recursive: true });
+    cb(null, returnUploadDir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    const uniqueName = `ret_${Date.now()}_${Math.round(Math.random() * 1e6)}${ext}`;
+    cb(null, uniqueName);
+  },
+});
+
+const uploadReturn = multer({
+  storage: returnStorage,
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
 var cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 var session = require("express-session");
@@ -3154,7 +3174,7 @@ app.get("/orders/:orderId", checklogin, async (req, res) => {
 app.put("/orders/:orderId/cancel", checklogin, async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { reason } = req.body;
+    const { reason, bank_name, account_number, account_holder } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
       return res.status(400).json({ success: false, message: "ID đơn hàng không hợp lệ" });
@@ -3165,7 +3185,7 @@ app.put("/orders/:orderId/cancel", checklogin, async (req, res) => {
       return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
     }
 
-    // Kiểm tra quyền: user chỉ được hủy đơn của mình
+    // Kiểm tra quyền: user chỉ được hủy đơn của mình (hoặc admin)
     const isAdmin = req.user.role === "admin";
     if (!isAdmin && order.user_id.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: "Bạn không có quyền hủy đơn hàng này" });
@@ -3189,7 +3209,7 @@ app.put("/orders/:orderId/cancel", checklogin, async (req, res) => {
       }
     }
 
-    // Xác định payment_status: đã thanh toán online => refund_pending, COD / chưa TT => canceled
+    // Xác định payment_status: đã thanh toán online/paid => refund_pending, COD / chưa TT => canceled
     const isOnlinePaid = order.payment_status === "paid" &&
       order.payment_method?.name?.toLowerCase() !== "cod" &&
       order.payment_method?.name?.toLowerCase() !== "tiền mặt";
@@ -3198,17 +3218,301 @@ app.put("/orders/:orderId/cancel", checklogin, async (req, res) => {
     order.payment_status = isOnlinePaid ? "refund_pending" : "canceled";
     if (reason) order.cancel_reason = reason;
 
+    if (isOnlinePaid && (bank_name || account_number)) {
+      order.refund_info = {
+        bank_name: bank_name || "",
+        account_number: account_number || "",
+        account_holder: account_holder || "",
+        refund_amount: order.total_amount
+      };
+    }
+
+    order.statusHistory = order.statusHistory || [];
+    order.statusHistory.push({
+      status: "cancelled",
+      note: isOnlinePaid
+        ? `Khách hủy đơn: ${reason || 'Không nêu lý do'}. Đã thanh toán online ➔ Chuyển sang chờ hoàn tiền (refund_pending)${bank_name ? ` (STK: ${account_number} - ${bank_name})` : ''}`
+        : `Khách hủy đơn: ${reason || 'Không nêu lý do'}. Hủy đơn thành công.`,
+      changedBy: req.user.name || "Khách hàng",
+      changedAt: new Date()
+    });
+
     await order.save();
 
     return res.json({
       success: true,
       message: isOnlinePaid
-        ? "Đã hủy đơn. Yêu cầu hoàn tiền đã được ghi nhận — chúng tôi sẽ liên hệ trong 1-3 ngày làm việc."
+        ? "Đã hủy đơn. Yêu cầu hoàn tiền đã được ghi nhận — chúng tôi sẽ liên hệ hoàn tiền trong 1-3 ngày làm việc."
         : "Hủy đơn hàng thành công.",
-      data: { status: order.status, payment_status: order.payment_status }
+      data: { status: order.status, payment_status: order.payment_status, refund_info: order.refund_info }
     });
   } catch (error) {
     console.error("Lỗi hủy đơn hàng:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// ============================================================
+// POST /orders/:orderId/return-request — Khách hàng gửi Yêu cầu Trả hàng & Hoàn tiền
+// ============================================================
+app.post("/orders/:orderId/return-request", checklogin, uploadReturn.array("images", 5), async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { reason, description, bank_name, account_number, account_holder } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ success: false, message: "ID đơn hàng không hợp lệ" });
+    }
+
+    const order = await Order.findById(orderId).populate("payment_method");
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+    }
+
+    const isAdmin = req.user.role === "admin";
+    if (!isAdmin && order.user_id?.toString() !== req.user._id?.toString()) {
+      return res.status(403).json({ success: false, message: "Bạn không có quyền thực hiện trên đơn hàng này" });
+    }
+
+    // Chỉ cho gửi yêu cầu đổi trả khi đơn ở trạng thái delivered hoặc completed (hoặc done)
+    if (!["delivered", "completed", "done"].includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Chỉ có thể gửi yêu cầu đổi trả cho đơn hàng đã giao hoặc đã hoàn thành."
+      });
+    }
+
+    // Kiểm tra thời hạn 7 ngày
+    const deliveredHistory = order.statusHistory?.slice().reverse().find(h => ["delivered", "completed", "done"].includes(h.status));
+    const referenceDate = deliveredHistory ? new Date(deliveredHistory.changedAt) : new Date(order.updatedAt || order.createdAt);
+    const diffDays = (Date.now() - referenceDate.getTime()) / (1000 * 60 * 60 * 24);
+    if (diffDays > 7) {
+      return res.status(400).json({
+        success: false,
+        message: "Đơn hàng đã quá thời hạn 7 ngày kể từ khi nhận hàng, không thể gửi yêu cầu trả hàng."
+      });
+    }
+
+    // Không cho gửi nếu đang có yêu cầu chờ duyệt hoặc đã duyệt
+    if (order.return_request && ["return_requested", "return_approved", "returning", "returned_success"].includes(order.return_request.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Đơn hàng đã có yêu cầu trả hàng đang được xử lý."
+      });
+    }
+
+    // Lấy danh sách đường dẫn ảnh đã upload
+    const imageUrls = (req.files || []).map(f => `/image/returns/${f.filename}`);
+
+    order.return_request = {
+      status: "return_requested",
+      reason: reason || "Hàng lỗi / Không giống mô tả",
+      description: description || "",
+      images: imageUrls,
+      bank_info: {
+        bank_name: bank_name || "",
+        account_number: account_number || "",
+        account_holder: account_holder || ""
+      },
+      requested_at: new Date()
+    };
+
+    order.statusHistory = order.statusHistory || [];
+    order.statusHistory.push({
+      status: order.status,
+      note: `Khách hàng gửi yêu cầu Trả hàng / Hoàn tiền: ${reason || ''}${description ? ' — ' + description : ''}`,
+      changedBy: req.user.name || "Khách hàng",
+      changedAt: new Date()
+    });
+
+    await order.save();
+
+    return res.json({
+      success: true,
+      message: "Gửi yêu cầu trả hàng / hoàn tiền thành công. Cửa hàng sẽ xét duyệt trong vòng 24h.",
+      data: order
+    });
+  } catch (error) {
+    console.error("Lỗi gửi yêu cầu trả hàng:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// ============================================================
+// PUT /admin/orders/:orderId/return-request/review — Admin Duyệt hoặc Từ chối Trả hàng
+// ============================================================
+app.put("/admin/orders/:orderId/return-request/review", checklogin, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Chỉ Admin mới có quyền thực hiện thao tác này" });
+    }
+
+    const { orderId } = req.params;
+    const { action, rejected_reason, admin_note } = req.body; // action: 'approve' | 'reject'
+
+    const order = await Order.findById(orderId).populate("payment_method");
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+    }
+
+    if (!order.return_request || order.return_request.status !== "return_requested") {
+      return res.status(400).json({ success: false, message: "Đơn hàng không có yêu cầu trả hàng đang chờ duyệt" });
+    }
+
+    order.statusHistory = order.statusHistory || [];
+
+    if (action === "approve") {
+      order.return_request.status = "return_approved";
+      order.return_request.admin_note = admin_note || "Chấp thuận yêu cầu trả hàng. Vui lòng gửi hàng về cửa hàng theo hướng dẫn.";
+      order.return_request.resolved_at = new Date();
+
+      order.statusHistory.push({
+        status: order.status,
+        note: `[Duyệt trả hàng] Admin đã chấp thuận yêu cầu đổi trả: ${admin_note || 'Đủ điều kiện'}`,
+        changedBy: req.user.name || "Admin",
+        changedAt: new Date()
+      });
+    } else if (action === "reject") {
+      order.return_request.status = "return_rejected";
+      order.return_request.rejected_reason = rejected_reason || "Yêu cầu không đủ điều kiện trả hàng";
+      order.return_request.resolved_at = new Date();
+
+      order.statusHistory.push({
+        status: order.status,
+        note: `[Từ chối trả hàng] Lý do: ${rejected_reason || 'Không đủ điều kiện'}`,
+        changedBy: req.user.name || "Admin",
+        changedAt: new Date()
+      });
+    } else {
+      return res.status(400).json({ success: false, message: "Hành động không hợp lệ (action phải là 'approve' hoặc 'reject')" });
+    }
+
+    await order.save();
+    return res.json({
+      success: true,
+      message: action === "approve" ? "Đã duyệt yêu cầu trả hàng" : "Đã từ chối yêu cầu trả hàng",
+      data: order
+    });
+  } catch (error) {
+    console.error("Lỗi duyệt yêu cầu trả hàng:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// ============================================================
+// PUT /admin/orders/:orderId/return-request/receive-goods — Admin Xác nhận đã nhận hàng hoàn về kho
+// ============================================================
+app.put("/admin/orders/:orderId/return-request/receive-goods", checklogin, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Chỉ Admin mới có quyền thực hiện thao tác này" });
+    }
+
+    const { orderId } = req.params;
+    const order = await Order.findById(orderId).populate("payment_method");
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+    }
+
+    if (!order.return_request || !["return_approved", "returning"].includes(order.return_request.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Chỉ có thể xác nhận nhận hàng khi yêu cầu trả hàng đã được duyệt."
+      });
+    }
+
+    // Hoàn lại tồn kho cho từng sản phẩm trong đơn
+    const orderItems = await OrderItem.find({ order_id: order._id });
+    for (const item of orderItems) {
+      if (item.variants_id && item.Quantity) {
+        await ProductVariantModel.findByIdAndUpdate(item.variants_id, {
+          $inc: { stock_quantity: item.Quantity }
+        });
+      }
+    }
+
+    order.return_request.status = "returned_success";
+    order.return_request.resolved_at = new Date();
+
+    // Nếu đã thanh toán -> chuyển sang refund_pending để Admin quyết toán trả tiền
+    // Nếu là COD hoặc chưa thanh toán -> chuyển canceled
+    const isPaid = order.payment_status === "paid";
+    order.payment_status = isPaid ? "refund_pending" : "canceled";
+
+    order.statusHistory = order.statusHistory || [];
+    order.statusHistory.push({
+      status: order.status,
+      note: `[Đã nhận hàng hoàn] Nhập kho thành công, tự động hoàn tồn kho sản phẩm.${isPaid ? ' Chuyển thanh toán sang Chờ hoàn tiền (refund_pending).' : ''}`,
+      changedBy: req.user.name || "Admin",
+      changedAt: new Date()
+    });
+
+    await order.save();
+    return res.json({
+      success: true,
+      message: "Đã xác nhận nhận hàng hoàn về kho và tự động hoàn lại tồn kho sản phẩm.",
+      data: order
+    });
+  } catch (error) {
+    console.error("Lỗi xác nhận nhận hàng hoàn:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// ============================================================
+// PUT /admin/orders/:orderId/process-refund — Admin Quyết toán Hoàn tiền
+// ============================================================
+app.put("/admin/orders/:orderId/process-refund", checklogin, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Chỉ Admin mới có quyền thực hiện thao tác này" });
+    }
+
+    const { orderId } = req.params;
+    const { refund_method, refund_transaction_code, refund_amount, bank_name, account_number, account_holder, note } = req.body;
+
+    const order = await Order.findById(orderId).populate("payment_method");
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+    }
+
+    if (!["refund_pending", "paid"].includes(order.payment_status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Đơn hàng đang ở trạng thái thanh toán "${order.payment_status}", không thuộc diện hoàn tiền.`
+      });
+    }
+
+    const finalAmount = Number(refund_amount) || order.total_amount;
+    order.payment_status = "refunded";
+    order.refund_info = {
+      bank_name: bank_name || order.return_request?.bank_info?.bank_name || order.refund_info?.bank_name || "",
+      account_number: account_number || order.return_request?.bank_info?.account_number || order.refund_info?.account_number || "",
+      account_holder: account_holder || order.return_request?.bank_info?.account_holder || order.refund_info?.account_holder || "",
+      refund_method: refund_method || "bank_transfer",
+      refund_amount: finalAmount,
+      refund_transaction_code: refund_transaction_code || `REF_${Date.now()}`,
+      refunded_at: new Date(),
+      refunded_by: req.user.name || "Admin",
+      note: note || ""
+    };
+
+    order.statusHistory = order.statusHistory || [];
+    order.statusHistory.push({
+      status: order.status,
+      note: `[Hoàn tiền thành công] Đã hoàn ${finalAmount.toLocaleString('vi-VN')}₫ qua ${refund_method === 'vnpay' ? 'VNPay' : 'Chuyển khoản'}. Mã GD: ${order.refund_info.refund_transaction_code}${note ? ' — ' + note : ''}`,
+      changedBy: req.user.name || "Admin",
+      changedAt: new Date()
+    });
+
+    await order.save();
+    return res.json({
+      success: true,
+      message: `Đã hoàn tất quyết toán hoàn tiền ${finalAmount.toLocaleString('vi-VN')}₫ cho khách hàng.`,
+      data: order
+    });
+  } catch (error) {
+    console.error("Lỗi xử lý hoàn tiền:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
   }
 });
@@ -5298,14 +5602,22 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
     const wasCompleted = currentStatus === 'completed';
     let paymentChanged = false;
 
+    const PAYMENT_STATUS_LABELS_VI = {
+      unpaid: 'Chưa thanh toán',
+      paid: 'Đã thanh toán',
+      refund_pending: 'Chờ hoàn tiền',
+      refunded: 'Đã hoàn tiền',
+      canceled: 'Đã hủy thanh toán'
+    };
+
     // Cập nhật payment_status nếu được gửi lên
-    if (payment_status && ['unpaid', 'paid'].includes(payment_status)) {
+    if (payment_status && ['unpaid', 'paid', 'refund_pending', 'refunded', 'canceled'].includes(payment_status)) {
       if (order.payment_status !== payment_status) {
         order.payment_status = payment_status;
         paymentChanged = true;
         order.statusHistory.push({
           status: order.status,
-          note: `[Thanh toán] ${payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}${note ? ': ' + note : ''}`,
+          note: `[Thanh toán] ${PAYMENT_STATUS_LABELS_VI[payment_status] || payment_status}${note ? ': ' + note : ''}`,
           changedBy: adminName,
           changedAt: new Date()
         });
@@ -5405,12 +5717,20 @@ app.put("/admin/orders/:id/payment-status", checklogin, checkAdmin, async (req, 
   try {
     const { payment_status, note } = req.body;
     if (!payment_status) return res.status(400).json({ success: false, message: "Thiếu payment_status" });
-    if (!['unpaid', 'paid'].includes(payment_status)) {
-      return res.status(400).json({ success: false, message: "payment_status chỉ được là 'unpaid' hoặc 'paid'" });
+    if (!['unpaid', 'paid', 'refund_pending', 'refunded', 'canceled'].includes(payment_status)) {
+      return res.status(400).json({ success: false, message: "payment_status không hợp lệ" });
     }
 
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+
+    const PAYMENT_STATUS_LABELS_VI = {
+      unpaid: 'Chưa thanh toán',
+      paid: 'Đã thanh toán',
+      refund_pending: 'Chờ hoàn tiền',
+      refunded: 'Đã hoàn tiền',
+      canceled: 'Đã hủy thanh toán'
+    };
 
     const wasCompleted = order.status === 'completed';
     const adminName = req.user?.name || req.user?.email || 'Admin';
@@ -5418,7 +5738,7 @@ app.put("/admin/orders/:id/payment-status", checklogin, checkAdmin, async (req, 
     order.statusHistory = order.statusHistory || [];
     order.statusHistory.push({
       status: order.status,
-      note: `[Thanh toán] ${payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}${note ? ': ' + note : ''}`,
+      note: `[Thanh toán] ${PAYMENT_STATUS_LABELS_VI[payment_status] || payment_status}${note ? ': ' + note : ''}`,
       changedBy: adminName,
       changedAt: new Date()
     });
@@ -8036,7 +8356,8 @@ const paymentReturn = async (req, res) => {
 
           // Cập nhật trạng thái thanh toán
           order.payment_status = "paid";
-          order.status = "preparing";
+          order.status = "pending";
+          order.payment_method = new mongoose.Types.ObjectId("6a3ea04fd27f601bd29ea06a");
 
           // Cập nhật lại số lượng sản phẩm tồn kho sau khi mua hàng
           const orderItems = await OrderItem.find({ order_id: order._id });

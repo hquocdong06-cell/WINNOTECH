@@ -6,6 +6,7 @@ import { useDispatch } from 'react-redux'
 import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
 import { userVoucherAPI } from '../services/apiService'
+import { RotateCcw, AlertTriangle, CheckCircle2, Image as ImageIcon, X, RefreshCw, Upload, DollarSign } from 'lucide-react'
 
 const formatPrice = (price) => {
   if (!price && price !== 0) return 'Liên hệ'
@@ -13,6 +14,62 @@ const formatPrice = (price) => {
 }
 
 import { API_BASE as API_URL } from '../services/apiService';
+
+const RETURN_REASONS = [
+  { key: 'damaged', label: 'Sản phẩm bị hư hỏng / bể vỡ khi nhận' },
+  { key: 'defective', label: 'Sản phẩm lỗi kỹ thuật / không hoạt động' },
+  { key: 'wrong_item', label: 'Giao sai sản phẩm / sai mẫu mã, màu sắc' },
+  { key: 'not_as_described', label: 'Sản phẩm không đúng với mô tả / hình ảnh' },
+  { key: 'missing_parts', label: 'Thiếu linh kiện, phụ kiện hoặc quà tặng kèm' },
+  { key: 'other', label: 'Lý do khác' }
+];
+
+const RETURN_STATUS_CONFIG = {
+  none: null,
+  return_requested: {
+    label: 'Chờ duyệt trả hàng',
+    desc: 'Shop đang xử lý yêu cầu đổi trả của bạn',
+    badgeClass: 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+  },
+  return_approved: {
+    label: 'Đã chấp thuận trả hàng',
+    desc: 'Shop đã duyệt, vui lòng gửi hàng theo hướng dẫn',
+    badgeClass: 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+  },
+  return_rejected: {
+    label: 'Bị từ chối trả hàng',
+    desc: 'Yêu cầu trả hàng không được chấp thuận',
+    badgeClass: 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+  },
+  returning: {
+    label: 'Đang gửi trả hàng',
+    desc: 'Hàng đang trên đường gửi về kho shop',
+    badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+  },
+  returned_success: {
+    label: 'Đã nhận hàng trả & hoàn tất',
+    desc: 'Shop đã nhận lại hàng và kiểm tra hoàn tất',
+    badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+  }
+};
+
+const isOrderEligibleForReturn = (order) => {
+  if (!order) return false;
+  const status = order.status;
+  const isDelivered = ['delivered', 'completed', 'done'].includes(status);
+  if (!isDelivered) return false;
+
+  // Nếu đã có yêu cầu đổi trả thì không tạo mới
+  if (order.return_request && order.return_request.status && order.return_request.status !== 'none') {
+    return false;
+  }
+
+  // Kiểm tra thời hạn 7 ngày
+  const baseDateStr = order.rawOrder?.delivered_at || order.rawOrder?.updatedAt || order.rawOrder?.createdAt || order.createdAt;
+  if (!baseDateStr) return true;
+  const daysDiff = (Date.now() - new Date(baseDateStr).getTime()) / (1000 * 60 * 60 * 24);
+  return daysDiff <= 7;
+};
 
 export default function Profile() {
   const navigate = useNavigate()
@@ -75,9 +132,110 @@ export default function Profile() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
 
   // ── Cancel confirm modal ──
-  const [cancelModal, setCancelModal] = useState(null) // { orderId, orderCode }
+  const [cancelModal, setCancelModal] = useState(null) // { orderId, orderCode, isPaid }
   const [cancelReason, setCancelReason] = useState('')
+  const [cancelBankName, setCancelBankName] = useState('')
+  const [cancelAccountNumber, setCancelAccountNumber] = useState('')
+  const [cancelAccountHolder, setCancelAccountHolder] = useState('')
   const [cancelSubmitting, setCancelSubmitting] = useState(false)
+
+  // ── Return request modal ──
+  const [returnRequestModal, setReturnRequestModal] = useState(null) // { orderId, orderCode, total }
+  const [returnReason, setReturnReason] = useState('damaged')
+  const [returnDescription, setReturnDescription] = useState('')
+  const [returnImages, setReturnImages] = useState([])
+  const [returnImagePreviews, setReturnImagePreviews] = useState([])
+  const [returnBankName, setReturnBankName] = useState('')
+  const [returnAccountNumber, setReturnAccountNumber] = useState('')
+  const [returnAccountHolder, setReturnAccountHolder] = useState('')
+  const [returnSubmitting, setReturnSubmitting] = useState(false)
+
+  const handleReturnImageChange = (e) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length + returnImages.length > 5) {
+      toast.error('Chỉ được đính kèm tối đa 5 hình ảnh bằng chứng', { position: 'bottom-right' })
+      return
+    }
+    const validFiles = []
+    const validPreviews = []
+    for (const f of files) {
+      if (!f.type.startsWith('image/')) {
+        toast.error(`Tệp "${f.name}" không phải hình ảnh hợp lệ`, { position: 'bottom-right' })
+        continue
+      }
+      if (f.size > 5 * 1024 * 1024) {
+        toast.error(`Ảnh "${f.name}" vượt quá dung lượng 5MB`, { position: 'bottom-right' })
+        continue
+      }
+      validFiles.push(f)
+      validPreviews.push(URL.createObjectURL(f))
+    }
+    setReturnImages(prev => [...prev, ...validFiles])
+    setReturnImagePreviews(prev => [...prev, ...validPreviews])
+  }
+
+  const handleRemoveReturnImage = (index) => {
+    if (returnImagePreviews[index]) URL.revokeObjectURL(returnImagePreviews[index])
+    setReturnImages(prev => prev.filter((_, i) => i !== index))
+    setReturnImagePreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const closeReturnRequestModal = () => {
+    returnImagePreviews.forEach(u => URL.revokeObjectURL(u))
+    setReturnRequestModal(null)
+    setReturnReason('damaged')
+    setReturnDescription('')
+    setReturnImages([])
+    setReturnImagePreviews([])
+    setReturnBankName('')
+    setReturnAccountNumber('')
+    setReturnAccountHolder('')
+  }
+
+  const handleReturnSubmit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault()
+    if (!returnDescription.trim()) {
+      toast.error('Vui lòng nhập mô tả chi tiết lý do và tình trạng sản phẩm', { position: 'bottom-right' })
+      return
+    }
+    if (!returnBankName.trim() || !returnAccountNumber.trim() || !returnAccountHolder.trim()) {
+      toast.error('Vui lòng điền đầy đủ thông tin tài khoản ngân hàng để nhận tiền hoàn', { position: 'bottom-right' })
+      return
+    }
+    if (returnImages.length === 0) {
+      toast.error('Vui lòng đính kèm ít nhất 1 hình ảnh bằng chứng sản phẩm', { position: 'bottom-right' })
+      return
+    }
+
+    setReturnSubmitting(true)
+    try {
+      const formData = new FormData()
+      formData.append('reason', returnReason)
+      formData.append('description', returnDescription)
+      formData.append('bank_name', returnBankName)
+      formData.append('account_number', returnAccountNumber)
+      formData.append('account_holder', returnAccountHolder)
+      returnImages.forEach(img => formData.append('images', img))
+
+      const res = await fetch(`${API_URL}/orders/${returnRequestModal.orderId}/return-request`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success(data.message || 'Gửi yêu cầu trả hàng thành công! Shop sẽ kiểm tra trong 24h.', { position: 'bottom-right' })
+        closeReturnRequestModal()
+        fetchOrders()
+      } else {
+        toast.error(data.message || 'Không thể gửi yêu cầu trả hàng', { position: 'bottom-right' })
+      }
+    } catch (err) {
+      toast.error('Lỗi kết nối khi gửi yêu cầu trả hàng', { position: 'bottom-right' })
+    } finally {
+      setReturnSubmitting(false)
+    }
+  }
 
   // ── Thống kê tài khoản ──
   const [stats, setStats] = useState({ totalOrders: 0, totalSpending: 0, totalFavorites: 0 })
@@ -264,7 +422,21 @@ export default function Profile() {
       },
       payment_status: order.payment_status || 'unpaid',
       shipping: { carrier: '—', tracking: order.tracking_code || '—' },
-      timeline: [{ time: formatDate(order.createdAt), event: 'Đặt hàng thành công', done: true }]
+      timeline: (order.statusHistory && order.statusHistory.length > 0)
+        ? order.statusHistory.map(h => ({
+            time: formatDate(h.changed_at),
+            event: h.note || `Trạng thái: ${h.status}`,
+            done: true
+          }))
+        : [{ time: formatDate(order.createdAt), event: 'Đặt hàng thành công', done: true }],
+      return_request: order.return_request,
+      refund_info: order.refund_info,
+      cancel_reason: order.cancel_reason,
+      statusHistory: order.statusHistory,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      delivered_at: order.delivered_at,
+      rawOrder: order
     }
   }
 
@@ -291,6 +463,13 @@ export default function Profile() {
       itemsList,
       voucherCode: o.voucher_code || '',
       voucherValue: o.voucher_value || 0,
+      return_request: o.return_request,
+      refund_info: o.refund_info,
+      cancel_reason: o.cancel_reason,
+      statusHistory: o.statusHistory,
+      createdAt: o.createdAt,
+      updatedAt: o.updatedAt,
+      delivered_at: o.delivered_at,
       rawOrder: o
     }
   })
@@ -341,8 +520,14 @@ export default function Profile() {
 
   const filteredOrders = orders_for_table.filter(o => {
     // 1. Lọc theo tab trạng thái
-    const passStatus = orderFilter === 'all' || o.status === orderFilter;
-    if (!passStatus) return false;
+    if (orderFilter === 'returns') {
+      if (!o.return_request || !o.return_request.status || o.return_request.status === 'none') return false;
+    } else if (orderFilter === 'refund_pending') {
+      if (o.payment_status !== 'refund_pending') return false;
+    } else {
+      const passStatus = orderFilter === 'all' || o.status === orderFilter;
+      if (!passStatus) return false;
+    }
 
     // 2. Tra cứu mã đơn hàng (khắt khe, phải khớp chính xác hoàn toàn từ chữ)
     const search = orderSearchCode.trim();
@@ -670,10 +855,21 @@ export default function Profile() {
                 <div className="odm-info-row"><span className="odm-info-label">Trạng thái</span><span className={`order-status status-${detail.status}`} style={{fontSize:'11px'}}>{statusMap[detail.status]}</span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Trạng thái thanh toán</span><span style={{
                   fontSize:'11px', fontWeight:700, padding:'3px 10px', borderRadius:'999px',
-                  background: 'rgba(255,255,255,0.04)',
-                  color: '#9ca3af',
-                  border: '1px solid #4b5563'
-                }}>{detail.payment_status === 'paid' ? '✔ Đã thanh toán' : '⧘ Chưa thanh toán'}</span></div>
+                  background: detail.payment_status === 'paid' ? 'rgba(16, 185, 129, 0.15)' :
+                              detail.payment_status === 'refund_pending' ? 'rgba(245, 158, 11, 0.15)' :
+                              detail.payment_status === 'refunded' ? 'rgba(168, 85, 247, 0.15)' :
+                              detail.payment_status === 'canceled' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.04)',
+                  color: detail.payment_status === 'paid' ? '#34d399' :
+                         detail.payment_status === 'refund_pending' ? '#fbbf24' :
+                         detail.payment_status === 'refunded' ? '#c084fc' :
+                         detail.payment_status === 'canceled' ? '#f87171' : '#9ca3af',
+                  border: '1px solid currentColor'
+                }}>
+                  {detail.payment_status === 'paid' ? '✔ Đã thanh toán' :
+                   detail.payment_status === 'refund_pending' ? '⏳ Chờ hoàn tiền' :
+                   detail.payment_status === 'refunded' ? '↩ Đã hoàn tiền' :
+                   detail.payment_status === 'canceled' ? '✕ Đã hủy' : '⧘ Chưa thanh toán'}
+                </span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Phương thức thanh toán</span><span className="odm-info-value">{detail.payMethod}</span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Mã vận đơn</span><span className="odm-info-value odm-tracking">{detail.trackingCode}</span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Dự kiến giao</span><span className="odm-info-value">{detail.estimatedDelivery}</span></div>
@@ -759,6 +955,146 @@ export default function Profile() {
               </div>
             </div>
 
+            {/* ── SECTION 4B: THÔNG TIN HOÀN TIỀN (NẾU CÓ) ── */}
+            {(detail.payment_status === 'refund_pending' || detail.payment_status === 'refunded') && (
+              <div className="odm-section" style={{
+                background: detail.payment_status === 'refunded' ? 'rgba(168, 85, 247, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+                border: `1px solid ${detail.payment_status === 'refunded' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                borderRadius: '12px',
+                padding: '14px 16px'
+              }}>
+                <div className="odm-section-title" style={{ color: detail.payment_status === 'refunded' ? '#d8b4fe' : '#fbbf24', margin: 0, paddingBottom: '8px' }}>
+                  <DollarSign className="w-4 h-4" />
+                  {detail.payment_status === 'refunded' ? 'Đã quyết toán hoàn tiền thành công' : 'Đơn hàng đang chờ hoàn tiền'}
+                </div>
+                <div style={{ fontSize: '12px', color: '#ccc', marginTop: '6px', lineHeight: '1.5' }}>
+                  {detail.payment_status === 'refund_pending' ? (
+                    <div>
+                      Hệ thống đã tiếp nhận yêu cầu hoàn tiền cho đơn hàng này. Bộ phận kế toán WINNOTECH đang tiến hành xử lý hoàn trả tiền vào tài khoản ngân hàng của bạn.
+                      {detail.refund_info?.account_number && (
+                        <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid #333' }}>
+                          <div><strong>Ngân hàng thụ hưởng:</strong> {detail.refund_info.bank_name || '—'}</div>
+                          <div><strong>Số tài khoản:</strong> {detail.refund_info.account_number}</div>
+                          <div><strong>Chủ tài khoản:</strong> {detail.refund_info.account_holder}</div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', marginTop: '6px' }}>
+                        <div><strong>Số tiền đã hoàn:</strong> <span style={{ color: '#d8b4fe', fontWeight: 700 }}>{formatPrice(detail.refund_info?.refund_amount)}</span></div>
+                        <div><strong>Hình thức hoàn:</strong> {detail.refund_info?.refund_method === 'vnpay' ? 'Cổng thanh toán VNPay' : 'Chuyển khoản ngân hàng'}</div>
+                        {detail.refund_info?.refund_transaction_code && (
+                          <div><strong>Mã GD hoàn tiền:</strong> <code style={{ color: '#fff', background: '#222', padding: '2px 6px', borderRadius: '4px' }}>{detail.refund_info.refund_transaction_code}</code></div>
+                        )}
+                        {detail.refund_info?.refunded_at && (
+                          <div><strong>Thời gian:</strong> {formatDate(detail.refund_info.refunded_at)}</div>
+                        )}
+                      </div>
+                      {detail.refund_info?.note && (
+                        <div style={{ marginTop: '8px', fontSize: '11px', color: '#9ca3af' }}>
+                          <strong>Ghi chú từ kế toán:</strong> {detail.refund_info.note}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── SECTION 4C: THÔNG TIN YÊU CẦU TRẢ HÀNG (NẾU CÓ) ── */}
+            {detail.return_request && detail.return_request.status && detail.return_request.status !== 'none' && (
+              <div className="odm-section" style={{
+                background: 'rgba(59, 130, 246, 0.06)',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+                borderRadius: '12px',
+                padding: '14px 16px'
+              }}>
+                <div className="odm-section-title" style={{ color: '#93c5fd', margin: 0, paddingBottom: '8px' }}>
+                  <RotateCcw className="w-4 h-4" />
+                  Chi tiết Yêu cầu Đổi trả hàng
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '8px 0 12px', flexWrap: 'wrap' }}>
+                  <span style={{
+                    fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '999px',
+                    background: detail.return_request.status === 'return_approved' ? 'rgba(34, 197, 94, 0.2)' :
+                                detail.return_request.status === 'return_rejected' ? 'rgba(239, 68, 68, 0.2)' :
+                                detail.return_request.status === 'returned_success' ? 'rgba(16, 185, 129, 0.2)' :
+                                'rgba(168, 85, 247, 0.2)',
+                    color: detail.return_request.status === 'return_approved' ? '#4ade80' :
+                           detail.return_request.status === 'return_rejected' ? '#f87171' :
+                           detail.return_request.status === 'returned_success' ? '#34d399' :
+                           '#c084fc',
+                    border: '1px solid currentColor'
+                  }}>
+                    {RETURN_STATUS_CONFIG[detail.return_request.status]?.label || detail.return_request.status}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                    Gửi yêu cầu lúc: {formatDate(detail.return_request.requested_at)}
+                  </span>
+                </div>
+
+                <div className="odm-info-grid">
+                  <div className="odm-info-row odm-info-row--full">
+                    <span className="odm-info-label">Lý do trả hàng:</span>
+                    <span className="odm-info-value" style={{ fontWeight: 600, color: '#fff' }}>
+                      {RETURN_REASONS.find(r => r.key === detail.return_request.reason)?.label || detail.return_request.reason}
+                    </span>
+                  </div>
+                  <div className="odm-info-row odm-info-row--full">
+                    <span className="odm-info-label">Mô tả chi tiết:</span>
+                    <span className="odm-info-value" style={{ whiteSpace: 'pre-wrap' }}>
+                      {detail.return_request.description || '—'}
+                    </span>
+                  </div>
+                  {detail.return_request.bank_info?.account_number && (
+                    <div className="odm-info-row odm-info-row--full">
+                      <span className="odm-info-label">Tài khoản nhận tiền hoàn:</span>
+                      <span className="odm-info-value">
+                        {detail.return_request.bank_info.bank_name} — <strong>{detail.return_request.bank_info.account_number}</strong> ({detail.return_request.bank_info.account_holder})
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Hình ảnh bằng chứng */}
+                {detail.return_request.images && detail.return_request.images.length > 0 && (
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '6px' }}>Hình ảnh bằng chứng đính kèm:</div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {detail.return_request.images.map((imgUrl, imgIdx) => {
+                        const fullImg = imgUrl.startsWith('http') ? imgUrl : `${API_URL}${imgUrl}`;
+                        return (
+                          <a key={imgIdx} href={fullImg} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={fullImg}
+                              alt="Bằng chứng trả hàng"
+                              style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #3b3b4f' }}
+                            />
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Phản hồi từ Shop nếu bị từ chối */}
+                {detail.return_request.status === 'return_rejected' && detail.return_request.rejected_reason && (
+                  <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.35)', borderRadius: '8px', color: '#fca5a5', fontSize: '12px' }}>
+                    <strong>Lý do từ chối từ Shop:</strong> {detail.return_request.rejected_reason}
+                  </div>
+                )}
+
+                {/* Hướng dẫn từ Shop nếu đã duyệt */}
+                {detail.return_request.admin_note && (
+                  <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.35)', borderRadius: '8px', color: '#bfdbfe', fontSize: '12px' }}>
+                    <strong>Thông báo / Hướng dẫn từ Shop:</strong> {detail.return_request.admin_note}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ── SECTION 5: VẬN CHUYỂN + FLOW ── */}
             <div className="odm-section">
               <div className="odm-section-title">
@@ -816,9 +1152,38 @@ export default function Profile() {
                     {detail.isReviewed ? 'Đã đánh giá' : 'Đánh giá'}
                   </button>
                 )}
-                {detail.status === 'pending' && (
-                  <button className="odm-action-btn odm-action-btn--cancel">
+                {(detail.status === 'pending' || detail.status === 'preparing') && (
+                  <button
+                    className="odm-action-btn odm-action-btn--cancel"
+                    onClick={() => {
+                      onClose()
+                      setCancelModal({
+                        orderId: detail._id || detail.id,
+                        orderCode: detail.id,
+                        isPaid: detail.payment_status === 'paid'
+                      })
+                      setCancelReason('')
+                      setCancelBankName('')
+                      setCancelAccountNumber('')
+                      setCancelAccountHolder('')
+                    }}
+                  >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Hủy đơn
+                  </button>
+                )}
+                {isOrderEligibleForReturn(detail) && (
+                  <button
+                    className="odm-action-btn odm-action-btn--return"
+                    onClick={() => {
+                      onClose()
+                      setReturnRequestModal({
+                        orderId: detail._id || detail.id,
+                        orderCode: detail.id,
+                        total: detail.payment?.total
+                      })
+                    }}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> Yêu cầu trả hàng / hoàn tiền
                   </button>
                 )}
                 {['shipped','delivering','completed'].includes(detail.status) && (
@@ -1111,7 +1476,7 @@ export default function Profile() {
       {/* ── CANCEL CONFIRM MODAL ── */}
       {cancelModal && (
         <div style={{ position:'fixed',inset:0,zIndex:99999,background:'rgba(0,0,0,0.8)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px' }}>
-          <div style={{ background:'#181824',border:'1px solid #3b3b4f',borderRadius:'20px',padding:'28px',width:'100%',maxWidth:'480px',color:'#fff',boxShadow:'0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+          <div style={{ background:'#181824',border:'1px solid #3b3b4f',borderRadius:'20px',padding:'28px',width:'100%',maxWidth:'500px',maxHeight:'90vh',overflowY:'auto',color:'#fff',boxShadow:'0 25px 50px -12px rgba(0,0,0,0.5)' }}>
             
             {/* Header */}
             <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingBottom:'16px',borderBottom:'1px solid #2d2d3f',marginBottom:'20px' }}>
@@ -1125,6 +1490,50 @@ export default function Profile() {
               </div>
               <button onClick={() => setCancelModal(null)} style={{ background:'#252536',border:'none',borderRadius:'50%',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'16px',cursor:'pointer',color:'#aaa' }}>✕</button>
             </div>
+
+            {/* Thông báo nếu đã thanh toán */}
+            {cancelModal.isPaid && (
+              <div style={{ padding:'12px 14px',background:'rgba(245, 158, 11, 0.12)',border:'1px solid rgba(245, 158, 11, 0.35)',borderRadius:'12px',marginBottom:'18px' }}>
+                <div style={{ fontSize:'13px',fontWeight:700,color:'#fbbf24',display:'flex',alignItems:'center',gap:'6px',marginBottom:'4px' }}>
+                  <DollarSign className="w-4 h-4 text-amber-400" /> Đơn hàng này đã thanh toán
+                </div>
+                <div style={{ fontSize:'12px',color:'#d1d5db',lineHeight:'1.4' }}>
+                  Sau khi hủy đơn, WINNOTECH sẽ hoàn lại 100% tiền qua chuyển khoản ngân hàng. Vui lòng cung cấp thông tin tài khoản nhận hoàn tiền:
+                </div>
+                <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginTop:'12px' }}>
+                  <div style={{ gridColumn:'span 2' }}>
+                    <label style={{ fontSize:'11px',color:'#9ca3af',display:'block',marginBottom:'4px' }}>Tên ngân hàng (VD: Vietcombank, MB Bank, ACB...) <span style={{ color:'#ef4444' }}>*</span></label>
+                    <input
+                      type="text"
+                      placeholder="Nhập tên ngân hàng"
+                      value={cancelBankName}
+                      onChange={e => setCancelBankName(e.target.value)}
+                      style={{ width:'100%',padding:'8px 10px',background:'#161622',border:'1px solid #3d3d56',borderRadius:'8px',fontSize:'12px',color:'#fff',outline:'none',boxSizing:'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize:'11px',color:'#9ca3af',display:'block',marginBottom:'4px' }}>Số tài khoản ngân hàng <span style={{ color:'#ef4444' }}>*</span></label>
+                    <input
+                      type="text"
+                      placeholder="Nhập số tài khoản"
+                      value={cancelAccountNumber}
+                      onChange={e => setCancelAccountNumber(e.target.value)}
+                      style={{ width:'100%',padding:'8px 10px',background:'#161622',border:'1px solid #3d3d56',borderRadius:'8px',fontSize:'12px',color:'#fff',outline:'none',boxSizing:'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize:'11px',color:'#9ca3af',display:'block',marginBottom:'4px' }}>Tên chủ tài khoản (in hoa) <span style={{ color:'#ef4444' }}>*</span></label>
+                    <input
+                      type="text"
+                      placeholder="NGUYEN VAN A"
+                      value={cancelAccountHolder}
+                      onChange={e => setCancelAccountHolder(e.target.value.toUpperCase())}
+                      style={{ width:'100%',padding:'8px 10px',background:'#161622',border:'1px solid #3d3d56',borderRadius:'8px',fontSize:'12px',color:'#fff',outline:'none',boxSizing:'border-box' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Reason */}
             <div style={{ marginBottom:'20px' }}>
@@ -1159,32 +1568,215 @@ export default function Profile() {
               <button
                 disabled={cancelSubmitting}
                 onClick={async () => {
+                  if (cancelModal.isPaid && (!cancelBankName.trim() || !cancelAccountNumber.trim() || !cancelAccountHolder.trim())) {
+                    toast.error('Vui lòng điền thông tin tài khoản ngân hàng để nhận tiền hoàn!', { position: 'bottom-right' })
+                    return
+                  }
                   setCancelSubmitting(true)
                   try {
                     const res = await fetch(`${API_URL}/orders/${cancelModal.orderId}/cancel`, {
                       method: 'PUT',
                       credentials: 'include',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ reason: cancelReason })
+                      body: JSON.stringify({
+                        reason: cancelReason,
+                        bank_name: cancelBankName,
+                        account_number: cancelAccountNumber,
+                        account_holder: cancelAccountHolder
+                      })
                     })
                     const data = await res.json()
                     if (data.success) {
                       toast.success(data.message || 'Đã hủy đơn hàng thành công!', { position: 'bottom-right' })
-                      setOrders(prev => prev.map(o => (o._id === cancelModal.orderId || o.id === cancelModal.orderId) ? { ...o, status: 'cancelled' } : o))
+                      setOrders(prev => prev.map(o => (o._id === cancelModal.orderId || o.id === cancelModal.orderId)
+                        ? {
+                            ...o,
+                            status: 'cancelled',
+                            payment_status: cancelModal.isPaid ? 'refund_pending' : (o.payment_status === 'paid' ? 'refund_pending' : 'canceled')
+                          }
+                        : o
+                      ))
                       setCancelModal(null)
+                      fetchOrders()
                     } else {
                       toast.error(data.message || 'Không thể hủy đơn hàng', { position: 'bottom-right' })
                     }
                   } catch {
                     toast.error('Lỗi kết nối, vui lòng thử lại', { position: 'bottom-right' })
+                  } finally {
+                    setCancelSubmitting(false)
                   }
-                  setCancelSubmitting(false)
                 }}
-                style={{ padding:'10px 24px',border:'none',borderRadius:'10px',background: cancelSubmitting ? '#555' : '#ef4444',color:'#fff',cursor: cancelSubmitting ? 'not-allowed' : 'pointer',fontWeight:700,fontSize:'13px' }}
+                style={{ padding:'10px 24px',border:'none',borderRadius:'10px',background: cancelSubmitting ? '#555' : '#ef4444',color:'#fff',cursor: cancelSubmitting ? 'not-allowed' : 'pointer',fontWeight:700,fontSize:'13px',display:'flex',alignItems:'center',gap:'6px' }}
               >
+                {cancelSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : null}
                 {cancelSubmitting ? 'Đang hủy...' : '🗑 Xác nhận hủy đơn'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── RETURN REQUEST MODAL ── */}
+      {returnRequestModal && (
+        <div style={{ position:'fixed',inset:0,zIndex:99999,background:'rgba(0,0,0,0.82)',backdropFilter:'blur(5px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px' }}>
+          <div style={{ background:'#181824',border:'1px solid #3b3b4f',borderRadius:'20px',padding:'28px',width:'100%',maxWidth:'560px',maxHeight:'90vh',overflowY:'auto',color:'#fff',boxShadow:'0 25px 50px -12px rgba(0,0,0,0.6)' }}>
+            
+            {/* Header */}
+            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingBottom:'16px',borderBottom:'1px solid #2d2d3f',marginBottom:'18px' }}>
+              <div>
+                <h3 style={{ fontSize:'18px',fontWeight:700,margin:0,color:'#c084fc',display:'flex',alignItems:'center',gap:'8px' }}>
+                  <RotateCcw className="w-5 h-5 text-purple-400" /> Yêu cầu Trả hàng & Hoàn tiền
+                </h3>
+                <span style={{ fontSize:'12px',color:'#aaa',marginTop:'3px',display:'block' }}>
+                  Đơn hàng #{returnRequestModal.orderCode} — Thời hạn đổi trả trong vòng 7 ngày
+                </span>
+              </div>
+              <button onClick={closeReturnRequestModal} style={{ background:'#252536',border:'none',borderRadius:'50%',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'16px',cursor:'pointer',color:'#aaa' }}>✕</button>
+            </div>
+
+            <form onSubmit={handleReturnSubmit} style={{ display:'flex',flexDirection:'column',gap:'16px' }}>
+              
+              {/* Lưu ý chính sách */}
+              <div style={{ padding:'10px 14px',background:'rgba(168,85,247,0.1)',border:'1px solid rgba(168,85,247,0.25)',borderRadius:'12px',fontSize:'12px',color:'#d8b4fe',lineHeight:'1.4' }}>
+                💡 <strong>Chính sách hoàn tiền WINNOTECH:</strong> Sau khi shop duyệt và nhận lại kiện hàng, tiền sẽ được hoàn 100% về số tài khoản ngân hàng bạn cung cấp bên dưới.
+              </div>
+
+              {/* 1. Lý do trả hàng */}
+              <div>
+                <label style={{ fontSize:'13px',fontWeight:600,color:'#e5e7eb',display:'block',marginBottom:'6px' }}>
+                  1. Chọn lý do trả hàng <span style={{ color:'#ef4444' }}>*</span>
+                </label>
+                <select
+                  value={returnReason}
+                  onChange={e => setReturnReason(e.target.value)}
+                  style={{ width:'100%',padding:'10px 12px',background:'#161622',border:'1px solid #3d3d56',borderRadius:'10px',fontSize:'13px',color:'#fff',outline:'none',cursor:'pointer' }}
+                >
+                  {RETURN_REASONS.map(r => (
+                    <option key={r.key} value={r.key}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 2. Mô tả chi tiết */}
+              <div>
+                <label style={{ fontSize:'13px',fontWeight:600,color:'#e5e7eb',display:'block',marginBottom:'6px' }}>
+                  2. Mô tả chi tiết vấn đề / tình trạng sản phẩm <span style={{ color:'#ef4444' }}>*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Mô tả cụ thể tình trạng hàng hóa, lỗi gặp phải hoặc lý do bạn không hài lòng..."
+                  value={returnDescription}
+                  onChange={e => setReturnDescription(e.target.value)}
+                  style={{ width:'100%',padding:'10px 12px',background:'#161622',border:'1px solid #3d3d56',borderRadius:'10px',fontSize:'13px',color:'#fff',outline:'none',resize:'vertical',boxSizing:'border-box' }}
+                />
+              </div>
+
+              {/* 3. Tải ảnh bằng chứng */}
+              <div>
+                <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'6px' }}>
+                  <label style={{ fontSize:'13px',fontWeight:600,color:'#e5e7eb' }}>
+                    3. Hình ảnh / Video bằng chứng lỗi (tối đa 5 ảnh) <span style={{ color:'#ef4444' }}>*</span>
+                  </label>
+                  <span style={{ fontSize:'11px',color:'#9ca3af' }}>{returnImages.length}/5 ảnh</span>
+                </div>
+
+                {/* Previews */}
+                {returnImagePreviews.length > 0 && (
+                  <div style={{ display:'flex',gap:'10px',flexWrap:'wrap',marginBottom:'10px' }}>
+                    {returnImagePreviews.map((url, idx) => (
+                      <div key={idx} style={{ position:'relative',width:'70px',height:'70px',borderRadius:'8px',overflow:'hidden',border:'1px solid #4b5563' }}>
+                        <img src={url} alt="preview" style={{ width:'100%',height:'100%',objectFit:'cover' }} />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveReturnImage(idx)}
+                          style={{ position:'absolute',top:'2px',right:'2px',width:'18px',height:'18px',borderRadius:'50%',background:'rgba(0,0,0,0.7)',border:'none',color:'#fff',fontSize:'11px',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {returnImages.length < 5 && (
+                  <label style={{ display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'6px',padding:'16px',background:'#161622',border:'1px dashed #4b5563',borderRadius:'10px',cursor:'pointer',transition:'border-color 0.2s' }}>
+                    <Upload className="w-5 h-5 text-purple-400" />
+                    <span style={{ fontSize:'12px',color:'#ccc' }}>Bấm để chọn hình ảnh chụp sản phẩm (JPG, PNG, WebP &le; 5MB)</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleReturnImageChange}
+                      style={{ display:'none' }}
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* 4. Thông tin tài khoản nhận hoàn tiền */}
+              <div style={{ padding:'14px',background:'rgba(255,255,255,0.02)',border:'1px solid #33334d',borderRadius:'12px' }}>
+                <div style={{ fontSize:'13px',fontWeight:700,color:'#fff',marginBottom:'10px',display:'flex',alignItems:'center',gap:'6px' }}>
+                  <DollarSign className="w-4 h-4 text-emerald-400" /> 4. Thông tin tài khoản nhận hoàn tiền
+                </div>
+                <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px' }}>
+                  <div style={{ gridColumn:'span 2' }}>
+                    <label style={{ fontSize:'11px',color:'#9ca3af',display:'block',marginBottom:'4px' }}>Tên ngân hàng (VD: Vietcombank, MB Bank, Techcombank...) <span style={{ color:'#ef4444' }}>*</span></label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Nhập tên ngân hàng của bạn"
+                      value={returnBankName}
+                      onChange={e => setReturnBankName(e.target.value)}
+                      style={{ width:'100%',padding:'8px 10px',background:'#161622',border:'1px solid #3d3d56',borderRadius:'8px',fontSize:'12px',color:'#fff',outline:'none',boxSizing:'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize:'11px',color:'#9ca3af',display:'block',marginBottom:'4px' }}>Số tài khoản ngân hàng <span style={{ color:'#ef4444' }}>*</span></label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Nhập số tài khoản"
+                      value={returnAccountNumber}
+                      onChange={e => setReturnAccountNumber(e.target.value)}
+                      style={{ width:'100%',padding:'8px 10px',background:'#161622',border:'1px solid #3d3d56',borderRadius:'8px',fontSize:'12px',color:'#fff',outline:'none',boxSizing:'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize:'11px',color:'#9ca3af',display:'block',marginBottom:'4px' }}>Tên chủ tài khoản (in hoa) <span style={{ color:'#ef4444' }}>*</span></label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="NGUYEN VAN A"
+                      value={returnAccountHolder}
+                      onChange={e => setReturnAccountHolder(e.target.value.toUpperCase())}
+                      style={{ width:'100%',padding:'8px 10px',background:'#161622',border:'1px solid #3d3d56',borderRadius:'8px',fontSize:'12px',color:'#fff',outline:'none',boxSizing:'border-box' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div style={{ display:'flex',gap:'12px',justifyContent:'flex-end',marginTop:'8px' }}>
+                <button
+                  type="button"
+                  onClick={closeReturnRequestModal}
+                  style={{ padding:'10px 18px',border:'1px solid #444',borderRadius:'10px',background:'#252536',color:'#ddd',cursor:'pointer',fontSize:'13px',fontWeight:600 }}
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={returnSubmitting}
+                  style={{ padding:'10px 24px',border:'none',borderRadius:'10px',background: returnSubmitting ? '#555' : 'linear-gradient(135deg, #9333ea, #7e22ce)',color:'#fff',cursor: returnSubmitting ? 'not-allowed' : 'pointer',fontWeight:700,fontSize:'13px',display:'flex',alignItems:'center',gap:'6px' }}
+                >
+                  {returnSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                  {returnSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu trả hàng'}
+                </button>
+              </div>
+
+            </form>
           </div>
         </div>
       )}
@@ -1467,6 +2059,8 @@ export default function Profile() {
                       { key: 'delivered', label: 'Đã giao hàng',    count: orders_for_table.filter(o=>o.status==='delivered').length },
                       { key: 'completed', label: 'Hoàn thành',      count: orders_for_table.filter(o=>o.status==='completed'||o.status==='done').length },
                       { key: 'cancelled', label: 'Đã hủy',          count: orders_for_table.filter(o=>o.status==='cancelled'||o.status==='canceled').length },
+                      { key: 'returns',   label: 'Đổi trả hàng',     count: orders_for_table.filter(o => o.return_request && o.return_request.status && o.return_request.status !== 'none').length },
+                      { key: 'refund_pending', label: 'Chờ hoàn tiền', count: orders_for_table.filter(o => o.payment_status === 'refund_pending').length },
                       { key: 'delivery_fail',label: 'Giao thất bại',       count: orders_for_table.filter(o=>o.status==='delivery_fail').length },
                       { key: 'refund',      label: 'Hoàn tiền',            count: orders_for_table.filter(o=>o.status==='refund').length },
                     ].filter(f => f.key === 'all' || f.count > 0).map(f => (
@@ -1525,14 +2119,44 @@ export default function Profile() {
                                 #{order.code || order.id}
                               </div>
                               <div style={{display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap'}}>
+                                {/* Trạng thái thanh toán */}
                                 <span style={{
                                   fontSize:'10px', fontWeight:700, padding:'3px 10px', borderRadius:'999px',
-                                  background: 'rgba(255,255,255,0.04)',
-                                  color: '#9ca3af',
-                                  border: '1px solid #4b5563'
+                                  background: order.payment_status === 'paid' ? 'rgba(16, 185, 129, 0.15)' :
+                                              order.payment_status === 'refund_pending' ? 'rgba(245, 158, 11, 0.15)' :
+                                              order.payment_status === 'refunded' ? 'rgba(168, 85, 247, 0.15)' :
+                                              order.payment_status === 'canceled' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.04)',
+                                  color: order.payment_status === 'paid' ? '#34d399' :
+                                         order.payment_status === 'refund_pending' ? '#fbbf24' :
+                                         order.payment_status === 'refunded' ? '#c084fc' :
+                                         order.payment_status === 'canceled' ? '#f87171' : '#9ca3af',
+                                  border: '1px solid currentColor'
                                 }}>
-                                  {order.payment_status === 'paid' ? '✔ Đã thanh toán' : '⧘ Chưa thanh toán'}
+                                  {order.payment_status === 'paid' ? '✔ Đã thanh toán' :
+                                   order.payment_status === 'refund_pending' ? '⏳ Chờ hoàn tiền' :
+                                   order.payment_status === 'refunded' ? '↩ Đã hoàn tiền' :
+                                   order.payment_status === 'canceled' ? '✕ Đã hủy' : '⧘ Chưa thanh toán'}
                                 </span>
+
+                                {/* Trạng thái đổi trả hàng nếu có */}
+                                {order.return_request && order.return_request.status && order.return_request.status !== 'none' && (
+                                  <span style={{
+                                    fontSize:'10px', fontWeight:700, padding:'3px 10px', borderRadius:'999px',
+                                    background: order.return_request.status === 'return_approved' ? 'rgba(34, 197, 94, 0.15)' :
+                                                order.return_request.status === 'return_rejected' ? 'rgba(239, 68, 68, 0.15)' :
+                                                order.return_request.status === 'returned_success' ? 'rgba(16, 185, 129, 0.15)' :
+                                                'rgba(168, 85, 247, 0.15)',
+                                    color: order.return_request.status === 'return_approved' ? '#4ade80' :
+                                           order.return_request.status === 'return_rejected' ? '#f87171' :
+                                           order.return_request.status === 'returned_success' ? '#34d399' :
+                                           '#c084fc',
+                                    border: '1px solid currentColor',
+                                    display: 'inline-flex', alignItems: 'center', gap: '4px'
+                                  }}>
+                                    <RotateCcw className="w-3 h-3" />
+                                    {RETURN_STATUS_CONFIG[order.return_request.status]?.label || order.return_request.status}
+                                  </span>
+                                )}
                               </div>
                             </div>
 
@@ -1636,19 +2260,37 @@ export default function Profile() {
                                     {order.isReviewed ? 'Đã đánh giá' : 'Đánh giá'}
                                   </button>
                                 )}
-                                {(order.status === 'pending' || order.status === 'preparing') &&
+                                {isOrderEligibleForReturn(order) && (
+                                  <button
+                                    className="profile-order-btn profile-order-btn--return"
+                                    onClick={() => setReturnRequestModal({
+                                      orderId: order.id,
+                                      orderCode: order.code,
+                                      total: order.total
+                                    })}
+                                    title="Gửi yêu cầu đổi trả hàng hoặc hoàn tiền trong vòng 7 ngày"
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5" /> Yêu cầu Trả hàng / Hoàn tiền
+                                  </button>
+                                )}
+                                {(order.status === 'pending' || order.status === 'preparing') && (
                                   <button
                                     className="profile-order-btn profile-order-btn--cancel"
-                                    onClick={() => { setCancelModal({ orderId: order.id, orderCode: order.code }); setCancelReason('') }}
+                                    onClick={() => {
+                                      setCancelModal({
+                                        orderId: order.id,
+                                        orderCode: order.code,
+                                        isPaid: order.payment_status === 'paid'
+                                      });
+                                      setCancelReason('');
+                                      setCancelBankName('');
+                                      setCancelAccountNumber('');
+                                      setCancelAccountHolder('');
+                                    }}
                                   >
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Hủy đơn
                                   </button>
-                                }
-                                {order.status === 'delivery_fail' &&
-                                  <button className="profile-order-btn profile-order-btn--refund">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.53"/></svg>Yêu cầu hoàn tiền
-                                  </button>
-                                }
+                                )}
                                 <button className="profile-order-btn profile-order-btn--detail" onClick={() => handleViewOrder(order.id)}>
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết
                                 </button>

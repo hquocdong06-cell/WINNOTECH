@@ -1,7 +1,27 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, Eye, Edit, RefreshCw, FileText, Trash2, X, MessageSquare, Send, Clock, CheckCircle2, Package, MapPin, CreditCard, User, Phone, Mail, ChevronDown, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { 
+  Search, Eye, Edit, RefreshCw, FileText, Trash2, X, MessageSquare, Send, 
+  Clock, CheckCircle2, Package, MapPin, CreditCard, User, Phone, Mail, 
+  ChevronDown, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  RotateCcw, DollarSign, AlertCircle, Image as ImageIcon, ExternalLink, ArrowRight
+} from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchAdminOrders, fetchAdminOrderDetail, updateAdminOrderStatus, updateAdminOrderPaymentStatus, addAdminOrderNote, deleteAdminOrder, getOrderPdfUrl, API_BASE } from '../services/adminService';
+import { 
+  fetchAdminOrders, fetchAdminOrderDetail, updateAdminOrderStatus, 
+  updateAdminOrderPaymentStatus, addAdminOrderNote, deleteAdminOrder, 
+  getOrderPdfUrl, reviewAdminReturnRequest, confirmAdminReturnedGoods, 
+  processAdminOrderRefund, API_BASE 
+} from '../services/adminService';
+
+// ── Trạng thái đổi trả hàng (Return status labels) ──────────────────────────
+const RETURN_STATUS_LABELS = {
+  none: 'Không có',
+  return_requested: 'Chờ duyệt trả hàng',
+  return_approved: 'Đã duyệt trả hàng',
+  return_rejected: 'Đã từ chối trả hàng',
+  returning: 'Đang gửi trả hàng',
+  returned_success: 'Đã nhận hàng hoàn'
+};
 
 // ── Canonical status labels (5 bước tuần tự + cancelled ngoài luồng) ────────────
 const STATUS_LABELS = {
@@ -330,10 +350,16 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-500">Trạng thái TT</span>
-                          <span className={`font-bold ${order.payment_status === 'paid' ? 'text-green-400' : order.payment_status === 'refund_pending' ? 'text-orange-400' : 'text-yellow-400'}`}>
+                          <span className={`font-bold ${
+                            order.payment_status === 'paid' ? 'text-green-400' :
+                            order.payment_status === 'refund_pending' ? 'text-amber-400' :
+                            order.payment_status === 'refunded' ? 'text-purple-400' :
+                            order.payment_status === 'canceled' ? 'text-red-400' : 'text-yellow-400'
+                          }`}>
                             {order.payment_status === 'paid' ? '✓ Đã thanh toán' :
                              order.payment_status === 'refund_pending' ? '⏳ Chờ hoàn tiền' :
-                             'Chưa thanh toán'}
+                             order.payment_status === 'refunded' ? '↩ Đã hoàn tiền' :
+                             order.payment_status === 'canceled' ? '✕ Đã hủy thanh toán' : 'Chưa thanh toán'}
                           </span>
                         </div>
                         <div className="flex justify-between">
@@ -343,12 +369,70 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
                         {order.cancel_reason && (
                           <div className="pt-2 border-t border-[#222234]">
                             <span className="text-gray-500">Lý do hủy:</span>
-                            <p className="text-red-400 mt-1">{order.cancel_reason}</p>
+                            <p className="text-red-400 mt-1 font-semibold">{order.cancel_reason}</p>
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
+
+                  {/* THÔNG TIN TRẢ HÀNG NẾU CÓ */}
+                  {order.return_request && order.return_request.status && order.return_request.status !== 'none' && (
+                    <div className="bg-[#1b1528] border border-purple-500/30 rounded-xl p-4 space-y-2.5">
+                      <div className="text-xs font-semibold text-purple-400 uppercase tracking-wider flex items-center justify-between">
+                        <span className="flex items-center gap-1.5"><RotateCcw className="w-3.5 h-3.5" /> Yêu cầu đổi trả hàng</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300">
+                          {RETURN_STATUS_LABELS[order.return_request.status] || order.return_request.status}
+                        </span>
+                      </div>
+                      <div className="text-xs space-y-1 text-gray-300">
+                        <p><strong className="text-gray-400">Lý do:</strong> <span className="text-white font-semibold">{order.return_request.reason}</span></p>
+                        {order.return_request.description && <p><strong className="text-gray-400">Mô tả chi tiết:</strong> {order.return_request.description}</p>}
+                        {order.return_request.bank_info?.account_number && (
+                          <p><strong className="text-gray-400">STK hoàn tiền:</strong> {order.return_request.bank_info.account_holder} — {order.return_request.bank_info.account_number} ({order.return_request.bank_info.bank_name})</p>
+                        )}
+                        {order.return_request.rejected_reason && (
+                          <p className="text-rose-400"><strong>Lý do từ chối:</strong> {order.return_request.rejected_reason}</p>
+                        )}
+                        {order.return_request.admin_note && (
+                          <p className="text-blue-300"><strong>Ghi chú Admin:</strong> {order.return_request.admin_note}</p>
+                        )}
+                        {order.return_request.images?.length > 0 && (
+                          <div className="pt-2">
+                            <span className="text-gray-400 block mb-1">Ảnh minh chứng:</span>
+                            <div className="flex gap-2 flex-wrap">
+                              {order.return_request.images.map((img, i) => (
+                                <a key={i} href={img} target="_blank" rel="noreferrer" className="block w-14 h-14 rounded-lg overflow-hidden border border-[#444] hover:border-[#d4ff00]">
+                                  <img src={img} alt="" className="w-full h-full object-cover" />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* THÔNG TIN QUYẾT TOÁN HOÀN TIỀN NẾU CÓ */}
+                  {order.refund_info && (order.payment_status === 'refunded' || order.refund_info.refund_amount) && (
+                    <div className="bg-[#12241b] border border-emerald-500/30 rounded-xl p-4 space-y-2">
+                      <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Quyết toán hoàn tiền
+                      </div>
+                      <div className="text-xs space-y-1 text-gray-300">
+                        <p><strong className="text-gray-400">Số tiền hoàn:</strong> <span className="text-[#d4ff00] font-bold">{fmtPrice(order.refund_info.refund_amount || order.total_amount)}</span></p>
+                        <p><strong className="text-gray-400">Hình thức:</strong> {order.refund_info.refund_method === 'vnpay' ? 'Cổng VNPay Merchant' : 'Chuyển khoản ngân hàng'}</p>
+                        <p><strong className="text-gray-400">Mã giao dịch:</strong> <span className="font-mono text-white font-bold">{order.refund_info.refund_transaction_code || '—'}</span></p>
+                        {order.refund_info.bank_name && (
+                          <p><strong className="text-gray-400">Tài khoản nhận:</strong> {order.refund_info.account_holder} — {order.refund_info.account_number} ({order.refund_info.bank_name})</p>
+                        )}
+                        {order.refund_info.refunded_at && (
+                          <p><strong className="text-gray-400">Thời gian hoàn:</strong> {fmtDate(order.refund_info.refunded_at)} bởi {order.refund_info.refunded_by || 'Admin'}</p>
+                        )}
+                        {order.refund_info.note && <p><strong className="text-gray-400">Ghi chú:</strong> {order.refund_info.note}</p>}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Tổng tiền */}
                   <div className="bg-[#13131e] border border-[#222234] rounded-xl p-4">
@@ -866,6 +950,400 @@ const OrderStatusModal = ({ isOpen, onClose, order, onSuccess }) => {
   );
 };
 
+// ── RETURN REVIEW MODAL ──────────────────────────────────────
+const ReturnReviewModal = ({ order, onClose, onSuccess }) => {
+  const [action, setAction] = useState('approve');
+  const [rejectedReason, setRejectedReason] = useState('');
+  const [adminNote, setAdminNote] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  if (!order) return null;
+  const returnReq = order.rawOrder?.return_request || order.return_request || {};
+  const isRequested = returnReq.status === 'return_requested';
+  const isApproved = returnReq.status === 'return_approved';
+
+  const handleReview = async () => {
+    if (action === 'reject' && !rejectedReason.trim()) {
+      toast.error('Vui lòng nhập lý do từ chối yêu cầu trả hàng');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await reviewAdminReturnRequest(order.id, action, rejectedReason, adminNote);
+      toast.success(res?.message || (action === 'approve' ? 'Đã duyệt trả hàng' : 'Đã từ chối trả hàng'));
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Lỗi duyệt yêu cầu trả hàng');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReceiveGoods = async () => {
+    if (!window.confirm('Xác nhận đã nhận được hàng trả về kho? Hệ thống sẽ tự động cộng trả lại tồn kho cho sản phẩm.')) return;
+    setLoading(true);
+    try {
+      const res = await confirmAdminReturnedGoods(order.id);
+      toast.success(res?.message || 'Đã xác nhận nhận hàng và hoàn lại tồn kho');
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Lỗi xác nhận nhận hàng');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-[#181824] border border-[#2e2e42] rounded-2xl w-full max-w-xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center pb-4 border-b border-[#2e2e42] mb-5">
+          <div className="flex items-center gap-2">
+            <RotateCcw className="w-5 h-5 text-purple-400" />
+            <h3 className="font-bold text-lg text-white">Yêu Cầu Trả Hàng & Hoàn Tiền</h3>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white p-1 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Thông tin đơn hàng */}
+        <div className="bg-[#12121c] border border-[#222234] rounded-xl p-4 mb-4 text-xs space-y-2">
+          <div className="flex justify-between">
+            <span className="text-gray-400">Mã đơn hàng:</span>
+            <span className="text-[#d4ff00] font-mono font-bold">#{order.code}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-400">Khách hàng:</span>
+            <span className="text-white font-semibold">{order.customer} ({order.phone})</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-400">Tổng giá trị đơn:</span>
+            <span className="text-[#d4ff00] font-bold">{fmtPrice(order.total)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-400">Trạng thái đổi trả hiện tại:</span>
+            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-500/20 text-purple-300">
+              {RETURN_STATUS_LABELS[returnReq.status] || returnReq.status || 'Chờ duyệt'}
+            </span>
+          </div>
+        </div>
+
+        {/* Chi tiết yêu cầu từ khách */}
+        <div className="bg-[#1c1c2b] border border-purple-500/30 rounded-xl p-4 mb-4 text-xs space-y-2.5">
+          <div>
+            <span className="text-gray-400 block mb-0.5">Lý do khách hàng yêu cầu:</span>
+            <span className="text-red-300 font-semibold">{returnReq.reason || '—'}</span>
+          </div>
+          {returnReq.description && (
+            <div>
+              <span className="text-gray-400 block mb-0.5">Mô tả chi tiết từ khách:</span>
+              <p className="text-gray-200 bg-[#14141f] p-2.5 rounded-lg border border-[#2a2a3e]">{returnReq.description}</p>
+            </div>
+          )}
+
+          {returnReq.bank_info?.account_number && (
+            <div className="pt-2 border-t border-[#2e2e44]">
+              <span className="text-gray-400 block mb-1 font-semibold">Tài khoản nhận hoàn tiền:</span>
+              <div className="bg-[#14141f] p-2.5 rounded-lg border border-[#2a2a3e] text-gray-200">
+                <p><strong>Ngân hàng:</strong> {returnReq.bank_info.bank_name}</p>
+                <p><strong>Số tài khoản:</strong> <span className="font-mono text-[#d4ff00] font-bold">{returnReq.bank_info.account_number}</span></p>
+                <p><strong>Chủ tài khoản:</strong> {returnReq.bank_info.account_holder}</p>
+              </div>
+            </div>
+          )}
+
+          {returnReq.images?.length > 0 && (
+            <div className="pt-2 border-t border-[#2e2e44]">
+              <span className="text-gray-400 block mb-1.5 font-semibold">Ảnh minh chứng từ khách:</span>
+              <div className="flex gap-2.5 flex-wrap">
+                {returnReq.images.map((img, idx) => (
+                  <button key={idx} type="button" onClick={() => setSelectedImage(img)} className="group relative w-16 h-16 rounded-lg overflow-hidden border border-[#444] hover:border-[#d4ff00] transition-colors">
+                    <img src={img} alt="evidence" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {returnReq.rejected_reason && (
+            <div className="pt-2 border-t border-red-500/20 text-rose-400">
+              <strong>Đã từ chối với lý do:</strong> {returnReq.rejected_reason}
+            </div>
+          )}
+          {returnReq.admin_note && (
+            <div className="pt-2 border-t border-blue-500/20 text-blue-300">
+              <strong>Ghi chú duyệt của Admin:</strong> {returnReq.admin_note}
+            </div>
+          )}
+        </div>
+
+        {/* Modal phóng to ảnh */}
+        {selectedImage && (
+          <div className="fixed inset-0 z-[10000] bg-black/90 flex items-center justify-center p-4" onClick={() => setSelectedImage(null)}>
+            <div className="relative max-w-3xl max-h-[85vh]">
+              <img src={selectedImage} alt="Large evidence" className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl" />
+              <button onClick={() => setSelectedImage(null)} className="absolute top-2 right-2 bg-black/70 text-white p-2 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Hành động xét duyệt */}
+        {isRequested && (
+          <div className="space-y-4 pt-2">
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setAction('approve')}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${action === 'approve' ? 'bg-emerald-500 text-black shadow-[0_0_12px_rgba(16,185,129,0.4)]' : 'bg-[#222234] text-gray-400 hover:bg-[#2c2c42]'}`}
+              >
+                ✔ Chấp thuận đổi trả
+              </button>
+              <button
+                type="button"
+                onClick={() => setAction('reject')}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${action === 'reject' ? 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]' : 'bg-[#222234] text-gray-400 hover:bg-[#2c2c42]'}`}
+              >
+                ✕ Từ chối yêu cầu
+              </button>
+            </div>
+
+            {action === 'approve' ? (
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Ghi chú / Hướng dẫn gửi trả hàng cho khách:</label>
+                <textarea
+                  rows={2}
+                  value={adminNote}
+                  onChange={e => setAdminNote(e.target.value)}
+                  placeholder="Nhập hướng dẫn gửi hàng về cửa hàng hoặc lưu ý cho khách..."
+                  className="w-full bg-[#14141f] border border-[#2e2e42] rounded-xl p-3 text-xs text-white outline-none focus:border-[#d4ff00]"
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="text-xs text-rose-400 block mb-1 font-semibold">Lý do từ chối đổi trả (*bắt buộc):</label>
+                <textarea
+                  rows={2}
+                  value={rejectedReason}
+                  onChange={e => setRejectedReason(e.target.value)}
+                  placeholder="Nhập lý do không chấp nhận yêu cầu..."
+                  className="w-full bg-[#14141f] border border-rose-500/40 rounded-xl p-3 text-xs text-white outline-none focus:border-rose-500"
+                />
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button onClick={onClose} className="px-4 py-2 bg-[#222234] text-gray-300 rounded-xl text-xs hover:bg-[#2d2d44]">
+                Hủy
+              </button>
+              <button
+                onClick={handleReview}
+                disabled={loading}
+                className="px-5 py-2 bg-[#d4ff00] text-black font-bold rounded-xl text-xs hover:bg-[#c2eb00] disabled:opacity-50"
+              >
+                {loading ? 'Đang lưu...' : 'Xác nhận xét duyệt'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Nút xác nhận nhận hàng về kho */}
+        {isApproved && (
+          <div className="pt-3 border-t border-[#2e2e42] flex justify-between items-center">
+            <span className="text-xs text-blue-300">Đơn hàng đã được duyệt trả. Khi nhận được hàng gửi về, bấm nút này để nhập lại kho:</span>
+            <button
+              onClick={handleReceiveGoods}
+              disabled={loading}
+              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs shadow-lg transition-colors whitespace-nowrap ml-3 cursor-pointer"
+            >
+              {loading ? 'Đang xử lý...' : '📦 Xác nhận đã nhận hàng về kho'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── REFUND PROCESSING MODAL ──────────────────────────────────
+const RefundProcessingModal = ({ order, onClose, onSuccess }) => {
+  const [method, setMethod] = useState(order?.payment_method?.name?.toLowerCase().includes('vnpay') ? 'vnpay' : 'bank_transfer');
+  const [amount, setAmount] = useState(order?.total || 0);
+  const [txnCode, setTxnCode] = useState(`REF_${Date.now().toString().slice(-6)}`);
+  const [bankName, setBankName] = useState(order?.return_request?.bank_info?.bank_name || order?.refund_info?.bank_name || '');
+  const [accountNumber, setAccountNumber] = useState(order?.return_request?.bank_info?.account_number || order?.refund_info?.account_number || '');
+  const [accountHolder, setAccountHolder] = useState(order?.return_request?.bank_info?.account_holder || order?.refund_info?.account_holder || '');
+  const [note, setNote] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  if (!order) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!txnCode.trim()) {
+      toast.error('Vui lòng nhập Mã giao dịch hoàn tiền');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await processAdminOrderRefund(order.id, {
+        refund_method: method,
+        refund_amount: Number(amount) || order.total,
+        refund_transaction_code: txnCode.trim(),
+        bank_name: bankName.trim(),
+        account_number: accountNumber.trim(),
+        account_holder: accountHolder.trim(),
+        note: note.trim()
+      });
+      toast.success(res?.message || 'Quyết toán hoàn tiền thành công!');
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Lỗi xử lý hoàn tiền');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-[#181824] border border-[#2e2e42] rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+        <div className="flex justify-between items-center pb-4 border-b border-[#2e2e42] mb-5">
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-emerald-400" />
+            <h3 className="font-bold text-lg text-white">Xử Lý Quyết Toán Hoàn Tiền</h3>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white p-1 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          <div className="bg-[#12121c] border border-[#222234] rounded-xl p-3.5 space-y-1.5">
+            <div className="flex justify-between">
+              <span className="text-gray-400">Đơn hàng:</span>
+              <span className="text-[#d4ff00] font-mono font-bold">#{order.code}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Khách hàng:</span>
+              <span className="text-white font-semibold">{order.customer} ({order.phone})</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Tổng tiền đơn hàng:</span>
+              <span className="text-white font-bold">{fmtPrice(order.total)}</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-gray-400 block mb-1 font-semibold">Kênh hoàn tiền:</label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setMethod('bank_transfer')}
+                className={`flex-1 py-2 rounded-xl font-bold transition-all cursor-pointer ${method === 'bank_transfer' ? 'bg-[#005BAA] text-white shadow-md' : 'bg-[#222234] text-gray-400 hover:bg-[#2a2a3e]'}`}
+              >
+                Chuyển khoản Ngân hàng
+              </button>
+              <button
+                type="button"
+                onClick={() => setMethod('vnpay')}
+                className={`flex-1 py-2 rounded-xl font-bold transition-all cursor-pointer ${method === 'vnpay' ? 'bg-emerald-600 text-white shadow-md' : 'bg-[#222234] text-gray-400 hover:bg-[#2a2a3e]'}`}
+              >
+                Cổng VNPay Merchant
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-gray-400 block mb-1">Số tiền hoàn (VNĐ) *</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                className="w-full bg-[#12121c] border border-[#2e2e42] rounded-xl p-2.5 text-white font-bold outline-none focus:border-[#d4ff00]"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-gray-400 block mb-1">Mã giao dịch hoàn (Refund ID) *</label>
+              <input
+                type="text"
+                value={txnCode}
+                onChange={e => setTxnCode(e.target.value)}
+                placeholder="VD: REF123456 hoặc VNPAY_REF"
+                className="w-full bg-[#12121c] border border-[#2e2e42] rounded-xl p-2.5 text-white font-mono outline-none focus:border-[#d4ff00]"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="text-gray-400 block mb-1">Ngân hàng nhận</label>
+              <input
+                type="text"
+                value={bankName}
+                onChange={e => setBankName(e.target.value)}
+                placeholder="MB, VCB..."
+                className="w-full bg-[#12121c] border border-[#2e2e42] rounded-xl p-2 text-white outline-none focus:border-[#d4ff00]"
+              />
+            </div>
+            <div>
+              <label className="text-gray-400 block mb-1">Số tài khoản</label>
+              <input
+                type="text"
+                value={accountNumber}
+                onChange={e => setAccountNumber(e.target.value)}
+                placeholder="STK khách"
+                className="w-full bg-[#12121c] border border-[#2e2e42] rounded-xl p-2 text-white font-mono outline-none focus:border-[#d4ff00]"
+              />
+            </div>
+            <div>
+              <label className="text-gray-400 block mb-1">Tên chủ tài khoản</label>
+              <input
+                type="text"
+                value={accountHolder}
+                onChange={e => setAccountHolder(e.target.value)}
+                placeholder="NGUYEN VAN A"
+                className="w-full bg-[#12121c] border border-[#2e2e42] rounded-xl p-2 text-white outline-none focus:border-[#d4ff00]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-gray-400 block mb-1">Ghi chú kế toán hoàn tiền</label>
+            <input
+              type="text"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="VD: Đã chuyển khoản hoàn đủ qua App MB..."
+              className="w-full bg-[#12121c] border border-[#2e2e42] rounded-xl p-2.5 text-white outline-none focus:border-[#d4ff00]"
+            />
+          </div>
+
+          <div className="flex gap-3 justify-end pt-3">
+            <button type="button" onClick={onClose} className="px-4 py-2 bg-[#222234] text-gray-300 rounded-xl hover:bg-[#2c2c42] cursor-pointer">
+              Đóng
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl shadow-[0_0_12px_rgba(16,185,129,0.3)] disabled:opacity-50 cursor-pointer"
+            >
+              {loading ? 'Đang xử lý...' : 'Xác nhận đã hoàn tiền'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // ── MAIN COMPONENT ──────────────────────────────────────────
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -874,12 +1352,15 @@ const Orders = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState('all');
+  const [filterReturnStatus, setFilterReturnStatus] = useState('all');
   const [counts, setCounts] = useState({});
   const [updatingPaymentId, setUpdatingPaymentId] = useState(null);
   const [openPaymentMenuId, setOpenPaymentMenuId] = useState(null);
 
   const [selectedOrderId, setSelectedOrderId] = useState(null); // cho detail modal
   const [selectedOrderEdit, setSelectedOrderEdit] = useState(null); // cho status modal
+  const [refundModalOrder, setRefundModalOrder] = useState(null); // cho refund modal
+  const [returnReviewModalOrder, setReturnReviewModalOrder] = useState(null); // cho return review modal
 
   // Phân trang
   const [currentPage, setCurrentPage] = useState(1);
@@ -888,7 +1369,7 @@ const Orders = () => {
   // Reset về trang 1 khi thay đổi tìm kiếm hoặc bộ lọc
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterStatus, filterPaymentStatus]);
+  }, [searchQuery, filterStatus, filterPaymentStatus, filterReturnStatus]);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -906,6 +1387,9 @@ const Orders = () => {
           date: o.createdAt ? new Date(o.createdAt).toLocaleDateString('vi-VN') : '—',
           payment_method: o.payment_method,
           payment_status: o.payment_status || 'unpaid',
+          return_request: o.return_request,
+          refund_info: o.refund_info,
+          cancel_reason: o.cancel_reason,
           itemCount: (o.items || []).length,
           rawOrder: o,
         }));
@@ -958,7 +1442,10 @@ const Orders = () => {
   };
 
   const paidCount = useMemo(() => orders.filter(o => o.payment_status === 'paid').length, [orders]);
-  const unpaidCount = useMemo(() => orders.filter(o => o.payment_status !== 'paid').length, [orders]);
+  const unpaidCount = useMemo(() => orders.filter(o => o.payment_status === 'unpaid').length, [orders]);
+  const refundPendingCount = useMemo(() => orders.filter(o => o.payment_status === 'refund_pending').length, [orders]);
+  const refundedCount = useMemo(() => orders.filter(o => o.payment_status === 'refunded').length, [orders]);
+  const returnRequestedCount = useMemo(() => orders.filter(o => o.return_request && o.return_request.status === 'return_requested').length, [orders]);
 
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
@@ -966,13 +1453,19 @@ const Orders = () => {
         order.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         order.customer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         order.phone?.includes(searchQuery);
-      // Filter theo canonical status (cần so sánh với normalized value)
+      // Filter theo canonical status
       const matchStatus = filterStatus === 'all' || order.status === filterStatus;
       // Filter theo trạng thái thanh toán
       const matchPayment = filterPaymentStatus === 'all' || order.payment_status === filterPaymentStatus;
-      return matchSearch && matchStatus && matchPayment;
+      // Filter theo trạng thái trả hàng
+      const matchReturn = filterReturnStatus === 'all' ||
+        (filterReturnStatus === 'has_return'
+          ? (order.return_request && order.return_request.status && order.return_request.status !== 'none')
+          : (order.return_request?.status === filterReturnStatus));
+
+      return matchSearch && matchStatus && matchPayment && matchReturn;
     });
-  }, [orders, searchQuery, filterStatus, filterPaymentStatus]);
+  }, [orders, searchQuery, filterStatus, filterPaymentStatus, filterReturnStatus]);
 
   // Logic phân trang
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
@@ -1012,11 +1505,11 @@ const Orders = () => {
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-sm">{error}</div>
       )}
 
-      {/* Thống kê nhanh — chỉ hiển thị canonical statuses */}
-      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
+      {/* Thống kê nhanh — canonical statuses + refund/return alerts */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 mb-4">
         <button
-          onClick={() => setFilterStatus('all')}
-          className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${filterStatus === 'all' ? 'border-[#d4ff00] bg-[#d4ff00]/10 text-[#d4ff00]' : 'border-[#262626] bg-[#141414] hover:bg-[#1a1a1a] text-white'}`}
+          onClick={() => { setFilterStatus('all'); setFilterPaymentStatus('all'); setFilterReturnStatus('all'); }}
+          className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${filterStatus === 'all' && filterPaymentStatus === 'all' && filterReturnStatus === 'all' ? 'border-[#d4ff00] bg-[#d4ff00]/10 text-[#d4ff00]' : 'border-[#262626] bg-[#141414] hover:bg-[#1a1a1a] text-white'}`}
         >
           <div className="text-xl font-bold">{orders.length}</div>
           <div className="text-[10px] text-gray-400 mt-1">Tất cả</div>
@@ -1031,14 +1524,51 @@ const Orders = () => {
         ].map(({ key, label, color }) => (
           <button
             key={key}
-            onClick={() => setFilterStatus(key)}
+            onClick={() => { setFilterStatus(key); setFilterReturnStatus('all'); }}
             className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${filterStatus === key ? 'border-[#d4ff00] bg-[#d4ff00]/10' : 'border-[#262626] bg-[#141414] hover:bg-[#1a1a1a]'}`}
           >
             <div className={`text-xl font-bold ${color}`}>{counts[key] || 0}</div>
             <div className="text-[10px] text-gray-400 mt-1 leading-tight">{label}</div>
           </button>
         ))}
+        {/* Nút lọc nhanh Chờ hoàn tiền */}
+        <button
+          onClick={() => {
+            setFilterPaymentStatus(filterPaymentStatus === 'refund_pending' ? 'all' : 'refund_pending');
+            setFilterReturnStatus('all');
+          }}
+          className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${filterPaymentStatus === 'refund_pending' ? 'border-amber-400 bg-amber-500/15' : 'border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10'}`}
+        >
+          <div className="text-xl font-bold text-amber-400">{refundPendingCount}</div>
+          <div className="text-[10px] text-amber-300 font-semibold mt-1 leading-tight">⏳ Chờ hoàn tiền</div>
+        </button>
       </div>
+
+      {/* Thông báo nổi bật nếu có đơn cần hoàn tiền hoặc yêu cầu trả hàng */}
+      {(refundPendingCount > 0 || returnRequestedCount > 0) && (
+        <div className="flex flex-wrap gap-3 mb-6">
+          {refundPendingCount > 0 && (
+            <div
+              onClick={() => { setFilterPaymentStatus('refund_pending'); setFilterReturnStatus('all'); }}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold cursor-pointer hover:bg-amber-500/20 transition-colors"
+            >
+              <DollarSign className="w-4 h-4 text-amber-400" />
+              <span>Có <strong>{refundPendingCount}</strong> đơn hàng đang chờ Admin hoàn tiền.</span>
+              <span className="underline ml-1">Xem ngay &rarr;</span>
+            </div>
+          )}
+          {returnRequestedCount > 0 && (
+            <div
+              onClick={() => { setFilterReturnStatus('return_requested'); setFilterPaymentStatus('all'); }}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-semibold cursor-pointer hover:bg-purple-500/20 transition-colors"
+            >
+              <RotateCcw className="w-4 h-4 text-purple-400" />
+              <span>Có <strong>{returnRequestedCount}</strong> yêu cầu đổi trả hàng mới cần duyệt.</span>
+              <span className="underline ml-1">Xem ngay &rarr;</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tìm kiếm & Lọc */}
       <div className="bg-[#141414] border border-[#262626] rounded-xl p-4 mb-6 flex flex-wrap gap-4 items-center justify-between">
@@ -1056,7 +1586,7 @@ const Orders = () => {
           <select
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
-            className="bg-[#1f1f1f] border border-[#333] rounded-lg px-3 py-2 text-xs outline-none focus:border-[#d4ff00] min-w-[180px] text-white cursor-pointer"
+            className="bg-[#1f1f1f] border border-[#333] rounded-lg px-3 py-2 text-xs outline-none focus:border-[#d4ff00] min-w-[160px] text-white cursor-pointer"
           >
             <option value="all">Tất cả tiến trình ({orders.length})</option>
             <option value="pending">Chờ xác nhận ({counts['pending'] || 0})</option>
@@ -1070,11 +1600,23 @@ const Orders = () => {
           <select
             value={filterPaymentStatus}
             onChange={e => setFilterPaymentStatus(e.target.value)}
-            className="bg-[#1f1f1f] border border-[#333] rounded-lg px-3 py-2 text-xs outline-none focus:border-[#d4ff00] min-w-[170px] text-white cursor-pointer"
+            className="bg-[#1f1f1f] border border-[#333] rounded-lg px-3 py-2 text-xs outline-none focus:border-[#d4ff00] min-w-[160px] text-white cursor-pointer"
           >
             <option value="all">Tất cả thanh toán ({orders.length})</option>
             <option value="paid">✔ Đã thanh toán ({paidCount})</option>
             <option value="unpaid">⧘ Chưa thanh toán ({unpaidCount})</option>
+            <option value="refund_pending">⏳ Chờ hoàn tiền ({refundPendingCount})</option>
+            <option value="refunded">↩ Đã hoàn tiền ({refundedCount})</option>
+          </select>
+
+          <select
+            value={filterReturnStatus}
+            onChange={e => setFilterReturnStatus(e.target.value)}
+            className="bg-[#1f1f1f] border border-[#333] rounded-lg px-3 py-2 text-xs outline-none focus:border-[#d4ff00] min-w-[160px] text-white cursor-pointer"
+          >
+            <option value="all">Tất cả đổi trả</option>
+            <option value="return_requested">⏳ Chờ duyệt trả ({returnRequestedCount})</option>
+            <option value="has_return">Tất cả đơn có đổi trả</option>
           </select>
         </div>
       </div>
@@ -1113,67 +1655,104 @@ const Orders = () => {
                       <StatusBadge status={order.status} />
                     </td>
                     <td className="px-3 py-3 relative" onClick={e => e.stopPropagation()}>
-                      {/* Đổi nhanh trạng thái thanh toán */}
-                      <div className="relative inline-block">
-                        <button
-                          type="button"
-                          onClick={() => setOpenPaymentMenuId(openPaymentMenuId === order.id ? null : order.id)}
-                          disabled={updatingPaymentId === order.id}
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border transition-all hover:scale-105 cursor-pointer shadow-sm ${
-                            order.payment_status === 'paid'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-                              : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
-                          }`}
-                          title="Nhấn để đổi trạng thái thanh toán"
-                        >
-                          {updatingPaymentId === order.id ? (
-                            <>
-                              <RefreshCw className="w-3 h-3 animate-spin" />
-                              <span>Đang lưu...</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>{order.payment_status === 'paid' ? '✔ Đã thanh toán' : '⧘ Chưa thanh toán'}</span>
-                              <ChevronDown className={`w-3 h-3 opacity-60 transition-transform ${openPaymentMenuId === order.id ? 'rotate-180' : ''}`} />
-                            </>
-                          )}
-                        </button>
+                      {/* Trạng thái thanh toán */}
+                      <div className="flex flex-col items-start gap-1">
+                        <div className="relative inline-block">
+                          <button
+                            type="button"
+                            onClick={() => setOpenPaymentMenuId(openPaymentMenuId === order.id ? null : order.id)}
+                            disabled={updatingPaymentId === order.id}
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-all hover:scale-105 cursor-pointer shadow-sm ${
+                              order.payment_status === 'paid'
+                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
+                                : order.payment_status === 'refund_pending'
+                                ? 'bg-amber-500/15 text-amber-400 border-amber-500/40 hover:bg-amber-500/25'
+                                : order.payment_status === 'refunded'
+                                ? 'bg-purple-500/15 text-purple-400 border-purple-500/30 hover:bg-purple-500/25'
+                                : order.payment_status === 'canceled'
+                                ? 'bg-rose-500/15 text-rose-400 border-rose-500/30 hover:bg-rose-500/25'
+                                : 'bg-gray-500/15 text-gray-400 border-gray-500/30 hover:bg-gray-500/25'
+                            }`}
+                            title="Nhấn để đổi trạng thái thanh toán"
+                          >
+                            {updatingPaymentId === order.id ? (
+                              <>
+                                <RefreshCw className="w-3 h-3 animate-spin" />
+                                <span>Đang lưu...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>
+                                  {order.payment_status === 'paid' ? '✔ Đã thanh toán' :
+                                   order.payment_status === 'refund_pending' ? '⏳ Chờ hoàn tiền' :
+                                   order.payment_status === 'refunded' ? '↩ Đã hoàn tiền' :
+                                   order.payment_status === 'canceled' ? '✕ Đã hủy' : '⧘ Chưa thanh toán'}
+                                </span>
+                                <ChevronDown className={`w-3 h-3 opacity-60 transition-transform ${openPaymentMenuId === order.id ? 'rotate-180' : ''}`} />
+                              </>
+                            )}
+                          </button>
 
-                        {/* Menu dropdown đổi nhanh thanh toán */}
-                        {openPaymentMenuId === order.id && (
-                          <div className="absolute right-0 top-full mt-1.5 w-44 bg-[#1c1c28] border border-[#3b3b4f] rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                            <div className="text-[10px] uppercase font-bold text-gray-400 px-2.5 py-1 tracking-wider border-b border-[#2d2d3d] mb-1">
-                              Đổi thanh toán
+                          {/* Menu dropdown đổi nhanh thanh toán */}
+                          {openPaymentMenuId === order.id && (
+                            <div className="absolute left-0 top-full mt-1.5 w-48 bg-[#1c1c28] border border-[#3b3b4f] rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                              <div className="text-[10px] uppercase font-bold text-gray-400 px-2.5 py-1 tracking-wider border-b border-[#2d2d3d] mb-1">
+                                Đổi thanh toán
+                              </div>
+                              {[
+                                { key: 'unpaid', label: 'Chưa thanh toán', color: 'text-gray-400' },
+                                { key: 'paid', label: 'Đã thanh toán', color: 'text-emerald-400' },
+                                { key: 'refund_pending', label: 'Chờ hoàn tiền', color: 'text-amber-400' },
+                                { key: 'refunded', label: 'Đã hoàn tiền', color: 'text-purple-400' },
+                                { key: 'canceled', label: 'Đã hủy', color: 'text-rose-400' }
+                              ].map(item => (
+                                <button
+                                  key={item.key}
+                                  type="button"
+                                  onClick={() => handleQuickUpdatePayment(order.id, item.key)}
+                                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                                    order.payment_status === item.key
+                                      ? 'bg-white/10 text-white font-bold'
+                                      : 'text-gray-300 hover:bg-[#28283d] hover:text-white'
+                                  }`}
+                                >
+                                  <span className={`flex items-center gap-1.5 ${item.color}`}>
+                                    {item.label}
+                                  </span>
+                                  {order.payment_status === item.key && <Check className="w-3.5 h-3.5 text-[#d4ff00]" />}
+                                </button>
+                              ))}
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleQuickUpdatePayment(order.id, 'unpaid')}
-                              className={`w-full text-left px-2.5 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                                order.payment_status !== 'paid'
-                                  ? 'bg-amber-500/15 text-amber-400'
-                                  : 'text-gray-300 hover:bg-[#28283d] hover:text-white'
-                              }`}
-                            >
-                              <span className="flex items-center gap-1.5">
-                                <span className="text-amber-400">⧘</span> Chưa thanh toán
-                              </span>
-                              {order.payment_status !== 'paid' && <Check className="w-3.5 h-3.5 text-amber-400" />}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleQuickUpdatePayment(order.id, 'paid')}
-                              className={`w-full text-left px-2.5 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors mt-1 cursor-pointer ${
-                                order.payment_status === 'paid'
-                                  ? 'bg-emerald-500/15 text-emerald-400'
-                                  : 'text-gray-300 hover:bg-[#28283d] hover:text-white'
-                              }`}
-                            >
-                              <span className="flex items-center gap-1.5">
-                                <span className="text-emerald-400">✔</span> Đã thanh toán
-                              </span>
-                              {order.payment_status === 'paid' && <Check className="w-3.5 h-3.5 text-emerald-400" />}
-                            </button>
-                          </div>
+                          )}
+                        </div>
+
+                        {/* Nút hành động nhanh Hoàn tiền */}
+                        {order.payment_status === 'refund_pending' && (
+                          <button
+                            type="button"
+                            onClick={() => setRefundModalOrder(order)}
+                            className="px-2 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-sm"
+                            title="Nhấn để quyết toán hoàn tiền cho khách"
+                          >
+                            <DollarSign className="w-3 h-3" /> Hoàn tiền
+                          </button>
+                        )}
+
+                        {/* Nút xem yêu cầu đổi trả hàng nếu có */}
+                        {order.return_request && order.return_request.status && order.return_request.status !== 'none' && (
+                          <button
+                            type="button"
+                            onClick={() => setReturnReviewModalOrder(order)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 transition-colors cursor-pointer ${
+                              order.return_request.status === 'return_requested'
+                                ? 'bg-purple-500/25 hover:bg-purple-500/35 text-purple-300 border-purple-500/50 animate-pulse'
+                                : 'bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border-blue-500/30'
+                            }`}
+                            title="Xem chi tiết đổi trả"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            {RETURN_STATUS_LABELS[order.return_request.status] || 'Đổi trả'}
+                          </button>
                         )}
                       </div>
                     </td>
@@ -1182,14 +1761,14 @@ const Orders = () => {
                       <div className="flex justify-end gap-1.5">
                         <button
                           onClick={() => setSelectedOrderEdit(order)}
-                          className="p-1.5 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
+                          className="p-1.5 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors cursor-pointer"
                           title="Cập nhật trạng thái & thanh toán"
                         >
                           <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setSelectedOrderId(order.id)}
-                          className="p-1.5 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
+                          className="p-1.5 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors cursor-pointer"
                           title="Xem chi tiết đơn hàng"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -1328,8 +1907,23 @@ const Orders = () => {
           fetchOrders();
         }}
       />
+
+      {/* Modal Review Trả Hàng */}
+      <ReturnReviewModal
+        order={returnReviewModalOrder}
+        onClose={() => setReturnReviewModalOrder(null)}
+        onSuccess={fetchOrders}
+      />
+
+      {/* Modal Quyết Toán Hoàn Tiền */}
+      <RefundProcessingModal
+        order={refundModalOrder}
+        onClose={() => setRefundModalOrder(null)}
+        onSuccess={fetchOrders}
+      />
     </div>
   );
 };
 
 export default Orders;
+

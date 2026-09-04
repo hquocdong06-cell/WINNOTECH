@@ -28,7 +28,38 @@ const OrderSchema = new mongoose.Schema({
     voucher_code: { type: String },
     voucher_value: { type: Number, default: 0 },
     payment_status: { type: String, default: 'unpaid' },
+    delivered_at: { type: Date },
     cancel_reason: { type: String },
+    refund_info: {
+        bank_name: { type: String },
+        account_number: { type: String },
+        account_holder: { type: String },
+        refund_method: { type: String, enum: ['vnpay', 'bank_transfer', 'other'] },
+        refund_amount: { type: Number },
+        refund_transaction_code: { type: String },
+        refunded_at: { type: Date },
+        refunded_by: { type: String },
+        note: { type: String }
+    },
+    return_request: {
+        status: {
+            type: String,
+            enum: ['none', 'return_requested', 'return_approved', 'return_rejected', 'returning', 'returned_success'],
+            default: 'none'
+        },
+        reason: { type: String },
+        description: { type: String },
+        images: [{ type: String }],
+        bank_info: {
+            bank_name: { type: String },
+            account_number: { type: String },
+            account_holder: { type: String }
+        },
+        requested_at: { type: Date },
+        resolved_at: { type: Date },
+        rejected_reason: { type: String },
+        admin_note: { type: String }
+    },
     admin_notes: [{
         content: { type: String, required: true },
         author: { type: String, default: 'Admin' },
