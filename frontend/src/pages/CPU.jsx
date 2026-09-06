@@ -287,8 +287,6 @@ export default function CPU() {
     const nameLower = product.name.toLowerCase()
     const descLower = (product.description || '').toLowerCase()
     const specsLower = (product.short_desc || '').toLowerCase()
-    // compatibility_meta có socket chính xác nhất
-    const metaSocket = (product.compatibility_meta?.socket || '').toUpperCase()
 
     // 1. Thương hiệu (Brand) — dùng brand_id.slug đã được populate
     if (filters.brands.length > 0) {
@@ -392,13 +390,9 @@ export default function CPU() {
       if (!match) return false
     }
 
-    // 6. Socket — ưu tiên compatibility_meta.socket (chính xác nhất), fallback short_desc
+    // 6. Socket — tìm trong short_desc, tên, mô tả
     if (filters.socket.length > 0) {
       const match = filters.socket.some(sock => {
-        const sockUpper = sock.toUpperCase()
-        // So sánh với compatibility_meta trước
-        if (metaSocket && metaSocket === sockUpper) return true
-        // Fallback: tìm trong short_desc, tên, mô tả
         return specsLower.includes(sock.toLowerCase()) ||
                nameLower.includes(sock.toLowerCase()) ||
                descLower.includes(sock.toLowerCase())

@@ -222,8 +222,21 @@ const Products = () => {
   };
 
   const getDisplayPrice = (product) => {
-    const v = product.Variants?.find((v) => v.variant_name === 'Mặc định') || product.Variants?.[0];
-    return v ? { price: v.price || 0, salePrice: v.sale_price > 0 ? v.sale_price : null } : { price: 0, salePrice: null };
+    const variants = product.Variants || [];
+    const validVariants = variants.filter((v) => Number(v.price) > 0);
+    if (validVariants.length === 0) {
+      return { price: 0, salePrice: null };
+    }
+    const sorted = [...validVariants].sort((a, b) => {
+      const priceA = a.sale_price > 0 && a.sale_price < a.price ? a.sale_price : a.price;
+      const priceB = b.sale_price > 0 && b.sale_price < b.price ? b.sale_price : b.price;
+      return priceA - priceB;
+    });
+    const lowest = sorted[0];
+    return {
+      price: lowest.price,
+      salePrice: lowest.sale_price > 0 && lowest.sale_price < lowest.price ? lowest.sale_price : null
+    };
   };
 
   return (
@@ -338,10 +351,14 @@ const Products = () => {
                     </td>
                     <td className="px-3.5 py-3 text-gray-300 text-xs whitespace-nowrap">{product.cat_id?.name || '—'}</td>
                     <td className="px-3.5 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        <span className="font-bold text-[#d4ff00] text-xs">{(salePrice || price).toLocaleString('vi-VN')}₫</span>
-                        {salePrice && <span className="text-[11px] text-gray-500 line-through">{price.toLocaleString('vi-VN')}₫</span>}
-                      </div>
+                      {price > 0 ? (
+                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                          <span className="font-bold text-[#d4ff00] text-xs">{(salePrice || price).toLocaleString('vi-VN')}₫</span>
+                          {salePrice && <span className="text-[11px] text-gray-500 line-through">{price.toLocaleString('vi-VN')}₫</span>}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 text-xs italic">Chưa có giá</span>
+                      )}
                     </td>
                     <td className="px-3.5 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-1.5 whitespace-nowrap text-xs">
@@ -473,8 +490,20 @@ const Products = () => {
         )}
       </div>
 
-      <ProductFormModal isOpen={isFormModalOpen} onClose={() => setIsFormModalOpen(false)}
-        product={editingProduct} categories={categories} onSuccess={() => { setIsFormModalOpen(false); loadData(); }} />
+      <ProductFormModal
+        isOpen={isFormModalOpen}
+        onClose={() => setIsFormModalOpen(false)}
+        product={editingProduct}
+        categories={categories}
+        onSuccess={(created) => {
+          setIsFormModalOpen(false);
+          loadData();
+          if (!editingProduct && created) {
+            setEditingProduct(created);
+            setIsVariantModalOpen(true);
+          }
+        }}
+      />
       <VariantManagementModal isOpen={isVariantModalOpen} onClose={() => setIsVariantModalOpen(false)} product={editingProduct} onSuccess={loadData} />
       <BrandManagementModal isOpen={isBrandModalOpen} onClose={() => setIsBrandModalOpen(false)} onSuccess={loadData} />
       <ConfirmDeleteDialog isOpen={deleteDialog.open} productName={deleteDialog.product?.name}

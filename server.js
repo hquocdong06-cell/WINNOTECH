@@ -27,7 +27,7 @@ const {
   VariantAttribute,
 } = require("./models/ProductVariant");
 const { Order, OrderItem } = require("./models/Order");
-const { Attribute, AttributeValue } = require("./models/Attribute");
+const { Attribute, AttributeValue, CategoryAttribute } = require("./models/Attribute");
 const { Favorite, Compare, Review } = require("./models/FavoriteCompareReview");
 const {
   Banner,
@@ -373,24 +373,28 @@ app.use(
 );
 
 async function getVariantAttributeMap(variantIds) {
-  // 1. Lấy tất cả bản ghi junction
+  // 1. Lấy tất cả bản ghi junction (variants_attributes)
   const junctions = await VariantAttribute.find({
     id_variants: { $in: variantIds },
   }).lean();
 
   if (junctions.length === 0) return {};
 
-  // 2. Lấy AttributeValues tương ứng
+  // 2. Lấy AttributeValues tương ứng (attribute_value)
   const attrValueIds = junctions.map((j) => j.id_attribute_value);
   const attrValues = await AttributeValue.find({
     _id: { $in: attrValueIds },
   }).lean();
 
-  // 3. Lấy Attributes (nhóm thuộc tính)
+  // 3. Lấy CategoryAttribute (categories_attribute)
   const attrIds = [
-    ...new Set(attrValues.map((av) => av.id_attribute.toString())),
+    ...new Set(
+      attrValues
+        .map((av) => (av.id_categories_attribute || av.id_attribute || "").toString())
+        .filter(Boolean)
+    ),
   ];
-  const attributes = await Attribute.find({ _id: { $in: attrIds } }).lean();
+  const attributes = await CategoryAttribute.find({ _id: { $in: attrIds } }).lean();
 
   // 4. Build lookup maps
   const attrValueMap = {};
@@ -412,7 +416,8 @@ async function getVariantAttributeMap(variantIds) {
     const attrValue = attrValueMap[j.id_attribute_value.toString()];
     if (!attrValue) return;
 
-    const attr = attrMap[attrValue.id_attribute.toString()];
+    const catId = (attrValue.id_categories_attribute || attrValue.id_attribute || "").toString();
+    const attr = attrMap[catId];
 
     result[vid].push({
       attribute_id: attr ? attr._id : null,
@@ -1397,7 +1402,7 @@ app.get(["/api/buildpc/components", "/api/products/build-pc"], async (req, res) 
     }
 
     // ── Smart Filter: socket / ram_type / form_factor ────────────
-    // Dual-source: ưu tiên compatibility_meta, fallback sang regex tên SP
+    // Filter theo regex tên SP
     const filterConditions = [];
 
     if (socket && socket.trim()) {
@@ -1410,20 +1415,14 @@ app.get(["/api/buildpc/components", "/api/products/build-pc"], async (req, res) 
       };
       const namePattern = SOCKET_NAME_PATTERNS[s] || socket.trim();
       filterConditions.push({
-        $or: [
-          { 'compatibility_meta.socket': s },
-          { name: { $regex: namePattern, $options: 'i' } },
-        ],
+        name: { $regex: namePattern, $options: 'i' },
       });
     }
 
     if (ram_type && ram_type.trim()) {
       const rt = ram_type.trim().toUpperCase();
       filterConditions.push({
-        $or: [
-          { 'compatibility_meta.ram_type': rt },
-          { name: { $regex: rt, $options: 'i' } },
-        ],
+        name: { $regex: rt, $options: 'i' },
       });
     }
 
@@ -1436,11 +1435,7 @@ app.get(["/api/buildpc/components", "/api/products/build-pc"], async (req, res) 
       };
       const namePattern = FF_NAME_PATTERNS[ff] || ff;
       filterConditions.push({
-        $or: [
-          { 'compatibility_meta.form_factor': ff },
-          { 'compatibility_meta.supported_ff': ff },
-          { name: { $regex: namePattern, $options: 'i' } },
-        ],
+        name: { $regex: namePattern, $options: 'i' },
       });
     }
 
@@ -2187,14 +2182,11 @@ app.post("/products", async (req, res) => {
       name,
       cat_id,
       brand_id,
-      price,
       sale,
       thumnail,
       description,
       short_desc,
-      stock,
       status,
-      compatibility_meta,
     } = req.body;
     if (!name) {
       return res
@@ -2212,7 +2204,7 @@ app.post("/products", async (req, res) => {
 
     const newProduct = await ProductModel.create({
       name,
-      sale: sale || 0,
+      sale: Number(sale) || 0,
       thumnail: thumnail || "",
       slug: uniqueSlug,
       description: description || "",
@@ -2220,7 +2212,6 @@ app.post("/products", async (req, res) => {
       status: status || "active",
       cat_id: cat_id || null,
       brand_id: brand_id || null,
-      compatibility_meta: compatibility_meta || {},
     });
 
     if (thumnail) {
@@ -2232,26 +2223,12 @@ app.post("/products", async (req, res) => {
       });
     }
 
-    const priceNum = Number(price) || 0;
-    const saleNum = Number(sale) || 0;
-    const salePrice = saleNum > 0 ? priceNum * (1 - saleNum / 100) : 0;
-
-    const defaultVariant = await ProductVariantModel.create({
-      variant_name: "Mặc định",
-      price: priceNum,
-      sku: "SKU-" + uniqueSlug.toUpperCase(),
-      sale_price: salePrice,
-      status: "active",
-      stock_quantity: Number(stock) || 0,
-      p_id: newProduct._id,
-    });
-
     return res.status(201).json({
       success: true,
       message: "Thêm sản phẩm thành công",
       data: {
         product: newProduct,
-        variant: defaultVariant,
+        Variants: [],
       },
     });
   } catch (error) {
@@ -2272,12 +2249,10 @@ app.put("/products/:id", async (req, res) => {
       name,
       cat_id,
       brand_id,
-      price,
       sale,
       thumnail,
       description,
       short_desc,
-      stock,
       status,
     } = req.body;
 
@@ -2296,7 +2271,6 @@ app.put("/products/:id", async (req, res) => {
     if (status) product.status = status;
     if (cat_id) product.cat_id = cat_id;
     if (brand_id) product.brand_id = brand_id;
-    if (compatibility_meta !== undefined) product.compatibility_meta = compatibility_meta;
 
     if (name) {
       let slug = slugify(name);
@@ -2321,36 +2295,10 @@ app.put("/products/:id", async (req, res) => {
       );
     }
 
-    const priceNum = price !== undefined ? Number(price) : 0;
-    const saleNum = product.sale || 0;
-    const salePrice = saleNum > 0 ? priceNum * (1 - saleNum / 100) : 0;
-
-    let variant = await ProductVariantModel.findOne({
-      p_id: id,
-      variant_name: "Mặc định",
-    });
-    if (variant) {
-      if (price !== undefined) variant.price = priceNum;
-      variant.sale_price = salePrice;
-      if (stock !== undefined) variant.stock_quantity = Number(stock);
-      variant.status = product.status;
-      await variant.save();
-    } else {
-      variant = await ProductVariantModel.create({
-        variant_name: "Mặc định",
-        price: priceNum,
-        sku: "SKU-" + product.slug.toUpperCase(),
-        sale_price: salePrice,
-        status: product.status,
-        stock_quantity: stock !== undefined ? Number(stock) : 0,
-        p_id: product._id,
-      });
-    }
-
     return res.json({
       success: true,
       message: "Cập nhật sản phẩm thành công",
-      data: { product, variant },
+      data: { product },
     });
   } catch (error) {
     console.error("Lỗi API cập nhật sản phẩm:", error);
@@ -4707,15 +4655,19 @@ app.get("/admin/products", checklogin, checkAdmin, async (req, res) => {
       const pVariants = variantMap[pidStr] || [];
       const pImages = imageMap[pidStr] || [];
 
-      const validVariant = pVariants.find(v => v.price > 0) || pVariants[0];
-      const minPrice = validVariant ? validVariant.price : (p.price || 0);
-      const totalStock = pVariants.reduce((sum, v) => sum + (v.stock_quantity || 0), 0);
-      const soldQty = productSalesMap[pidStr] || p.sold_quantity || p.buyturn || Math.floor(Math.random() * 80 + 10);
+      // Giá chỉ lấy từ biến thể
+      const validVariants = pVariants.filter(v => Number(v.price) > 0);
+      const minPrice = validVariants.length > 0 ? Math.min(...validVariants.map(v => Number(v.price))) : 0;
+      const validSaleVariants = validVariants.filter(v => Number(v.sale_price) > 0 && Number(v.sale_price) < Number(v.price));
+      const minSalePrice = validSaleVariants.length > 0 ? Math.min(...validSaleVariants.map(v => Number(v.sale_price))) : 0;
+      const totalStock = pVariants.reduce((sum, v) => sum + (Number(v.stock_quantity) || 0), 0);
+      const soldQty = productSalesMap[pidStr] || p.sold_quantity || p.buyturn || 0;
 
       return {
         ...p,
-        price: p.price || minPrice,
-        stock: p.stock !== undefined ? p.stock : totalStock,
+        price: minPrice,
+        sale_price: minSalePrice,
+        stock: totalStock,
         sold_quantity: soldQty,
         Variants: pVariants,
         AnhSP: pImages,
@@ -4732,7 +4684,7 @@ app.get("/admin/products", checklogin, checkAdmin, async (req, res) => {
 // POST /admin/products — Thêm mới sản phẩm (Kiểm tra trùng tên/slug trước khi thêm)
 app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { name, price, sale, stock, short_desc, cat_id, brand_id, thumnail, description, status, sub_images, subImages, compatibility_meta } = req.body;
+    const { name, sale, short_desc, cat_id, brand_id, thumnail, description, status, sub_images, subImages } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, message: "Vui lòng nhập tên sản phẩm" });
@@ -4753,14 +4705,11 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
       });
     }
 
-    const numPrice = Number(price) || 0;
     const numSale = Number(sale) || 0;
-    const numStock = stock !== undefined && stock !== "" ? Number(stock) : 10;
 
     const newProduct = await ProductModel.create({
       name: trimmedName,
       slug: productSlug,
-      price: numPrice,
       sale: numSale,
       short_desc: short_desc || "",
       cat_id: cat_id || null,
@@ -4768,7 +4717,6 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
       thumnail: thumnail || "",
       description: description || "",
       status: status || "active",
-      compatibility_meta: compatibility_meta || {},
     });
 
     // TẠO ẢNH TRONG ImageModel
@@ -4785,20 +4733,10 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
       }
     }
 
-    // TỰ ĐỘNG TẠO BIẾN THỂ MẶC ĐỊNH CHO SẢN PHẨM MỚI
-    const defaultVariant = await ProductVariantModel.create({
-      p_id: newProduct._id,
-      variant_name: "Mặc định",
-      sku: `SKU-${Date.now()}`,
-      price: numPrice,
-      sale_price: numSale > 0 && numPrice > 0 ? Math.round(numPrice * (1 - numSale / 100)) : 0,
-      stock_quantity: numStock,
-    });
-
     return res.status(201).json({
       success: true,
       message: "Thêm sản phẩm mới thành công",
-      data: { ...newProduct.toObject(), Variants: [defaultVariant], AnhSP: createdImages }
+      data: { ...newProduct.toObject(), Variants: [], AnhSP: createdImages }
     });
   } catch (error) {
     console.error("Lỗi POST admin product:", error);
@@ -4811,7 +4749,7 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
 app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, price, sale, stock, short_desc, cat_id, brand_id, thumnail, description, status, slug, sub_images, subImages, compatibility_meta } = req.body;
+    const { name, sale, short_desc, cat_id, brand_id, thumnail, description, status, slug, sub_images, subImages } = req.body;
 
     const product = await ProductModel.findById(id);
     if (!product) {
@@ -4839,7 +4777,6 @@ app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
       product.slug = newSlug;
     }
 
-    if (price !== undefined) product.price = Number(price) || 0;
     if (sale !== undefined) product.sale = Number(sale) || 0;
     if (short_desc !== undefined) product.short_desc = short_desc;
     if (cat_id !== undefined) product.cat_id = cat_id;
@@ -4847,7 +4784,6 @@ app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
     if (thumnail !== undefined) product.thumnail = thumnail;
     if (description !== undefined) product.description = description;
     if (status !== undefined) product.status = status;
-    if (compatibility_meta !== undefined) product.compatibility_meta = compatibility_meta;
 
     await product.save();
 
@@ -4858,7 +4794,6 @@ app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
         mainImg.url = thumnail.trim();
         await mainImg.save();
       } else {
-        // Nếu chưa có ảnh main, tạo mới hoặc cập nhật ảnh đầu tiên
         const firstImg = await ImageModel.findOne({ p_id: id });
         if (firstImg) {
           firstImg.url = thumnail.trim();
@@ -4879,36 +4814,6 @@ app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
           await ImageModel.create({ p_id: id, url: subUrl.trim(), is_main: false });
         }
       }
-    }
-
-
-    // 2. Cập nhật hoặc tạo biến thể cho sản phẩm
-    const targetPrice = price !== undefined ? Number(price) || 0 : product.price || 0;
-    const targetSale = sale !== undefined ? Number(sale) || 0 : product.sale || 0;
-    const targetStock = stock !== undefined ? Number(stock) || 0 : 10;
-    const salePrice = targetSale > 0 && targetPrice > 0 ? Math.round(targetPrice * (1 - targetSale / 100)) : 0;
-
-    const variants = await ProductVariantModel.find({ p_id: id });
-    if (variants && variants.length > 0) {
-      for (const v of variants) {
-        if (targetPrice > 0 && (v.price === 0 || variants.length === 1)) {
-          v.price = targetPrice;
-          v.sale_price = salePrice;
-        }
-        if (stock !== undefined) {
-          v.stock_quantity = targetStock;
-        }
-        await v.save();
-      }
-    } else {
-      await ProductVariantModel.create({
-        p_id: id,
-        variant_name: "Mặc định",
-        sku: `SKU-${Date.now()}`,
-        price: targetPrice,
-        sale_price: salePrice,
-        stock_quantity: targetStock,
-      });
     }
 
     return res.json({ success: true, message: "Cập nhật sản phẩm thành công", data: product });
@@ -6460,7 +6365,7 @@ app.put("/admin/reviews/:id/status", checklogin, checkAdmin, async (req, res) =>
 // ADMIN PRODUCT VARIANT CRUD
 // ============================================================
 
-// GET /admin/products/:productId/variants — Lấy danh sách biến thể
+// GET /admin/products/:productId/variants — Lấy danh sách biến thể kèm thuộc tính
 app.get(
   "/admin/products/:productId/variants",
   checklogin,
@@ -6470,7 +6375,31 @@ app.get(
       const variants = await ProductVariantModel.find({
         p_id: req.params.productId,
       }).lean();
-      return res.json({ success: true, data: variants });
+
+      const variantIds = variants.map(v => v._id);
+      const junctions = await VariantAttribute.find({ id_variants: { $in: variantIds } })
+        .populate({
+          path: 'id_attribute_value',
+          populate: { path: 'id_categories_attribute' }
+        })
+        .lean();
+
+      const junctionMap = {};
+      junctions.forEach(j => {
+        const vid = j.id_variants.toString();
+        if (!junctionMap[vid]) junctionMap[vid] = [];
+        if (j.id_attribute_value) {
+          junctionMap[vid].push(j.id_attribute_value);
+        }
+      });
+
+      const data = variants.map(v => ({
+        ...v,
+        attributes: junctionMap[v._id.toString()] || [],
+        attribute_value_ids: (junctionMap[v._id.toString()] || []).map(a => a._id),
+      }));
+
+      return res.json({ success: true, data });
     } catch (error) {
       console.error("Lỗi GET admin variants:", error);
       return res.status(500).json({ success: false, message: "Lỗi Server" });
@@ -6478,7 +6407,7 @@ app.get(
   },
 );
 
-// POST /admin/products/:productId/variants — Thêm biến thể mới (Kiểm tra trùng SKU)
+// POST /admin/products/:productId/variants — Thêm biến thể mới (Kiểm tra trùng SKU + Lưu thuộc tính)
 app.post(
   "/admin/products/:productId/variants",
   checklogin,
@@ -6486,10 +6415,10 @@ app.post(
   async (req, res) => {
     try {
       const { productId } = req.params;
-      const { variant_name, price, sku, sale_price, stock_quantity, status } =
+      const { variant_name, price, sku, sale_price, stock_quantity, status, attribute_value_ids } =
         req.body;
 
-      if (!variant_name || !price || !sku) {
+      if (!variant_name || price === undefined || !sku) {
         return res
           .status(400)
           .json({
@@ -6517,15 +6446,27 @@ app.post(
         p_id: productId,
       });
 
+      // Lưu liên kết vào variants_attributes
+      if (Array.isArray(attribute_value_ids) && attribute_value_ids.length > 0) {
+        for (const attrValId of attribute_value_ids) {
+          if (attrValId) {
+            await VariantAttribute.create({
+              id_variants: v._id,
+              id_attribute_value: attrValId,
+            });
+          }
+        }
+      }
+
       return res.status(201).json({ success: true, data: v });
     } catch (error) {
       console.error("Lỗi POST admin variants:", error);
-      return res.status(500).json({ success: false, message: "Lỗi Server" });
+      return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
     }
   },
 );
 
-// PUT /admin/variants/:variantId — Cập nhật biến thể (Kiểm tra trùng SKU)
+// PUT /admin/variants/:variantId — Cập nhật biến thể (Kiểm tra trùng SKU + Cập nhật thuộc tính)
 app.put(
   "/admin/variants/:variantId",
   checklogin,
@@ -6533,7 +6474,7 @@ app.put(
   async (req, res) => {
     try {
       const { variantId } = req.params;
-      const { variant_name, price, sku, sale_price, stock_quantity, status } =
+      const { variant_name, price, sku, sale_price, stock_quantity, status, attribute_value_ids } =
         req.body;
 
       if (sku) {
@@ -6568,10 +6509,23 @@ app.put(
           .json({ success: false, message: "Không tìm thấy biến thể" });
       }
 
+      // Cập nhật liên kết thuộc tính trong variants_attributes
+      if (Array.isArray(attribute_value_ids)) {
+        await VariantAttribute.deleteMany({ id_variants: variantId });
+        for (const attrValId of attribute_value_ids) {
+          if (attrValId) {
+            await VariantAttribute.create({
+              id_variants: variantId,
+              id_attribute_value: attrValId,
+            });
+          }
+        }
+      }
+
       return res.json({ success: true, data: v });
     } catch (error) {
       console.error("Lỗi PUT admin variants:", error);
-      return res.status(500).json({ success: false, message: "Lỗi Server" });
+      return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
     }
   },
 );
@@ -6602,6 +6556,326 @@ app.delete(
     }
   },
 );
+
+// ============================================================
+// ADMIN CATEGORIES_ATTRIBUTE CRUD (Danh mục thuộc tính theo ERD)
+// ============================================================
+
+// GET /admin/category-attributes — Lấy tất cả danh mục thuộc tính kèm số lượng thuộc tính con
+app.get("/admin/category-attributes", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const categories = await CategoryAttribute.find().sort({ createdAt: -1 }).lean();
+    
+    // Đếm số thuộc tính con cho từng danh mục
+    const catIds = categories.map(c => c._id);
+    const attrValues = await AttributeValue.find({
+      $or: [
+        { id_categories_attribute: { $in: catIds } },
+        { id_attribute: { $in: catIds } }
+      ]
+    }).lean();
+
+    const countMap = {};
+    attrValues.forEach(av => {
+      const cid = (av.id_categories_attribute || av.id_attribute || '').toString();
+      countMap[cid] = (countMap[cid] || 0) + 1;
+    });
+
+    const data = categories.map(c => ({
+      ...c,
+      attribute_count: countMap[c._id.toString()] || 0,
+    }));
+
+    return res.json({ success: true, count: data.length, data });
+  } catch (error) {
+    console.error("Lỗi GET category attributes:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// POST /admin/category-attributes — Thêm danh mục thuộc tính mới
+app.post("/admin/category-attributes", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập tên danh mục thuộc tính" });
+    }
+
+    const trimmedName = name.trim();
+    const existing = await CategoryAttribute.findOne({
+      name: { $regex: new RegExp(`^${trimmedName}$`, 'i') }
+    });
+    if (existing) {
+      return res.status(400).json({ success: false, message: "Danh mục thuộc tính này đã tồn tại" });
+    }
+
+    const newCat = await CategoryAttribute.create({
+      name: trimmedName,
+      status: "active",
+    });
+
+    return res.status(201).json({ success: true, message: "Thêm danh mục thuộc tính thành công", data: newCat });
+  } catch (error) {
+    console.error("Lỗi POST category attribute:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// PUT /admin/category-attributes/:id — Sửa danh mục thuộc tính
+app.put("/admin/category-attributes/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, status } = req.body;
+
+    const cat = await CategoryAttribute.findById(id);
+    if (!cat) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy danh mục thuộc tính" });
+    }
+
+    if (name && name.trim()) {
+      const trimmedName = name.trim();
+      const existing = await CategoryAttribute.findOne({
+        _id: { $ne: id },
+        name: { $regex: new RegExp(`^${trimmedName}$`, 'i') }
+      });
+      if (existing) {
+        return res.status(400).json({ success: false, message: "Tên danh mục thuộc tính đã bị trùng" });
+      }
+      cat.name = trimmedName;
+    }
+
+    if (status !== undefined) {
+      cat.status = status;
+    }
+
+    await cat.save();
+    return res.json({ success: true, message: "Cập nhật danh mục thuộc tính thành công", data: cat });
+  } catch (error) {
+    console.error("Lỗi PUT category attribute:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// PATCH /admin/category-attributes/:id/status — XÓA MỀM / ĐỔI TRẠNG THÁI DANH MỤC THUỘC TÍNH
+app.patch("/admin/category-attributes/:id/status", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const cat = await CategoryAttribute.findById(id);
+    if (!cat) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy danh mục thuộc tính" });
+    }
+
+    const nextStatus = status || (cat.status === "active" ? "inactive" : "active");
+    cat.status = nextStatus;
+    await cat.save();
+
+    return res.json({
+      success: true,
+      message: nextStatus === "active" ? "Đã kích hoạt danh mục thuộc tính" : "Đã ẩn danh mục thuộc tính (Soft delete thành công)",
+      data: cat
+    });
+  } catch (error) {
+    console.error("Lỗi đổi trạng thái category attribute:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// DELETE /admin/category-attributes/:id — SOFT DELETE danh mục thuộc tính (KHÔNG XÓA DB)
+app.delete("/admin/category-attributes/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cat = await CategoryAttribute.findById(id);
+    if (!cat) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy danh mục thuộc tính" });
+    }
+
+    // SOFT DELETE: Chuyển status sang inactive, tuyệt đối không xóa document
+    cat.status = "inactive";
+    await cat.save();
+
+    return res.json({ success: true, message: "Đã ẩn danh mục thuộc tính (Soft delete thành công)", data: cat });
+  } catch (error) {
+    console.error("Lỗi soft delete category attribute:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ============================================================
+// ADMIN ATTRIBUTE_VALUE CRUD (Bảng thuộc tính theo ERD)
+// ============================================================
+
+// GET /admin/attributes — Lấy danh sách thuộc tính (kèm danh mục cha)
+app.get("/admin/attributes", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { category_id, status } = req.query;
+    const query = {};
+
+    if (category_id) {
+      query.$or = [
+        { id_categories_attribute: category_id },
+        { id_attribute: category_id }
+      ];
+    }
+    if (status) {
+      query.status = status;
+    }
+
+    const items = await AttributeValue.find(query)
+      .populate("id_categories_attribute", "name status")
+      .populate("id_attribute", "name status")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Chuẩn hóa category field
+    const data = items.map(item => ({
+      ...item,
+      category: item.id_categories_attribute || item.id_attribute || null,
+      id_categories_attribute: item.id_categories_attribute?._id || item.id_categories_attribute || item.id_attribute?._id || item.id_attribute,
+    }));
+
+    return res.json({ success: true, count: data.length, data });
+  } catch (error) {
+    console.error("Lỗi GET attributes:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// POST /admin/attributes — Thêm mới thuộc tính
+app.post("/admin/attributes", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { value, id_categories_attribute } = req.body;
+    if (!value || !value.trim()) {
+      return res.status(400).json({ success: false, message: "Vui lòng nhập giá trị thuộc tính" });
+    }
+    if (!id_categories_attribute) {
+      return res.status(400).json({ success: false, message: "Vui lòng chọn danh mục thuộc tính" });
+    }
+
+    const trimmedValue = value.trim();
+    // Kiểm tra trùng trong cùng danh mục
+    const existing = await AttributeValue.findOne({
+      $or: [
+        { id_categories_attribute, value: { $regex: new RegExp(`^${trimmedValue}$`, 'i') } },
+        { id_attribute: id_categories_attribute, value: { $regex: new RegExp(`^${trimmedValue}$`, 'i') } },
+      ]
+    });
+    if (existing) {
+      return res.status(400).json({ success: false, message: "Thuộc tính này đã tồn tại trong danh mục đã chọn" });
+    }
+
+    const newAttr = await AttributeValue.create({
+      value: trimmedValue,
+      id_categories_attribute,
+      id_attribute: id_categories_attribute,
+      status: "active",
+    });
+
+    const populated = await AttributeValue.findById(newAttr._id)
+      .populate("id_categories_attribute", "name status")
+      .lean();
+
+    return res.status(201).json({ success: true, message: "Thêm thuộc tính thành công", data: populated });
+  } catch (error) {
+    console.error("Lỗi POST attribute:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// PUT /admin/attributes/:id — Sửa thuộc tính
+app.put("/admin/attributes/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { value, id_categories_attribute, status } = req.body;
+
+    const item = await AttributeValue.findById(id);
+    if (!item) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy thuộc tính" });
+    }
+
+    const targetCatId = id_categories_attribute || item.id_categories_attribute || item.id_attribute;
+
+    if (value && value.trim()) {
+      const trimmedValue = value.trim();
+      const existing = await AttributeValue.findOne({
+        _id: { $ne: id },
+        $or: [
+          { id_categories_attribute: targetCatId, value: { $regex: new RegExp(`^${trimmedValue}$`, 'i') } },
+          { id_attribute: targetCatId, value: { $regex: new RegExp(`^${trimmedValue}$`, 'i') } },
+        ]
+      });
+      if (existing) {
+        return res.status(400).json({ success: false, message: "Giá trị thuộc tính đã bị trùng trong danh mục này" });
+      }
+      item.value = trimmedValue;
+    }
+
+    if (id_categories_attribute) {
+      item.id_categories_attribute = id_categories_attribute;
+      item.id_attribute = id_categories_attribute;
+    }
+
+    if (status !== undefined) {
+      item.status = status;
+    }
+
+    await item.save();
+
+    const populated = await AttributeValue.findById(id)
+      .populate("id_categories_attribute", "name status")
+      .lean();
+
+    return res.json({ success: true, message: "Cập nhật thuộc tính thành công", data: populated });
+  } catch (error) {
+    console.error("Lỗi PUT attribute:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// PATCH /admin/attributes/:id/status — XÓA MỀM / ĐỔI TRẠNG THÁI THUỘC TÍNH
+app.patch("/admin/attributes/:id/status", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const item = await AttributeValue.findById(id);
+    if (!item) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy thuộc tính" });
+    }
+
+    const nextStatus = status || (item.status === "active" ? "inactive" : "active");
+    item.status = nextStatus;
+    await item.save();
+
+    return res.json({
+      success: true,
+      message: nextStatus === "active" ? "Đã kích hoạt thuộc tính" : "Đã ẩn thuộc tính (Soft delete thành công)",
+      data: item
+    });
+  } catch (error) {
+    console.error("Lỗi đổi trạng thái attribute:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// DELETE /admin/attributes/:id — SOFT DELETE thuộc tính (KHÔNG XÓA DB)
+app.delete("/admin/attributes/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const item = await AttributeValue.findById(id);
+    if (!item) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy thuộc tính" });
+    }
+
+    // SOFT DELETE: Chuyển status sang inactive, tuyệt đối không xóa document
+    item.status = "inactive";
+    await item.save();
+
+    return res.json({ success: true, message: "Đã ẩn thuộc tính (Soft delete thành công)", data: item });
+  } catch (error) {
+    console.error("Lỗi soft delete attribute:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
 
 //Deliver
 // ==========================================

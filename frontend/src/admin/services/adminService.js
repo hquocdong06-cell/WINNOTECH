@@ -176,6 +176,86 @@ export async function deleteAdminVariant(variantId) {
 }
 
 // ============================================================
+// CATEGORIES ATTRIBUTE & ATTRIBUTES (DANH MỤC THUỘC TÍNH & THUỘC TÍNH)
+// ============================================================
+export async function fetchCategoryAttributes(params = {}) {
+  const query = typeof params === 'object' && params !== null 
+    ? new URLSearchParams(params).toString() 
+    : '';
+  const endpoint = query ? `/admin/category-attributes?${query}` : '/admin/category-attributes';
+  const data = await apiFetch(endpoint);
+  return data.data || [];
+}
+
+export async function createCategoryAttribute({ name }) {
+  return apiFetch('/admin/category-attributes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function updateCategoryAttribute(id, { name, status }) {
+  return apiFetch(`/admin/category-attributes/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, status }),
+  });
+}
+
+export async function toggleCategoryAttributeStatus(id, status) {
+  return apiFetch(`/admin/category-attributes/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function deleteCategoryAttribute(id) {
+  return apiFetch(`/admin/category-attributes/${id}`, { method: 'DELETE' });
+}
+
+export async function fetchAttributes(params = {}) {
+  let query = '';
+  if (typeof params === 'string') {
+    query = `category_id=${params}`;
+  } else if (params && typeof params === 'object') {
+    query = new URLSearchParams(params).toString();
+  }
+  const endpoint = query ? `/admin/attributes?${query}` : '/admin/attributes';
+  const data = await apiFetch(endpoint);
+  return data.data || [];
+}
+
+export async function createAttribute({ value, id_categories_attribute }) {
+  return apiFetch('/admin/attributes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value, id_categories_attribute }),
+  });
+}
+
+export async function updateAttribute(id, { value, id_categories_attribute, status }) {
+  return apiFetch(`/admin/attributes/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value, id_categories_attribute, status }),
+  });
+}
+
+export async function toggleAttributeStatus(id, status) {
+  return apiFetch(`/admin/attributes/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function deleteAttribute(id) {
+  return apiFetch(`/admin/attributes/${id}`, { method: 'DELETE' });
+}
+
+// ============================================================
 // USERS / CUSTOMERS (ADMIN)
 // ============================================================
 export async function fetchAdminUsers() {
@@ -508,3 +588,4 @@ export async function toggleAdminBannerStatus(id) {
     method: 'PATCH',
   });
 }
+

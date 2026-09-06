@@ -11,16 +11,6 @@ const ProductSchema = new mongoose.Schema(
     description: { type: String },
     short_desc: { type: String },
     status: { type: String, default: "active" },
-    // ── Compatibility metadata (Smart Filter Build PC) ─────────
-    compatibility_meta: {
-      socket:       { type: String, default: null },   
-      ram_type:     { type: String, default: null },  
-      form_factor:  { type: String, default: null },   
-      supported_ff: { type: [String], default: [] },   
-      tdp:          { type: Number, default: null },    
-      wattage:      { type: Number, default: null },    
-      gpu_tier:     { type: Number, default: null },    
-    },
     // Foreign Keys
     cat_id:   { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
     brand_id: { type: mongoose.Schema.Types.ObjectId, ref: "Brand" },

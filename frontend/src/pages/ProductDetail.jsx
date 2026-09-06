@@ -917,6 +917,9 @@ const SpecsTable = ({ product, activeVariant, attributes, groupedAttributes }) =
       {renderSection('Thông tin chung', generalList)}
       {renderSection('Cấu hình chi tiết', detailList)}
       {renderSection('Kích thước - Khối lượng', dimensionList)}
+      <div style={{ marginTop: '16px', fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>
+        * Thông số kỹ thuật đang được cập nhật
+      </div>
     </div>
   )
 }

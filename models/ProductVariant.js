@@ -15,16 +15,20 @@ const ProductVariantSchema = new mongoose.Schema(
   { collection: "ProductVariant" },
 );
 
-// Bảng junction: nối ProductVariant ↔ AttributeValue
+// Bảng junction: nối ProductVariant ↔ AttributeValue (theo ERD: variants_attributes)
 const VariantAttributeSchema = new mongoose.Schema(
   {
     id_variants: { type: mongoose.Schema.Types.ObjectId, ref: "ProductVariant", required: true },
     id_attribute_value: { type: mongoose.Schema.Types.ObjectId, ref: "AttributeValue", required: true },
   },
-  { collection: "VariantAttribute" },
+  { collection: "variants_attributes", timestamps: true },
 );
 
-const ProductVariant = mongoose.model("ProductVariant", ProductVariantSchema);
-const VariantAttribute = mongoose.model("VariantAttribute", VariantAttributeSchema);
+const ProductVariant = mongoose.models.ProductVariant || mongoose.model("ProductVariant", ProductVariantSchema);
+const VariantAttribute = mongoose.models.VariantAttribute || mongoose.model("VariantAttribute", VariantAttributeSchema);
 
-module.exports = { ProductVariant, VariantAttribute };
+module.exports = {
+  ProductVariant,
+  VariantAttribute,
+  VariantsAttribute: VariantAttribute,
+};

@@ -14,12 +14,14 @@ import {
   FileText,
   Layers,
   Settings,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 const Sidebar = () => {
   const menuItems = [
     { title: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { title: 'Sản phẩm', path: '/admin/products', icon: Package },
+    { title: 'Thuộc tính', path: '/admin/attributes', icon: SlidersHorizontal },
     { title: 'Danh mục', path: '/admin/categories', icon: FolderTree },
     { title: 'Thương hiệu', path: '/admin/brands', icon: Building2 },
     { title: 'Banner', path: '/admin/banners', icon: Image },

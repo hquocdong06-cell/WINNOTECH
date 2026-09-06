@@ -94,6 +94,14 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Global button reset for Admin to prevent browser default white/buttonface background */
+:where(.admin-layout, .fixed, [data-admin-theme], [data-theme]) button {
+  background-color: transparent;
+  border-color: transparent;
+  color: inherit;
+  font-family: inherit;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 7px;

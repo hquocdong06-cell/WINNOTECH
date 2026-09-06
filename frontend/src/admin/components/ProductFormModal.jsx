@@ -7,22 +7,11 @@ import {
 
 import { API_BASE } from '../../services/apiService';
 
-const defaultCompatMeta = {
-  socket: '',
-  ram_type: '',
-  form_factor: '',
-  supported_ff: [],
-  tdp: '',
-  wattage: '',
-  gpu_tier: '',
-};
-
 const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp, onSuccess }) => {
   const [form, setForm] = useState({
     name: '', description: '', short_desc: '',
     status: 'active', cat_id: '', brand_id: '',
-    price: '', sale: '', stock: '', thumnail: '',
-    compatibility_meta: defaultCompatMeta,
+    thumnail: '',
   });
   const [previewUrl, setPreviewUrl] = useState('');
   const [subImages, setSubImages] = useState([]); // mảng động chứa URL các ảnh phụ
@@ -58,7 +47,6 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
 
     // Điền dữ liệu nếu là edit
     if (product) {
-      const defaultVariant = product.Variants?.find(v => v.price > 0) || product.Variants?.find(v => v.variant_name === 'Mặc định') || product.Variants?.[0];
       const imgUrl = product.thumnail || product.AnhSP?.find(i => i.is_main)?.url || product.AnhSP?.[0]?.url || '';
       
       // Lấy danh sách ảnh phụ
@@ -71,24 +59,12 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
         status: product.status || 'active',
         cat_id: product.cat_id?._id || product.cat_id || '',
         brand_id: product.brand_id?._id || product.brand_id || '',
-        price: defaultVariant?.price || product.price || '',
-        sale: product.sale || '',
-        stock: defaultVariant?.stock_quantity !== undefined ? defaultVariant.stock_quantity : (product.stock || ''),
         thumnail: imgUrl,
-        compatibility_meta: {
-          socket: product.compatibility_meta?.socket || '',
-          ram_type: product.compatibility_meta?.ram_type || '',
-          form_factor: product.compatibility_meta?.form_factor || '',
-          supported_ff: Array.isArray(product.compatibility_meta?.supported_ff) ? product.compatibility_meta.supported_ff : [],
-          tdp: product.compatibility_meta?.tdp !== null && product.compatibility_meta?.tdp !== undefined ? product.compatibility_meta.tdp : '',
-          wattage: product.compatibility_meta?.wattage !== null && product.compatibility_meta?.wattage !== undefined ? product.compatibility_meta.wattage : '',
-          gpu_tier: product.compatibility_meta?.gpu_tier !== null && product.compatibility_meta?.gpu_tier !== undefined ? product.compatibility_meta.gpu_tier : '',
-        },
       });
       setPreviewUrl(imgUrl ? getFullUrl(imgUrl) : '');
       setSubImages(secondaryImgs.slice(0, 4));
     } else {
-      setForm({ name: '', description: '', short_desc: '', status: 'active', cat_id: '', brand_id: '', price: '', sale: '', stock: '', thumnail: '', compatibility_meta: defaultCompatMeta });
+      setForm({ name: '', description: '', short_desc: '', status: 'active', cat_id: '', brand_id: '', thumnail: '' });
       setPreviewUrl('');
       setSubImages([]);
     }
@@ -97,32 +73,6 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
   if (!isOpen) return null;
 
   const setField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
-
-  const setCompatField = (field, value) => {
-    setForm(prev => ({
-      ...prev,
-      compatibility_meta: {
-        ...(prev.compatibility_meta || defaultCompatMeta),
-        [field]: value,
-      },
-    }));
-  };
-
-  const toggleSupportedFF = (ff) => {
-    setForm(prev => {
-      const current = prev.compatibility_meta?.supported_ff || [];
-      const updated = current.includes(ff)
-        ? current.filter(item => item !== ff)
-        : [...current, ff];
-      return {
-        ...prev,
-        compatibility_meta: {
-          ...(prev.compatibility_meta || defaultCompatMeta),
-          supported_ff: updated,
-        },
-      };
-    });
-  };
 
   // Upload ảnh chính
   const handleMainFileChange = async (e) => {
@@ -214,15 +164,6 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
     setIsSaving(true);
     try {
       const validSubImages = subImages.filter(url => url && typeof url === 'string' && url.trim() !== '');
-      const compatMeta = {
-        socket: form.compatibility_meta?.socket?.trim() || null,
-        ram_type: form.compatibility_meta?.ram_type || null,
-        form_factor: form.compatibility_meta?.form_factor || null,
-        supported_ff: form.compatibility_meta?.supported_ff || [],
-        tdp: form.compatibility_meta?.tdp !== '' && form.compatibility_meta?.tdp !== null && !isNaN(form.compatibility_meta?.tdp) ? Number(form.compatibility_meta.tdp) : null,
-        wattage: form.compatibility_meta?.wattage !== '' && form.compatibility_meta?.wattage !== null && !isNaN(form.compatibility_meta?.wattage) ? Number(form.compatibility_meta.wattage) : null,
-        gpu_tier: form.compatibility_meta?.gpu_tier !== '' && form.compatibility_meta?.gpu_tier !== null && !isNaN(form.compatibility_meta?.gpu_tier) ? Number(form.compatibility_meta.gpu_tier) : null,
-      };
       const payload = {
         name: form.name.trim(),
         description: form.description,
@@ -230,22 +171,19 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
         status: form.status,
         cat_id: form.cat_id || null,
         brand_id: form.brand_id || null,
-        price: Number(form.price) || 0,
-        sale: Number(form.sale) || 0,
-        stock: Number(form.stock) || 0,
         thumnail: form.thumnail,
         sub_images: validSubImages,
-        compatibility_meta: compatMeta,
       };
 
       if (product) {
         await updateProduct(product._id, payload);
         toast.success('Cập nhật sản phẩm thành công!');
+        onSuccess?.();
       } else {
-        await createProduct(payload);
+        const res = await createProduct(payload);
         toast.success('Thêm sản phẩm thành công!');
+        onSuccess?.(res?.data);
       }
-      onSuccess?.();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -522,50 +460,6 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
                       <option key={b._id} value={b._id}>{b.name}</option>
                     ))}
                   </select>
-                </div>
-              </div>
-
-              {/* Giá */}
-              <div className="bg-[#1e1e1e] border border-[#333] rounded-lg p-5 space-y-4">
-                <h3 className="font-semibold text-[15px]">Giá bán mặc định</h3>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Giá gốc (VNĐ)</label>
-                  <input
-                    type="number"
-                    value={form.price}
-                    onChange={(e) => setField('price', e.target.value)}
-                    min="0"
-                    placeholder="0"
-                    className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Giảm giá (%)</label>
-                  <input
-                    type="number"
-                    value={form.sale}
-                    onChange={(e) => setField('sale', e.target.value)}
-                    min="0"
-                    max="100"
-                    placeholder="0"
-                    className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white"
-                  />
-                  {form.sale > 0 && form.price > 0 && (
-                    <p className="text-xs text-[#d4ff00] mt-1">
-                      Giá sau KM: {(form.price * (1 - form.sale / 100)).toLocaleString('vi-VN')}đ
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Tồn kho</label>
-                  <input
-                    type="number"
-                    value={form.stock}
-                    onChange={(e) => setField('stock', e.target.value)}
-                    min="0"
-                    placeholder="0"
-                    className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white"
-                  />
                 </div>
               </div>
 

@@ -22,6 +22,7 @@ import GuestGuard from './components/GuestGuard'
 import AdminLayout from './admin/layouts/AdminLayout'
 import Dashboard from './admin/pages/Dashboard'
 import Products from './admin/pages/Products'
+import Attributes from './admin/pages/Attributes'
 import Categories from './admin/pages/Categories'
 import Brands from './admin/pages/Brands'
 import Banners from './admin/pages/Banners'
@@ -99,6 +100,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="products" element={<Products />} />
+          <Route path="attributes" element={<Attributes />} />
           <Route path="categories" element={<Categories />} />
           <Route path="brands" element={<Brands />} />
           <Route path="banners" element={<Banners />} />

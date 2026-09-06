@@ -1,12 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, X, Save, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Plus, X, Save, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { API_BASE as API_URL } from '../../services/apiService';
+import { fetchCategoryAttributes, fetchAttributes } from '../services/adminService';
 
 const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
   const [variants, setVariants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState(null);
+
+  // Danh mục thuộc tính & giá trị thuộc tính
+  const [categoryAttributes, setCategoryAttributes] = useState([]);
+  const [allAttributes, setAllAttributes] = useState([]);
+  const [editingAttrVariantId, setEditingAttrVariantId] = useState(null);
 
   // Form thêm mới biến thể
   const [showAddForm, setShowAddForm] = useState(false);
@@ -16,16 +22,46 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
     price: '',
     sale_price: '0',
     stock_quantity: '0',
-    status: 'active'
+    status: 'active',
+    attribute_value_ids: []
   });
 
-  // Load variants khi mở modal hoặc thay đổi sản phẩm
+  // Load variants và thuộc tính khi mở modal hoặc thay đổi sản phẩm
   useEffect(() => {
     if (isOpen && product) {
       fetchVariants();
-      setShowAddForm(false);
+      loadAttributesData();
     }
   }, [isOpen, product]);
+
+  const loadAttributesData = async () => {
+    try {
+      const [cats, attrs] = await Promise.all([
+        fetchCategoryAttributes({ status: 'active' }),
+        fetchAttributes({ status: 'active' })
+      ]);
+      setCategoryAttributes(cats || []);
+      setAllAttributes(attrs || []);
+    } catch (err) {
+      console.error('Lỗi tải danh mục thuộc tính:', err);
+    }
+  };
+
+  const attributesByCategory = useMemo(() => {
+    const map = {};
+    (categoryAttributes || []).forEach(cat => {
+      map[cat._id] = [];
+    });
+    (allAttributes || []).forEach(attr => {
+      const catId = typeof attr.id_categories_attribute === 'object'
+        ? attr.id_categories_attribute?._id
+        : attr.id_categories_attribute;
+      if (catId && map[catId]) {
+        map[catId].push(attr);
+      }
+    });
+    return map;
+  }, [categoryAttributes, allAttributes]);
 
   const fetchVariants = async () => {
     setLoading(true);
@@ -35,7 +71,14 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
       });
       const data = await res.json();
       if (data.success) {
-        setVariants(data.data || []);
+        const loadedVariants = data.data || [];
+        setVariants(loadedVariants);
+        // Nếu chưa có biến thể thì hiển thị ngay form thêm biến thể
+        if (loadedVariants.length === 0) {
+          setShowAddForm(true);
+        } else {
+          setShowAddForm(false);
+        }
       } else {
         toast.error(data.message || 'Lỗi tải danh sách biến thể');
       }
@@ -48,6 +91,54 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
 
   const handleFieldChange = (id, field, value) => {
     setVariants(prev => prev.map(v => v._id === id ? { ...v, [field]: value } : v));
+  };
+
+  // Chọn thuộc tính cho biến thể mới
+  const handleSelectNewVariantAttr = (categoryId, attrValueId) => {
+    setNewVariant(prev => {
+      const categoryValues = attributesByCategory[categoryId] || [];
+      const catValIds = categoryValues.map(a => a._id.toString());
+      // Lọc bỏ các thuộc tính cũ thuộc cùng danh mục
+      const filtered = (prev.attribute_value_ids || []).filter(id => !catValIds.includes(id.toString()));
+      if (attrValueId) {
+        filtered.push(attrValueId);
+      }
+      return { ...prev, attribute_value_ids: filtered };
+    });
+  };
+
+  // Chọn thuộc tính cho biến thể đang sửa
+  const handleSelectVariantAttr = (variantId, categoryId, attrValueId) => {
+    setVariants(prev => prev.map(v => {
+      if (v._id !== variantId) return v;
+      const categoryValues = attributesByCategory[categoryId] || [];
+      const catValIds = categoryValues.map(a => a._id.toString());
+      const currentIds = (v.attribute_value_ids || []).map(id => id.toString());
+      const filtered = currentIds.filter(id => !catValIds.includes(id));
+      if (attrValueId) {
+        filtered.push(attrValueId);
+      }
+
+      // Cập nhật lại danh sách display attributes cho giao diện
+      const updatedDisplayAttrs = [];
+      filtered.forEach(valId => {
+        const matchedAttr = allAttributes.find(a => a._id.toString() === valId);
+        if (matchedAttr) {
+          const cat = categoryAttributes.find(c => c._id.toString() === categoryId);
+          updatedDisplayAttrs.push({
+            category_name: matchedAttr.id_categories_attribute?.name || cat?.name || 'Thuộc tính',
+            value: matchedAttr.value,
+            value_id: valId
+          });
+        }
+      });
+
+      return {
+        ...v,
+        attribute_value_ids: filtered,
+        attributes: updatedDisplayAttrs
+      };
+    }));
   };
 
   const handleSaveVariant = async (variant) => {
@@ -67,12 +158,14 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
           price: Number(variant.price),
           sale_price: Number(variant.sale_price) || 0,
           stock_quantity: Number(variant.stock_quantity) || 0,
-          status: variant.status
+          status: variant.status,
+          attribute_value_ids: variant.attribute_value_ids || []
         })
       });
       const data = await res.json();
       if (data.success) {
         toast.success('Cập nhật biến thể thành công!');
+        fetchVariants();
         onSuccess?.(); // để load lại list sản phẩm bên ngoài
       } else {
         toast.error(data.message || 'Lỗi cập nhật biến thể');
@@ -101,13 +194,14 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
           price: Number(newVariant.price),
           sale_price: Number(newVariant.sale_price) || 0,
           stock_quantity: Number(newVariant.stock_quantity) || 0,
-          status: newVariant.status
+          status: newVariant.status,
+          attribute_value_ids: newVariant.attribute_value_ids || []
         })
       });
       const data = await res.json();
       if (data.success) {
         toast.success('Thêm biến thể mới thành công!');
-        setVariants(prev => [...prev, data.data]);
+        fetchVariants();
         setShowAddForm(false);
         setNewVariant({
           variant_name: '',
@@ -115,7 +209,8 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
           price: '',
           sale_price: '0',
           stock_quantity: '0',
-          status: 'active'
+          status: 'active',
+          attribute_value_ids: []
         });
         onSuccess?.();
       } else {
@@ -228,6 +323,42 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
                   </select>
                 </div>
               </div>
+
+              {/* Chọn thuộc tính biến thể (theo ERD) */}
+              {categoryAttributes.length > 0 && (
+                <div className="pt-2 border-t border-[#333]">
+                  <label className="block text-xs text-gray-400 mb-2 font-medium">
+                    Gán thuộc tính biến thể (Màu sắc, Dung lượng, Bộ nhớ,...):
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {categoryAttributes.map(cat => {
+                      const values = attributesByCategory[cat._id] || [];
+                      const selectedValId = (newVariant.attribute_value_ids || []).find(id => 
+                        values.some(v => v._id.toString() === id.toString())
+                      ) || '';
+
+                      return (
+                        <div key={cat._id} className="bg-[#141414] p-2.5 rounded border border-[#333]">
+                          <span className="block text-xs text-gray-400 mb-1 font-semibold">{cat.name}:</span>
+                          <select
+                            value={selectedValId}
+                            onChange={(e) => handleSelectNewVariantAttr(cat._id, e.target.value)}
+                            className="w-full bg-[#1e1e1e] border border-[#444] rounded px-2 py-1.5 text-xs text-white outline-none focus:border-[#d4ff00]"
+                          >
+                            <option value="">-- Không chọn --</option>
+                            {values.map(val => (
+                              <option key={val._id} value={val._id}>
+                                {val.value}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-end gap-2 pt-2">
                 <button 
                   onClick={() => setShowAddForm(false)}
@@ -250,7 +381,7 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
               <table className="w-full text-sm text-left">
                 <thead className="bg-[#222] border-b border-[#333] text-gray-400">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Tên biến thể</th>
+                    <th className="px-4 py-3 font-medium">Tên biến thể & Thuộc tính</th>
                     <th className="px-4 py-3 font-medium">Mã SKU</th>
                     <th className="px-4 py-3 font-medium">Giá gốc</th>
                     <th className="px-4 py-3 font-medium">Giá KM</th>
@@ -268,76 +399,146 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
                       </td>
                     </tr>
                   ) : variants.length > 0 ? (
-                    variants.map((v) => (
-                      <tr key={v._id} className="hover:bg-[#252525] transition-colors">
-                        <td className="px-4 py-2">
-                          <input 
-                            type="text" 
-                            value={v.variant_name}
-                            onChange={(e) => handleFieldChange(v._id, 'variant_name', e.target.value)}
-                            className="w-full bg-[#141414] border border-[#444] rounded px-2 py-1.5 text-xs focus:border-[#d4ff00] outline-none text-white font-medium" 
-                          />
-                        </td>
-                        <td className="px-4 py-2">
-                          <input 
-                            type="text" 
-                            value={v.sku}
-                            onChange={(e) => handleFieldChange(v._id, 'sku', e.target.value)}
-                            className="w-full bg-[#141414] border border-[#444] rounded px-2 py-1.5 text-xs focus:border-[#d4ff00] outline-none text-white" 
-                          />
-                        </td>
-                        <td className="px-4 py-2">
-                          <input 
-                            type="number" 
-                            value={v.price}
-                            onChange={(e) => handleFieldChange(v._id, 'price', e.target.value)}
-                            className="w-24 bg-[#141414] border border-[#444] rounded px-2 py-1.5 text-xs focus:border-[#d4ff00] outline-none text-white text-[#d4ff00] font-semibold" 
-                          />
-                        </td>
-                        <td className="px-4 py-2">
-                          <input 
-                            type="number" 
-                            value={v.sale_price}
-                            onChange={(e) => handleFieldChange(v._id, 'sale_price', e.target.value)}
-                            className="w-24 bg-[#141414] border border-[#444] rounded px-2 py-1.5 text-xs focus:border-[#d4ff00] outline-none text-white text-[#a8a8a8]" 
-                          />
-                        </td>
-                        <td className="px-4 py-2">
-                          <input 
-                            type="number" 
-                            value={v.stock_quantity}
-                            onChange={(e) => handleFieldChange(v._id, 'stock_quantity', e.target.value)}
-                            className="w-20 bg-[#141414] border border-[#444] rounded px-2 py-1.5 text-xs focus:border-[#d4ff00] outline-none text-white text-center font-bold" 
-                          />
-                        </td>
-                        <td className="px-4 py-2">
-                          <select 
-                            value={v.status || 'active'}
-                            onChange={(e) => handleFieldChange(v._id, 'status', e.target.value)}
-                            className="bg-[#141414] border border-[#444] rounded px-2 py-1.5 text-xs focus:border-[#d4ff00] outline-none text-white"
-                          >
-                            <option value="active">Active</option>
-                            <option value="inactive">Hidden</option>
-                          </select>
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          <div className="flex justify-end">
-                            <button 
-                              onClick={() => handleSaveVariant(v)}
-                              disabled={savingId === v._id}
-                              className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
-                              title="Lưu thay đổi"
-                            >
-                              {savingId === v._id ? (
-                                <Loader2 className="w-4 h-4 animate-spin text-[#d4ff00]" />
-                              ) : (
-                                <Save className="w-4 h-4 text-[#d4ff00]" />
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                    variants.map((v) => {
+                      const isAttrOpen = editingAttrVariantId === v._id;
+
+                      return (
+                        <React.Fragment key={v._id}>
+                          <tr className="hover:bg-[#252525] transition-colors">
+                            <td className="px-4 py-2">
+                              <input 
+                                type="text" 
+                                value={v.variant_name}
+                                onChange={(e) => handleFieldChange(v._id, 'variant_name', e.target.value)}
+                                className="w-full bg-[#141414] border border-[#444] rounded px-2 py-1.5 text-xs focus:border-[#d4ff00] outline-none text-white font-medium" 
+                              />
+                              {/* Hiển thị các tag thuộc tính */}
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                {v.attributes && v.attributes.length > 0 ? (
+                                  v.attributes.map((att, idx) => (
+                                    <span 
+                                      key={idx} 
+                                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-[#141414] border border-[#444] text-[#d4ff00]"
+                                    >
+                                      {att.category_name ? `${att.category_name}: ` : ''}{att.value}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-[11px] text-gray-500">Chưa gắn thuộc tính</span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingAttrVariantId(isAttrOpen ? null : v._id)}
+                                  style={{ backgroundColor: 'transparent' }}
+                                  className="ml-1.5 px-2 py-0.5 text-[11px] font-bold inline-flex items-center gap-1 rounded-lg border border-[#D3FC00] text-[#D3FC00] bg-transparent hover:bg-[#D3FC00]/10 shadow-[0_0_10px_rgba(211,252,0,0.15)] transition-all cursor-pointer"
+                                >
+                                  {isAttrOpen ? 'Thu gọn' : 'Chỉnh thuộc tính'}
+                                  {isAttrOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                </button>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2">
+                              <input 
+                                type="text" 
+                                value={v.sku}
+                                onChange={(e) => handleFieldChange(v._id, 'sku', e.target.value)}
+                                className="w-full bg-[#141414] border border-[#444] rounded px-2 py-1.5 text-xs focus:border-[#d4ff00] outline-none text-white" 
+                              />
+                            </td>
+                            <td className="px-4 py-2">
+                              <input 
+                                type="number" 
+                                value={v.price}
+                                onChange={(e) => handleFieldChange(v._id, 'price', e.target.value)}
+                                className="w-24 bg-[#141414] border border-[#444] rounded px-2 py-1.5 text-xs focus:border-[#d4ff00] outline-none text-white text-[#d4ff00] font-semibold" 
+                              />
+                            </td>
+                            <td className="px-4 py-2">
+                              <input 
+                                type="number" 
+                                value={v.sale_price}
+                                onChange={(e) => handleFieldChange(v._id, 'sale_price', e.target.value)}
+                                className="w-24 bg-[#141414] border border-[#444] rounded px-2 py-1.5 text-xs focus:border-[#d4ff00] outline-none text-white text-[#a8a8a8]" 
+                              />
+                            </td>
+                            <td className="px-4 py-2">
+                              <input 
+                                type="number" 
+                                value={v.stock_quantity}
+                                onChange={(e) => handleFieldChange(v._id, 'stock_quantity', e.target.value)}
+                                className="w-20 bg-[#141414] border border-[#444] rounded px-2 py-1.5 text-xs focus:border-[#d4ff00] outline-none text-white text-center font-bold" 
+                              />
+                            </td>
+                            <td className="px-4 py-2">
+                              <select 
+                                value={v.status || 'active'}
+                                onChange={(e) => handleFieldChange(v._id, 'status', e.target.value)}
+                                className="bg-[#141414] border border-[#444] rounded px-2 py-1.5 text-xs focus:border-[#d4ff00] outline-none text-white"
+                              >
+                                <option value="active">Active</option>
+                                <option value="inactive">Hidden</option>
+                              </select>
+                            </td>
+                            <td className="px-4 py-2 text-right">
+                              <div className="flex justify-end">
+                                <button 
+                                  onClick={() => handleSaveVariant(v)}
+                                  disabled={savingId === v._id}
+                                  className="p-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-gray-300 hover:text-white transition-colors"
+                                  title="Lưu thay đổi"
+                                >
+                                  {savingId === v._id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin text-[#d4ff00]" />
+                                  ) : (
+                                    <Save className="w-4 h-4 text-[#d4ff00]" />
+                                  )}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* Bảng chọn thuộc tính khi mở rộng hàng biến thể */}
+                          {isAttrOpen && (
+                            <tr className="bg-[#181818]">
+                              <td colSpan="7" className="px-4 py-3 border-b border-[#333]">
+                                <div className="text-xs text-gray-300 font-semibold mb-2">
+                                  Chọn giá trị thuộc tính cho biến thể:
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                                  {categoryAttributes.map(cat => {
+                                    const values = attributesByCategory[cat._id] || [];
+                                    const currentValId = (v.attribute_value_ids || []).find(id =>
+                                      values.some(val => val._id.toString() === id.toString())
+                                    ) || '';
+
+                                    return (
+                                      <div key={cat._id} className="bg-[#141414] p-2 rounded border border-[#333]">
+                                        <span className="block text-[11px] text-gray-400 mb-1">{cat.name}:</span>
+                                        <select
+                                          value={currentValId}
+                                          onChange={(e) => handleSelectVariantAttr(v._id, cat._id, e.target.value)}
+                                          className="w-full bg-[#1e1e1e] border border-[#444] rounded px-2 py-1 text-xs text-white outline-none focus:border-[#d4ff00]"
+                                        >
+                                          <option value="">-- Trống --</option>
+                                          {values.map(val => (
+                                            <option key={val._id} value={val._id}>
+                                              {val.value}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <div className="text-[11px] text-gray-400 mt-2">
+                                  * Nhớ ấn biểu tượng <b>Lưu</b> (Save) ở cột thao tác để cập nhật thuộc tính vào cơ sở dữ liệu.
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })
                   ) : (
                     <tr>
                       <td colSpan="7" className="px-4 py-10 text-center text-gray-500">
