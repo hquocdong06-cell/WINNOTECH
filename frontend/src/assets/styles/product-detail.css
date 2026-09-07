@@ -501,8 +501,8 @@
 .btn-buy-now {
   flex: 1;
   background: transparent !important;
-  color: #D3FC00 !important;
-  border: 1.5px solid #D3FC00 !important;
+  color: #76b900 !important;
+  border: 1.5px solid #76b900 !important;
   border-radius: 8px;
   padding: 12px 20px;
   font-size: 13px;
@@ -517,8 +517,8 @@
 }
 
 .btn-buy-now:hover:not(:disabled) {
-  background: rgba(211, 252, 0, 0.08) !important;
-  box-shadow: 0 0 12px rgba(211, 252, 0, 0.25) !important;
+  background: rgba(118, 185, 0, 0.08) !important;
+  box-shadow: 0 0 12px rgba(118, 185, 0, 0.25) !important;
 }
 
 /* ── WISHLIST ── */

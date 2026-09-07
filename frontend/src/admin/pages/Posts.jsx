@@ -367,7 +367,7 @@ const Posts = () => {
           </Link>
           <button
             onClick={handleOpenAddModal}
-            className="flex items-center gap-2 px-5 py-2.5 bg-black border border-[#D3FC00] text-[#D3FC00] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(211,252,0,0.15)] hover:bg-[#D3FC00]/10 text-sm"
+            className="flex items-center gap-2 px-5 py-2.5 bg-black border border-[#76b900] text-[#76b900] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(118,185,0,0.15)] hover:bg-[#76b900]/10 text-sm"
           >
             <Plus className="w-5 h-5" /> Thêm bài viết
           </button>

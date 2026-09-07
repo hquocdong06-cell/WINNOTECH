@@ -2195,8 +2195,8 @@ export default function ProductDetail() {
                           flex: 1,
                           height: '48px',
                           background: isOutOfStock ? '#444' : 'transparent', 
-                          color: isOutOfStock ? '#888' : '#D3FC00', 
-                          border: isOutOfStock ? 'none' : '1.5px solid #D3FC00',
+                          color: isOutOfStock ? '#888' : '#76b900', 
+                          border: isOutOfStock ? 'none' : '1.5px solid #76b900',
                           fontWeight: 'bold',
                           fontSize: '13px',
                           borderRadius: '8px',
@@ -2208,7 +2208,7 @@ export default function ProductDetail() {
                           transition: 'all 0.2s ease'
                         }}
                       >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isOutOfStock ? '#888' : '#D3FC00'} strokeWidth="2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isOutOfStock ? '#888' : '#76b900'} strokeWidth="2">
                           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
                         </svg>
                         {isOutOfStock ? 'HẾT HÀNG' : 'MUA NGAY'}

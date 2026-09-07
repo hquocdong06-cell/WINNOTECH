@@ -252,7 +252,7 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
             </div>
             <button 
               onClick={() => setShowAddForm(!showAddForm)}
-              className="flex items-center gap-2 px-4 py-2 bg-black border border-[#D3FC00] text-[#D3FC00] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(211,252,0,0.15)] hover:bg-[#D3FC00]/10 text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-black border border-[#76b900] text-[#76b900] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(118,185,0,0.15)] hover:bg-[#76b900]/10 text-sm"
             >
               <Plus className="w-4 h-4" /> {showAddForm ? 'Hủy' : 'Thêm biến thể mới'}
             </button>
@@ -430,7 +430,7 @@ const VariantManagementModal = ({ isOpen, onClose, product, onSuccess }) => {
                                   type="button"
                                   onClick={() => setEditingAttrVariantId(isAttrOpen ? null : v._id)}
                                   style={{ backgroundColor: 'transparent' }}
-                                  className="ml-1.5 px-2 py-0.5 text-[11px] font-bold inline-flex items-center gap-1 rounded-lg border border-[#D3FC00] text-[#D3FC00] bg-transparent hover:bg-[#D3FC00]/10 shadow-[0_0_10px_rgba(211,252,0,0.15)] transition-all cursor-pointer"
+                                  className="ml-1.5 px-2 py-0.5 text-[11px] font-bold inline-flex items-center gap-1 rounded-lg border border-[#76b900] text-[#76b900] bg-transparent hover:bg-[#76b900]/10 shadow-[0_0_10px_rgba(118,185,0,0.15)] transition-all cursor-pointer"
                                 >
                                   {isAttrOpen ? 'Thu gọn' : 'Chỉnh thuộc tính'}
                                   {isAttrOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}

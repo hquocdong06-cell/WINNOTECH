@@ -166,6 +166,44 @@ export default function PriceRangeFilter({
       </div>
 
       {/* DẢI THANH TRƯỢT 2 ĐẦU (KÉO DÂY) */}
+      <style>{`
+        input[type="range"].dual-slider-thumb {
+          -webkit-appearance: none !important;
+          appearance: none !important;
+          background: transparent !important;
+          border: none !important;
+        }
+        input[type="range"].dual-slider-thumb::-webkit-slider-runnable-track {
+          -webkit-appearance: none !important;
+          appearance: none !important;
+          background: transparent !important;
+          background-color: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          outline: none !important;
+          height: 100% !important;
+        }
+        input[type="range"].dual-slider-thumb::-moz-range-track {
+          background: transparent !important;
+          background-color: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          outline: none !important;
+          height: 100% !important;
+        }
+        .dual-slider-active-track {
+          background: #76b900 !important;
+          box-shadow: 0 0 8px rgba(118, 185, 0, 0.4) !important;
+        }
+        .dual-slider-thumb::-webkit-slider-thumb {
+          background: #76b900 !important;
+          box-shadow: 0 0 8px rgba(118, 185, 0, 0.6) !important;
+        }
+        .dual-slider-thumb::-moz-range-thumb {
+          background: #76b900 !important;
+          box-shadow: 0 0 8px rgba(118, 185, 0, 0.6) !important;
+        }
+      `}</style>
       <div className="dual-slider-box">
         <div className="dual-slider-track" />
         <div

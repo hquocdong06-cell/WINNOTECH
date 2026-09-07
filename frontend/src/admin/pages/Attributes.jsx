@@ -350,14 +350,14 @@ const Attributes = () => {
         {activeTab === 'categories' ? (
           <button
             onClick={() => { setEditingCategory(null); setIsCatModalOpen(true); }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-black border border-[#D3FC00] text-[#D3FC00] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(211,252,0,0.15)] hover:bg-[#D3FC00]/10 text-xs"
+            className="flex items-center gap-2 px-5 py-2.5 bg-black border border-[#76b900] text-[#76b900] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(118,185,0,0.15)] hover:bg-[#76b900]/10 text-xs"
           >
             <Plus className="w-4 h-4" /> Thêm Danh mục thuộc tính
           </button>
         ) : (
           <button
             onClick={() => { setEditingAttribute(null); setIsAttrModalOpen(true); }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-black border border-[#D3FC00] text-[#D3FC00] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(211,252,0,0.15)] hover:bg-[#D3FC00]/10 text-xs"
+            className="flex items-center gap-2 px-5 py-2.5 bg-black border border-[#76b900] text-[#76b900] font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(118,185,0,0.15)] hover:bg-[#76b900]/10 text-xs"
           >
             <Plus className="w-4 h-4" /> Thêm Thuộc tính mới
           </button>
@@ -369,11 +369,11 @@ const Attributes = () => {
         <button
           type="button"
           onClick={() => { setActiveTab('categories'); setSearchQuery(''); }}
-          style={{ backgroundColor: activeTab === 'categories' ? 'rgba(211, 252, 0, 0.1)' : 'transparent' }}
-          className={`px-4 py-2 text-sm font-bold flex items-center gap-2 rounded-lg transition-all border border-[#D3FC00] text-[#D3FC00] ${
+          style={{ backgroundColor: activeTab === 'categories' ? 'rgba(118, 185, 0, 0.1)' : 'transparent' }}
+          className={`px-4 py-2 text-sm font-bold flex items-center gap-2 rounded-lg transition-all border border-[#76b900] text-[#76b900] ${
             activeTab === 'categories'
-              ? 'shadow-[0_0_15px_rgba(211,252,0,0.25)] opacity-100'
-              : 'opacity-65 hover:opacity-100 hover:bg-[#D3FC00]/10 hover:shadow-[0_0_15px_rgba(211,252,0,0.15)]'
+              ? 'shadow-[0_0_15px_rgba(118,185,0,0.25)] opacity-100'
+              : 'opacity-65 hover:opacity-100 hover:bg-[#76b900]/10 hover:shadow-[0_0_15px_rgba(118,185,0,0.15)]'
           }`}
         >
           <FolderTree className="w-4 h-4" />
@@ -382,11 +382,11 @@ const Attributes = () => {
         <button
           type="button"
           onClick={() => { setActiveTab('values'); setSearchQuery(''); }}
-          style={{ backgroundColor: activeTab === 'values' ? 'rgba(211, 252, 0, 0.1)' : 'transparent' }}
-          className={`px-4 py-2 text-sm font-bold flex items-center gap-2 rounded-lg transition-all border border-[#D3FC00] text-[#D3FC00] ${
+          style={{ backgroundColor: activeTab === 'values' ? 'rgba(118, 185, 0, 0.1)' : 'transparent' }}
+          className={`px-4 py-2 text-sm font-bold flex items-center gap-2 rounded-lg transition-all border border-[#76b900] text-[#76b900] ${
             activeTab === 'values'
-              ? 'shadow-[0_0_15px_rgba(211,252,0,0.25)] opacity-100'
-              : 'opacity-65 hover:opacity-100 hover:bg-[#D3FC00]/10 hover:shadow-[0_0_15px_rgba(211,252,0,0.15)]'
+              ? 'shadow-[0_0_15px_rgba(118,185,0,0.25)] opacity-100'
+              : 'opacity-65 hover:opacity-100 hover:bg-[#76b900]/10 hover:shadow-[0_0_15px_rgba(118,185,0,0.15)]'
           }`}
         >
           <Tag className="w-4 h-4" />

@@ -150,7 +150,7 @@ const UserVouchers = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-black border border-[#D3FC00] text-[#D3FC00] font-bold rounded-xl text-xs transition-colors shadow-[0_0_15px_rgba(211,252,0,0.15)] hover:bg-[#D3FC00]/10"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-black border border-[#76b900] text-[#76b900] font-bold rounded-xl text-xs transition-colors shadow-[0_0_15px_rgba(118,185,0,0.15)] hover:bg-[#76b900]/10"
           >
             <Plus className="w-3.5 h-3.5" /> Thêm Voucher Vào Ví
           </button>

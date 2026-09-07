@@ -98,8 +98,8 @@ export default function AIChatbot() {
             maxHeight: 'calc(100vh - 100px)',
             background: '#121621',
             borderRadius: '16px',
-            border: '1px solid rgba(200, 230, 0, 0.25)',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(200, 230, 0, 0.15)',
+            border: '1px solid rgba(118, 185, 0, 0.3)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(118, 185, 0, 0.2)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -124,23 +124,23 @@ export default function AIChatbot() {
                   width: '34px',
                   height: '34px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                  border: '1.5px solid var(--accent-color, #c8e600)',
+                  background: 'linear-gradient(135deg, #141414 0%, #000000 100%)',
+                  border: '1.5px solid #76b900',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 2px 8px rgba(200, 230, 0, 0.3)',
+                  boxShadow: '0 2px 8px rgba(118, 185, 0, 0.35)',
                 }}
               >
                 <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
-                  <circle cx="14" cy="8" r="2.5" fill="#c8e600" />
-                  <line x1="14" y1="8" x2="18" y2="15" stroke="#c8e600" strokeWidth="2" strokeLinecap="round" />
-                  <circle cx="34" cy="8" r="2.5" fill="#c8e600" />
-                  <line x1="34" y1="8" x2="30" y2="15" stroke="#c8e600" strokeWidth="2" strokeLinecap="round" />
-                  <rect x="10" y="14" width="28" height="24" rx="12" fill="#2d3748" stroke="#c8e600" strokeWidth="2" />
-                  <rect x="14" y="20" width="20" height="12" rx="6" fill="#0f172a" stroke="#c8e600" strokeWidth="1.5" />
-                  <path d="M17 25 Q19 22 21 25" stroke="#c8e600" strokeWidth="2" strokeLinecap="round" fill="none" />
-                  <path d="M27 25 Q29 22 31 25" stroke="#c8e600" strokeWidth="2" strokeLinecap="round" fill="none" />
+                  <circle cx="14" cy="8" r="2.5" fill="#76b900" />
+                  <line x1="14" y1="8" x2="18" y2="15" stroke="#76b900" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="34" cy="8" r="2.5" fill="#76b900" />
+                  <line x1="34" y1="8" x2="30" y2="15" stroke="#76b900" strokeWidth="2" strokeLinecap="round" />
+                  <rect x="10" y="14" width="28" height="24" rx="12" fill="#141414" stroke="#76b900" strokeWidth="2" />
+                  <rect x="14" y="20" width="20" height="12" rx="6" fill="#000000" stroke="#76b900" strokeWidth="1.5" />
+                  <path d="M17 25 Q19 22 21 25" stroke="#76b900" strokeWidth="2" strokeLinecap="round" fill="none" />
+                  <path d="M27 25 Q29 22 31 25" stroke="#76b900" strokeWidth="2" strokeLinecap="round" fill="none" />
                   <path d="M21 29 Q24 32 27 29" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" fill="none" />
                 </svg>
               </div>
@@ -148,15 +148,15 @@ export default function AIChatbot() {
                 <div style={{ color: '#fff', fontWeight: '700', fontSize: '14px' }}>
                   Trợ Lý AI WinNoTech
                 </div>
-                <div style={{ color: 'var(--accent-color, #c8e600)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div style={{ color: '#76b900', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span
                     style={{
                       width: '6px',
                       height: '6px',
                       borderRadius: '50%',
-                      background: '#22c55e',
+                      background: '#76b900',
                       display: 'inline-block',
-                      boxShadow: '0 0 6px #22c55e'
+                      boxShadow: '0 0 6px #76b900'
                     }}
                   />
                   Sẵn sàng hỗ trợ 24/7
@@ -223,12 +223,12 @@ export default function AIChatbot() {
                     maxWidth: '82%',
                     padding: '10px 14px',
                     borderRadius: msg.role === 'user' ? '16px 16px 2px 16px' : '16px 16px 16px 2px',
-                    background: msg.role === 'user' ? 'linear-gradient(135deg, #c8e600 0%, #86efac 100%)' : '#1e293b',
+                    background: msg.role === 'user' ? '#76b900' : '#1e293b',
                     color: msg.role === 'user' ? '#000000' : '#f8fafc',
                     fontWeight: msg.role === 'user' ? '600' : '400',
                     fontSize: '13px',
                     lineHeight: '1.5',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                    boxShadow: msg.role === 'user' ? '0 2px 10px rgba(118, 185, 0, 0.25)' : '0 2px 8px rgba(0, 0, 0, 0.2)',
                     whiteSpace: 'pre-wrap',
                   }}
                 >
@@ -244,7 +244,7 @@ export default function AIChatbot() {
                     padding: '10px 14px',
                     borderRadius: '16px 16px 16px 2px',
                     background: '#1e293b',
-                    color: 'var(--accent-color, #c8e600)',
+                    color: '#76b900',
                     fontSize: '12px',
                     fontStyle: 'italic',
                     display: 'flex',
@@ -276,9 +276,9 @@ export default function AIChatbot() {
                 key={i}
                 onClick={() => handleSend(sug)}
                 style={{
-                  background: 'rgba(200, 230, 0, 0.08)',
-                  border: '1px solid rgba(200, 230, 0, 0.25)',
-                  color: 'var(--accent-color, #c8e600)',
+                  background: 'rgba(118, 185, 0, 0.08)',
+                  border: '1px solid rgba(118, 185, 0, 0.25)',
+                  color: '#76b900',
                   padding: '4px 10px',
                   borderRadius: '12px',
                   fontSize: '11px',
@@ -286,8 +286,8 @@ export default function AIChatbot() {
                   flexShrink: 0,
                   transition: 'all 0.2s',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(200, 230, 0, 0.2)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(200, 230, 0, 0.08)')}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(118, 185, 0, 0.2)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(118, 185, 0, 0.08)')}
               >
                 {sug}
               </button>
@@ -331,8 +331,8 @@ export default function AIChatbot() {
                 width: '40px',
                 height: '40px',
                 borderRadius: '10px',
-                background: input.trim() ? 'linear-gradient(135deg, #c8e600 0%, #86efac 100%)' : '#334155',
-                color: input.trim() ? '#000' : '#64748b',
+                background: input.trim() ? '#76b900' : '#334155',
+                color: input.trim() ? '#000000' : '#64748b',
                 border: 'none',
                 cursor: input.trim() ? 'pointer' : 'default',
                 display: 'flex',
@@ -422,13 +422,14 @@ export default function AIChatbot() {
                 position: 'absolute',
                 right: '64px',
                 whiteSpace: 'nowrap',
-                background: 'linear-gradient(135deg, #c8e600 0%, #a3e635 100%)',
-                color: '#0a0a0f',
+                background: '#000000',
+                color: '#76b900',
+                border: '1.5px solid #76b900',
                 padding: '9px 16px',
                 borderRadius: '20px',
                 fontSize: '13px',
                 fontWeight: '700',
-                boxShadow: '0 6px 20px rgba(200, 230, 0, 0.4)',
+                boxShadow: '0 4px 16px rgba(118, 185, 0, 0.35)',
                 cursor: 'pointer',
                 userSelect: 'none',
                 display: 'flex',
@@ -451,9 +452,9 @@ export default function AIChatbot() {
                   width: '18px',
                   height: '18px',
                   borderRadius: '50%',
-                  background: '#334155',
-                  color: '#ffffff',
-                  border: 'none',
+                  background: '#141414',
+                  border: '1px solid rgba(118, 185, 0, 0.4)',
+                  color: '#76b900',
                   fontSize: '10px',
                   fontWeight: 'bold',
                   display: 'flex',
@@ -462,8 +463,16 @@ export default function AIChatbot() {
                   cursor: 'pointer',
                   marginLeft: '2px',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = '#ef4444')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '#334155')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#ef4444'
+                  e.currentTarget.style.color = '#ffffff'
+                  e.currentTarget.style.borderColor = '#ef4444'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#141414'
+                  e.currentTarget.style.color = '#76b900'
+                  e.currentTarget.style.borderColor = 'rgba(118, 185, 0, 0.4)'
+                }}
               >
                 ✕
               </button>
@@ -492,24 +501,24 @@ export default function AIChatbot() {
             onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.08)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
-            {/* White Speech Bubble (...) on Top-Right */}
+            {/* Speech Bubble (...) on Top-Right */}
             <div
               style={{
                 position: 'absolute',
                 top: '-3px',
                 right: '-2px',
                 zIndex: 3,
-                background: '#ffffff',
-                border: '1.5px solid #0f172a',
+                background: '#000000',
+                border: '1.5px solid #76b900',
                 borderRadius: '8px',
                 padding: '2px 4px',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}
             >
-              <svg width="12" height="9" viewBox="0 0 20 12" fill="#0f172a">
+              <svg width="12" height="9" viewBox="0 0 20 12" fill="#76b900">
                 <circle cx="4" cy="6" r="2" />
                 <circle cx="10" cy="6" r="2" />
                 <circle cx="16" cy="6" r="2" />
@@ -522,9 +531,9 @@ export default function AIChatbot() {
                 width: '52px',
                 height: '52px',
                 borderRadius: '50%',
-                background: isOpen ? '#1e293b' : 'linear-gradient(135deg, #1e293b 0%, #0b0f19 100%)',
-                border: '2.5px solid var(--accent-color, #c8e600)',
-                boxShadow: '0 8px 24px rgba(200, 230, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.4)',
+                background: isOpen ? '#000000' : 'linear-gradient(135deg, #141414 0%, #000000 100%)',
+                border: '2.5px solid #76b900',
+                boxShadow: '0 8px 24px rgba(118, 185, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.4)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -532,24 +541,24 @@ export default function AIChatbot() {
               }}
             >
               {isOpen ? (
-                <span style={{ fontSize: '20px', color: 'var(--accent-color, #c8e600)', fontWeight: 'bold' }}>✕</span>
+                <span style={{ fontSize: '20px', color: '#76b900', fontWeight: 'bold' }}>✕</span>
               ) : (
                 <svg width="34" height="34" viewBox="0 0 48 48" fill="none">
                   {/* Antennas */}
-                  <circle cx="14" cy="8" r="2.5" fill="#c8e600" />
-                  <line x1="14" y1="8" x2="18" y2="15" stroke="#c8e600" strokeWidth="2" strokeLinecap="round" />
-                  <circle cx="34" cy="8" r="2.5" fill="#c8e600" />
-                  <line x1="34" y1="8" x2="30" y2="15" stroke="#c8e600" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="14" cy="8" r="2.5" fill="#76b900" />
+                  <line x1="14" y1="8" x2="18" y2="15" stroke="#76b900" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="34" cy="8" r="2.5" fill="#76b900" />
+                  <line x1="34" y1="8" x2="30" y2="15" stroke="#76b900" strokeWidth="2" strokeLinecap="round" />
 
                   {/* Robot Head Outer */}
-                  <rect x="10" y="14" width="28" height="24" rx="12" fill="#1e293b" stroke="#c8e600" strokeWidth="2" />
+                  <rect x="10" y="14" width="28" height="24" rx="12" fill="#141414" stroke="#76b900" strokeWidth="2" />
                   
                   {/* Visor Screen */}
-                  <rect x="14" y="20" width="20" height="12" rx="6" fill="#0f172a" stroke="#c8e600" strokeWidth="1.5" />
+                  <rect x="14" y="20" width="20" height="12" rx="6" fill="#000000" stroke="#76b900" strokeWidth="1.5" />
 
                   {/* Happy Arc Eyes */}
-                  <path d="M17 25 Q19 22 21 25" stroke="#c8e600" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-                  <path d="M27 25 Q29 22 31 25" stroke="#c8e600" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                  <path d="M17 25 Q19 22 21 25" stroke="#76b900" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                  <path d="M27 25 Q29 22 31 25" stroke="#76b900" strokeWidth="2.5" strokeLinecap="round" fill="none" />
 
                   {/* Cute Smile Mouth */}
                   <path d="M21 29 Q24 32 27 29" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" fill="none" />
@@ -567,9 +576,9 @@ export default function AIChatbot() {
                   width: '11px',
                   height: '11px',
                   borderRadius: '50%',
-                  background: '#22c55e',
-                  border: '2px solid #0f172a',
-                  boxShadow: '0 0 6px #22c55e'
+                  background: '#76b900',
+                  border: '2px solid #000000',
+                  boxShadow: '0 0 8px #76b900'
                 }}
               />
             )}

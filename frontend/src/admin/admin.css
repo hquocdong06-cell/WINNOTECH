@@ -579,8 +579,8 @@ table td {
 }
 
 /* 6. Accent Buttons in Light Mode */
-.admin-layout.light button.border-\[\#D3FC00\],
-.admin-layout.light-mode button.border-\[\#D3FC00\],
+.admin-layout.light button.border-\[\#76b900\],
+.admin-layout.light-mode button.border-\[\#76b900\],
 .admin-layout.light button.border-\[\#d4ff00\],
 .admin-layout.light-mode button.border-\[\#d4ff00\] {
   background-color: #16a34a !important;
@@ -589,8 +589,8 @@ table td {
   box-shadow: 0 2px 8px rgba(22, 163, 74, 0.2) !important;
 }
 
-.admin-layout.light button.border-\[\#D3FC00\]:hover,
-.admin-layout.light-mode button.border-\[\#D3FC00\]:hover,
+.admin-layout.light button.border-\[\#76b900\]:hover,
+.admin-layout.light-mode button.border-\[\#76b900\]:hover,
 .admin-layout.light button.border-\[\#d4ff00\]:hover,
 .admin-layout.light-mode button.border-\[\#d4ff00\]:hover {
   background-color: #15803d !important;
@@ -598,8 +598,8 @@ table td {
 
 .admin-layout.light .text-\[\#d4ff00\],
 .admin-layout.light-mode .text-\[\#d4ff00\],
-.admin-layout.light .text-\[\#D3FC00\],
-.admin-layout.light-mode .text-\[\#D3FC00\] {
+.admin-layout.light .text-\[\#76b900\],
+.admin-layout.light-mode .text-\[\#76b900\] {
   color: #16a34a !important;
 }
 
