@@ -29,6 +29,9 @@ const OrderSchema = new mongoose.Schema({
     voucher_value: { type: Number, default: 0 },
     payment_status: { type: String, default: 'unpaid' },
     delivered_at: { type: Date },
+    tracking_code: { type: String, default: '' },
+    shipping_carrier: { type: String, default: '' },
+    estimated_delivery: { type: Date },
     cancel_reason: { type: String },
     refund_info: {
         bank_name: { type: String },

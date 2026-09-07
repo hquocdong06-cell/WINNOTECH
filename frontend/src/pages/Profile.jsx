@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux'
 import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
 import { userVoucherAPI } from '../services/apiService'
-import { RotateCcw, AlertTriangle, CheckCircle2, Image as ImageIcon, X, RefreshCw, Upload, DollarSign } from 'lucide-react'
+import { RotateCcw, AlertTriangle, CheckCircle2, Image as ImageIcon, X, RefreshCw, Upload, DollarSign, Copy, Check, Truck } from 'lucide-react'
 
 const formatPrice = (price) => {
   if (!price && price !== 0) return 'Liên hệ'
@@ -138,6 +138,15 @@ export default function Profile() {
   const [cancelAccountNumber, setCancelAccountNumber] = useState('')
   const [cancelAccountHolder, setCancelAccountHolder] = useState('')
   const [cancelSubmitting, setCancelSubmitting] = useState(false)
+  const [copiedTracking, setCopiedTracking] = useState(false)
+
+  const handleCopyTracking = (code) => {
+    if (!code) return
+    navigator.clipboard.writeText(code)
+    setCopiedTracking(true)
+    toast.success('Đã sao chép mã vận đơn!', { position: 'bottom-right', autoClose: 1500 })
+    setTimeout(() => setCopiedTracking(false), 2000)
+  }
 
   // ── Return request modal ──
   const [returnRequestModal, setReturnRequestModal] = useState(null) // { orderId, orderCode, total }
@@ -388,9 +397,84 @@ export default function Profile() {
     setReviewForm(initForm)
   }
 
+  const getTrackingDisplay = (order) => {
+    if (!order) return { text: '—', isCode: false };
+    if (order.trackingCode && order.trackingCode !== '—') {
+      return { text: order.trackingCode, isCode: true };
+    }
+    switch (order.status) {
+      case 'pending':
+        return { text: 'Chờ xác nhận đơn', isCode: false };
+      case 'confirmed':
+        return { text: 'Chờ lấy hàng', isCode: false };
+      case 'preparing':
+        return { text: 'Đang đóng gói & chuẩn bị', isCode: false };
+      case 'shipping':
+      case 'shipped':
+      case 'delivering':
+      case 'handover':
+      case 'handed_over':
+        return { text: 'Đang cập nhật mã vận đơn...', isCode: false };
+      case 'delivered':
+        return { text: 'Đã giao hàng', isCode: false };
+      case 'completed':
+      case 'done':
+        return { text: 'Hoàn tất đơn hàng', isCode: false };
+      case 'cancelled':
+      case 'canceled':
+        return { text: 'Đơn hàng đã hủy', isCode: false };
+      default:
+        return { text: '—', isCode: false };
+    }
+  };
+
+  const getCarrierDisplay = (order) => {
+    if (!order) return '—';
+    if (order.shippingCarrier && order.shippingCarrier !== '—') {
+      return order.shippingCarrier;
+    }
+    switch (order.status) {
+      case 'pending':
+        return 'Chưa phân bổ đơn vị vận chuyển';
+      case 'preparing':
+        return 'Đang liên hệ đơn vị lấy hàng';
+      case 'shipping':
+      case 'shipped':
+      case 'delivering':
+        return 'Đang cập nhật ĐVVC';
+      case 'cancelled':
+      case 'canceled':
+        return '—';
+      default:
+        return '—';
+    }
+  };
+
   const getOrderDetail = (order) => {
     if (!order) return null
     const items = order.items || []
+
+    // Tính ngày dự kiến giao hàng thông minh
+    let estDeliveryText = '—'
+    if (order.estimated_delivery) {
+      estDeliveryText = formatDate(order.estimated_delivery)
+    } else if (['pending', 'preparing'].includes(order.status)) {
+      const baseDate = order.createdAt ? new Date(order.createdAt) : new Date()
+      const minDate = new Date(baseDate)
+      minDate.setDate(minDate.getDate() + 2)
+      const maxDate = new Date(baseDate)
+      maxDate.setDate(maxDate.getDate() + 4)
+      const minStr = minDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
+      const maxStr = maxDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      estDeliveryText = `${minStr} - ${maxStr} (Dự kiến 2 - 4 ngày làm việc)`
+    } else if (['shipping', 'delivering', 'shipped', 'handover', 'handed_over'].includes(order.status)) {
+      estDeliveryText = 'Dự kiến trong 1 - 2 ngày tới'
+    } else if (['delivered', 'completed', 'done'].includes(order.status)) {
+      estDeliveryText = `Đã giao thành công${order.delivered_at ? ' (' + formatDate(order.delivered_at) + ')' : ''}`
+    } else if (['cancelled', 'canceled'].includes(order.status)) {
+      estDeliveryText = 'Đã hủy đơn'
+    }
+
     return {
       id: order.code || order._id,
       _id: order._id,           // MongoDB ObjectId thật — dùng cho PDF URL
@@ -398,8 +482,9 @@ export default function Profile() {
       date: formatDate(order.createdAt),
       status: order.status,
       payMethod: (order.payment_method && typeof order.payment_method === 'object') ? order.payment_method.name : (order.payment_method || 'COD'),
-      trackingCode: order.tracking_code || '—',
-      estimatedDelivery: '—',
+      trackingCode: order.tracking_code || '',
+      shippingCarrier: order.shipping_carrier || '',
+      estimatedDelivery: estDeliveryText,
       receiver: { name: order.Name || '—', phone: order.Phone || '—', address: order.Adress || '—', note: '' },
       products: items.map(oi => {
         const rawImg = oi.AnhSP?.[0]?.url || oi.product?.thumnail || oi.product?.AnhSP?.[0]?.url || ''
@@ -871,8 +956,52 @@ export default function Profile() {
                    detail.payment_status === 'canceled' ? '✕ Đã hủy' : '⧘ Chưa thanh toán'}
                 </span></div>
                 <div className="odm-info-row"><span className="odm-info-label">Phương thức thanh toán</span><span className="odm-info-value">{detail.payMethod}</span></div>
-                <div className="odm-info-row"><span className="odm-info-label">Mã vận đơn</span><span className="odm-info-value odm-tracking">{detail.trackingCode}</span></div>
-                <div className="odm-info-row"><span className="odm-info-label">Dự kiến giao</span><span className="odm-info-value">{detail.estimatedDelivery}</span></div>
+                <div className="odm-info-row"><span className="odm-info-label">Đơn vị vận chuyển</span><span className="odm-info-value">{getCarrierDisplay(detail)}</span></div>
+                <div className="odm-info-row">
+                  <span className="odm-info-label">Mã vận đơn</span>
+                  <span className="odm-info-value odm-tracking" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    {(() => {
+                      const tracking = getTrackingDisplay(detail);
+                      if (tracking.isCode) {
+                        return (
+                          <>
+                            <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#d4ff00' }}>{tracking.text}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyTracking(tracking.text)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '2px 8px',
+                                fontSize: '11px',
+                                borderRadius: '6px',
+                                background: 'rgba(255,255,255,0.08)',
+                                color: copiedTracking ? '#34d399' : '#e5e7eb',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              title="Sao chép mã vận đơn"
+                            >
+                              {copiedTracking ? <Check size={11} /> : <Copy size={11} />}
+                              {copiedTracking ? 'Đã chép' : 'Sao chép'}
+                            </button>
+                          </>
+                        );
+                      }
+                      return (
+                        <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>
+                          {tracking.text}
+                        </span>
+                      );
+                    })()}
+                  </span>
+                </div>
+                <div className="odm-info-row">
+                  <span className="odm-info-label">Dự kiến giao</span>
+                  <span className="odm-info-value" style={{ color: '#34d399', fontWeight: 600 }}>{detail.estimatedDelivery}</span>
+                </div>
               </div>
             </div>
 
