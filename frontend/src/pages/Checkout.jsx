@@ -476,7 +476,12 @@ const voucherCalc = voucherInfo?.rawVoucher
   const shippingDiscount = voucherCalc.shippingDiscount
   const discount = voucherCalc.totalDiscount
   const shipping = voucherCalc.shippingFee
-  const total = voucherCalc.finalTotal
+  const totalBeforeBalance = voucherCalc.finalTotal
+
+  // ── Tự động khấu trừ số dư ví người dùng (Trừ mềm, hệ thống tự động tính toán) ──
+  const userBalance = Number(user?.money || 0)
+  const balanceDeduction = userBalance > 0 ? Math.min(userBalance, totalBeforeBalance) : 0
+  const total = Math.max(0, totalBeforeBalance - balanceDeduction)
 
   // ── Áp dụng voucher ──
   const handleApplyVoucher = async () => {
@@ -729,7 +734,13 @@ const voucherCalc = voucherInfo?.rawVoucher
             localStorage.removeItem('cart')
             window.dispatchEvent(new CustomEvent('cartUpdated'))
           }
-          window.location.href = data.paymentUrl;
+          if (data.fullyPaidByBalance) {
+            navigate(`/order-success?code=${data.orderCode || data.data?.code || ''}`)
+            return
+          }
+          if (data.paymentUrl) {
+            window.location.href = data.paymentUrl;
+          }
         } else {
           setSubmitError(data.message || 'Không thể tạo thanh toán VNPay, vui lòng thử lại!')
         }
@@ -1351,6 +1362,35 @@ const voucherCalc = voucherInfo?.rawVoucher
               )}
             </div>
 
+            {/* ── Thông tin Số dư tài khoản (Tự động trừ mềm) ── */}
+            {user && (
+              <div style={{
+                padding: '12px 16px',
+                borderTop: '1px solid #222',
+                background: userBalance > 0 ? 'rgba(212, 255, 0, 0.04)' : 'transparent',
+                borderLeft: userBalance > 0 ? '3px solid #d4ff00' : 'none'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: userBalance > 0 ? '#d4ff00' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>💳</span> SỐ DƯ TÀI KHOẢN (VÍ TIỀN)
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 750, color: '#fff', fontFamily: 'monospace' }}>
+                    {fmt(userBalance)}
+                  </span>
+                </div>
+                {userBalance > 0 ? (
+                  <div style={{ fontSize: '11px', color: '#a0a0b0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>⚡ Khấu trừ vào đơn:</span>
+                    <strong style={{ color: '#d4ff00' }}>-{fmt(balanceDeduction)} (Trừ mềm)</strong>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '11px', color: '#666' }}>
+                    Số dư hiện tại: 0đ (không có số dư để trừ)
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Totals */}
             <div className="co-totals">
               <div className="co-total-row">
@@ -1394,8 +1434,18 @@ const voucherCalc = voucherInfo?.rawVoucher
                   <span className="value discount" style={{ color: '#22c55e' }}>-{fmt(shippingDiscount)}</span>
                 </div>
               )}
-            </div>
 
+              {/* Dòng trừ mềm số dư tài khoản */}
+              {balanceDeduction > 0 && (
+                <div className="co-total-row" style={{ background: 'rgba(212, 255, 0, 0.05)', padding: '6px 8px', borderRadius: '6px' }}>
+                  <span className="label" style={{ color: '#d4ff00', fontWeight: 600 }}>
+                    Trừ số dư tài khoản
+                    <span style={{ fontSize: '10px', color: '#888', display: 'block', fontWeight: 400 }}>(Tự động trừ mềm, chưa trừ DB)</span>
+                  </span>
+                  <span className="value discount" style={{ color: '#d4ff00', fontWeight: 700 }}>-{fmt(balanceDeduction)}</span>
+                </div>
+              )}
+            </div>
 
             {/* Grand total */}
             <div className="co-grand-total">
@@ -1405,6 +1455,22 @@ const voucherCalc = voucherInfo?.rawVoucher
                 <div className="co-grand-vat">Đã bao gồm VAT</div>
               </div>
             </div>
+
+            {/* Thông báo thanh toán 100% bằng số dư */}
+            {total === 0 && balanceDeduction > 0 && (
+              <div style={{
+                margin: '10px 16px 0',
+                padding: '10px 12px',
+                background: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                borderRadius: '8px',
+                fontSize: '12px',
+                color: '#22c55e',
+                lineHeight: 1.4
+              }}>
+                ✓ Số dư tài khoản đủ thanh toán 100% đơn hàng. Bạn không cần thanh toán thêm tiền mặt (COD) hay qua VNPay!
+              </div>
+            )}
 
             {/* Benefits */}
             <div className="co-benefits">
@@ -1483,7 +1549,12 @@ const voucherCalc = voucherInfo?.rawVoucher
                       <line x1="3" y1="6" x2="21" y2="6" />
                       <path d="M16 10a4 4 0 0 1-8 0" />
                     </svg>
-                    ĐẶT HÀNG
+                    {total === 0 && balanceDeduction > 0
+                      ? 'THANH TOÁN BẰNG SỐ DƯ (0₫)'
+                      : paymentMethod === 'ewallet'
+                        ? 'THANH TOÁN VNPAY'
+                        : 'ĐẶT HÀNG'
+                    }
                   </>
                 )}
               </button>
@@ -1537,10 +1608,22 @@ const voucherCalc = voucherInfo?.rawVoucher
               <div>
                 <span style={{ color: '#666', fontWeight: 600 }}>Thanh toán qua:</span>{' '}
                 <span style={{ color: '#c8e600', fontWeight: 700 }}>
-                  {paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng (COD)' :
-                   paymentMethod === 'bank' ? 'Chuyển khoản ngân hàng' : '🔵 VNPay (Ví điện tử)'}
+                  {total === 0 && balanceDeduction > 0
+                    ? 'Ví số dư tài khoản (Đủ 100%)'
+                    : paymentMethod === 'cod'
+                      ? 'Thanh toán khi nhận hàng (COD)'
+                      : paymentMethod === 'bank'
+                        ? 'Chuyển khoản ngân hàng'
+                        : '🔵 VNPay (Ví điện tử)'
+                  }
                 </span>
               </div>
+              {balanceDeduction > 0 && (
+                <div>
+                  <span style={{ color: '#666', fontWeight: 600 }}>Trừ từ số dư ví:</span>{' '}
+                  <span style={{ color: '#d4ff00', fontWeight: 700 }}>-{fmt(balanceDeduction)} (Trừ mềm)</span>
+                </div>
+              )}
               <div style={{ marginTop: '4px', paddingTop: '10px', borderTop: '1px solid #222' }}>
                 <span style={{ color: '#666', fontWeight: 600, fontSize: '14px' }}>Tổng thanh toán:</span>{' '}
                 <span style={{ color: '#c8e600', fontWeight: 800, fontSize: '16px' }}>{fmt(total)}</span>

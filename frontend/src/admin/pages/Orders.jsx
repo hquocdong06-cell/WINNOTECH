@@ -11,7 +11,7 @@ import {
   fetchAdminOrders, fetchAdminOrderDetail, updateAdminOrderStatus, 
   updateAdminOrderPaymentStatus, addAdminOrderNote, deleteAdminOrder, 
   getOrderPdfUrl, reviewAdminReturnRequest, confirmAdminReturnedGoods, 
-  processAdminOrderRefund, API_BASE 
+  API_BASE 
 } from '../services/adminService';
 
 // ── Trạng thái đổi trả hàng (Return status labels) ──────────────────────────
@@ -24,21 +24,27 @@ const RETURN_STATUS_LABELS = {
   returned_success: 'Đã nhận hàng hoàn'
 };
 
-// ── Canonical status labels (5 bước tuần tự + cancelled ngoài luồng) ────────────
+// ── Canonical status labels ───────────────────────────────────────────────
 const STATUS_LABELS = {
-  pending:     'Chờ xác nhận',
-  preparing:   'Đang chuẩn bị',
-  shipping:    'Đang giao hàng',
-  delivered:   'Đã giao hàng',
-  completed:   'Hoàn thành',
-  cancelled:   'Đã hủy',
+  pending:          'Chờ xác nhận',
+  preparing:        'Đang chuẩn bị',
+  shipping:         'Đang giao hàng',
+  delivered:        'Đã giao hàng',
+  completed:        'Hoàn thành',
+  cancelled:        'Đã hủy',
+  return_requested: 'Chờ duyệt trả hàng',
+  return_approved:  'Đã duyệt trả hàng',
+  returning:        'Đang gửi trả hàng',
+  return_rejected:  'Từ chối trả hàng',
+  refunded:         'Đã hoàn tiền',
+  refund:           'Đã hoàn tiền',
   // Legacy aliases — chỉ dùng để hiển thị label cho data cũ:
-  canceled:    'Đã hủy',
-  handed_over: 'Đang giao hàng',
-  handover:    'Đang giao hàng',
-  shipped:     'Đang giao hàng',
-  delivering:  'Đang giao hàng',
-  done:        'Hoàn thành',
+  canceled:         'Đã hủy',
+  handed_over:      'Đang giao hàng',
+  handover:         'Đang giao hàng',
+  shipped:          'Đang giao hàng',
+  delivering:       'Đang giao hàng',
+  done:             'Hoàn thành',
 };
 
 // Luồng 5 bước tuần tự — dùng cho stepper/progress bar
@@ -46,22 +52,80 @@ const STATUS_FLOW = ['pending', 'preparing', 'shipping', 'delivered', 'completed
 
 // State Machine: Định nghĩa chính xác các bước chuyển đổi hợp lệ cho từng trạng thái
 const ORDER_TRANSITIONS = {
-  pending:   ['preparing', 'cancelled'],
-  preparing: ['shipping', 'cancelled'],
-  shipping:  ['delivered'],
-  delivered: ['completed'],
-  completed: [],
-  cancelled: []
+  pending:          ['preparing', 'cancelled'],
+  preparing:        ['shipping', 'cancelled'],
+  shipping:         ['delivered'],
+  delivered:        ['completed'],
+  completed:        [],
+  return_requested: ['return_approved', 'return_rejected', 'cancelled'],
+  return_approved:  ['returning', 'refunded'],
+  returning:        ['refunded'],
+  return_rejected:  ['completed'],
+  cancelled:        [],
+  refunded:         []
+};
+
+// Helper: Xác định trạng thái hợp lệ tiếp theo (chỉ cho phép hoàn hàng khi khách yêu cầu và Admin duyệt)
+const getOrderAllowedTransitions = (order) => {
+  if (!order) return [];
+  const status = normalizeOrderStatus(order.status);
+  const retReq = order.return_request;
+  const retStatus = retReq?.status;
+
+  if (status === 'return_requested') {
+    return ['return_approved', 'return_rejected', 'cancelled'];
+  }
+  if (status === 'return_approved') {
+    return ['returning', 'refunded'];
+  }
+  if (status === 'returning') {
+    return ['refunded'];
+  }
+  if (status === 'return_rejected') {
+    return ['completed'];
+  }
+
+  if (status === 'pending') {
+    return ['preparing', 'cancelled'];
+  }
+  if (status === 'preparing') {
+    return ['shipping', 'cancelled'];
+  }
+  if (status === 'shipping') {
+    return ['delivered'];
+  }
+  if (status === 'delivered') {
+    return ['completed'];
+  }
+  if (status === 'completed') {
+    // Chỉ cho phép chuyển sang các trạng thái hoàn hàng KHI khách hàng yêu cầu hoàn và Admin đã duyệt
+    if (retStatus === 'return_approved') {
+      return ['returning', 'refunded'];
+    }
+    if (retStatus === 'returning') {
+      return ['refunded'];
+    }
+    if (retStatus === 'return_requested') {
+      return ['return_approved', 'return_rejected'];
+    }
+    return [];
+  }
+
+  return [];
 };
 
 // Tất cả tùy chọn trạng thái cho Admin UI
 const ALL_STATUS_OPTIONS = [
-  { value: 'pending',   label: 'Chờ xác nhận' },
-  { value: 'preparing', label: 'Đang chuẩn bị hàng' },
-  { value: 'shipping',  label: 'Đang giao hàng' },
-  { value: 'delivered', label: 'Đã giao hàng' },
-  { value: 'completed', label: 'Hoàn thành' },
-  { value: 'cancelled', label: 'Đã hủy' },
+  { value: 'pending',          label: 'Chờ xác nhận' },
+  { value: 'preparing',        label: 'Đang chuẩn bị hàng' },
+  { value: 'shipping',         label: 'Đang giao hàng' },
+  { value: 'delivered',        label: 'Đã giao hàng' },
+  { value: 'completed',        label: 'Hoàn thành' },
+  { value: 'return_requested', label: 'Chờ duyệt trả hàng' },
+  { value: 'return_approved',  label: 'Đã duyệt trả hàng' },
+  { value: 'returning',        label: 'Đang gửi trả hàng' },
+  { value: 'refunded',         label: 'Đã hoàn tiền' },
+  { value: 'cancelled',        label: 'Đã hủy' },
 ];
 
 const fmtPrice = (n) => (n || 0).toLocaleString('vi-VN') + '₫';
@@ -77,36 +141,104 @@ const normalizeOrderStatus = (s) => {
   if (['handed_over', 'handover', 'shipped', 'delivering'].includes(s)) return 'shipping';
   if (s === 'done') return 'completed';
   if (s === 'canceled') return 'cancelled';
+  if (s === 'refund' || s === 'refunded') return 'refunded';
   return s;
+};
+
+// Helper tính toán luồng tiến trình đơn hàng (cái dây này)
+const getAdminOrderFlowData = (order) => {
+  if (!order) return { steps: [], activeIndex: -1, isVisible: false };
+  const norm = normalizeOrderStatus(order.status);
+  const isRefunded = norm === 'refunded';
+  const retStatus = order.return_request?.status;
+  const isReturning = (retStatus && retStatus !== 'none') || ['return_requested', 'return_approved', 'returning', 'return_rejected', 'refunded'].includes(norm);
+
+  if (norm === 'cancelled' || norm === 'delivery_fail') {
+    return { steps: [], activeIndex: -1, isVisible: false };
+  }
+
+  if (isRefunded || isReturning) {
+    let lastStepLabel = 'Hoàn tiền thành công';
+    let isLastDone = false;
+
+    if (isRefunded || retStatus === 'returned_success' || norm === 'refunded') {
+      lastStepLabel = 'Hoàn tiền thành công';
+      isLastDone = true;
+    } else if (retStatus === 'returning' || norm === 'returning') {
+      lastStepLabel = 'Đang gửi trả hàng';
+    } else if (retStatus === 'return_approved' || norm === 'return_approved') {
+      lastStepLabel = 'Đã duyệt trả hàng';
+    } else if (retStatus === 'return_requested' || norm === 'return_requested') {
+      lastStepLabel = 'Chờ duyệt trả hàng';
+    } else if (retStatus === 'return_rejected' || norm === 'return_rejected') {
+      lastStepLabel = 'Từ chối trả hàng';
+    }
+
+    const steps = [
+      { key: 'pending',   label: 'Chờ xác nhận', status: 'done' },
+      { key: 'preparing', label: 'Đang chuẩn bị', status: 'done' },
+      { key: 'shipping',  label: 'Đang giao hàng', status: 'done' },
+      { key: 'delivered', label: 'Đã giao hàng', status: 'done' },
+      { key: 'return_step', label: lastStepLabel, status: isLastDone ? 'done' : 'active' }
+    ];
+
+    return { steps, activeIndex: 4, isCompleted: isLastDone, isVisible: true };
+  }
+
+  const canonicalSteps = ['pending', 'preparing', 'shipping', 'delivered', 'completed'];
+  const currentIndex = canonicalSteps.indexOf(norm);
+  if (currentIndex === -1) {
+    return { steps: [], activeIndex: -1, isVisible: false };
+  }
+
+  const steps = canonicalSteps.map((key, idx) => ({
+    key,
+    label: STATUS_LABELS[key] || key,
+    status: idx < currentIndex ? 'done' : idx === currentIndex ? 'active' : 'pending'
+  }));
+
+  return { steps, activeIndex: currentIndex, isCompleted: norm === 'completed', isVisible: true };
 };
 
 // ── Chip trạng thái ──────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const canonical = normalizeOrderStatus(status);
-  const label = STATUS_LABELS[status] || status;
+  const label = STATUS_LABELS[status] || STATUS_LABELS[canonical] || status;
   const cfg = {
-    pending:   'bg-blue-500/10 text-blue-400 border-blue-500/30',
-    preparing: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
-    shipping:  'bg-purple-500/10 text-purple-400 border-purple-500/30',
-    delivered: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-    completed: 'bg-green-500/10 text-green-400 border-green-500/30',
-    cancelled: 'bg-red-500/10 text-red-400 border-red-500/30',
+    pending:          'bg-blue-500/10 text-blue-400 border-blue-500/30',
+    preparing:        'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
+    shipping:         'bg-purple-500/10 text-purple-400 border-purple-500/30',
+    delivered:        'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+    completed:        'bg-green-500/10 text-green-400 border-green-500/30',
+    cancelled:        'bg-red-500/10 text-red-400 border-red-500/30',
+    return_requested: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
+    return_approved:  'bg-blue-500/15 text-blue-300 border-blue-500/40',
+    returning:        'bg-purple-500/15 text-purple-300 border-purple-500/40',
+    return_rejected:  'bg-rose-500/15 text-rose-400 border-rose-500/40',
+    refunded:         'bg-[#d4ff00]/15 text-[#d4ff00] border-[#d4ff00]/30',
   };
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${cfg[canonical] || 'bg-gray-500/10 text-gray-400 border-gray-500/30'}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${cfg[canonical] || cfg[status] || 'bg-gray-500/10 text-gray-400 border-gray-500/30'}`}>
       {label}
     </span>
   );
 };
 
-// ── Chip trạng thái thanh toán ─────────────────────────────────────
+// ── Chip trạng thái thanh toán: ĐÚNG 3 TRẠNG THÁI DUY NHẤT ─────────────────────
 const PaymentBadge = ({ payment_status }) => {
+  if (payment_status === 'refunded') {
+    return (
+      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap bg-[#d4ff00]/15 text-[#d4ff00] border-[#d4ff00]/30">
+        ↩ Hoàn tiền thành công
+      </span>
+    );
+  }
   const isPaid = payment_status === 'paid';
   return (
     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
       isPaid
         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-        : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+        : 'bg-gray-500/10 text-gray-400 border-gray-500/30'
     }`}>
       {isPaid ? '✔ Đã thanh toán' : '⧘ Chưa thanh toán'}
     </span>
@@ -239,8 +371,7 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
 
   if (!isOpen) return null;
 
-  const flowStep = STATUS_FLOW.indexOf(order?.status);
-  const isMainFlow = flowStep !== -1;
+  const flowData = getAdminOrderFlowData(order);
   const subtotal = (order?.items || []).reduce((sum, i) => sum + (i.price || 0) * (i.Quantity || 1), 0);
 
   const tabs = [
@@ -311,18 +442,18 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
               {activeTab === 'info' && (
                 <div className="space-y-4">
                   {/* Status Flow Tracker */}
-                  {isMainFlow && (
+                  {flowData.isVisible && (
                     <div className="bg-[#13131e] border border-[#222234] rounded-xl p-4">
                       <div className="text-xs font-semibold text-gray-400 mb-4 uppercase tracking-wider">Tiến trình đơn hàng</div>
                       <div className="flex items-start gap-0">
-                        {STATUS_FLOW.map((step, idx) => {
-                          const isDone = idx < flowStep;
-                          const isActive = idx === flowStep;
+                        {flowData.steps.map((step, idx) => {
+                          const isDone = step.status === 'done';
+                          const isActive = step.status === 'active';
                           return (
-                            <div key={step} className="flex-1 flex flex-col items-center relative">
+                            <div key={step.key} className="flex-1 flex flex-col items-center relative">
                               <div className="flex items-center w-full">
                                 {idx > 0 && (
-                                  <div className={`flex-1 h-0.5 -mt-0 ${isDone || isActive ? 'bg-[#d4ff00]' : 'bg-[#2a2a3d]'}`} />
+                                  <div className={`flex-1 h-0.5 -mt-0 ${idx <= flowData.activeIndex ? 'bg-[#d4ff00]' : 'bg-[#2a2a3d]'}`} />
                                 )}
                                 <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 flex-shrink-0 transition-all ${
                                   isDone ? 'bg-[#d4ff00] border-[#d4ff00]' :
@@ -333,12 +464,12 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
                                    isActive ? <div className="w-2 h-2 rounded-full bg-[#d4ff00] animate-pulse" /> :
                                    <div className="w-1.5 h-1.5 rounded-full bg-[#444]" />}
                                 </div>
-                                {idx < STATUS_FLOW.length - 1 && (
-                                  <div className={`flex-1 h-0.5 ${isDone ? 'bg-[#d4ff00]' : 'bg-[#2a2a3d]'}`} />
+                                {idx < flowData.steps.length - 1 && (
+                                  <div className={`flex-1 h-0.5 ${idx < flowData.activeIndex ? 'bg-[#d4ff00]' : 'bg-[#2a2a3d]'}`} />
                                 )}
                               </div>
                               <div className={`text-[9px] mt-2 text-center leading-tight px-1 ${isActive ? 'text-[#d4ff00] font-bold' : isDone ? 'text-gray-300' : 'text-gray-600'}`}>
-                                {STATUS_LABELS[step] || step}
+                                {step.label}
                               </div>
                             </div>
                           );
@@ -392,14 +523,10 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
                           <span className="text-gray-500">Trạng thái TT</span>
                           <span className={`font-bold ${
                             order.payment_status === 'paid' ? 'text-green-400' :
-                            order.payment_status === 'refund_pending' ? 'text-amber-400' :
-                            order.payment_status === 'refunded' ? 'text-purple-400' :
-                            order.payment_status === 'canceled' ? 'text-red-400' : 'text-yellow-400'
+                            order.payment_status === 'refunded' ? 'text-[#d4ff00]' : 'text-gray-400'
                           }`}>
-                            {order.payment_status === 'paid' ? '✓ Đã thanh toán' :
-                             order.payment_status === 'refund_pending' ? '⏳ Chờ hoàn tiền' :
-                             order.payment_status === 'refunded' ? '↩ Đã hoàn tiền' :
-                             order.payment_status === 'canceled' ? '✕ Đã hủy thanh toán' : 'Chưa thanh toán'}
+                            {order.payment_status === 'paid' ? '✔ Đã thanh toán' :
+                             order.payment_status === 'refunded' ? '↩ Hoàn tiền thành công' : '⧘ Chưa thanh toán'}
                           </span>
                         </div>
                         <div className="flex justify-between">
@@ -465,26 +592,7 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
                     </div>
                   )}
 
-                  {/* THÔNG TIN QUYẾT TOÁN HOÀN TIỀN NẾU CÓ */}
-                  {order.refund_info && (order.payment_status === 'refunded' || order.refund_info.refund_amount) && (
-                    <div className="bg-[#12241b] border border-emerald-500/30 rounded-xl p-4 space-y-2">
-                      <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Quyết toán hoàn tiền
-                      </div>
-                      <div className="text-xs space-y-1 text-gray-300">
-                        <p><strong className="text-gray-400">Số tiền hoàn:</strong> <span className="text-[#d4ff00] font-bold">{fmtPrice(order.refund_info.refund_amount || order.total_amount)}</span></p>
-                        <p><strong className="text-gray-400">Hình thức:</strong> {order.refund_info.refund_method === 'vnpay' ? 'Cổng VNPay Merchant' : 'Chuyển khoản ngân hàng'}</p>
-                        <p><strong className="text-gray-400">Mã giao dịch:</strong> <span className="font-mono text-white font-bold">{order.refund_info.refund_transaction_code || '—'}</span></p>
-                        {order.refund_info.bank_name && (
-                          <p><strong className="text-gray-400">Tài khoản nhận:</strong> {order.refund_info.account_holder} — {order.refund_info.account_number} ({order.refund_info.bank_name})</p>
-                        )}
-                        {order.refund_info.refunded_at && (
-                          <p><strong className="text-gray-400">Thời gian hoàn:</strong> {fmtDate(order.refund_info.refunded_at)} bởi {order.refund_info.refunded_by || 'Admin'}</p>
-                        )}
-                        {order.refund_info.note && <p><strong className="text-gray-400">Ghi chú:</strong> {order.refund_info.note}</p>}
-                      </div>
-                    </div>
-                  )}
+
 
                   {/* Tổng tiền */}
                   <div className="bg-[#13131e] border border-[#222234] rounded-xl p-4">
@@ -798,6 +906,7 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
                         >
                           <option value="unpaid" className="bg-[#13131e]">Chưa thanh toán</option>
                           <option value="paid" className="bg-[#13131e]">Đã thanh toán</option>
+                          <option value="refunded" className="bg-[#13131e]">Hoàn tiền thành công</option>
                         </select>
                       </div>
                       <div>
@@ -921,14 +1030,14 @@ const OrderStatusModal = ({ isOpen, onClose, order, onSuccess }) => {
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const allowedNext = useMemo(() => ORDER_TRANSITIONS[currStatus] || [], [currStatus]);
+  const allowedNext = useMemo(() => getOrderAllowedTransitions(order), [order]);
   const isFinalState = allowedNext.length === 0;
+  const canRefundPayment = allowedNext.includes('refunded') || currStatus === 'refunded' || currPaymentStatus === 'refunded';
 
   useEffect(() => {
     if (order) {
       const norm = normalizeOrderStatus(order.status);
-      const nexts = ORDER_TRANSITIONS[norm] || [];
-      setStatus(nexts.length > 0 ? nexts[0] : norm);
+      setStatus(norm);
       setPaymentStatus(order.payment_status || 'unpaid');
       setNote('');
     }
@@ -945,12 +1054,13 @@ const OrderStatusModal = ({ isOpen, onClose, order, onSuccess }) => {
     try {
       const res = await updateAdminOrderStatus(
         order.id,
-        status,
+        hasStatusChange ? status : undefined,
         note,
         hasPaymentChange ? paymentStatus : undefined
       );
       toast.success(res?.message || 'Cập nhật thành công!');
       onSuccess();
+      onClose();
     } catch (err) {
       toast.error(err.message || 'Cập nhật thất bại');
     } finally {
@@ -970,7 +1080,7 @@ const OrderStatusModal = ({ isOpen, onClose, order, onSuccess }) => {
           <PaymentBadge payment_status={currPaymentStatus} />
         </div>
 
-        {/* ── CẬP NHẬT TRẠNG THÁI THANH TOÁN ── */}
+        {/* ── CẬP NHẬT TRẠNG THÁI THANH TOÁN (3 TRẠNG THÁI DUY NHẤT) ── */}
         <div className="mb-4 bg-[#14141f] border border-[#2d2d42] rounded-xl p-3.5">
           <div className="flex items-center justify-between mb-2">
             <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
@@ -979,17 +1089,27 @@ const OrderStatusModal = ({ isOpen, onClose, order, onSuccess }) => {
             </label>
             <span className="text-[11px] text-gray-400">
               Hiện tại:{' '}
-              <strong className={currPaymentStatus === 'paid' ? 'text-emerald-400' : 'text-amber-400'}>
-                {currPaymentStatus === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+              <strong className={
+                currPaymentStatus === 'paid'
+                  ? 'text-emerald-400 font-bold'
+                  : currPaymentStatus === 'refunded'
+                    ? 'text-[#d4ff00] font-bold'
+                    : 'text-amber-400 font-bold'
+              }>
+                {currPaymentStatus === 'paid'
+                  ? 'Đã thanh toán'
+                  : currPaymentStatus === 'refunded'
+                    ? 'Hoàn tiền thành công'
+                    : 'Chưa thanh toán'}
               </strong>
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
               onClick={() => setPaymentStatus('unpaid')}
-              className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center justify-center gap-1 py-2 px-2 rounded-xl border text-[11px] font-bold transition-all cursor-pointer ${
                 paymentStatus === 'unpaid'
                   ? 'bg-amber-500/20 text-amber-400 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.25)] ring-1 ring-amber-500/40'
                   : 'bg-[#222233] text-gray-400 border-[#38384d] hover:border-gray-500 hover:text-gray-200'
@@ -1000,7 +1120,7 @@ const OrderStatusModal = ({ isOpen, onClose, order, onSuccess }) => {
             <button
               type="button"
               onClick={() => setPaymentStatus('paid')}
-              className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center justify-center gap-1 py-2 px-2 rounded-xl border text-[11px] font-bold transition-all cursor-pointer ${
                 paymentStatus === 'paid'
                   ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500/40'
                   : 'bg-[#222233] text-gray-400 border-[#38384d] hover:border-gray-500 hover:text-gray-200'
@@ -1008,14 +1128,46 @@ const OrderStatusModal = ({ isOpen, onClose, order, onSuccess }) => {
             >
               <span>✔</span> Đã thanh toán
             </button>
+            <button
+              type="button"
+              disabled={!canRefundPayment}
+              onClick={() => {
+                if (canRefundPayment) {
+                  setPaymentStatus('refunded');
+                  if (allowedNext.includes('refunded')) {
+                    setStatus('refunded');
+                  }
+                }
+              }}
+              title={canRefundPayment ? 'Chuyển sang Đã hoàn tiền' : 'Chỉ có thể hoàn tiền khi khách hàng yêu cầu hoàn và Admin đã duyệt'}
+              className={`flex items-center justify-center gap-1 py-2 px-2 rounded-xl border text-[11px] font-bold transition-all ${
+                !canRefundPayment
+                  ? 'bg-[#1a1a24] text-gray-600 border-[#2b2b3b] cursor-not-allowed opacity-40'
+                  : paymentStatus === 'refunded'
+                    ? 'bg-[#d4ff00]/20 text-[#d4ff00] border-[#d4ff00] shadow-[0_0_12px_rgba(212,255,0,0.25)] ring-1 ring-[#d4ff00]/40 cursor-pointer'
+                    : 'bg-[#222233] text-gray-400 border-[#38384d] hover:border-gray-500 hover:text-gray-200 cursor-pointer'
+              }`}
+            >
+              <span>↩</span> Đã hoàn tiền
+            </button>
           </div>
 
           {hasPaymentChange && (
             <div className="mt-2.5 text-[11px] text-gray-300 flex items-center gap-1.5">
               <span className="text-[#d4ff00]">●</span>
               Sẽ chuyển sang:{' '}
-              <strong className={paymentStatus === 'paid' ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
-                {paymentStatus === 'paid' ? '✔ Đã thanh toán' : '⧘ Chưa thanh toán'}
+              <strong className={
+                paymentStatus === 'paid'
+                  ? 'text-emerald-400 font-bold'
+                  : paymentStatus === 'refunded'
+                    ? 'text-[#d4ff00] font-bold'
+                    : 'text-amber-400 font-bold'
+              }>
+                {paymentStatus === 'paid'
+                  ? '✔ Đã thanh toán'
+                  : paymentStatus === 'refunded'
+                    ? '↩ Hoàn tiền thành công'
+                    : '⧘ Chưa thanh toán'}
               </strong>
             </div>
           )}
@@ -1031,13 +1183,24 @@ const OrderStatusModal = ({ isOpen, onClose, order, onSuccess }) => {
         <label className="block text-xs font-semibold text-gray-300 mb-2">Chọn trạng thái tiếp theo:</label>
         <select
           value={status}
-          onChange={e => setStatus(e.target.value)}
+          onChange={e => {
+            const val = e.target.value;
+            setStatus(val);
+            if (val === 'refunded') {
+              setPaymentStatus('refunded');
+            }
+          }}
           disabled={isFinalState}
           className="w-full bg-[#252536] text-white border border-[#44445e] font-semibold text-sm rounded-xl px-4 py-3 outline-none focus:border-[#d4ff00] mb-3 cursor-pointer disabled:opacity-50"
         >
           {ALL_STATUS_OPTIONS.map(opt => {
             const isCurrent = opt.value === currStatus;
             const isAllowed = allowedNext.includes(opt.value);
+            const isReturnState = ['return_requested', 'return_approved', 'returning', 'refunded'].includes(opt.value);
+            let lockLabel = '🔒 (Không thể chọn)';
+            if (!isAllowed && isReturnState) {
+              lockLabel = '🔒 (Cần khách yêu cầu & Admin duyệt)';
+            }
             return (
               <option
                 key={opt.value}
@@ -1045,15 +1208,20 @@ const OrderStatusModal = ({ isOpen, onClose, order, onSuccess }) => {
                 disabled={!isAllowed && !isCurrent}
                 className={isAllowed ? 'bg-[#1c1c28] text-white font-medium' : 'bg-[#252536] text-gray-500'}
               >
-                {opt.label} {isCurrent ? ' (Hiện tại)' : isAllowed ? ' (Hợp lệ)' : ' 🔒 (Không thể chọn)'}
+                {opt.label} {isCurrent ? ' (Hiện tại)' : isAllowed ? ' (Hợp lệ)' : ` ${lockLabel}`}
               </option>
             );
           })}
         </select>
 
         {isFinalState ? (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400 mb-4">
-            🛑 Đơn hàng đã ở trạng thái kết thúc (<strong>{STATUS_LABELS[currStatus]}</strong>). Vẫn có thể cập nhật trạng thái thanh toán ở trên.
+          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 mb-4 leading-relaxed">
+            🛑 Đơn hàng đang ở trạng thái <strong>{STATUS_LABELS[currStatus] || currStatus}</strong>.
+            {currStatus === 'completed' && (
+              <span className="block mt-1 text-gray-300">
+                💡 Chỉ khi khách hàng gửi yêu cầu đổi trả và Admin duyệt thì mới được phép chuyển sang các trạng thái hoàn hàng.
+              </span>
+            )}
           </div>
         ) : (
           <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-300 mb-4 leading-relaxed">
@@ -1097,8 +1265,11 @@ const ReturnReviewModal = ({ order, onClose, onSuccess }) => {
 
   if (!order) return null;
   const returnReq = order.rawOrder?.return_request || order.return_request || {};
-  const isRequested = returnReq.status === 'return_requested';
-  const isApproved = returnReq.status === 'return_approved';
+  const currentRetStatus = returnReq.status || order.status;
+  const isRequested = currentRetStatus === 'return_requested' || order.status === 'return_requested';
+  const isApproved = currentRetStatus === 'return_approved' || order.status === 'return_approved';
+  const isReturning = currentRetStatus === 'returning' || order.status === 'returning';
+  const isDone = currentRetStatus === 'returned_success' || order.status === 'refunded';
 
   const handleReview = async () => {
     if (action === 'reject' && !rejectedReason.trim()) {
@@ -1108,7 +1279,7 @@ const ReturnReviewModal = ({ order, onClose, onSuccess }) => {
     setLoading(true);
     try {
       const res = await reviewAdminReturnRequest(order.id, action, rejectedReason, adminNote);
-      toast.success(res?.message || (action === 'approve' ? 'Đã duyệt trả hàng' : 'Đã từ chối trả hàng'));
+      toast.success(res?.message || (action === 'approve' ? 'Đã duyệt yêu cầu trả hàng' : 'Đã từ chối yêu cầu trả hàng'));
       onSuccess();
       onClose();
     } catch (err) {
@@ -1118,12 +1289,26 @@ const ReturnReviewModal = ({ order, onClose, onSuccess }) => {
     }
   };
 
+  const handleShipReturning = async () => {
+    setLoading(true);
+    try {
+      const res = await reviewAdminReturnRequest(order.id, 'returning');
+      toast.success(res?.message || 'Đã chuyển trạng thái sang Đang gửi trả hàng');
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Lỗi cập nhật trạng thái');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleReceiveGoods = async () => {
-    if (!window.confirm('Xác nhận đã nhận được hàng trả về kho? Hệ thống sẽ tự động cộng trả lại tồn kho cho sản phẩm.')) return;
+    if (!window.confirm('Xác nhận đã nhận được hàng trả về kho? Hệ thống sẽ tự động hoàn lại tồn kho, cập nhật trạng thái đơn sang "Đã hoàn tiền" và tự động hoàn tiền vào số dư (cột money) của khách hàng.')) return;
     setLoading(true);
     try {
       const res = await confirmAdminReturnedGoods(order.id);
-      toast.success(res?.message || 'Đã xác nhận nhận hàng và hoàn lại tồn kho');
+      toast.success(res?.message || 'Đã xác nhận nhận hàng, hoàn lại tồn kho và hoàn tiền vào số dư thành công!');
       onSuccess();
       onClose();
     } catch (err) {
@@ -1139,9 +1324,9 @@ const ReturnReviewModal = ({ order, onClose, onSuccess }) => {
         <div className="flex justify-between items-center pb-4 border-b border-[#2e2e42] mb-5">
           <div className="flex items-center gap-2">
             <RotateCcw className="w-5 h-5 text-purple-400" />
-            <h3 className="font-bold text-lg text-white">Yêu Cầu Trả Hàng & Hoàn Tiền</h3>
+            <h3 className="font-bold text-lg text-white">Xử Lý Đổi Trả & Hoàn Tiền</h3>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white p-1 rounded-lg">
+          <button onClick={onClose} className="text-gray-400 hover:text-white p-1 rounded-lg cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1163,7 +1348,7 @@ const ReturnReviewModal = ({ order, onClose, onSuccess }) => {
           <div className="flex justify-between">
             <span className="text-gray-400">Trạng thái đổi trả hiện tại:</span>
             <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-500/20 text-purple-300">
-              {RETURN_STATUS_LABELS[returnReq.status] || returnReq.status || 'Chờ duyệt'}
+              {RETURN_STATUS_LABELS[returnReq.status] || RETURN_STATUS_LABELS[order.status] || 'Đổi trả'}
             </span>
           </div>
         </div>
@@ -1181,23 +1366,12 @@ const ReturnReviewModal = ({ order, onClose, onSuccess }) => {
             </div>
           )}
 
-          {returnReq.bank_info?.account_number && (
-            <div className="pt-2 border-t border-[#2e2e44]">
-              <span className="text-gray-400 block mb-1 font-semibold">Tài khoản nhận hoàn tiền:</span>
-              <div className="bg-[#14141f] p-2.5 rounded-lg border border-[#2a2a3e] text-gray-200">
-                <p><strong>Ngân hàng:</strong> {returnReq.bank_info.bank_name}</p>
-                <p><strong>Số tài khoản:</strong> <span className="font-mono text-[#d4ff00] font-bold">{returnReq.bank_info.account_number}</span></p>
-                <p><strong>Chủ tài khoản:</strong> {returnReq.bank_info.account_holder}</p>
-              </div>
-            </div>
-          )}
-
           {returnReq.images?.length > 0 && (
             <div className="pt-2 border-t border-[#2e2e44]">
               <span className="text-gray-400 block mb-1.5 font-semibold">Ảnh minh chứng từ khách:</span>
               <div className="flex gap-2.5 flex-wrap">
                 {returnReq.images.map((img, idx) => (
-                  <button key={idx} type="button" onClick={() => setSelectedImage(img)} className="group relative w-16 h-16 rounded-lg overflow-hidden border border-[#444] hover:border-[#d4ff00] transition-colors">
+                  <button key={idx} type="button" onClick={() => setSelectedImage(img)} className="group relative w-16 h-16 rounded-lg overflow-hidden border border-[#444] hover:border-[#d4ff00] transition-colors cursor-pointer">
                     <img src={img} alt="evidence" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                   </button>
                 ))}
@@ -1222,28 +1396,28 @@ const ReturnReviewModal = ({ order, onClose, onSuccess }) => {
           <div className="fixed inset-0 z-[10000] bg-black/90 flex items-center justify-center p-4" onClick={() => setSelectedImage(null)}>
             <div className="relative max-w-3xl max-h-[85vh]">
               <img src={selectedImage} alt="Large evidence" className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl" />
-              <button onClick={() => setSelectedImage(null)} className="absolute top-2 right-2 bg-black/70 text-white p-2 rounded-full">
+              <button onClick={() => setSelectedImage(null)} className="absolute top-2 right-2 bg-black/70 text-white p-2 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
           </div>
         )}
 
-        {/* Hành động xét duyệt */}
+        {/* Bước 1: Hành động xét duyệt khi đang chờ duyệt */}
         {isRequested && (
           <div className="space-y-4 pt-2">
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setAction('approve')}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${action === 'approve' ? 'bg-emerald-500 text-black shadow-[0_0_12px_rgba(16,185,129,0.4)]' : 'bg-[#222234] text-gray-400 hover:bg-[#2c2c42]'}`}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${action === 'approve' ? 'bg-emerald-500 text-black shadow-[0_0_12px_rgba(16,185,129,0.4)]' : 'bg-[#222234] text-gray-400 hover:bg-[#2c2c42]'}`}
               >
                 ✔ Chấp thuận đổi trả
               </button>
               <button
                 type="button"
                 onClick={() => setAction('reject')}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${action === 'reject' ? 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]' : 'bg-[#222234] text-gray-400 hover:bg-[#2c2c42]'}`}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${action === 'reject' ? 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]' : 'bg-[#222234] text-gray-400 hover:bg-[#2c2c42]'}`}
               >
                 ✕ Từ chối yêu cầu
               </button>
@@ -1274,13 +1448,13 @@ const ReturnReviewModal = ({ order, onClose, onSuccess }) => {
             )}
 
             <div className="flex gap-3 justify-end pt-2">
-              <button onClick={onClose} className="px-4 py-2 bg-[#222234] text-gray-300 rounded-xl text-xs hover:bg-[#2d2d44]">
+              <button onClick={onClose} className="px-4 py-2 border border-[#3a3a4e] bg-[#222234] text-gray-300 hover:text-white hover:border-gray-400 hover:bg-[#2c2c3e] rounded-xl text-xs transition-all cursor-pointer">
                 Hủy
               </button>
               <button
                 onClick={handleReview}
                 disabled={loading}
-                className="px-5 py-2 bg-[#d4ff00] text-black font-bold rounded-xl text-xs hover:bg-[#c2eb00] disabled:opacity-50"
+                className="px-5 py-2 bg-[#d4ff00] text-black font-bold rounded-xl text-xs hover:bg-[#c2eb00] disabled:opacity-50 cursor-pointer shadow-[0_0_12px_rgba(212,255,0,0.3)]"
               >
                 {loading ? 'Đang lưu...' : 'Xác nhận xét duyệt'}
               </button>
@@ -1288,194 +1462,61 @@ const ReturnReviewModal = ({ order, onClose, onSuccess }) => {
           </div>
         )}
 
-        {/* Nút xác nhận nhận hàng về kho */}
+        {/* Bước 2: Thao tác khi đã duyệt trả hàng */}
         {isApproved && (
-          <div className="pt-3 border-t border-[#2e2e42] flex justify-between items-center">
-            <span className="text-xs text-blue-300">Đơn hàng đã được duyệt trả. Khi nhận được hàng gửi về, bấm nút này để nhập lại kho:</span>
-            <button
-              onClick={handleReceiveGoods}
-              disabled={loading}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs shadow-lg transition-colors whitespace-nowrap ml-3 cursor-pointer"
-            >
-              {loading ? 'Đang xử lý...' : '📦 Xác nhận đã nhận hàng về kho'}
-            </button>
+          <div className="pt-3 border-t border-[#2e2e42] space-y-3">
+            <p className="text-xs text-gray-300 leading-relaxed">
+              💡 Đơn hàng đã được duyệt trả. Bạn có thể cập nhật trạng thái khi khách gửi hàng hoặc xác nhận khi kiện hàng đã về tới kho:
+            </p>
+            <div className="flex flex-wrap gap-2.5 justify-end">
+              <button
+                type="button"
+                onClick={handleShipReturning}
+                disabled={loading}
+                className="px-4 py-2 bg-[#222234] hover:bg-[#2c2c40] text-purple-300 border border-purple-500/40 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+              >
+                🚚 Xác nhận khách đang gửi hàng
+              </button>
+              <button
+                type="button"
+                onClick={handleReceiveGoods}
+                disabled={loading}
+                className="px-4 py-2 bg-[#d4ff00] hover:bg-[#c2eb00] text-black font-bold rounded-xl text-xs shadow-lg transition-colors cursor-pointer"
+              >
+                {loading ? 'Đang xử lý...' : '📦 Xác nhận hàng về kho & Hoàn tiền'}
+              </button>
+            </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-};
 
-// ── REFUND PROCESSING MODAL ──────────────────────────────────
-const RefundProcessingModal = ({ order, onClose, onSuccess }) => {
-  const [method, setMethod] = useState(order?.payment_method?.name?.toLowerCase().includes('vnpay') ? 'vnpay' : 'bank_transfer');
-  const [amount, setAmount] = useState(order?.total || 0);
-  const [txnCode, setTxnCode] = useState(`REF_${Date.now().toString().slice(-6)}`);
-  const [bankName, setBankName] = useState(order?.return_request?.bank_info?.bank_name || order?.refund_info?.bank_name || '');
-  const [accountNumber, setAccountNumber] = useState(order?.return_request?.bank_info?.account_number || order?.refund_info?.account_number || '');
-  const [accountHolder, setAccountHolder] = useState(order?.return_request?.bank_info?.account_holder || order?.refund_info?.account_holder || '');
-  const [note, setNote] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  if (!order) return null;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!txnCode.trim()) {
-      toast.error('Vui lòng nhập Mã giao dịch hoàn tiền');
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await processAdminOrderRefund(order.id, {
-        refund_method: method,
-        refund_amount: Number(amount) || order.total,
-        refund_transaction_code: txnCode.trim(),
-        bank_name: bankName.trim(),
-        account_number: accountNumber.trim(),
-        account_holder: accountHolder.trim(),
-        note: note.trim()
-      });
-      toast.success(res?.message || 'Quyết toán hoàn tiền thành công!');
-      onSuccess();
-      onClose();
-    } catch (err) {
-      toast.error(err.message || 'Lỗi xử lý hoàn tiền');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[#181824] border border-[#2e2e42] rounded-2xl w-full max-w-lg p-6 shadow-2xl">
-        <div className="flex justify-between items-center pb-4 border-b border-[#2e2e42] mb-5">
-          <div className="flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-emerald-400" />
-            <h3 className="font-bold text-lg text-white">Xử Lý Quyết Toán Hoàn Tiền</h3>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white p-1 rounded-lg">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          <div className="bg-[#12121c] border border-[#222234] rounded-xl p-3.5 space-y-1.5">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Đơn hàng:</span>
-              <span className="text-[#d4ff00] font-mono font-bold">#{order.code}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Khách hàng:</span>
-              <span className="text-white font-semibold">{order.customer} ({order.phone})</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Tổng tiền đơn hàng:</span>
-              <span className="text-white font-bold">{fmtPrice(order.total)}</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-gray-400 block mb-1 font-semibold">Kênh hoàn tiền:</label>
-            <div className="flex gap-3">
+        {/* Bước 3: Thao tác khi khách đang gửi hàng hoàn */}
+        {isReturning && (
+          <div className="pt-3 border-t border-[#2e2e42] space-y-3">
+            <p className="text-xs text-gray-300 leading-relaxed">
+              🚚 Kiện hàng đang trên đường gửi về cửa hàng. Khi nhận được hàng tại kho, bấm xác nhận để hệ thống tự động hoàn tiền vào số dư (cột <strong>money</strong>) của khách hàng:
+            </p>
+            <div className="flex justify-end">
               <button
                 type="button"
-                onClick={() => setMethod('bank_transfer')}
-                className={`flex-1 py-2 rounded-xl font-bold transition-all cursor-pointer ${method === 'bank_transfer' ? 'bg-[#005BAA] text-white shadow-md' : 'bg-[#222234] text-gray-400 hover:bg-[#2a2a3e]'}`}
+                onClick={handleReceiveGoods}
+                disabled={loading}
+                className="px-5 py-2.5 bg-[#d4ff00] hover:bg-[#c2eb00] text-black font-bold rounded-xl text-xs shadow-lg transition-colors cursor-pointer"
               >
-                Chuyển khoản Ngân hàng
-              </button>
-              <button
-                type="button"
-                onClick={() => setMethod('vnpay')}
-                className={`flex-1 py-2 rounded-xl font-bold transition-all cursor-pointer ${method === 'vnpay' ? 'bg-emerald-600 text-white shadow-md' : 'bg-[#222234] text-gray-400 hover:bg-[#2a2a3e]'}`}
-              >
-                Cổng VNPay Merchant
+                {loading ? 'Đang xử lý...' : '📦 Xác nhận hàng về kho & Hoàn tiền'}
               </button>
             </div>
           </div>
+        )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-gray-400 block mb-1">Số tiền hoàn (VNĐ) *</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                className="w-full bg-[#12121c] border border-[#2e2e42] rounded-xl p-2.5 text-white font-bold outline-none focus:border-[#d4ff00]"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-gray-400 block mb-1">Mã giao dịch hoàn (Refund ID) *</label>
-              <input
-                type="text"
-                value={txnCode}
-                onChange={e => setTxnCode(e.target.value)}
-                placeholder="VD: REF123456 hoặc VNPAY_REF"
-                className="w-full bg-[#12121c] border border-[#2e2e42] rounded-xl p-2.5 text-white font-mono outline-none focus:border-[#d4ff00]"
-                required
-              />
+        {/* Bước 4: Thông báo hoàn tất */}
+        {isDone && (
+          <div className="pt-3 border-t border-[#2e2e42]">
+            <div className="p-3 bg-[#d4ff00]/10 border border-[#d4ff00]/30 rounded-xl text-xs text-[#d4ff00] font-semibold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#d4ff00]" />
+              Hàng đã về kho và hệ thống đã hoàn tiền thành công vào số dư tài khoản khách hàng.
             </div>
           </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <label className="text-gray-400 block mb-1">Ngân hàng nhận</label>
-              <input
-                type="text"
-                value={bankName}
-                onChange={e => setBankName(e.target.value)}
-                placeholder="MB, VCB..."
-                className="w-full bg-[#12121c] border border-[#2e2e42] rounded-xl p-2 text-white outline-none focus:border-[#d4ff00]"
-              />
-            </div>
-            <div>
-              <label className="text-gray-400 block mb-1">Số tài khoản</label>
-              <input
-                type="text"
-                value={accountNumber}
-                onChange={e => setAccountNumber(e.target.value)}
-                placeholder="STK khách"
-                className="w-full bg-[#12121c] border border-[#2e2e42] rounded-xl p-2 text-white font-mono outline-none focus:border-[#d4ff00]"
-              />
-            </div>
-            <div>
-              <label className="text-gray-400 block mb-1">Tên chủ tài khoản</label>
-              <input
-                type="text"
-                value={accountHolder}
-                onChange={e => setAccountHolder(e.target.value)}
-                placeholder="NGUYEN VAN A"
-                className="w-full bg-[#12121c] border border-[#2e2e42] rounded-xl p-2 text-white outline-none focus:border-[#d4ff00]"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-gray-400 block mb-1">Ghi chú kế toán hoàn tiền</label>
-            <input
-              type="text"
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              placeholder="VD: Đã chuyển khoản hoàn đủ qua App MB..."
-              className="w-full bg-[#12121c] border border-[#2e2e42] rounded-xl p-2.5 text-white outline-none focus:border-[#d4ff00]"
-            />
-          </div>
-
-          <div className="flex gap-3 justify-end pt-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-[#222234] text-gray-300 rounded-xl hover:bg-[#2c2c42] cursor-pointer">
-              Đóng
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl shadow-[0_0_12px_rgba(16,185,129,0.3)] disabled:opacity-50 cursor-pointer"
-            >
-              {loading ? 'Đang xử lý...' : 'Xác nhận đã hoàn tiền'}
-            </button>
-          </div>
-        </form>
+        )}
       </div>
     </div>
   );
@@ -1496,7 +1537,6 @@ const Orders = () => {
 
   const [selectedOrderId, setSelectedOrderId] = useState(null); // cho detail modal
   const [selectedOrderEdit, setSelectedOrderEdit] = useState(null); // cho status modal
-  const [refundModalOrder, setRefundModalOrder] = useState(null); // cho refund modal
   const [returnReviewModalOrder, setReturnReviewModalOrder] = useState(null); // cho return review modal
 
   // Phân trang
@@ -1642,7 +1682,7 @@ const Orders = () => {
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-sm">{error}</div>
       )}
 
-      {/* Thống kê nhanh — canonical statuses + refund/return alerts */}
+      {/* Thống kê nhanh — canonical statuses + refund */}
       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 mb-4">
         <button
           onClick={() => { setFilterStatus('all'); setFilterPaymentStatus('all'); setFilterReturnStatus('all'); }}
@@ -1656,8 +1696,9 @@ const Orders = () => {
           { key: 'preparing', label: 'Đang chuẩn bị',   color: 'text-indigo-400' },
           { key: 'shipping',  label: 'Đang giao',       color: 'text-purple-400' },
           { key: 'delivered', label: 'Đã giao hàng',    color: 'text-cyan-400' },
-          { key: 'completed', label: 'Hoàn thành',      color: 'text-[#d4ff00]' },
+          { key: 'completed', label: 'Hoàn thành',      color: 'text-emerald-400' },
           { key: 'cancelled', label: 'Đã hủy',          color: 'text-red-400' },
+          { key: 'refunded',  label: 'Đã hoàn tiền',    color: 'text-[#d4ff00]' },
         ].map(({ key, label, color }) => (
           <button
             key={key}
@@ -1668,42 +1709,19 @@ const Orders = () => {
             <div className="text-[10px] text-gray-400 mt-1 leading-tight">{label}</div>
           </button>
         ))}
-        {/* Nút lọc nhanh Chờ hoàn tiền */}
-        <button
-          onClick={() => {
-            setFilterPaymentStatus(filterPaymentStatus === 'refund_pending' ? 'all' : 'refund_pending');
-            setFilterReturnStatus('all');
-          }}
-          className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${filterPaymentStatus === 'refund_pending' ? 'border-amber-400 bg-amber-500/15' : 'border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10'}`}
-        >
-          <div className="text-xl font-bold text-amber-400">{refundPendingCount}</div>
-          <div className="text-[10px] text-amber-300 font-semibold mt-1 leading-tight">⏳ Chờ hoàn tiền</div>
-        </button>
       </div>
 
-      {/* Thông báo nổi bật nếu có đơn cần hoàn tiền hoặc yêu cầu trả hàng */}
-      {(refundPendingCount > 0 || returnRequestedCount > 0) && (
+      {/* Thông báo nổi bật nếu có yêu cầu trả hàng cần duyệt */}
+      {returnRequestedCount > 0 && (
         <div className="flex flex-wrap gap-3 mb-6">
-          {refundPendingCount > 0 && (
-            <div
-              onClick={() => { setFilterPaymentStatus('refund_pending'); setFilterReturnStatus('all'); }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold cursor-pointer hover:bg-amber-500/20 transition-colors"
-            >
-              <DollarSign className="w-4 h-4 text-amber-400" />
-              <span>Có <strong>{refundPendingCount}</strong> đơn hàng đang chờ Admin hoàn tiền.</span>
-              <span className="underline ml-1">Xem ngay &rarr;</span>
-            </div>
-          )}
-          {returnRequestedCount > 0 && (
-            <div
-              onClick={() => { setFilterReturnStatus('return_requested'); setFilterPaymentStatus('all'); }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-semibold cursor-pointer hover:bg-purple-500/20 transition-colors"
-            >
-              <RotateCcw className="w-4 h-4 text-purple-400" />
-              <span>Có <strong>{returnRequestedCount}</strong> yêu cầu đổi trả hàng mới cần duyệt.</span>
-              <span className="underline ml-1">Xem ngay &rarr;</span>
-            </div>
-          )}
+          <div
+            onClick={() => { setFilterReturnStatus('return_requested'); setFilterPaymentStatus('all'); }}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold cursor-pointer hover:bg-amber-500/20 transition-colors"
+          >
+            <RotateCcw className="w-4 h-4 text-amber-400" />
+            <span>Có <strong>{returnRequestedCount}</strong> yêu cầu đổi trả hàng mới cần duyệt.</span>
+            <span className="underline ml-1">Xem ngay &rarr;</span>
+          </div>
         </div>
       )}
 
@@ -1731,6 +1749,7 @@ const Orders = () => {
             <option value="shipping">Đang giao hàng ({counts['shipping'] || 0})</option>
             <option value="delivered">Đã giao hàng ({counts['delivered'] || 0})</option>
             <option value="completed">Hoàn thành ({counts['completed'] || 0})</option>
+            <option value="refunded">Đã hoàn tiền ({counts['refunded'] || 0})</option>
             <option value="cancelled">Đã hủy ({counts['cancelled'] || 0})</option>
           </select>
 
@@ -1742,8 +1761,7 @@ const Orders = () => {
             <option value="all">Tất cả thanh toán ({orders.length})</option>
             <option value="paid">✔ Đã thanh toán ({paidCount})</option>
             <option value="unpaid">⧘ Chưa thanh toán ({unpaidCount})</option>
-            <option value="refund_pending">⏳ Chờ hoàn tiền ({refundPendingCount})</option>
-            <option value="refunded">↩ Đã hoàn tiền ({refundedCount})</option>
+            <option value="refunded">↩ Hoàn tiền thành công ({refundedCount})</option>
           </select>
 
           <select
@@ -1790,9 +1808,17 @@ const Orders = () => {
                     <td className="px-3 py-3 text-white font-bold whitespace-nowrap">{order.total.toLocaleString('vi-VN')}₫</td>
                     <td className="px-3 py-3">
                       <StatusBadge status={order.status} />
+                      {order.return_request && order.return_request.status && order.return_request.status !== 'none' && order.status !== 'refunded' && (
+                        <div className="mt-1">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#d4ff00]/15 text-[#d4ff00] border border-[#d4ff00]/30">
+                            <RotateCcw className="w-2.5 h-2.5" />
+                            {RETURN_STATUS_LABELS[order.return_request.status] || order.return_request.status}
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-3 py-3 relative" onClick={e => e.stopPropagation()}>
-                      {/* Trạng thái thanh toán */}
+                      {/* Trạng thái thanh toán - đúng 3 trạng thái duy nhất */}
                       <div className="flex flex-col items-start gap-1">
                         <div className="relative inline-block">
                           <button
@@ -1802,12 +1828,8 @@ const Orders = () => {
                             className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-all hover:scale-105 cursor-pointer shadow-sm ${
                               order.payment_status === 'paid'
                                 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
-                                : order.payment_status === 'refund_pending'
-                                ? 'bg-amber-500/15 text-amber-400 border-amber-500/40 hover:bg-amber-500/25'
                                 : order.payment_status === 'refunded'
-                                ? 'bg-purple-500/15 text-purple-400 border-purple-500/30 hover:bg-purple-500/25'
-                                : order.payment_status === 'canceled'
-                                ? 'bg-rose-500/15 text-rose-400 border-rose-500/30 hover:bg-rose-500/25'
+                                ? 'bg-[#d4ff00]/15 text-[#d4ff00] border-[#d4ff00]/30 hover:bg-[#d4ff00]/25'
                                 : 'bg-gray-500/15 text-gray-400 border-gray-500/30 hover:bg-gray-500/25'
                             }`}
                             title="Nhấn để đổi trạng thái thanh toán"
@@ -1821,74 +1843,66 @@ const Orders = () => {
                               <>
                                 <span>
                                   {order.payment_status === 'paid' ? '✔ Đã thanh toán' :
-                                   order.payment_status === 'refund_pending' ? '⏳ Chờ hoàn tiền' :
-                                   order.payment_status === 'refunded' ? '↩ Đã hoàn tiền' :
-                                   order.payment_status === 'canceled' ? '✕ Đã hủy' : '⧘ Chưa thanh toán'}
+                                   order.payment_status === 'refunded' ? '↩ Hoàn tiền thành công' :
+                                   '⧘ Chưa thanh toán'}
                                 </span>
                                 <ChevronDown className={`w-3 h-3 opacity-60 transition-transform ${openPaymentMenuId === order.id ? 'rotate-180' : ''}`} />
                               </>
                             )}
                           </button>
 
-                          {/* Menu dropdown đổi nhanh thanh toán */}
+                          {/* Menu dropdown đổi nhanh thanh toán - đúng 3 trạng thái */}
                           {openPaymentMenuId === order.id && (
                             <div className="absolute left-0 top-full mt-1.5 w-48 bg-[#1c1c28] border border-[#3b3b4f] rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                               <div className="text-[10px] uppercase font-bold text-gray-400 px-2.5 py-1 tracking-wider border-b border-[#2d2d3d] mb-1">
                                 Đổi thanh toán
                               </div>
-                              {[
-                                { key: 'unpaid', label: 'Chưa thanh toán', color: 'text-gray-400' },
-                                { key: 'paid', label: 'Đã thanh toán', color: 'text-emerald-400' },
-                                { key: 'refund_pending', label: 'Chờ hoàn tiền', color: 'text-amber-400' },
-                                { key: 'refunded', label: 'Đã hoàn tiền', color: 'text-purple-400' },
-                                { key: 'canceled', label: 'Đã hủy', color: 'text-rose-400' }
-                              ].map(item => (
-                                <button
-                                  key={item.key}
-                                  type="button"
-                                  onClick={() => handleQuickUpdatePayment(order.id, item.key)}
-                                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                                    order.payment_status === item.key
-                                      ? 'bg-white/10 text-white font-bold'
-                                      : 'text-gray-300 hover:bg-[#28283d] hover:text-white'
-                                  }`}
-                                >
-                                  <span className={`flex items-center gap-1.5 ${item.color}`}>
-                                    {item.label}
-                                  </span>
-                                  {order.payment_status === item.key && <Check className="w-3.5 h-3.5 text-[#d4ff00]" />}
-                                </button>
-                              ))}
+                              {(() => {
+                                const canQuickRefund = ['return_approved', 'returning', 'returned_success'].includes(order.return_request?.status) || order.status === 'refunded' || order.payment_status === 'refunded';
+                                return [
+                                  { key: 'unpaid', label: 'Chưa thanh toán', color: 'text-gray-400', disabled: false },
+                                  { key: 'paid', label: 'Đã thanh toán', color: 'text-emerald-400', disabled: false },
+                                  { key: 'refunded', label: 'Hoàn tiền thành công', color: 'text-[#d4ff00]', disabled: !canQuickRefund, hint: ' (Cần duyệt trả hàng)' }
+                                ].map(item => (
+                                  <button
+                                    key={item.key}
+                                    type="button"
+                                    disabled={item.disabled}
+                                    onClick={() => !item.disabled && handleQuickUpdatePayment(order.id, item.key)}
+                                    title={item.disabled ? 'Chỉ có thể hoàn tiền khi khách yêu cầu hoàn và Admin đã duyệt' : ''}
+                                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
+                                      item.disabled
+                                        ? 'opacity-40 text-gray-600 cursor-not-allowed'
+                                        : order.payment_status === item.key
+                                          ? 'bg-white/10 text-white font-bold cursor-pointer'
+                                          : 'text-gray-300 hover:bg-[#28283d] hover:text-white cursor-pointer'
+                                    }`}
+                                  >
+                                    <span className={`flex items-center gap-1.5 ${item.color}`}>
+                                      {item.label} {item.disabled && <span className="text-[10px] text-gray-500">{item.hint}</span>}
+                                    </span>
+                                    {order.payment_status === item.key && <Check className="w-3.5 h-3.5 text-[#d4ff00]" />}
+                                  </button>
+                                ));
+                              })()}
                             </div>
                           )}
                         </div>
 
-                        {/* Nút hành động nhanh Hoàn tiền */}
-                        {order.payment_status === 'refund_pending' && (
-                          <button
-                            type="button"
-                            onClick={() => setRefundModalOrder(order)}
-                            className="px-2 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-sm"
-                            title="Nhấn để quyết toán hoàn tiền cho khách"
-                          >
-                            <DollarSign className="w-3 h-3" /> Hoàn tiền
-                          </button>
-                        )}
-
                         {/* Nút xem yêu cầu đổi trả hàng nếu có */}
-                        {order.return_request && order.return_request.status && order.return_request.status !== 'none' && (
+                        {((order.return_request && order.return_request.status && order.return_request.status !== 'none') || ['return_requested', 'return_approved', 'returning'].includes(order.status)) && order.status !== 'refunded' && (
                           <button
                             type="button"
                             onClick={() => setReturnReviewModalOrder(order)}
                             className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 transition-colors cursor-pointer ${
-                              order.return_request.status === 'return_requested'
-                                ? 'bg-purple-500/25 hover:bg-purple-500/35 text-purple-300 border-purple-500/50 animate-pulse'
+                              order.return_request?.status === 'return_requested' || order.status === 'return_requested'
+                                ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/40 animate-pulse'
                                 : 'bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border-blue-500/30'
                             }`}
-                            title="Xem chi tiết đổi trả"
+                            title="Xử lý đổi trả hàng"
                           >
                             <RotateCcw className="w-3 h-3" />
-                            {RETURN_STATUS_LABELS[order.return_request.status] || 'Đổi trả'}
+                            {RETURN_STATUS_LABELS[order.return_request?.status] || RETURN_STATUS_LABELS[order.status] || 'Đổi trả'}
                           </button>
                         )}
                       </div>
@@ -2049,13 +2063,6 @@ const Orders = () => {
       <ReturnReviewModal
         order={returnReviewModalOrder}
         onClose={() => setReturnReviewModalOrder(null)}
-        onSuccess={fetchOrders}
-      />
-
-      {/* Modal Quyết Toán Hoàn Tiền */}
-      <RefundProcessingModal
-        order={refundModalOrder}
-        onClose={() => setRefundModalOrder(null)}
         onSuccess={fetchOrders}
       />
     </div>

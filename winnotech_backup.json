@@ -1,0 +1,5325 @@
+{
+  "database": "WINNOTech",
+  "exportedAt": "2026-09-07T01:56:32.040Z",
+  "version": "1.0",
+  "totalCollections": 40,
+  "collections": [
+    {
+      "name": "posts",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "slug": 1
+          },
+          "name": "slug_1",
+          "unique": true
+        }
+      ],
+      "count": 4,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed851"
+          },
+          "tittle": "Hướng dẫn chọn cấu hình PC gaming 2026 chuẩn nhất cho học sinh, sinh viên",
+          "thumnail": "/public/images/uploads/1788417310239-573665.jpg",
+          "slug": "huong-dan-chon-cau-hinh-pc-gaming-2026",
+          "content": "Năm 2026 đánh dấu bước tiến vượt bậc của các linh kiện PC với chuẩn DDR5 và PCIe 5.0 trở nên phổ biến...",
+          "status": "published",
+          "image": "/public/images/uploads/1788417310239-573665.jpg",
+          "categories_post_id": {
+            "$oid": "6a79ded9d9c7c632c6aed84d"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.278Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T06:35:11.105Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed852"
+          },
+          "tittle": "CPU V-Cache 3D là gì? Tại sao Ryzen 7 7800X3D bá chủ game?",
+          "thumnail": "http://localhost:3000/public/images/posts/post_2.png",
+          "slug": "cpu-v-cache-3d-la-gi",
+          "content": "Công nghệ 3D V-Cache của AMD cho phép chồng các tầng bộ nhớ đệm L3 lên trực tiếp die CPU, mang lại hiệu năng gaming vượt trội...",
+          "status": "published",
+          "image": "http://localhost:3000/public/images/posts/post_2_banner.png",
+          "categories_post_id": {
+            "$oid": "6a79ded9d9c7c632c6aed84e"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.278Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.278Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed853"
+          },
+          "tittle": "Đánh giá chi tiết Card màn hình ASUS ROG Strix RTX 4070 Ti Super",
+          "thumnail": "http://localhost:3000/public/images/posts/post_3.png",
+          "slug": "danh-gia-asus-rog-strix-rtx-4070-ti-super",
+          "content": "Với 16GB VRAM GDDR6X cùng bộ tản nhiệt 3 quạt siêu dày, ROG Strix RTX 4070 Ti Super dễ dàng chinh phục mọi tựa game 4K...",
+          "status": "published",
+          "image": "http://localhost:3000/public/images/posts/post_3_banner.png",
+          "categories_post_id": {
+            "$oid": "6a79ded9d9c7c632c6aed850"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.278Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.278Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed854"
+          },
+          "tittle": "Top 5 ổ cứng SSD NVMe tốt nhất cho máy tính chơi game năm 2026",
+          "thumnail": "http://localhost:3000/public/images/posts/post_4.png",
+          "slug": "top-5-ssd-nvme-tot-nhat-2026",
+          "content": "Tổng hợp danh sách những mẫu SSD PCIe 4.0 và 5.0 có tốc độ đọc ghi siêu tốc giúp tối ưu thời gian load game và render video...",
+          "status": "published",
+          "image": "http://localhost:3000/public/images/posts/post_4_banner.png",
+          "categories_post_id": {
+            "$oid": "6a79ded9d9c7c632c6aed84f"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.278Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.278Z"
+          }
+        }
+      ]
+    },
+    {
+      "name": "DeliveryAddress",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 4,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7be"
+          },
+          "Name": "Nguyễn Văn A (Nhà riêng)",
+          "id_user": {
+            "$oid": "6a79ded9d9c7c632c6aed7bb"
+          },
+          "Phone": "0901234567",
+          "address": "123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
+          "set_default": true,
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.151Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.151Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bf"
+          },
+          "Name": "Nguyễn Văn A (Văn phòng)",
+          "id_user": {
+            "$oid": "6a79ded9d9c7c632c6aed7bb"
+          },
+          "Phone": "0901234567",
+          "address": "456 Lê Duẩn, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
+          "set_default": false,
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.151Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.151Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c0"
+          },
+          "Name": "Trần Thị B",
+          "id_user": {
+            "$oid": "6a79ded9d9c7c632c6aed7bc"
+          },
+          "Phone": "0987654321",
+          "address": "789 Lạc Long Quân, Phường 11, Quận Tân Bình, TP. Hồ Chí Minh",
+          "set_default": true,
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.151Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.151Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a85a63d4c4f9287027c61fb"
+          },
+          "Name": "long",
+          "id_user": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "Phone": "0909260436",
+          "address": "56 cau kinh",
+          "set_default": true,
+          "createdAt": {
+            "$date": "2026-08-19T12:49:01.420Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T12:49:01.420Z"
+          },
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "variants_attributes",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 16,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed814"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.568Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e2"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed804"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.568Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed815"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.575Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e4"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed804"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.575Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed816"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.576Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e2"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed805"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.576Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed817"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.576Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e5"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed805"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.576Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed818"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.577Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e3"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed806"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.577Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed819"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.577Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e4"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed806"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.577Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed81a"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.577Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7da"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed809"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.577Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed81b"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.578Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7db"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed80a"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.578Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed81c"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.578Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7da"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed80d"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.578Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed81d"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.578Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7dd"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed80d"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.578Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed81e"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.578Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7db"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed80e"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.578Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed81f"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.579Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7dd"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed80e"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.579Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed820"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.579Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e0"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed80f"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.579Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed821"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.580Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e1"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed810"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.580Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed822"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.580Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7da"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed812"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.580Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed823"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.580Z"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7db"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed813"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.580Z"
+          }
+        }
+      ]
+    },
+    {
+      "name": "vouchers",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "code": 1
+          },
+          "name": "code_1",
+          "unique": true
+        }
+      ],
+      "count": 5,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed82e"
+          },
+          "code": "WELCOME10",
+          "discount_type": "percent",
+          "discount_value": 10,
+          "start_day": {
+            "$date": "2024-01-01T00:00:00Z"
+          },
+          "end_day": {
+            "$date": "2028-12-31T00:00:00Z"
+          },
+          "usage_limit": 1000,
+          "used_count": 6,
+          "min_order": 500000,
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.237Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T08:41:32.046Z"
+          },
+          "isActive": true,
+          "status": "active"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed82f"
+          },
+          "code": "SUMMER50K",
+          "discount_type": "fixed",
+          "discount_value": 50000,
+          "start_day": {
+            "$date": "2024-06-01T00:00:00Z"
+          },
+          "end_day": {
+            "$date": "2026-01-09T00:00:00Z"
+          },
+          "usage_limit": 500,
+          "used_count": 2,
+          "min_order": 1000000,
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.237Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T06:32:31.729Z"
+          },
+          "isActive": true,
+          "status": "active"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed830"
+          },
+          "code": "WINNO100K",
+          "discount_type": "fixed",
+          "discount_value": 100000,
+          "start_day": {
+            "$date": "2024-01-01T00:00:00Z"
+          },
+          "end_day": {
+            "$date": "2028-12-31T00:00:00Z"
+          },
+          "usage_limit": 200,
+          "used_count": 1,
+          "min_order": 3000000,
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.237Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T06:32:27.860Z"
+          },
+          "isActive": true,
+          "status": "active"
+        },
+        {
+          "_id": {
+            "$oid": "6a993431f7bb02d8c0b4036b"
+          },
+          "code": "WINNO300K",
+          "discountType": "percent",
+          "discount_type": "percent",
+          "discountValue": 99,
+          "discount_value": 99,
+          "maxDiscountAmount": 0,
+          "minOrderValue": 0,
+          "min_order": 0,
+          "usageLimit": 1,
+          "usage_limit": 1,
+          "usageLimitPerUser": 1,
+          "usedCount": 0,
+          "used_count": 1,
+          "startDate": {
+            "$date": "2026-09-01T00:00:00Z"
+          },
+          "start_day": {
+            "$date": "2026-09-01T00:00:00Z"
+          },
+          "endDate": {
+            "$date": "2026-10-10T00:00:00Z"
+          },
+          "end_day": {
+            "$date": "2026-10-10T00:00:00Z"
+          },
+          "status": "active",
+          "isActive": true,
+          "createdAt": {
+            "$date": "2026-09-03T08:47:45.384Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T08:48:41.958Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a99399878c45a7725e4f060"
+          },
+          "code": "WINNO2000K",
+          "discountType": "fixed",
+          "discount_type": "fixed",
+          "discountValue": 1000000,
+          "discount_value": 1000000,
+          "maxDiscountAmount": 0,
+          "minOrderValue": 10000000000000,
+          "min_order": 10000000000000,
+          "usageLimit": 100,
+          "usage_limit": 100,
+          "usageLimitPerUser": 1,
+          "usedCount": 0,
+          "used_count": 0,
+          "startDate": {
+            "$date": "2026-09-03T00:00:00Z"
+          },
+          "start_day": {
+            "$date": "2026-09-03T00:00:00Z"
+          },
+          "endDate": {
+            "$date": "2026-09-25T00:00:00Z"
+          },
+          "end_day": {
+            "$date": "2026-09-25T00:00:00Z"
+          },
+          "status": "active",
+          "isActive": true,
+          "createdAt": {
+            "$date": "2026-09-03T09:10:48.884Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T09:10:50.922Z"
+          },
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "Brand",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "slug": 1
+          },
+          "name": "slug_1",
+          "unique": true
+        }
+      ],
+      "count": 15,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c9"
+          },
+          "name": "AMD",
+          "slug": "amd",
+          "logo": "http://localhost:3000/public/images/brands/amd.png",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T07:16:11.090Z"
+          },
+          "image": "http://localhost:3000/public/images/brands/amd.png",
+          "status": "active"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ca"
+          },
+          "name": "Intel",
+          "slug": "intel",
+          "logo": "http://localhost:3000/public/images/brands/intel.png",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.909Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cb"
+          },
+          "name": "NVIDIA",
+          "slug": "nvidia",
+          "logo": "http://localhost:3000/public/images/brands/nvidia.png",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.923Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cc"
+          },
+          "name": "ASUS",
+          "slug": "asus",
+          "logo": "/public/images/uploads/1788417266091-488927.jpg",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T06:34:27.034Z"
+          },
+          "image": "/public/images/uploads/1788417266091-488927.jpg",
+          "status": "active"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cd"
+          },
+          "name": "MSI",
+          "slug": "msi",
+          "logo": "http://localhost:3000/public/images/brands/msi.png",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.925Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ce"
+          },
+          "name": "GIGABYTE",
+          "slug": "gigabyte",
+          "logo": "http://localhost:3000/public/images/brands/gigabyte.png",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.926Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cf"
+          },
+          "name": "Corsair",
+          "slug": "corsair",
+          "logo": "http://localhost:3000/public/images/brands/corsair.png",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.927Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d0"
+          },
+          "name": "G.Skill",
+          "slug": "gskill",
+          "logo": "http://localhost:3000/public/images/brands/gskill.png",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.927Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d1"
+          },
+          "name": "Samsung",
+          "slug": "samsung",
+          "logo": "http://localhost:3000/public/images/brands/samsung.png",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.928Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d2"
+          },
+          "name": "Western Digital",
+          "slug": "western-digital",
+          "logo": "http://localhost:3000/public/images/brands/wd.png",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d3"
+          },
+          "name": "NZXT",
+          "slug": "nzxt",
+          "logo": "http://localhost:3000/public/images/brands/nzxt.png",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.929Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d4"
+          },
+          "name": "Cooler Master",
+          "slug": "cooler-master",
+          "logo": "http://localhost:3000/public/images/brands/coolermaster.png",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.161Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a85b482ccadc6162329ec83"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-19T13:49:54.930Z"
+          },
+          "name": "Logitech",
+          "slug": "logitech",
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.930Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a85b482ccadc6162329ec84"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-19T13:49:54.931Z"
+          },
+          "name": "Razer",
+          "slug": "razer",
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.931Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a85b482ccadc6162329ec85"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-19T13:49:54.932Z"
+          },
+          "name": "LG",
+          "slug": "lg",
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.932Z"
+          }
+        }
+      ]
+    },
+    {
+      "name": "uservouchers",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 9,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed831"
+          },
+          "user_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bb"
+          },
+          "voucher_id": {
+            "$oid": "6a79ded9d9c7c632c6aed82e"
+          },
+          "is_used": true,
+          "save_at": {
+            "$date": "2026-08-10T14:23:21.239Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed832"
+          },
+          "user_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bb"
+          },
+          "voucher_id": {
+            "$oid": "6a79ded9d9c7c632c6aed830"
+          },
+          "is_used": false,
+          "save_at": {
+            "$date": "2026-08-10T14:23:21.239Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed833"
+          },
+          "user_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bc"
+          },
+          "voucher_id": {
+            "$oid": "6a79ded9d9c7c632c6aed82f"
+          },
+          "is_used": false,
+          "save_at": {
+            "$date": "2026-08-10T14:23:21.239Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a9907bc3688525bb746e41d"
+          },
+          "user_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "voucher_id": {
+            "$oid": "6a79ded9d9c7c632c6aed82f"
+          },
+          "is_used": false,
+          "save_at": {
+            "$date": "2026-09-03T05:38:04.420Z"
+          },
+          "savedAt": {
+            "$date": "2026-09-03T05:38:04.420Z"
+          },
+          "createdAt": {
+            "$date": "2026-09-03T05:38:04.426Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T05:38:04.426Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a990f1b317555f7a79fbef0"
+          },
+          "user_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bd"
+          },
+          "voucher_id": {
+            "$oid": "6a79ded9d9c7c632c6aed830"
+          },
+          "is_used": false,
+          "save_at": {
+            "$date": "2026-09-03T06:09:31.347Z"
+          },
+          "savedAt": {
+            "$date": "2026-09-03T06:09:31.347Z"
+          },
+          "createdAt": {
+            "$date": "2026-09-03T06:09:31.354Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T06:09:31.354Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a993297f7bb02d8c0b40362"
+          },
+          "user_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "voucher_id": {
+            "$oid": "6a79ded9d9c7c632c6aed82e"
+          },
+          "is_used": true,
+          "save_at": {
+            "$date": "2026-09-03T08:40:55.928Z"
+          },
+          "savedAt": {
+            "$date": "2026-09-03T08:40:55.928Z"
+          },
+          "createdAt": {
+            "$date": "2026-09-03T08:40:55.929Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T08:41:32.049Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a993298f7bb02d8c0b40363"
+          },
+          "user_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "voucher_id": {
+            "$oid": "6a79ded9d9c7c632c6aed830"
+          },
+          "is_used": false,
+          "save_at": {
+            "$date": "2026-09-03T08:40:56.826Z"
+          },
+          "savedAt": {
+            "$date": "2026-09-03T08:40:56.826Z"
+          },
+          "createdAt": {
+            "$date": "2026-09-03T08:40:56.826Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T08:40:56.826Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a993457f7bb02d8c0b4036c"
+          },
+          "user_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "voucher_id": {
+            "$oid": "6a993431f7bb02d8c0b4036b"
+          },
+          "is_used": true,
+          "save_at": {
+            "$date": "2026-09-03T08:48:23.659Z"
+          },
+          "savedAt": {
+            "$date": "2026-09-03T08:48:23.659Z"
+          },
+          "createdAt": {
+            "$date": "2026-09-03T08:48:23.660Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T08:48:41.959Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a9939b078c45a7725e4f061"
+          },
+          "user_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "voucher_id": {
+            "$oid": "6a99399878c45a7725e4f060"
+          },
+          "is_used": false,
+          "save_at": {
+            "$date": "2026-09-03T09:11:12.328Z"
+          },
+          "savedAt": {
+            "$date": "2026-09-03T09:11:12.328Z"
+          },
+          "createdAt": {
+            "$date": "2026-09-03T09:11:12.329Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T09:11:12.329Z"
+          },
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "AttributeValue",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 12,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7da"
+          },
+          "value": "Đen",
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d5"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7db"
+          },
+          "value": "Trắng",
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d5"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7dc"
+          },
+          "value": "16GB",
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d6"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7dd"
+          },
+          "value": "32GB",
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d6"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7de"
+          },
+          "value": "64GB",
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d6"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7df"
+          },
+          "value": "512GB",
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d7"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e0"
+          },
+          "value": "1TB",
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d7"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e1"
+          },
+          "value": "2TB",
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d7"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e2"
+          },
+          "value": "AM5",
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d8"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e3"
+          },
+          "value": "LGA1700",
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d8"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e4"
+          },
+          "value": "Box Chính Hãng",
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d9"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e5"
+          },
+          "value": "Tray Không Quạt",
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d9"
+          },
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "Product",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "slug": 1
+          },
+          "name": "slug_1",
+          "unique": true
+        }
+      ],
+      "count": 24,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e6"
+          },
+          "name": "AMD Ryzen 7 7800X3D",
+          "sale": 15,
+          "thumnail": "http://localhost:3000/public/images/anh_cpu_amd/image_1.png",
+          "slug": "amd-ryzen-7-7800x3d",
+          "description": "# AMD Ryzen 7 7800X3D\n\nBộ vi xử lý Gaming đỉnh cao hàng đầu thế giới tích hợp công nghệ 3D V-Cache 96MB độc quyền từ AMD.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Socket** | AM5 |\n| **Số Nhân / Luồng** | 8 Nhân / 16 Luồng |\n| **Xung Nhịp Boost** | 5.0 GHz |\n| **Bộ Nhớ Đệm (Cache)** | 96MB 3D V-Cache |\n| **Công Suất Tiêu Thụ (TDP)** | 120W |\n| **Đồ Họa Tích Hợp (iGPU)** | Có (AMD Radeon Graphics) |\n| **Chuẩn RAM Hỗ Trợ** | DDR5 |\n",
+          "short_desc": "8C/16T, Boost 5.0GHz, 96MB 3D V-Cache, Socket AM5, TDP 120W",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c1"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c9"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.194Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:29:07.268Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e7"
+          },
+          "name": "Intel Core i7-14700K",
+          "sale": 10,
+          "thumnail": "http://localhost:3000/public/images/anh_cpu_intel/image_5.png",
+          "slug": "intel-core-i7-14700k",
+          "description": "# Intel Core i7-14700K\n\nBộ vi xử lý Intel Core thế hệ 14 Raptor Lake Refresh với 20 nhân (8 P-Core + 12 E-Core), 28 luồng.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Socket** | LGA1700 |\n| **Số Nhân / Luồng** | 20 Nhân / 28 Luồng |\n| **Xung Nhịp Boost** | 5.6 GHz |\n| **Bộ Nhớ Đệm (Cache)** | 33MB Intel Smart Cache |\n| **Công Suất Tiêu Thụ (TDP)** | 125W |\n| **Đồ Họa Tích Hợp (iGPU)** | Có (Intel UHD Graphics 770) |\n| **Chuẩn RAM Hỗ Trợ** | DDR4 / DDR5 |\n",
+          "short_desc": "20C/28T, Boost 5.6GHz, Socket LGA1700, TDP 125W, iGPU UHD 770",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c1"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ca"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.194Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:29:07.270Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e8"
+          },
+          "name": "ASUS ROG Strix GeForce RTX 4070 Ti Super",
+          "sale": 5,
+          "thumnail": "http://localhost:3000/public/images/anh_vga_asus/image_6.png",
+          "slug": "asus-rog-strix-rtx-4070-ti-super",
+          "description": "# ASUS ROG Strix GeForce RTX 4070 Ti Super 16GB GDDR6X\n\nCard màn hình cao cấp thế hệ Ada Lovelace hỗ trợ DLSS 3.0 và Ray Tracing cực đỉnh.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Dung Lượng VRAM** | 16GB GDDR6X |\n| **Chiều Dài Card (Length)** | 336 mm |\n| **Công Suất Card (TDP)** | 285W |\n| **Nguồn Khuyên Dùng (Recommended PSU)** | 750W |\n| **Chuẩn Băng Thông PCIe** | PCIe 4.0 x16 |\n",
+          "short_desc": "16GB GDDR6X, TDP 285W, Nguồn khuyên dùng 750W, Dài 336mm",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c2"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cc"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.194Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:29:07.272Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e9"
+          },
+          "name": "MSI GeForce RTX 4060 VENTUS 2X",
+          "sale": 8,
+          "thumnail": "http://localhost:3000/public/images/anh_vga_msi/image_9.png",
+          "slug": "msi-rtx-4060-ventus-2x",
+          "description": "# MSI GeForce RTX 4060 VENTUS 2X 8G OC\n\nCard đồ họa nhỏ gọn hiệu năng cao cho trải nghiệm Gaming 1080p Ultra settings mượt mà.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Dung Lượng VRAM** | 8GB GDDR6 |\n| **Chiều Dài Card (Length)** | 242 mm |\n| **Công Suất Card (TDP)** | 115W |\n| **Nguồn Khuyên Dùng (Recommended PSU)** | 550W |\n| **Chuẩn Băng Thông PCIe** | PCIe 4.0 x8 |\n",
+          "short_desc": "8GB GDDR6, TDP 115W, Nguồn khuyên dùng 550W, Dài 242mm",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c2"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cd"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.194Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:29:07.273Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ea"
+          },
+          "name": "MSI MAG B650 Tomahawk WiFi",
+          "sale": 12,
+          "thumnail": "http://localhost:3000/public/images/anh_mainboard_msi/image_10.png",
+          "slug": "msi-mag-b650-tomahawk-wifi",
+          "description": "# MSI MAG B650 Tomahawk WiFi\n\nBo mạch chủ chipset AMD B650 Socket AM5 cao cấp hỗ trợ RAM DDR5 và PCIe 5.0.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Socket CPU** | AM5 |\n| **Chuẩn Kích Thước (Form Factor)** | ATX |\n| **Chuẩn RAM Hỗ Trợ** | DDR5 |\n| **Số Khe RAM** | 4 Khe RAM (Tối đa 192GB) |\n| **Dung Lượng RAM Tối Đa** | 192GB |\n| **Số Khe PCIe / VGA** | 2 Khe PCIe x16 (VGA) |\n| **Số Khe M.2 NVMe** | 3 Khe M.2 PCIe 4.0/5.0 |\n| **Chuẩn PCIe** | PCIe 5.0 x16 |\n",
+          "short_desc": "Socket AM5, Form ATX, Hỗ trợ RAM DDR5 (4 Khe RAM), 2 Khe PCIe x16 VGA, 3x M.2 NVMe",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c3"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cd"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.194Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:44:50.447Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7eb"
+          },
+          "name": "ASUS ROG Strix B760-F Gaming WiFi",
+          "sale": 10,
+          "thumnail": "http://localhost:3000/public/images/anh_mainboard_asus/image_12.png",
+          "slug": "asus-rog-strix-b760f-gaming-wifi",
+          "description": "# ASUS ROG Strix B760-F Gaming WiFi\n\nMainboard Intel LGA1700 dành cho CPU thế hệ 12, 13, 14 với dàn VRM 16+1 Phase cực mát.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Socket CPU** | LGA1700 |\n| **Chuẩn Kích Thước (Form Factor)** | ATX |\n| **Chuẩn RAM Hỗ Trợ** | DDR5 |\n| **Số Khe RAM** | 4 Khe RAM (Tối đa 192GB) |\n| **Dung Lượng RAM Tối Đa** | 192GB |\n| **Số Khe PCIe / VGA** | 2 Khe PCIe x16 (VGA) |\n| **Số Khe M.2 NVMe** | 3 Khe M.2 PCIe 4.0 |\n| **Chuẩn PCIe** | PCIe 5.0 x16 |\n",
+          "short_desc": "Socket LGA1700, Form ATX, Hỗ trợ RAM DDR5 (4 Khe RAM), 2 Khe PCIe x16 VGA, 3x M.2 NVMe",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c3"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cc"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.194Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:44:50.449Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ec"
+          },
+          "name": "G.Skill Trident Z5 RGB DDR5 32GB (2x16GB) 6000MHz",
+          "sale": 10,
+          "thumnail": "http://localhost:3000/public/images/anh_ram_kingston/image_15.png",
+          "slug": "gskill-trident-z5-rgb-ddr5-32gb",
+          "description": "# G.Skill Trident Z5 RGB DDR5 32GB (2x16GB) 6000MHz\n\nBộ nhớ RAM DDR5 cao cấp với thanh LED RGB uốn lượn phong cách, bus 6000MHz CL30.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Loại RAM (RAM Type)** | DDR5 |\n| **Tổng Dung Lượng** | 32GB (2x16GB) |\n| **Tốc Độ Bus** | 6000 MHz |\n| **Độ Trễ Latency** | CL30 |\n",
+          "short_desc": "DDR5 32GB (2x16GB), Bus 6000MHz, CL30, LED RGB uốn lượn",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c4"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d0"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.195Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:29:07.275Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ed"
+          },
+          "name": "Samsung 990 Pro NVMe M.2 SSD",
+          "sale": 8,
+          "thumnail": "http://localhost:3000/public/images/anh_o_cung/image_22.png",
+          "slug": "samsung-990-pro-nvme-ssd",
+          "description": "# Samsung 990 Pro NVMe M.2 SSD 1TB\n\nỔ cứng SSD NVMe PCIe 4.0 tốc độ cao đỉnh bảng thế giới.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Chuẩn Giao Tiếp** | NVMe PCIe Gen 4.0 x4 M.2 2280 |\n| **Tốc Độ Đọc** | 7450 MB/s |\n| **Tốc Độ Ghi** | 6900 MB/s |\n",
+          "short_desc": "PCIe 4.0 NVMe M.2 2280, Đọc 7450MB/s, Ghi 6900MB/s",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c5"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d1"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.195Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:29:07.276Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ee"
+          },
+          "name": "Corsair RM850e 850W 80 Plus Gold",
+          "sale": 5,
+          "thumnail": "http://localhost:3000/public/images/anh_nguon_may_tinh/image_30.png",
+          "slug": "corsair-rm850e-850w",
+          "description": "# Corsair RM850e 850W 80 Plus Gold\n\nBộ nguồn máy tính ATX 3.0 Full Modular cao cấp hỗ trợ cổng 12VHPWR cho card RTX 40 series.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Công Suất Nguồn (Wattage)** | 850W |\n| **Chứng Nhận Hiệu Suất** | 80 Plus Gold |\n| **Kiểu Dây** | Full Modular (Tháo rời toàn bộ) |\n| **Chuẩn Nguồn** | ATX 3.0 & PCIe 5.0 (Cáp 12VHPWR) |\n",
+          "short_desc": "Công suất 850W, 80+ Gold, Full Modular, Chuẩn ATX 3.0 & PCIe 5.0 (12VHPWR)",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c6"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cf"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.195Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:29:07.277Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ef"
+          },
+          "name": "NZXT Kraken X63 RGB AIO 280mm",
+          "sale": 10,
+          "thumnail": "http://localhost:3000/public/images/anh_tan_nhiet/image_32.png",
+          "slug": "nzxt-kraken-x63-rgb-280mm",
+          "description": "# NZXT Kraken X63 RGB AIO 280mm\n\nTản nhiệt nước AIO mặt gương vô cực Infinity Mirror rực rỡ với Két nước Radiator 280mm.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Loại Tản Nhiệt** | AIO (Tản nước bằng chất lỏng) |\n| **Kích Thước Radiator** | 280mm (2x 140mm Quạt Aer RGB 2) |\n| **Socket Hỗ Trợ** | LGA1700, AM5, AM4, LGA1200 |\n",
+          "short_desc": "Tản nước AIO 280mm, Mặt vô cực RGB, Hỗ trợ Socket LGA1700, AM5, AM4",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c7"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d3"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.195Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:29:07.277Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a85af8ffc80b508ecc847b1"
+          },
+          "name": "Intel Core i5-13400F",
+          "sale": 10,
+          "slug": "intel-core-i5-13400f",
+          "description": "# Intel Core i5-13400F\n\nBộ vi xử lý quốc dân cho các cấu hình PC Gaming tầm trung với 10 nhân 16 luồng mạnh mẽ.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Socket** | LGA1700 |\n| **Số Nhân / Luồng** | 10 Nhân / 16 Luồng |\n| **Xung Nhịp Boost** | 4.6 GHz |\n| **Công Suất Tiêu Thụ (TDP)** | 65W |\n| **Đồ Họa Tích Hợp (iGPU)** | Không (Dòng F - Cần VGA rời) |\n| **Chuẩn RAM Hỗ Trợ** | DDR4 / DDR5 |\n",
+          "short_desc": "10C/16T, Boost 4.6GHz, Socket LGA1700, TDP 65W, Không iGPU (Dòng F)",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c1"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ca"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:28:47.851Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:28:47.851Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85afa3b4241ff90898f1e1"
+          },
+          "name": "NZXT H7 Flow RGB ATX Mid Tower Case",
+          "sale": 0,
+          "slug": "nzxt-h7-flow-rgb-atx-mid-tower-case",
+          "description": "# NZXT H7 Flow RGB ATX Mid Tower Case\n\nThùng máy tính thiết kế mặt lưới thoáng khí tối ưu luồng gió, hỗ trợ tản AIO 360mm và VGA dài.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Chuẩn Form Factor Hỗ Trợ** | ATX, mATX, ITX |\n| **Chiều Dài VGA Tối Đa** | 400 mm |\n| **Chiều Cao Tản Khí Tối Đa** | 185 mm |\n| **Kích Thước Radiator Hỗ Trợ** | 360mm, 280mm, 240mm, 120mm |\n",
+          "short_desc": "Chuẩn Form Factor ATX/mATX/ITX, Hỗ trợ VGA 400mm, Tản AIO 360mm, Tản khí 185mm",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c8"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d3"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:29:07.282Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:29:07.282Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85afa3b4241ff90898f1e3"
+          },
+          "name": "Corsair 4000D Airflow ATX Mid Tower Case",
+          "sale": 15,
+          "slug": "corsair-4000d-airflow-atx-mid-tower-case",
+          "description": "# Corsair 4000D Airflow ATX Mid Tower Case\n\nVỏ case PC gaming quốc dân phong cách hiện đại, luồng không khí vượt trội.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Chuẩn Form Factor Hỗ Trợ** | ATX, mATX, ITX |\n| **Chiều Dài VGA Tối Đa** | 360 mm |\n| **Chiều Cao Tản Khí Tối Đa** | 170 mm |\n| **Kích Thước Radiator Hỗ Trợ** | 360mm, 280mm, 240mm |\n",
+          "short_desc": "Chuẩn Form Factor ATX/mATX/ITX, Hỗ trợ VGA 360mm, Tản AIO 360mm, Tản khí 170mm",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c8"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cf"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:29:07.285Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:29:07.285Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b35243578000b8e64076"
+          },
+          "name": "ASUS ROG Strix B650E-I Gaming WiFi (Mini-ITX)",
+          "sale": 0,
+          "slug": "asus-rog-strix-b650e-i-gaming-wifi",
+          "description": "# ASUS ROG Strix B650E-I Gaming WiFi\n\nBo mạch chủ Mini-ITX nhỏ gọn siêu cao cấp cho CPU AMD Ryzen AM5, trang bị PCIe 5.0 x16 và 2 khe cắm RAM DDR5.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Socket CPU** | AM5 |\n| **Chuẩn Kích Thước (Form Factor)** | Mini-ITX (ITX) |\n| **Chuẩn RAM Hỗ Trợ** | DDR5 |\n| **Số Khe RAM** | 2 Khe RAM (Tối đa 96GB) |\n| **Dung Lượng RAM Tối Đa** | 96GB |\n| **Số Khe PCIe / VGA** | 1 Khe PCIe 5.0 x16 (VGA) |\n| **Số Khe M.2 NVMe** | 2 Khe M.2 PCIe 5.0 |\n",
+          "short_desc": "Socket AM5, Form Mini-ITX, Hỗ trợ RAM DDR5 (2 Khe RAM), 1 Khe PCIe x16 VGA",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c3"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cc"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:44:50.454Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:44:50.454Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b35243578000b8e64078"
+          },
+          "name": "GIGABYTE B760M DS3H DDR4 (mATX)",
+          "sale": 5,
+          "slug": "gigabyte-b760m-ds3h-ddr4",
+          "description": "# GIGABYTE B760M DS3H DDR4\n\nMainboard Micro-ATX giá tốt cho CPU Intel thế hệ 12/13/14 hỗ trợ RAM DDR4 với 4 khe cắm.\n\n## Thông Số Kỹ Thuật Chi Tiết\n\n| Thông số | Giá trị |\n| :--- | :--- |\n| **Socket CPU** | LGA1700 |\n| **Chuẩn Kích Thước (Form Factor)** | Micro-ATX (mATX) |\n| **Chuẩn RAM Hỗ Trợ** | DDR4 |\n| **Số Khe RAM** | 4 Khe RAM (Tối đa 128GB) |\n| **Dung Lượng RAM Tối Đa** | 128GB |\n| **Số Khe PCIe / VGA** | 1 Khe PCIe 4.0 x16 (VGA) |\n| **Số Khe M.2 NVMe** | 2 Khe M.2 PCIe 4.0 |\n",
+          "short_desc": "Socket LGA1700, Form Micro-ATX, Hỗ trợ RAM DDR4 (4 Khe RAM), 1 Khe PCIe x16 VGA",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c3"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ce"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:44:50.458Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:44:50.458Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d3fb"
+          },
+          "name": "LG 27GP850-B 27\" QHD 165Hz Nano IPS",
+          "sale": 6,
+          "slug": "lg-27gp850-b-27-qhd-165hz-nano-ips",
+          "description": "# LG 27GP850-B\n\nMàn hình chơi game đỉnh cao 27 inch độ phân giải QHD 2K với tấm nền Nano IPS 1ms cực sắc nét.\n",
+          "short_desc": "27\" QHD 2560×1440 · 165Hz · 1ms · Nano IPS · FreeSync & G-Sync",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a85b482ccadc6162329ec86"
+          },
+          "brand_id": {
+            "$oid": "6a85b482ccadc6162329ec85"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:49:54.948Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.948Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d3fe"
+          },
+          "name": "ASUS ROG Swift 27\" 4K 160Hz OLED PG27AQDM",
+          "sale": 5,
+          "slug": "asus-rog-swift-27-4k-160hz-oled",
+          "description": "# ASUS ROG Swift PG27AQDM OLED\n\nMàn hình gaming OLED siêu chuẩn màu, phản hồi cực nhanh 0.03ms.\n",
+          "short_desc": "27\" 4K UHD · 160Hz · 0.03ms · Tấm nền OLED · G-Sync Compatible",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a85b482ccadc6162329ec86"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cc"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:49:54.953Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.953Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d401"
+          },
+          "name": "Samsung Odyssey G5 34\" UWQHD 165Hz Cong 1000R",
+          "sale": 13,
+          "slug": "samsung-odyssey-g5-34-uwqhd-165hz",
+          "description": "# Samsung Odyssey G5 34\"\n\nMàn hình cong UltraWide siêu rộng cho trải nghiệm làm việc và giải trí sống động.\n",
+          "short_desc": "34\" UltraWide QHD 3440×1440 · 165Hz · Cong 1000R · FreeSync Premium",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a85b482ccadc6162329ec86"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d1"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:49:54.957Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.957Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d404"
+          },
+          "name": "Logitech G Pro X Superlight 2 Wireless Gaming Mouse",
+          "sale": 10,
+          "slug": "logitech-g-pro-x-superlight-2",
+          "description": "# Logitech G Pro X Superlight 2\n\nChuột esports đỉnh cao với trọng lượng siêu nhẹ 60g và kết nối không dây Lightspeed siêu tốc.\n",
+          "short_desc": "Chuột gaming không dây siêu nhẹ 60g, Mắt đọc HERO 2 32.000 DPI, Switch LIGHTFORCE",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a85b482ccadc6162329ec87"
+          },
+          "brand_id": {
+            "$oid": "6a85b482ccadc6162329ec83"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:49:54.961Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.961Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d407"
+          },
+          "name": "Razer BlackWidow V4 Pro RGB Mechanical Keyboard",
+          "sale": 10,
+          "slug": "razer-blackwidow-v4-pro-rgb",
+          "description": "# Razer BlackWidow V4 Pro\n\nBàn phím cơ chơi game cao cấp đầy đủ phím multimedia và núm xoay Command Dial độc đáo.\n",
+          "short_desc": "Bàn phím cơ cao cấp Razer Green Switch, LED RGB Chroma, Kèm đệm kê tay nam nhung",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a85b482ccadc6162329ec87"
+          },
+          "brand_id": {
+            "$oid": "6a85b482ccadc6162329ec84"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:49:54.965Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.965Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04f7"
+          },
+          "name": "Dây cáp bọc lưới Sleeved Extension Kit RGB ATX 24Pin + PCIe",
+          "sale": 14,
+          "slug": "day-cap-boc-luoi-sleeved-extension-kit-rgb",
+          "description": "# Dây cáp bọc lưới Sleeved Extension Kit RGB\n\nPhụ kiện trang trí dây nguồn PC rực rỡ và chuyên nghiệp.\n",
+          "short_desc": "Bộ dây cáp bọc lưới cao cấp cho PSU, chống cháy, dây 24pin ATX + CPU 8pin + PCIe 8pin",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04f6"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cf"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:50:04.883Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:50:04.883Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04fa"
+          },
+          "name": "NZXT RGB Fan Controller & Commander Hub",
+          "sale": 11,
+          "slug": "nzxt-rgb-fan-controller-commander-hub",
+          "description": "# NZXT RGB Fan Controller\n\nHub điều khiển hệ thống quạt và LED RGB chuyên dụng.\n",
+          "short_desc": "Hub điều khiển 8 quạt tản nhiệt và 4 kênh LED RGB qua phần mềm NZXT CAM",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04f6"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d3"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:50:04.887Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:50:04.887Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04fd"
+          },
+          "name": "Corsair Vengeance RGB DDR5 32GB (2x16GB) 5600MHz",
+          "sale": 9,
+          "slug": "corsair-vengeance-rgb-ddr5-32gb-5600mhz",
+          "description": "# Corsair Vengeance RGB DDR5 32GB\n\nBộ nhớ RAM DDR5 tốc độ cao với dải LED RGB đa vùng rực rỡ.\n",
+          "short_desc": "DDR5 32GB (2x16GB), Bus 5600MHz, CL36, LED RGB",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c4"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7cf"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:50:04.891Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:50:04.891Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48c05a2d8a4d92b0500"
+          },
+          "name": "Kingston Fury Beast DDR4 16GB (1x16GB) 3200MHz",
+          "sale": 9,
+          "slug": "kingston-fury-beast-ddr4-16gb-3200mhz",
+          "description": "# Kingston Fury Beast DDR4 16GB\n\nRAM DDR4 phổ thông ổn định cao cho PC Intel và AMD.\n",
+          "short_desc": "DDR4 16GB (1x16GB), Bus 3200MHz, Tản nhiệt nhôm đen",
+          "status": "active",
+          "cat_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c4"
+          },
+          "brand_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d0"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T13:50:04.895Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T07:15:10.149Z"
+          },
+          "__v": 1,
+          "compatibility_meta": {
+            "supported_ff": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "attribute_value",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 12,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7da"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.554Z"
+          },
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d5"
+          },
+          "id_categories_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d5"
+          },
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.554Z"
+          },
+          "value": "Đen"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7db"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.561Z"
+          },
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d5"
+          },
+          "id_categories_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d5"
+          },
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.561Z"
+          },
+          "value": "Trắng"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7dc"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.562Z"
+          },
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d6"
+          },
+          "id_categories_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d6"
+          },
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.562Z"
+          },
+          "value": "16GB"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7dd"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.563Z"
+          },
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d6"
+          },
+          "id_categories_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d6"
+          },
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.563Z"
+          },
+          "value": "32GB"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7de"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.564Z"
+          },
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d6"
+          },
+          "id_categories_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d6"
+          },
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.564Z"
+          },
+          "value": "64GB"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7df"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.564Z"
+          },
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d7"
+          },
+          "id_categories_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d7"
+          },
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.564Z"
+          },
+          "value": "512GB"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e0"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.565Z"
+          },
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d7"
+          },
+          "id_categories_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d7"
+          },
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.565Z"
+          },
+          "value": "1TB"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e1"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.565Z"
+          },
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d7"
+          },
+          "id_categories_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d7"
+          },
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.565Z"
+          },
+          "value": "2TB"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e2"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.565Z"
+          },
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d8"
+          },
+          "id_categories_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d8"
+          },
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.565Z"
+          },
+          "value": "AM5"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e3"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.566Z"
+          },
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d8"
+          },
+          "id_categories_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d8"
+          },
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.566Z"
+          },
+          "value": "LGA1700"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e4"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.566Z"
+          },
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d9"
+          },
+          "id_categories_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d9"
+          },
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.566Z"
+          },
+          "value": "Box Chính Hãng"
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e5"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.567Z"
+          },
+          "id_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d9"
+          },
+          "id_categories_attribute": {
+            "$oid": "6a79ded9d9c7c632c6aed7d9"
+          },
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:18:24.620Z"
+          },
+          "value": "Tray Không Quạt"
+        }
+      ]
+    },
+    {
+      "name": "Voucher",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "code": 1
+          },
+          "name": "code_1",
+          "unique": true
+        }
+      ],
+      "count": 0,
+      "documents": []
+    },
+    {
+      "name": "Favorite",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 0,
+      "documents": []
+    },
+    {
+      "name": "User",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "email": 1
+          },
+          "name": "email_1",
+          "unique": true
+        }
+      ],
+      "count": 5,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ba"
+          },
+          "name": "Admin WINNOTECH",
+          "email": "admin@winnotech.vn",
+          "password": "$2b$10$zbUzY/pKAlO2dnye5llVB.ufj1ReIjLgvJ..nYNn.lgz78eFaTuri",
+          "phone": "0900000000",
+          "role": "admin",
+          "status": "active",
+          "resetPasswordOTP": null,
+          "resetPasswordExpires": null,
+          "avatar": "http://localhost:3000/public/images/avatars/admin.png",
+          "googleId": null,
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.141Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.141Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bb"
+          },
+          "name": "Nguyễn Văn A",
+          "email": "nguyenvana@gmail.com",
+          "password": "$2b$10$zbUzY/pKAlO2dnye5llVB./hcxJb45ud18ZHUGsu.1QgrrTbtJ1Q.",
+          "phone": "0901234567",
+          "role": "user",
+          "status": "active",
+          "resetPasswordOTP": null,
+          "resetPasswordExpires": null,
+          "avatar": "http://localhost:3000/public/images/avatars/user1.png",
+          "googleId": null,
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.143Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.143Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bc"
+          },
+          "name": "Trần Thị B",
+          "email": "tranthib@gmail.com",
+          "password": "$2b$10$zbUzY/pKAlO2dnye5llVB./hcxJb45ud18ZHUGsu.1QgrrTbtJ1Q.",
+          "phone": "0987654321",
+          "role": "user",
+          "status": "active",
+          "resetPasswordOTP": null,
+          "resetPasswordExpires": null,
+          "avatar": "http://localhost:3000/public/images/avatars/user2.png",
+          "googleId": null,
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.143Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T09:13:12.437Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bd"
+          },
+          "name": "Lê Văn C",
+          "email": "levanc@gmail.com",
+          "password": "$2b$10$zbUzY/pKAlO2dnye5llVB./hcxJb45ud18ZHUGsu.1QgrrTbtJ1Q.",
+          "phone": "0912345678",
+          "role": "user",
+          "status": "active",
+          "resetPasswordOTP": null,
+          "resetPasswordExpires": null,
+          "avatar": "http://localhost:3000/public/images/avatars/user3.png",
+          "googleId": null,
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.143Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.143Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "name": "Long",
+          "email": "sgdeath21@gmail.com",
+          "password": "$2b$10$PlSAx0QKMmv3pdaDmqgc8eU3FPBW.VN3mFSyEaqqmQIQ81ZRnyAsG",
+          "phone": "0909260436",
+          "role": "user",
+          "status": "active",
+          "resetPasswordOTP": "994054",
+          "resetPasswordExpires": {
+            "$date": "2026-09-03T14:05:35.250Z"
+          },
+          "googleId": "105648969410505931427",
+          "createdAt": {
+            "$date": "2026-08-19T12:24:41.858Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T15:15:50.168Z"
+          },
+          "__v": 0,
+          "avatar": "avt_4020009554.jpg"
+        }
+      ]
+    },
+    {
+      "name": "BuildItem",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 0,
+      "documents": []
+    },
+    {
+      "name": "PaymentMethod",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 0,
+      "documents": []
+    },
+    {
+      "name": "BuildPC",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 0,
+      "documents": []
+    },
+    {
+      "name": "Category",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "slug": 1
+          },
+          "name": "slug_1",
+          "unique": true
+        }
+      ],
+      "count": 11,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c1"
+          },
+          "name": "CPU",
+          "slug": "cpu",
+          "image": "http://localhost:3000/public/images/anh_cpu_amd/image_1.png",
+          "status": "active",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.154Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.933Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c2"
+          },
+          "name": "VGA / GPU",
+          "slug": "gpu",
+          "image": "http://localhost:3000/public/images/anh_vga_asus/image_6.png",
+          "status": "active",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.155Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.936Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c3"
+          },
+          "name": "Mainboard",
+          "slug": "mainboard",
+          "image": "http://localhost:3000/public/images/anh_mainboard_msi/image_10.png",
+          "status": "active",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.155Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.934Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c4"
+          },
+          "name": "RAM",
+          "slug": "ram",
+          "image": "http://localhost:3000/public/images/anh_ram_kingston/image_15.png",
+          "status": "active",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.155Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.935Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c5"
+          },
+          "name": "Ổ cứng",
+          "slug": "storage",
+          "image": "http://localhost:3000/public/images/anh_o_cung/image_22.png",
+          "status": "active",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.155Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.937Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c6"
+          },
+          "name": "Nguồn máy tính",
+          "slug": "psu",
+          "image": "http://localhost:3000/public/images/anh_nguon_may_tinh/image_30.png",
+          "status": "active",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.155Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.938Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c7"
+          },
+          "name": "Tản nhiệt",
+          "slug": "cooling",
+          "image": "http://localhost:3000/public/images/anh_tan_nhiet/image_32.png",
+          "status": "active",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.155Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.938Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7c8"
+          },
+          "name": "Vỏ case",
+          "slug": "case",
+          "image": "http://localhost:3000/public/images/anh_vo_case/image_40.png",
+          "status": "active",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.155Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.940Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a85b482ccadc6162329ec86"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-19T13:49:54.940Z"
+          },
+          "name": "Màn hình",
+          "slug": "monitor",
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.940Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a85b482ccadc6162329ec87"
+          },
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-19T13:49:54.941Z"
+          },
+          "name": "Bàn phím • Chuột",
+          "slug": "peripheral",
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-08-19T13:49:54.941Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04f6"
+          },
+          "name": "Phụ kiện khác",
+          "slug": "extra",
+          "status": "active",
+          "createdAt": {
+            "$date": "2026-08-19T13:50:04.859Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T13:50:04.859Z"
+          },
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "builditems",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 9,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed846"
+          },
+          "build_id": {
+            "$oid": "6a79ded9d9c7c632c6aed845"
+          },
+          "name": "CPU - AMD Ryzen 7 7800X3D Box",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed847"
+          },
+          "build_id": {
+            "$oid": "6a79ded9d9c7c632c6aed845"
+          },
+          "name": "GPU - ASUS ROG Strix RTX 4070 Ti Super",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed848"
+          },
+          "build_id": {
+            "$oid": "6a79ded9d9c7c632c6aed845"
+          },
+          "name": "Mainboard - MSI MAG B650 Tomahawk WiFi",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed849"
+          },
+          "build_id": {
+            "$oid": "6a79ded9d9c7c632c6aed845"
+          },
+          "name": "RAM - G.Skill Trident Z5 RGB 32GB DDR5",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed84a"
+          },
+          "build_id": {
+            "$oid": "6a79ded9d9c7c632c6aed845"
+          },
+          "name": "SSD - Samsung 990 Pro 2TB NVMe",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed84b"
+          },
+          "build_id": {
+            "$oid": "6a79ded9d9c7c632c6aed845"
+          },
+          "name": "PSU - Corsair RM850e 850W Gold",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed84c"
+          },
+          "build_id": {
+            "$oid": "6a79ded9d9c7c632c6aed845"
+          },
+          "name": "Cooling - NZXT Kraken X63 RGB",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a82fe858094171463366d68"
+          },
+          "build_id": {
+            "$oid": "6a82fe858094171463366d67"
+          },
+          "name": "Intel Core i7-14700K",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8300842c12f19159aae353"
+          },
+          "build_id": {
+            "$oid": "6a8300842c12f19159aae352"
+          },
+          "name": "ASUS ROG Strix GeForce RTX 4070 Ti Super",
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "Compare",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 0,
+      "documents": []
+    },
+    {
+      "name": "Review",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 0,
+      "documents": []
+    },
+    {
+      "name": "Attribute",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 5,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d5"
+          },
+          "name": "Màu sắc",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d6"
+          },
+          "name": "Dung lượng RAM",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d7"
+          },
+          "name": "Dung lượng lưu trữ",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d8"
+          },
+          "name": "Socket CPU",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d9"
+          },
+          "name": "Quy cách đóng gói",
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "ProductVariant",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 29,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed804"
+          },
+          "variant_name": "Ryzen 7 7800X3D - Box Chính Hãng",
+          "price": 8990000,
+          "sku": "CPU-7800X3D-BOX",
+          "sale_price": 7641500,
+          "status": "active",
+          "stock_quantity": 21,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e6"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed805"
+          },
+          "variant_name": "Ryzen 7 7800X3D - Tray Không Quạt",
+          "price": 8190000,
+          "sku": "CPU-7800X3D-TRAY",
+          "sale_price": 6961500,
+          "status": "active",
+          "stock_quantity": 14,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e6"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed806"
+          },
+          "variant_name": "i7-14700K - Box Chính Hãng",
+          "price": 9490000,
+          "sku": "CPU-14700K-BOX",
+          "sale_price": 8541000,
+          "status": "active",
+          "stock_quantity": 18,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e7"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed807"
+          },
+          "variant_name": "i7-14700K - Tray Không Quạt",
+          "price": 8790000,
+          "sku": "CPU-14700K-TRAY",
+          "sale_price": 7911000,
+          "status": "active",
+          "stock_quantity": 15,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e7"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed808"
+          },
+          "variant_name": "ROG Strix RTX 4070 Ti Super OC 16GB",
+          "price": 23990000,
+          "sku": "GPU-4070TIS-ROG",
+          "sale_price": 22790500,
+          "status": "active",
+          "stock_quantity": 9,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e8"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed809"
+          },
+          "variant_name": "RTX 4060 Ventus 2X 8G OC - Đen",
+          "price": 8490000,
+          "sku": "GPU-4060-V2X-BK",
+          "sale_price": 7810800,
+          "status": "active",
+          "stock_quantity": 29,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e9"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80a"
+          },
+          "variant_name": "RTX 4060 Ventus 2X 8G OC - Trắng",
+          "price": 8690000,
+          "sku": "GPU-4060-V2X-WH",
+          "sale_price": 7994800,
+          "status": "active",
+          "stock_quantity": 18,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e9"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80b"
+          },
+          "variant_name": "MAG B650 Tomahawk WiFi",
+          "price": 6490000,
+          "sku": "MB-B650-TOMA",
+          "sale_price": 5711200,
+          "status": "active",
+          "stock_quantity": 18,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ea"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80c"
+          },
+          "variant_name": "ROG Strix B760-F Gaming WiFi",
+          "price": 6990000,
+          "sku": "MB-B760F-ROG",
+          "sale_price": 6291000,
+          "status": "active",
+          "stock_quantity": 11,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7eb"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80d"
+          },
+          "variant_name": "Trident Z5 RGB DDR5 32GB (2x16GB) - Đen",
+          "price": 3990000,
+          "sku": "RAM-TZ5-32G-BK",
+          "sale_price": 3591000,
+          "status": "active",
+          "stock_quantity": 33,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ec"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80e"
+          },
+          "variant_name": "Trident Z5 RGB DDR5 32GB (2x16GB) - Trắng",
+          "price": 4090000,
+          "sku": "RAM-TZ5-32G-WH",
+          "sale_price": 3681000,
+          "status": "active",
+          "stock_quantity": 20,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ec"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80f"
+          },
+          "variant_name": "Samsung 990 Pro NVMe 1TB",
+          "price": 3290000,
+          "sku": "SSD-990P-1TB",
+          "sale_price": 3026800,
+          "status": "active",
+          "stock_quantity": 49,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ed"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed810"
+          },
+          "variant_name": "Samsung 990 Pro NVMe 2TB",
+          "price": 5990000,
+          "sku": "SSD-990P-2TB",
+          "sale_price": 5510800,
+          "status": "active",
+          "stock_quantity": 8,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ed"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed811"
+          },
+          "variant_name": "RM850e 850W 80+ Gold Full Modular",
+          "price": 2990000,
+          "sku": "PSU-RM850E",
+          "sale_price": 2840500,
+          "status": "active",
+          "stock_quantity": 21,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ee"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed812"
+          },
+          "variant_name": "Kraken X63 RGB 280mm - Đen",
+          "price": 4590000,
+          "sku": "COOL-KRK-X63-BK",
+          "sale_price": 4131000,
+          "status": "active",
+          "stock_quantity": 14,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ef"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed813"
+          },
+          "variant_name": "Kraken X63 RGB 280mm - Trắng",
+          "price": 4790000,
+          "sku": "COOL-KRK-X63-WH",
+          "sale_price": 4311000,
+          "status": "active",
+          "stock_quantity": 10,
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ef"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85afa3b4241ff90898f1e2"
+          },
+          "variant_name": "Mặc định",
+          "price": 3890000,
+          "sku": "CASE-NZXT-H7-1787146147284",
+          "sale_price": 0,
+          "status": "active",
+          "stock_quantity": 19,
+          "p_id": {
+            "$oid": "6a85afa3b4241ff90898f1e1"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85afa3b4241ff90898f1e4"
+          },
+          "variant_name": "Mặc định",
+          "price": 2690000,
+          "sku": "CASE-CORSAIR-4000D-1787146147286",
+          "sale_price": 2290000,
+          "status": "active",
+          "stock_quantity": 24,
+          "p_id": {
+            "$oid": "6a85afa3b4241ff90898f1e3"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b35243578000b8e64077"
+          },
+          "variant_name": "Mặc định",
+          "price": 7490000,
+          "sku": "MB-B650E-ITX-1787147090456",
+          "sale_price": 0,
+          "status": "active",
+          "stock_quantity": 9,
+          "p_id": {
+            "$oid": "6a85b35243578000b8e64076"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b35243578000b8e64079"
+          },
+          "variant_name": "Mặc định",
+          "price": 3390000,
+          "sku": "MB-B760M-GIGA-1787147090459",
+          "sale_price": 3190000,
+          "status": "active",
+          "stock_quantity": 15,
+          "p_id": {
+            "$oid": "6a85b35243578000b8e64078"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d3fc"
+          },
+          "variant_name": "Mặc định",
+          "price": 8490000,
+          "sku": "SKU-LG-27GP850-B-27",
+          "sale_price": 7990000,
+          "status": "active",
+          "stock_quantity": 20,
+          "p_id": {
+            "$oid": "6a85b48298a689739945d3fb"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d3ff"
+          },
+          "variant_name": "Mặc định",
+          "price": 19990000,
+          "sku": "SKU-ASUS-ROG-SWIFT-",
+          "sale_price": 18990000,
+          "status": "active",
+          "stock_quantity": 19,
+          "p_id": {
+            "$oid": "6a85b48298a689739945d3fe"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d402"
+          },
+          "variant_name": "Mặc định",
+          "price": 11990000,
+          "sku": "SKU-SAMSUNG-ODYSSEY",
+          "sale_price": 10490000,
+          "status": "active",
+          "stock_quantity": 20,
+          "p_id": {
+            "$oid": "6a85b48298a689739945d401"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d405"
+          },
+          "variant_name": "Mặc định",
+          "price": 3890000,
+          "sku": "SKU-LOGITECH-G-PRO-",
+          "sale_price": 3490000,
+          "status": "active",
+          "stock_quantity": 20,
+          "p_id": {
+            "$oid": "6a85b48298a689739945d404"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d408"
+          },
+          "variant_name": "Mặc định",
+          "price": 4990000,
+          "sku": "SKU-RAZER-BLACKWIDO",
+          "sale_price": 4490000,
+          "status": "active",
+          "stock_quantity": 19,
+          "p_id": {
+            "$oid": "6a85b48298a689739945d407"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04f8"
+          },
+          "variant_name": "Mặc định",
+          "price": 690000,
+          "sku": "SKU-DAY-CAP-BOC-LUO",
+          "sale_price": 590000,
+          "status": "active",
+          "stock_quantity": 20,
+          "p_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04f7"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04fb"
+          },
+          "variant_name": "Mặc định",
+          "price": 890000,
+          "sku": "SKU-NZXT-RGB-FAN-CO",
+          "sale_price": 790000,
+          "status": "active",
+          "stock_quantity": 19,
+          "p_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04fa"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04fe"
+          },
+          "variant_name": "Mặc định",
+          "price": 3490000,
+          "sku": "SKU-CORSAIR-VENGEAN",
+          "sale_price": 3190000,
+          "status": "active",
+          "stock_quantity": 20,
+          "p_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04fd"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48c05a2d8a4d92b0501"
+          },
+          "variant_name": "Mặc định",
+          "price": 1090000,
+          "sku": "SKU-KINGSTON-FURY-B",
+          "sale_price": 990000,
+          "status": "active",
+          "stock_quantity": 19,
+          "p_id": {
+            "$oid": "6a85b48c05a2d8a4d92b0500"
+          },
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "categories_attribute",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 5,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d5"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.525Z"
+          },
+          "name": "Màu sắc",
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.525Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d6"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.550Z"
+          },
+          "name": "Dung lượng RAM",
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.550Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d7"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.551Z"
+          },
+          "name": "Dung lượng lưu trữ",
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.551Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d8"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.552Z"
+          },
+          "name": "Socket CPU",
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.552Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7d9"
+          },
+          "createdAt": {
+            "$date": "2026-09-06T07:08:53.552Z"
+          },
+          "name": "Quy cách đóng gói",
+          "status": "active",
+          "updatedAt": {
+            "$date": "2026-09-06T07:08:53.552Z"
+          }
+        }
+      ]
+    },
+    {
+      "name": "flashsalesettings",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 1,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a81af0135b8b7ec8627c12a"
+          },
+          "durationSeconds": 28800,
+          "status": "active",
+          "customProductIds": [],
+          "sessionStartMs": 1788412907902,
+          "createdAt": {
+            "$date": "2026-08-16T12:37:21.262Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T05:21:47.910Z"
+          },
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "UserVoucher",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 0,
+      "documents": []
+    },
+    {
+      "name": "orderitems",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 28,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed835"
+          },
+          "order_id": {
+            "$oid": "6a79ded9d9c7c632c6aed834"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed804"
+          },
+          "Quantity": 1,
+          "price": 7641500,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed836"
+          },
+          "order_id": {
+            "$oid": "6a79ded9d9c7c632c6aed834"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80b"
+          },
+          "Quantity": 1,
+          "price": 5711200,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed837"
+          },
+          "order_id": {
+            "$oid": "6a79ded9d9c7c632c6aed834"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80d"
+          },
+          "Quantity": 1,
+          "price": 3591000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed839"
+          },
+          "order_id": {
+            "$oid": "6a79ded9d9c7c632c6aed838"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed808"
+          },
+          "Quantity": 1,
+          "price": 22790500,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a7f15f5405659a59e22fa58"
+          },
+          "order_id": {
+            "$oid": "6a7f15f5405659a59e22fa57"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed804"
+          },
+          "Quantity": 1,
+          "price": 7641500,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a7f1602405659a59e22fa5a"
+          },
+          "order_id": {
+            "$oid": "6a7f1602405659a59e22fa59"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed804"
+          },
+          "Quantity": 1,
+          "price": 7641500,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85a64a4c4f9287027c61fd"
+          },
+          "order_id": {
+            "$oid": "6a85a64a4c4f9287027c61fc"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed809"
+          },
+          "Quantity": 1,
+          "price": 7810800,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85a6574c4f9287027c61ff"
+          },
+          "order_id": {
+            "$oid": "6a85a6574c4f9287027c61fe"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed809"
+          },
+          "Quantity": 1,
+          "price": 8490000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8729999cd1a2658ee7c271"
+          },
+          "order_id": {
+            "$oid": "6a8729999cd1a2658ee7c270"
+          },
+          "variants_id": {
+            "$oid": "6a85b35243578000b8e64077"
+          },
+          "Quantity": 1,
+          "price": 7490000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8729999cd1a2658ee7c272"
+          },
+          "order_id": {
+            "$oid": "6a8729999cd1a2658ee7c270"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80d"
+          },
+          "Quantity": 1,
+          "price": 3990000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8729999cd1a2658ee7c273"
+          },
+          "order_id": {
+            "$oid": "6a8729999cd1a2658ee7c270"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed811"
+          },
+          "Quantity": 1,
+          "price": 2990000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8729999cd1a2658ee7c274"
+          },
+          "order_id": {
+            "$oid": "6a8729999cd1a2658ee7c270"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed808"
+          },
+          "Quantity": 1,
+          "price": 23990000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8729999cd1a2658ee7c275"
+          },
+          "order_id": {
+            "$oid": "6a8729999cd1a2658ee7c270"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed804"
+          },
+          "Quantity": 1,
+          "price": 8990000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8729999cd1a2658ee7c276"
+          },
+          "order_id": {
+            "$oid": "6a8729999cd1a2658ee7c270"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80f"
+          },
+          "Quantity": 1,
+          "price": 3290000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8729999cd1a2658ee7c277"
+          },
+          "order_id": {
+            "$oid": "6a8729999cd1a2658ee7c270"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed812"
+          },
+          "Quantity": 1,
+          "price": 4590000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8729999cd1a2658ee7c278"
+          },
+          "order_id": {
+            "$oid": "6a8729999cd1a2658ee7c270"
+          },
+          "variants_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04fb"
+          },
+          "Quantity": 1,
+          "price": 890000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8729999cd1a2658ee7c279"
+          },
+          "order_id": {
+            "$oid": "6a8729999cd1a2658ee7c270"
+          },
+          "variants_id": {
+            "$oid": "6a85b48298a689739945d3ff"
+          },
+          "Quantity": 1,
+          "price": 19990000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8729999cd1a2658ee7c27a"
+          },
+          "order_id": {
+            "$oid": "6a8729999cd1a2658ee7c270"
+          },
+          "variants_id": {
+            "$oid": "6a85afa3b4241ff90898f1e2"
+          },
+          "Quantity": 1,
+          "price": 3890000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8ec68812208bf4372f6ba5"
+          },
+          "order_id": {
+            "$oid": "6a8ec68812208bf4372f6ba4"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed804"
+          },
+          "Quantity": 1,
+          "price": 7641500,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8ec69e12208bf4372f6ba7"
+          },
+          "order_id": {
+            "$oid": "6a8ec69e12208bf4372f6ba6"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed804"
+          },
+          "Quantity": 1,
+          "price": 7641500,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a9932bcf7bb02d8c0b40365"
+          },
+          "order_id": {
+            "$oid": "6a9932bcf7bb02d8c0b40364"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed806"
+          },
+          "Quantity": 1,
+          "price": 8541000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a9932bcf7bb02d8c0b40366"
+          },
+          "order_id": {
+            "$oid": "6a9932bcf7bb02d8c0b40364"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed804"
+          },
+          "Quantity": 1,
+          "price": 7641500,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a9932bcf7bb02d8c0b40367"
+          },
+          "order_id": {
+            "$oid": "6a9932bcf7bb02d8c0b40364"
+          },
+          "variants_id": {
+            "$oid": "6a85afa3b4241ff90898f1e4"
+          },
+          "Quantity": 1,
+          "price": 2290000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a993469f7bb02d8c0b4036e"
+          },
+          "order_id": {
+            "$oid": "6a993469f7bb02d8c0b4036d"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed806"
+          },
+          "Quantity": 1,
+          "price": 8541000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a993469f7bb02d8c0b4036f"
+          },
+          "order_id": {
+            "$oid": "6a993469f7bb02d8c0b4036d"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80c"
+          },
+          "Quantity": 1,
+          "price": 6291000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a993469f7bb02d8c0b40370"
+          },
+          "order_id": {
+            "$oid": "6a993469f7bb02d8c0b4036d"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80d"
+          },
+          "Quantity": 1,
+          "price": 3591000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a998f5aebd16b5ac00fe1b8"
+          },
+          "order_id": {
+            "$oid": "6a998f5aebd16b5ac00fe1b7"
+          },
+          "variants_id": {
+            "$oid": "6a85b48c05a2d8a4d92b0501"
+          },
+          "Quantity": 1,
+          "price": 990000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a999710ebd16b5ac00fe1e7"
+          },
+          "order_id": {
+            "$oid": "6a999710ebd16b5ac00fe1e6"
+          },
+          "variants_id": {
+            "$oid": "6a79ded9d9c7c632c6aed805"
+          },
+          "Quantity": 1,
+          "price": 6961500,
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "paymentmethods",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 4,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed827"
+          },
+          "name": "Thanh toán khi nhận hàng (COD)",
+          "image": "http://localhost:3000/public/images/payments/cod.png",
+          "status": "active",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed828"
+          },
+          "name": "Chuyển khoản ngân hàng (Bank Transfer)",
+          "image": "http://localhost:3000/public/images/payments/bank.png",
+          "status": "active",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed829"
+          },
+          "name": "Ví điện tử MoMo",
+          "image": "http://localhost:3000/public/images/payments/momo.png",
+          "status": "active",
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed82a"
+          },
+          "name": "Cổng thanh toán VNPay",
+          "image": "http://localhost:3000/public/images/payments/vnpay.png",
+          "status": "active",
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "reviews",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 4,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed83a"
+          },
+          "id_oderitems": {
+            "$oid": "6a79ded9d9c7c632c6aed835"
+          },
+          "content": "CPU gaming siêu bá đạo, chơi Valorant và AAA mượt mà không văng lag!",
+          "star_number": 5,
+          "status": "active",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.253Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.253Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed83b"
+          },
+          "id_oderitems": {
+            "$oid": "6a79ded9d9c7c632c6aed836"
+          },
+          "content": "Mainboard hoàn thiện cứng cáp, BIOS dễ thao tác, WiFi 6E chạy rất ổn định.",
+          "star_number": 5,
+          "status": "active",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.253Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.253Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed83c"
+          },
+          "id_oderitems": {
+            "$oid": "6a79ded9d9c7c632c6aed837"
+          },
+          "content": "RAM LED RGB siêu đẹp, bus 6000MHz nhận ngay XMP cực chuẩn.",
+          "star_number": 4,
+          "status": "active",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.253Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.253Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed83d"
+          },
+          "id_oderitems": {
+            "$oid": "6a79ded9d9c7c632c6aed839"
+          },
+          "content": "VGA ROG Strix quá chất, tản nhiệt mát mẻ 55 độ C khi tải nặng 4K.",
+          "star_number": 5,
+          "status": "active",
+          "__v": 1,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.253Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T05:41:08.614Z"
+          },
+          "images": []
+        }
+      ]
+    },
+    {
+      "name": "CartItem",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 3,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed824"
+          },
+          "u_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bb"
+          },
+          "variant_id": {
+            "$oid": "6a79ded9d9c7c632c6aed808"
+          },
+          "quantity": 1,
+          "price": 22790500,
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.221Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.221Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed825"
+          },
+          "u_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bb"
+          },
+          "variant_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80f"
+          },
+          "quantity": 2,
+          "price": 3026800,
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.221Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.221Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed826"
+          },
+          "u_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bc"
+          },
+          "variant_id": {
+            "$oid": "6a79ded9d9c7c632c6aed80d"
+          },
+          "quantity": 1,
+          "price": 3591000,
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.221Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.221Z"
+          }
+        }
+      ]
+    },
+    {
+      "name": "images",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 29,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7f0"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e6"
+          },
+          "url": "http://localhost:3000/public/images/anh_cpu_amd/image_1.png",
+          "alt": "AMD Ryzen 7 7800X3D - Ảnh chính",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7f1"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e6"
+          },
+          "url": "http://localhost:3000/public/images/anh_cpu_amd/image_1.png",
+          "alt": "AMD Ryzen 7 7800X3D - Góc nghiêng",
+          "is_main": false,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7f2"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e7"
+          },
+          "url": "http://localhost:3000/public/images/anh_cpu_intel/image_5.png",
+          "alt": "Intel Core i7-14700K - Ảnh chính",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7f3"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e7"
+          },
+          "url": "http://localhost:3000/public/images/anh_cpu_intel/image_5.png",
+          "alt": "Intel Core i7-14700K - Góc nghiêng",
+          "is_main": false,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7f4"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e8"
+          },
+          "url": "http://localhost:3000/public/images/anh_vga_asus/image_6.png",
+          "alt": "ASUS ROG Strix GeForce RTX 4070 Ti Super - Ảnh chính",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7f5"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e8"
+          },
+          "url": "http://localhost:3000/public/images/anh_vga_asus/image_6.png",
+          "alt": "ASUS ROG Strix GeForce RTX 4070 Ti Super - Góc nghiêng",
+          "is_main": false,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7f6"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e9"
+          },
+          "url": "http://localhost:3000/public/images/anh_vga_msi/image_9.png",
+          "alt": "MSI GeForce RTX 4060 VENTUS 2X - Ảnh chính",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7f7"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e9"
+          },
+          "url": "http://localhost:3000/public/images/anh_vga_msi/image_9.png",
+          "alt": "MSI GeForce RTX 4060 VENTUS 2X - Góc nghiêng",
+          "is_main": false,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7f8"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ea"
+          },
+          "url": "http://localhost:3000/public/images/anh_mainboard_msi/image_10.png",
+          "alt": "MSI MAG B650 Tomahawk WiFi - Ảnh chính",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7f9"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ea"
+          },
+          "url": "http://localhost:3000/public/images/anh_mainboard_msi/image_10.png",
+          "alt": "MSI MAG B650 Tomahawk WiFi - Góc nghiêng",
+          "is_main": false,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7fa"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7eb"
+          },
+          "url": "http://localhost:3000/public/images/anh_mainboard_asus/image_12.png",
+          "alt": "ASUS ROG Strix B760-F Gaming WiFi - Ảnh chính",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7fb"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7eb"
+          },
+          "url": "http://localhost:3000/public/images/anh_mainboard_asus/image_12.png",
+          "alt": "ASUS ROG Strix B760-F Gaming WiFi - Góc nghiêng",
+          "is_main": false,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7fc"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ec"
+          },
+          "url": "http://localhost:3000/public/images/anh_ram_kingston/image_15.png",
+          "alt": "G.Skill Trident Z5 RGB DDR5 32GB (2x16GB) 6000MHz - Ảnh chính",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7fd"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ec"
+          },
+          "url": "http://localhost:3000/public/images/anh_ram_kingston/image_15.png",
+          "alt": "G.Skill Trident Z5 RGB DDR5 32GB (2x16GB) 6000MHz - Góc nghiêng",
+          "is_main": false,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7fe"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ed"
+          },
+          "url": "http://localhost:3000/public/images/anh_o_cung/image_22.png",
+          "alt": "Samsung 990 Pro NVMe M.2 SSD - Ảnh chính",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ff"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ed"
+          },
+          "url": "http://localhost:3000/public/images/anh_o_cung/image_22.png",
+          "alt": "Samsung 990 Pro NVMe M.2 SSD - Góc nghiêng",
+          "is_main": false,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed800"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ee"
+          },
+          "url": "http://localhost:3000/public/images/anh_nguon_may_tinh/image_30.png",
+          "alt": "Corsair RM850e 850W 80 Plus Gold - Ảnh chính",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed801"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ee"
+          },
+          "url": "http://localhost:3000/public/images/anh_nguon_may_tinh/image_30.png",
+          "alt": "Corsair RM850e 850W 80 Plus Gold - Góc nghiêng",
+          "is_main": false,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed802"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ef"
+          },
+          "url": "http://localhost:3000/public/images/anh_tan_nhiet/image_32.png",
+          "alt": "NZXT Kraken X63 RGB AIO 280mm - Ảnh chính",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed803"
+          },
+          "p_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ef"
+          },
+          "url": "http://localhost:3000/public/images/anh_tan_nhiet/image_32.png",
+          "alt": "NZXT Kraken X63 RGB AIO 280mm - Góc nghiêng",
+          "is_main": false,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d3fd"
+          },
+          "p_id": {
+            "$oid": "6a85b48298a689739945d3fb"
+          },
+          "url": "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d400"
+          },
+          "p_id": {
+            "$oid": "6a85b48298a689739945d3fe"
+          },
+          "url": "https://images.unsplash.com/photo-1547082299-de196ea013d6?w=500",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d403"
+          },
+          "p_id": {
+            "$oid": "6a85b48298a689739945d401"
+          },
+          "url": "https://images.unsplash.com/photo-1585792180666-f7347c490ee2?w=500",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d406"
+          },
+          "p_id": {
+            "$oid": "6a85b48298a689739945d404"
+          },
+          "url": "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=500",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48298a689739945d409"
+          },
+          "p_id": {
+            "$oid": "6a85b48298a689739945d407"
+          },
+          "url": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04f9"
+          },
+          "p_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04f7"
+          },
+          "url": "https://images.unsplash.com/photo-1544652478-6653e09f18a2?w=500",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04fc"
+          },
+          "p_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04fa"
+          },
+          "url": "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04ff"
+          },
+          "p_id": {
+            "$oid": "6a85b48c05a2d8a4d92b04fd"
+          },
+          "url": "https://images.unsplash.com/photo-1562976540-1502c2145186?w=500",
+          "is_main": true,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85b48c05a2d8a4d92b0502"
+          },
+          "p_id": {
+            "$oid": "6a85b48c05a2d8a4d92b0500"
+          },
+          "url": "https://images.unsplash.com/photo-1562976540-1502c2145186?w=500",
+          "is_main": true,
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "OrderItem",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 0,
+      "documents": []
+    },
+    {
+      "name": "banners",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 4,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a86f667eed7eb76297a3867"
+          },
+          "name": "Banner Siêu Sale Hè 2026",
+          "image": "/public/images/banners/banner11.jpg",
+          "position": 1,
+          "status": "active",
+          "link": "/products",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-20T12:43:19.959Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-06T07:24:40.381Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a86f667eed7eb76297a3868"
+          },
+          "name": "Banner Build PC Chuyên Nghiệp",
+          "image": "/public/images/banners/banner22.png",
+          "position": 2,
+          "status": "active",
+          "link": "/build-pc",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-20T12:43:19.959Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T07:14:39.877Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a86f667eed7eb76297a3869"
+          },
+          "name": "Banner RTX 40 Series Đỉnh Cao Gaming",
+          "image": "/public/images/banners/banner33.png",
+          "position": 3,
+          "status": "active",
+          "link": "/gpu",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-20T12:43:19.959Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-20T12:43:19.959Z"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6a86f667eed7eb76297a386a"
+          },
+          "name": "Banner Chuột & Bàn Phím Gaming",
+          "image": "/public/images/banners/banner44.png",
+          "position": 4,
+          "status": "active",
+          "link": "/products",
+          "__v": 0,
+          "createdAt": {
+            "$date": "2026-08-20T12:43:19.959Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-20T12:43:19.959Z"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "code": 1
+          },
+          "name": "code_1",
+          "unique": true
+        }
+      ],
+      "count": 0,
+      "documents": []
+    },
+    {
+      "name": "orders",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "code": 1
+          },
+          "name": "code_1",
+          "unique": true
+        }
+      ],
+      "count": 13,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed834"
+          },
+          "user_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bb"
+          },
+          "code": "ORD-20260810-001",
+          "status": "completed",
+          "Name": "Nguyễn Văn A",
+          "Phone": "0901234567",
+          "Adress": "123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
+          "total_amount": 16943700,
+          "payment_method": {
+            "$oid": "6a79ded9d9c7c632c6aed828"
+          },
+          "voucher_code": "WELCOME10",
+          "voucher_value": 1000000,
+          "payment_status": "paid",
+          "date": {
+            "$date": "2026-08-01T00:00:00Z"
+          },
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.241Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.241Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed838"
+          },
+          "user_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bc"
+          },
+          "code": "ORD-20260810-002",
+          "status": "shipping",
+          "Name": "Trần Thị B",
+          "Phone": "0987654321",
+          "Adress": "789 Lạc Long Quân, Phường 11, Quận Tân Bình, TP. Hồ Chí Minh",
+          "total_amount": 22790500,
+          "payment_method": {
+            "$oid": "6a79ded9d9c7c632c6aed829"
+          },
+          "voucher_code": null,
+          "voucher_value": 0,
+          "payment_status": "paid",
+          "date": {
+            "$date": "2026-08-05T00:00:00Z"
+          },
+          "createdAt": {
+            "$date": "2026-08-10T14:23:21.248Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-10T14:23:21.248Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a7f15f5405659a59e22fa57"
+          },
+          "user_id": null,
+          "code": "WN14201949",
+          "status": "pending",
+          "Name": "NGUYEN VAN A",
+          "Phone": "0987654321",
+          "Adress": "123 Cầu Giấy, Hà Nội",
+          "total_amount": 7641500,
+          "payment_method": null,
+          "voucher_code": null,
+          "voucher_value": 0,
+          "payment_status": "unpaid",
+          "date": {
+            "$date": "2026-08-14T13:19:49.661Z"
+          },
+          "createdAt": {
+            "$date": "2026-08-14T13:19:49.663Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-14T13:19:49.663Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a7f1602405659a59e22fa59"
+          },
+          "user_id": null,
+          "code": "WN14202002",
+          "status": "preparing",
+          "Name": "NGUYEN VAN A",
+          "Phone": "0987654321",
+          "Adress": "123 Cầu Giấy, Hà Nội",
+          "total_amount": 7641500,
+          "payment_method": null,
+          "voucher_code": null,
+          "voucher_value": 0,
+          "payment_status": "paid",
+          "date": {
+            "$date": "2026-08-14T13:20:02.739Z"
+          },
+          "createdAt": {
+            "$date": "2026-08-14T13:20:02.739Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-14T13:22:14.713Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85a64a4c4f9287027c61fc"
+          },
+          "user_id": null,
+          "code": "WN19194914",
+          "status": "pending",
+          "Name": "long",
+          "Phone": "0909260436",
+          "Adress": "56 cau kinh",
+          "total_amount": 7810800,
+          "payment_method": {
+            "$oid": "6a3ea04fd27f601bd29ea069"
+          },
+          "voucher_code": null,
+          "voucher_value": 0,
+          "payment_status": "unpaid",
+          "date": {
+            "$date": "2026-08-19T12:49:14.278Z"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T12:49:14.279Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T12:49:14.279Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a85a6574c4f9287027c61fe"
+          },
+          "user_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "code": "ORD-1787143767735",
+          "status": "pending",
+          "Name": "long",
+          "Phone": "0909260436",
+          "Adress": "56 cau kinh",
+          "total_amount": 8490000,
+          "payment_method": {
+            "$oid": "6a3ea04fd27f601bd29ea067"
+          },
+          "voucher_code": null,
+          "voucher_value": 0,
+          "payment_status": "unpaid",
+          "date": {
+            "$date": "2026-08-19T12:49:27.735Z"
+          },
+          "createdAt": {
+            "$date": "2026-08-19T12:49:27.735Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-19T12:49:27.735Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8729999cd1a2658ee7c270"
+          },
+          "user_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "code": "ORD-1787242905328",
+          "status": "pending",
+          "Name": "long",
+          "Phone": "0909260436",
+          "Adress": "56 cau kinh",
+          "total_amount": 85090000,
+          "payment_method": {
+            "$oid": "6a3ea04fd27f601bd29ea067"
+          },
+          "voucher_code": null,
+          "voucher_value": 0,
+          "payment_status": "unpaid",
+          "admin_notes": [],
+          "statusHistory": [],
+          "date": {
+            "$date": "2026-08-20T16:21:45.333Z"
+          },
+          "createdAt": {
+            "$date": "2026-08-20T16:21:45.337Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-20T16:21:45.337Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8ec68812208bf4372f6ba4"
+          },
+          "user_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "code": "WN26175712",
+          "status": "pending",
+          "Name": "long",
+          "Phone": "0909260436",
+          "Adress": "56 cau kinh",
+          "total_amount": 7641500,
+          "payment_method": {
+            "$oid": "6a3ea04fd27f601bd29ea069"
+          },
+          "voucher_code": null,
+          "voucher_value": 0,
+          "payment_status": "unpaid",
+          "admin_notes": [],
+          "statusHistory": [],
+          "date": {
+            "$date": "2026-08-26T10:57:12.626Z"
+          },
+          "createdAt": {
+            "$date": "2026-08-26T10:57:12.629Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-26T10:57:12.629Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8ec69e12208bf4372f6ba6"
+          },
+          "user_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "code": "WN26175734",
+          "status": "preparing",
+          "Name": "long",
+          "Phone": "0909260436",
+          "Adress": "56 cau kinh",
+          "total_amount": 7641500,
+          "payment_method": {
+            "$oid": "6a3ea04fd27f601bd29ea069"
+          },
+          "voucher_code": null,
+          "voucher_value": 0,
+          "payment_status": "paid",
+          "admin_notes": [],
+          "statusHistory": [],
+          "date": {
+            "$date": "2026-08-26T10:57:34.179Z"
+          },
+          "createdAt": {
+            "$date": "2026-08-26T10:57:34.180Z"
+          },
+          "updatedAt": {
+            "$date": "2026-08-26T10:58:18.829Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a9932bcf7bb02d8c0b40364"
+          },
+          "user_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "code": "ORD-1788424892020",
+          "status": "pending",
+          "Name": "long",
+          "Phone": "0909260436",
+          "Adress": "56 cau kinh",
+          "total_amount": 16625250,
+          "payment_method": {
+            "$oid": "6a3ea04fd27f601bd29ea067"
+          },
+          "voucher_code": "WELCOME10",
+          "voucher_value": 1847250,
+          "payment_status": "unpaid",
+          "admin_notes": [],
+          "statusHistory": [],
+          "date": {
+            "$date": "2026-09-03T08:41:32.021Z"
+          },
+          "createdAt": {
+            "$date": "2026-09-03T08:41:32.022Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T08:41:32.022Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a993469f7bb02d8c0b4036d"
+          },
+          "user_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "code": "ORD-1788425321950",
+          "status": "pending",
+          "Name": "long",
+          "Phone": "0909260436",
+          "Adress": "56 cau kinh",
+          "total_amount": 184230,
+          "payment_method": {
+            "$oid": "6a3ea04fd27f601bd29ea067"
+          },
+          "voucher_code": "WINNO300K",
+          "voucher_value": 18238770,
+          "payment_status": "unpaid",
+          "admin_notes": [],
+          "statusHistory": [],
+          "date": {
+            "$date": "2026-09-03T08:48:41.950Z"
+          },
+          "createdAt": {
+            "$date": "2026-09-03T08:48:41.951Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T08:48:41.951Z"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a998f5aebd16b5ac00fe1b7"
+          },
+          "user_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "code": "ORD-1788448602069",
+          "status": "delivered",
+          "Name": "long",
+          "Phone": "0909260436",
+          "Adress": "56 cau kinh",
+          "total_amount": 1020000,
+          "payment_method": {
+            "$oid": "6a3ea04fd27f601bd29ea067"
+          },
+          "voucher_code": null,
+          "voucher_value": 0,
+          "payment_status": "unpaid",
+          "admin_notes": [],
+          "statusHistory": [
+            {
+              "status": "preparing",
+              "note": "",
+              "changedBy": "Admin WINNOTECH",
+              "changedAt": {
+                "$date": "2026-09-03T15:17:07.608Z"
+              },
+              "_id": {
+                "$oid": "6a998f73ebd16b5ac00fe1b9"
+              }
+            },
+            {
+              "status": "shipping",
+              "note": "",
+              "changedBy": "Admin WINNOTECH",
+              "changedAt": {
+                "$date": "2026-09-03T15:17:11.238Z"
+              },
+              "_id": {
+                "$oid": "6a998f77ebd16b5ac00fe1bb"
+              }
+            },
+            {
+              "status": "delivered",
+              "note": "",
+              "changedBy": "Admin WINNOTECH",
+              "changedAt": {
+                "$date": "2026-09-03T15:17:14.446Z"
+              },
+              "_id": {
+                "$oid": "6a998f7aebd16b5ac00fe1be"
+              }
+            }
+          ],
+          "date": {
+            "$date": "2026-09-03T15:16:42.072Z"
+          },
+          "createdAt": {
+            "$date": "2026-09-03T15:16:42.073Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T15:17:14.448Z"
+          },
+          "__v": 3
+        },
+        {
+          "_id": {
+            "$oid": "6a999710ebd16b5ac00fe1e6"
+          },
+          "user_id": {
+            "$oid": "6a85a089bca69c94946d677f"
+          },
+          "code": "ORD-1788450576981",
+          "status": "delivered",
+          "Name": "long",
+          "Phone": "0909260436",
+          "Adress": "56 cau kinh",
+          "total_amount": 6961500,
+          "payment_method": {
+            "$oid": "6a3ea04fd27f601bd29ea067"
+          },
+          "voucher_code": null,
+          "voucher_value": 0,
+          "payment_status": "unpaid",
+          "admin_notes": [],
+          "statusHistory": [
+            {
+              "status": "preparing",
+              "note": "",
+              "changedBy": "Admin WINNOTECH",
+              "changedAt": {
+                "$date": "2026-09-03T15:49:56.710Z"
+              },
+              "_id": {
+                "$oid": "6a999724ebd16b5ac00fe1e8"
+              }
+            },
+            {
+              "status": "shipping",
+              "note": "",
+              "changedBy": "Admin WINNOTECH",
+              "changedAt": {
+                "$date": "2026-09-03T15:49:59.390Z"
+              },
+              "_id": {
+                "$oid": "6a999727ebd16b5ac00fe1ea"
+              }
+            },
+            {
+              "status": "delivered",
+              "note": "",
+              "changedBy": "Admin WINNOTECH",
+              "changedAt": {
+                "$date": "2026-09-03T15:50:02.142Z"
+              },
+              "_id": {
+                "$oid": "6a99972aebd16b5ac00fe1ed"
+              }
+            }
+          ],
+          "date": {
+            "$date": "2026-09-03T15:49:36.982Z"
+          },
+          "createdAt": {
+            "$date": "2026-09-03T15:49:36.982Z"
+          },
+          "updatedAt": {
+            "$date": "2026-09-03T15:50:02.143Z"
+          },
+          "__v": 3
+        }
+      ]
+    },
+    {
+      "name": "Banner",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 0,
+      "documents": []
+    },
+    {
+      "name": "Image",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 0,
+      "documents": []
+    },
+    {
+      "name": "compares",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 4,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed841"
+          },
+          "user_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bb"
+          },
+          "product_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e6"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed842"
+          },
+          "user_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bb"
+          },
+          "product_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e7"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed843"
+          },
+          "user_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bc"
+          },
+          "product_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e8"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed844"
+          },
+          "user_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bc"
+          },
+          "product_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e9"
+          },
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "favorites",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 3,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed83e"
+          },
+          "user_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bb"
+          },
+          "product_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e6"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed83f"
+          },
+          "user_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bb"
+          },
+          "product_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7e8"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed840"
+          },
+          "user_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7bc"
+          },
+          "product_id": {
+            "$oid": "6a79ded9d9c7c632c6aed7ed"
+          },
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "VariantAttribute",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 16,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed814"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed804"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e2"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed815"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed804"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e4"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed816"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed805"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e2"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed817"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed805"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e5"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed818"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed806"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e3"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed819"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed806"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e4"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed81a"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed809"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7da"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed81b"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed80a"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7db"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed81c"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed80d"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7da"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed81d"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed80d"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7dd"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed81e"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed80e"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7db"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed81f"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed80e"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7dd"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed820"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed80f"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e0"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed821"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed810"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7e1"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed822"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed812"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7da"
+          },
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed823"
+          },
+          "id_variants": {
+            "$oid": "6a79ded9d9c7c632c6aed813"
+          },
+          "id_attribute_value": {
+            "$oid": "6a79ded9d9c7c632c6aed7db"
+          },
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "buildpcs",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "count": 3,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed845"
+          },
+          "variant_id": {
+            "$oid": "6a79ded9d9c7c632c6aed804"
+          },
+          "summary_price": 45500000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a82fe858094171463366d67"
+          },
+          "summary_price": 8541000,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a8300842c12f19159aae352"
+          },
+          "summary_price": 22790500,
+          "__v": 0
+        }
+      ]
+    },
+    {
+      "name": "postcategories",
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "slug": 1
+          },
+          "name": "slug_1",
+          "unique": true
+        }
+      ],
+      "count": 4,
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed84d"
+          },
+          "name": "Hướng Dẫn Build PC",
+          "slug": "huong-dan-build-pc",
+          "image": "http://localhost:3000/public/images/posts/cat_guide.png",
+          "status": "active",
+          "parents_id": null,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed84e"
+          },
+          "name": "Kiến Thức Phần Cứng",
+          "slug": "kien-thuc-phan-cung",
+          "image": "http://localhost:3000/public/images/posts/cat_hardware.png",
+          "status": "active",
+          "parents_id": null,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed84f"
+          },
+          "name": "Tin Tức Công Nghệ",
+          "slug": "tin-tuc-cong-nghe",
+          "image": "http://localhost:3000/public/images/posts/cat_news.png",
+          "status": "active",
+          "parents_id": null,
+          "__v": 0
+        },
+        {
+          "_id": {
+            "$oid": "6a79ded9d9c7c632c6aed850"
+          },
+          "name": "Đánh Giá Linh Kiện",
+          "slug": "danh-gia-linh-kien",
+          "image": "",
+          "status": "active",
+          "parents_id": null,
+          "__v": 0
+        }
+      ]
+    }
+  ]
+}

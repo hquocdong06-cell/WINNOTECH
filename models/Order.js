@@ -3,18 +3,12 @@ const mongoose = require('mongoose');
 
 const OrderSchema = new mongoose.Schema({
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    code: { type: String, required: true, unique: true },
+    code: { type: String, required: true, unique: true, trim: true },
     status: {
         type: String,
-        // Canonical (5 bước tuần tự + 1 ngoài luồng):
-        //   pending → preparing → shipping → delivered → completed
-        //   cancelled (ngoài luồng, chỉ qua nút Hủy đơn)
-        // Legacy aliases giữ để không lỗi validate với dữ liệu cũ trong DB:
-        //   handed_over / handover / shipped / delivering → shipping
-        //   done → completed
-        //   canceled → cancelled
         enum: [
-            'pending', 'preparing', 'shipping', 'delivered', 'completed', 'cancelled',
+            'pending', 'preparing', 'shipping', 'delivered', 'completed', 'cancelled', 'refunded', 'refund',
+            'return_requested', 'return_approved', 'returning', 'return_rejected',
             // legacy (backward compat):
             'handed_over', 'handover', 'shipped', 'delivering', 'done', 'canceled'
         ],
@@ -33,17 +27,6 @@ const OrderSchema = new mongoose.Schema({
     shipping_carrier: { type: String, default: '' },
     estimated_delivery: { type: Date },
     cancel_reason: { type: String },
-    refund_info: {
-        bank_name: { type: String },
-        account_number: { type: String },
-        account_holder: { type: String },
-        refund_method: { type: String, enum: ['vnpay', 'bank_transfer', 'other'] },
-        refund_amount: { type: Number },
-        refund_transaction_code: { type: String },
-        refunded_at: { type: Date },
-        refunded_by: { type: String },
-        note: { type: String }
-    },
     return_request: {
         status: {
             type: String,
@@ -53,11 +36,6 @@ const OrderSchema = new mongoose.Schema({
         reason: { type: String },
         description: { type: String },
         images: [{ type: String }],
-        bank_info: {
-            bank_name: { type: String },
-            account_number: { type: String },
-            account_holder: { type: String }
-        },
         requested_at: { type: Date },
         resolved_at: { type: Date },
         rejected_reason: { type: String },

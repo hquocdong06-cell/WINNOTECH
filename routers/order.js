@@ -149,6 +149,27 @@ router.get('/vnpay_return', async function (req, res, next) {
                 order.status = "pending";
                 order.payment_method = new mongoose.Types.ObjectId("6a3ea04fd27f601bd29ea06a");
 
+                // TRỪ SỐ DƯ DB CỦA NGƯỜI DÙNG KHI THANH TOÁN THÀNH CÔNG:
+                order.statusHistory = order.statusHistory || [];
+                const alreadyDeducted = order.statusHistory.some(h => h.note && h.note.includes(':DEDUCTED]'));
+                const pendingBalanceEntry = order.statusHistory.find(h => h.note && h.note.includes('[BALANCE_USE:') && h.note.includes(':PENDING]'));
+
+                if (!alreadyDeducted && pendingBalanceEntry && order.user_id) {
+                    const match = pendingBalanceEntry.note.match(/\[BALANCE_USE:(\d+):PENDING\]/);
+                    const balanceToDeduct = match ? parseInt(match[1], 10) : 0;
+                    if (balanceToDeduct > 0) {
+                        await UserModel.findByIdAndUpdate(order.user_id, {
+                            $inc: { money: -balanceToDeduct }
+                        });
+                        order.statusHistory.push({
+                            status: order.status,
+                            note: `[BALANCE_USE:${balanceToDeduct}:DEDUCTED] Thanh toán VNPay thành công. Đã trừ ${balanceToDeduct.toLocaleString('vi-VN')}₫ từ số dư tài khoản DB.`,
+                            changedBy: 'Hệ thống',
+                            changedAt: new Date()
+                        });
+                    }
+                }
+
                 const orderItems = await OrderItem.find({ order_id: order._id });
                 for (let item of orderItems) {
                     const variantId = item.variants_id || item.variant_id;
