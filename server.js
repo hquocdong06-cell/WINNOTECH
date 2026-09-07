@@ -5466,9 +5466,9 @@ async function incrementProductSalesForOrder(orderId) {
 // PUT /admin/orders/:id/status — Cập nhật trạng thái + ghi statusHistory + logic tự động hoàn thành
 app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { status, note, payment_status } = req.body;
-    if (!status && !payment_status) {
-      return res.status(400).json({ success: false, message: "Thiếu trạng thái status hoặc payment_status" });
+    const { status, note, payment_status, tracking_code, shipping_carrier, estimated_delivery } = req.body;
+    if (!status && !payment_status && tracking_code === undefined && shipping_carrier === undefined && estimated_delivery === undefined) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin cập nhật" });
     }
 
     const order = await Order.findById(req.params.id);
@@ -5506,6 +5506,24 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
     const currentStatus = normalizeStatus(order.status);
     const wasCompleted = currentStatus === 'completed';
     let paymentChanged = false;
+    let shippingChanged = false;
+
+    // Xử lý cập nhật thông tin vận chuyển nếu có truyền lên
+    if (shipping_carrier !== undefined && shipping_carrier !== null) {
+      order.shipping_carrier = String(shipping_carrier).trim();
+      shippingChanged = true;
+    }
+    if (tracking_code !== undefined && tracking_code !== null) {
+      order.tracking_code = String(tracking_code).trim();
+      shippingChanged = true;
+    }
+    if (estimated_delivery !== undefined && estimated_delivery !== null && estimated_delivery !== '') {
+      const d = new Date(estimated_delivery);
+      if (!isNaN(d.getTime())) {
+        order.estimated_delivery = d;
+        shippingChanged = true;
+      }
+    }
 
     const PAYMENT_STATUS_LABELS_VI = {
       unpaid: 'Chưa thanh toán',
@@ -5531,10 +5549,19 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
 
     // Nếu không thay đổi status hoặc status trùng hiện tại
     if (!status || currentStatus === status) {
-      if (!paymentChanged) {
+      if (!paymentChanged && !shippingChanged) {
         return res.status(400).json({
           success: false,
           message: `Đơn hàng đã ở trạng thái "${STATUS_LABELS_VI[currentStatus] || currentStatus}".`
+        });
+      }
+
+      if (shippingChanged && !paymentChanged && (!status || currentStatus === status)) {
+        order.statusHistory.push({
+          status: order.status,
+          note: `[Vận chuyển] Cập nhật: ${order.shipping_carrier || 'ĐVVC'} - Vận đơn: ${order.tracking_code || 'Chưa có'}${note ? ' (' + note + ')' : ''}`,
+          changedBy: adminName,
+          changedAt: new Date()
         });
       }
 
@@ -5554,9 +5581,13 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
         await incrementProductSalesForOrder(order._id);
       }
 
+      let msg = 'Cập nhật đơn hàng thành công';
+      if (shippingChanged) msg = 'Đã cập nhật thông tin vận chuyển';
+      if (paymentChanged) msg = `Cập nhật trạng thái thanh toán thành công${order.status === 'completed' ? ' — Đơn hàng đã tự động chuyển sang Hoàn thành' : ''}`;
+
       return res.json({
         success: true,
-        message: `Cập nhật trạng thái thanh toán thành công${order.status === 'completed' ? ' — Đơn hàng đã tự động chuyển sang Hoàn thành' : ''}`,
+        message: msg,
         data: order
       });
     }
@@ -5581,10 +5612,33 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
       });
     }
 
+    // Khi chuyển sang 'shipping': Đảm bảo luôn có ĐVVC, mã vận đơn và ngày dự kiến giao
+    let shippingNoteSuffix = '';
+    if (status === 'shipping') {
+      if (!order.shipping_carrier) {
+        order.shipping_carrier = 'Giao Hàng Nhanh (GHN)';
+      }
+      if (!order.tracking_code) {
+        const cleanCode = (order.code || order._id.toString().slice(-8)).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        order.tracking_code = `GHN${cleanCode}`;
+      }
+      if (!order.estimated_delivery) {
+        const est = new Date();
+        est.setDate(est.getDate() + 3);
+        order.estimated_delivery = est;
+      }
+      const estStr = order.estimated_delivery.toLocaleDateString('vi-VN');
+      shippingNoteSuffix = ` (ĐVVC: ${order.shipping_carrier} | Vận đơn: ${order.tracking_code} | Dự kiến giao: ${estStr})`;
+    }
+
+    if (status === 'delivered' && !order.delivered_at) {
+      order.delivered_at = new Date();
+    }
+
     order.status = status;
     order.statusHistory.push({
       status,
-      note: note || '',
+      note: (note ? note : `Chuyển trạng thái sang ${STATUS_LABELS_VI[status] || status}`) + shippingNoteSuffix,
       changedBy: adminName,
       changedAt: new Date()
     });
@@ -5607,7 +5661,9 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
     }
 
     let msg = "Cập nhật trạng thái đơn hàng thành công";
-    if (paymentChanged) {
+    if (status === 'shipping') {
+      msg = `Đơn hàng đã bàn giao vận chuyển (${order.shipping_carrier}) - Mã vận đơn: ${order.tracking_code}`;
+    } else if (paymentChanged) {
       msg = `Cập nhật trạng thái (${STATUS_LABELS_VI[status] || status}) và thanh toán (${order.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}) thành công`;
     }
     return res.json({ success: true, message: msg, data: order });

@@ -3,7 +3,8 @@ import {
   Search, Eye, Edit, RefreshCw, FileText, Trash2, X, MessageSquare, Send, 
   Clock, CheckCircle2, Package, MapPin, CreditCard, User, Phone, Mail, 
   ChevronDown, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  RotateCcw, DollarSign, AlertCircle, Image as ImageIcon, ExternalLink, ArrowRight
+  RotateCcw, DollarSign, AlertCircle, Image as ImageIcon, ExternalLink, ArrowRight,
+  Truck, Sparkles
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { 
@@ -128,9 +129,28 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
   const [paymentNote, setPaymentNote] = useState('');
   const [updatingPayment, setUpdatingPayment] = useState(false);
 
+  // Shipping info update
+  const [shippingCarrier, setShippingCarrier] = useState('Giao Hàng Nhanh (GHN)');
+  const [trackingCodeInput, setTrackingCodeInput] = useState('');
+  const [estimatedDeliveryInput, setEstimatedDeliveryInput] = useState('');
+
   // Admin note
   const [noteInput, setNoteInput] = useState('');
   const [addingNote, setAddingNote] = useState(false);
+
+  const handleAutoGenerateTracking = () => {
+    let prefix = 'GHN';
+    if (shippingCarrier.includes('GHTK') || shippingCarrier.includes('Tiết Kiệm')) prefix = 'GHTK';
+    else if (shippingCarrier.includes('Viettel')) prefix = 'VTP';
+    else if (shippingCarrier.includes('Shopee')) prefix = 'SPX';
+    else if (shippingCarrier.includes('Hỏa')) prefix = 'EXP';
+
+    const orderSuffix = (order?.code || (order?._id ? String(order._id).slice(-6) : '') || Math.random().toString(36).substring(2, 8)).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    const code = `${prefix}${orderSuffix}${randomDigits}`;
+    setTrackingCodeInput(code);
+    toast.info(`Đã tạo mã vận đơn mẫu: ${code}`);
+  };
 
   const load = useCallback(async () => {
     if (!orderId) return;
@@ -147,6 +167,20 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
         setEditPaymentStatus(ordData.payment_status || 'unpaid');
         setStatusNote('');
         setPaymentNote('');
+
+        setShippingCarrier(ordData.shipping_carrier || 'Giao Hàng Nhanh (GHN)');
+        setTrackingCodeInput(ordData.tracking_code || '');
+        if (ordData.estimated_delivery) {
+          try {
+            setEstimatedDeliveryInput(new Date(ordData.estimated_delivery).toISOString().split('T')[0]);
+          } catch {
+            setEstimatedDeliveryInput('');
+          }
+        } else {
+          const d = new Date();
+          d.setDate(d.getDate() + 3);
+          setEstimatedDeliveryInput(d.toISOString().split('T')[0]);
+        }
       }
     } catch (e) {
       toast.error('Không thể tải chi tiết đơn hàng');
@@ -162,7 +196,13 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
   const handleUpdateStatus = async () => {
     setUpdatingStatus(true);
     try {
-      const res = await updateAdminOrderStatus(orderId, editStatus, statusNote);
+      const shippingData = {};
+      if (editStatus === 'shipping' || trackingCodeInput || shippingCarrier || estimatedDeliveryInput) {
+        if (shippingCarrier) shippingData.shipping_carrier = shippingCarrier;
+        if (trackingCodeInput) shippingData.tracking_code = trackingCodeInput;
+        if (estimatedDeliveryInput) shippingData.estimated_delivery = estimatedDeliveryInput;
+      }
+      const res = await updateAdminOrderStatus(orderId, editStatus, statusNote, undefined, shippingData);
       const msg = res?.message || 'Đã cập nhật trạng thái!';
       toast.success(msg);
       setStatusNote('');
@@ -363,8 +403,20 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
                           </span>
                         </div>
                         <div className="flex justify-between">
+                          <span className="text-gray-500">Đơn vị VC</span>
+                          <span className="text-white font-medium">{order.shipping_carrier || 'Chưa bàn giao'}</span>
+                        </div>
+                        <div className="flex justify-between">
                           <span className="text-gray-500">Mã vận đơn</span>
-                          <span className="text-white font-mono">{order.tracking_code || '—'}</span>
+                          <span className="text-[#d4ff00] font-mono font-bold">{order.tracking_code || '—'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Dự kiến giao</span>
+                          <span className="text-white">
+                            {order.estimated_delivery
+                              ? fmtDate(order.estimated_delivery)
+                              : (['pending', 'preparing'].includes(order.status) ? 'Ước tính 2 - 4 ngày' : '—')}
+                          </span>
                         </div>
                         {order.cancel_reason && (
                           <div className="pt-2 border-t border-[#222234]">
@@ -614,6 +666,76 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
                               </div>
                             )}
 
+                            {/* Khối nhập thông tin vận chuyển khi chuyển sang 'shipping' hoặc đang ở 'shipping' */}
+                            {(editStatus === 'shipping' || currStatus === 'shipping') && !isFinalState && (
+                              <div className="p-3.5 bg-[#171726] border border-[#d4ff00]/30 rounded-xl space-y-3">
+                                <div className="text-xs font-semibold text-[#d4ff00] uppercase tracking-wider flex items-center gap-1.5">
+                                  <Truck className="w-3.5 h-3.5" /> Thông tin Vận chuyển & Giao hàng
+                                </div>
+
+                                {/* Đơn vị vận chuyển */}
+                                <div>
+                                  <label className="block text-xs text-gray-400 mb-1 font-medium">Đơn vị vận chuyển (ĐVVC):</label>
+                                  <select
+                                    value={shippingCarrier}
+                                    onChange={e => setShippingCarrier(e.target.value)}
+                                    className="w-full bg-[#11111a] border border-[#2a2a3d] text-white rounded-lg px-3 py-2 text-xs outline-none focus:border-[#d4ff00]"
+                                  >
+                                    <option value="Giao Hàng Nhanh (GHN)">Giao Hàng Nhanh (GHN)</option>
+                                    <option value="Giao Hàng Tiết Kiệm (GHTK)">Giao Hàng Tiết Kiệm (GHTK)</option>
+                                    <option value="Viettel Post">Viettel Post</option>
+                                    <option value="Shopee Xpress (SPX)">Shopee Xpress (SPX)</option>
+                                    <option value="Hỏa tốc (Grab / AhaMove)">Hỏa tốc (Grab / AhaMove)</option>
+                                  </select>
+                                </div>
+
+                                {/* Mã vận đơn */}
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <label className="text-xs text-gray-400 font-medium">Mã vận đơn:</label>
+                                    <button
+                                      type="button"
+                                      onClick={handleAutoGenerateTracking}
+                                      className="text-[11px] text-[#d4ff00] hover:underline flex items-center gap-1 font-semibold"
+                                    >
+                                      <Sparkles className="w-3 h-3" /> Tự tạo mã mẫu
+                                    </button>
+                                  </div>
+                                  <input
+                                    type="text"
+                                    value={trackingCodeInput}
+                                    onChange={e => setTrackingCodeInput(e.target.value)}
+                                    placeholder="VD: GHN94101551 (để trống sẽ tự sinh mã)"
+                                    className="w-full bg-[#11111a] border border-[#2a2a3d] text-white font-mono rounded-lg px-3 py-2 text-xs outline-none focus:border-[#d4ff00] placeholder-gray-600"
+                                  />
+                                </div>
+
+                                {/* Ngày dự kiến giao */}
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <label className="text-xs text-gray-400 font-medium">Ngày dự kiến giao:</label>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const d = new Date();
+                                        d.setDate(d.getDate() + 3);
+                                        setEstimatedDeliveryInput(d.toISOString().split('T')[0]);
+                                      }}
+                                      className="text-[11px] text-[#d4ff00]/80 hover:text-[#d4ff00]"
+                                    >
+                                      +3 ngày tới
+                                    </button>
+                                  </div>
+                                  <input
+                                    type="date"
+                                    value={estimatedDeliveryInput}
+                                    onChange={e => setEstimatedDeliveryInput(e.target.value)}
+                                    className="w-full bg-[#11111a] border border-[#2a2a3d] text-white rounded-lg px-3 py-2 text-xs outline-none focus:border-[#d4ff00]"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
                             <div>
                               <label className="block text-xs text-gray-500 mb-1.5">Ghi chú (hiển thị trong lịch sử)</label>
                               <input
@@ -626,13 +748,28 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
                               />
                             </div>
 
-                            <button
-                              onClick={handleUpdateStatus}
-                              disabled={updatingStatus || isFinalState || editStatus === currStatus || !(ORDER_TRANSITIONS[currStatus] || []).includes(editStatus)}
-                              className="w-full py-2.5 bg-[#d4ff00] hover:bg-[#bce600] disabled:bg-gray-800 disabled:text-gray-500 text-black font-bold rounded-xl text-sm transition-colors"
-                            >
-                              {updatingStatus ? 'Đang lưu...' : isFinalState ? 'Trạng thái kết thúc' : editStatus === currStatus ? 'Chọn trạng thái tiếp theo để cập nhật' : 'Lưu thay đổi trạng thái'}
-                            </button>
+                            {(() => {
+                              const isShippingInfoChanged = (
+                                trackingCodeInput !== (order.tracking_code || '') ||
+                                shippingCarrier !== (order.shipping_carrier || 'Giao Hàng Nhanh (GHN)') ||
+                                estimatedDeliveryInput !== (order.estimated_delivery ? new Date(order.estimated_delivery).toISOString().split('T')[0] : '')
+                              );
+                              const isStatusValidChange = (editStatus !== currStatus && allowedNext.includes(editStatus));
+                              const canSave = !isFinalState && (isStatusValidChange || isShippingInfoChanged);
+
+                              return (
+                                <button
+                                  onClick={handleUpdateStatus}
+                                  disabled={updatingStatus || !canSave}
+                                  className="w-full py-2.5 bg-[#d4ff00] hover:bg-[#bce600] disabled:bg-gray-800 disabled:text-gray-500 text-black font-bold rounded-xl text-sm transition-colors"
+                                >
+                                  {updatingStatus ? 'Đang lưu...' : 
+                                   isFinalState ? 'Trạng thái kết thúc' : 
+                                   isStatusValidChange ? 'Lưu thay đổi trạng thái' : 
+                                   isShippingInfoChanged ? 'Lưu thông tin vận chuyển' : 'Chọn trạng thái tiếp theo để cập nhật'}
+                                </button>
+                              );
+                            })()}
                           </div>
                         </>
                       );

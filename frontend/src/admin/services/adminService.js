@@ -337,8 +337,8 @@ export async function fetchAdminOrderDetail(id) {
   return apiFetch(`/admin/orders/${id}`);
 }
 
-export async function updateAdminOrderStatus(id, status, note = '', payment_status = undefined) {
-  const body = { status, note };
+export async function updateAdminOrderStatus(id, status, note = '', payment_status = undefined, shippingData = {}) {
+  const body = { status, note, ...shippingData };
   if (payment_status !== undefined) {
     body.payment_status = payment_status;
   }
