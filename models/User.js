@@ -7,6 +7,7 @@ const UserSchema = new mongoose.Schema({
     phone: { type: String },
     role: { type: String, default: 'user' },
     status: { type: String, default: 'active' },
+    money: { type: Number, default: 0, min: 0 },
     resetPasswordOTP: { type: String, default: null },
     resetPasswordExpires: { type: Date, default: null },
     avatar: { type: String },
