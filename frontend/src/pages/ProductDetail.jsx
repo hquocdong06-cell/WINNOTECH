@@ -1975,7 +1975,7 @@ export default function ProductDetail() {
               <div className="product-grid">
                 {/* LEFT: IMAGE GALLERY */}
                 <div className="product-gallery">
-                  <div className="gallery-main" style={{ background: 'var(--dark2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div className="gallery-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', overflow: 'hidden' }}>
                     <img src={images[selectedImage]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </div>
                   {images.length > 1 && (
@@ -1985,7 +1985,7 @@ export default function ProductDetail() {
                           key={idx}
                           className={`gallery-thumb ${selectedImage === idx ? 'active' : ''}`}
                           onClick={() => setSelectedImage(idx)}
-                          style={{ background: 'var(--dark2)', borderRadius: '4px', overflow: 'hidden', border: selectedImage === idx ? '1px solid var(--accent-color)' : '1px solid transparent' }}
+                          style={{ borderRadius: '4px', overflow: 'hidden' }}
                         >
                           <img src={img} alt={`Thumbnail ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         </button>
