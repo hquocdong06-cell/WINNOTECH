@@ -159,7 +159,6 @@ async function seedSalesData() {
         update: {
           $set: {
             sold_count: sold,
-            sold_quantity: sold,
           }
         }
       }

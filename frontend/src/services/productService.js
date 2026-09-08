@@ -126,6 +126,48 @@ const productService = {
         } catch (error) {
             console.error(`Error deleting product ${productId}:`, error);
             throw error;
+    },
+
+    // ── 3 API phục vụ cho 3 section trang chủ (Xem tất cả) ──
+    // 1. Sản phẩm bán chạy nhất (sold_count giảm dần)
+    getBestSellers: async (params = {}) => {
+        try {
+            const query = new URLSearchParams(params).toString();
+            const url = `${API_BASE}/api/products/best-sellers${query ? `?${query}` : ''}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch best sellers');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching best sellers:', error);
+            throw error;
+        }
+    },
+
+    // 2. Sản phẩm mới nhất (createdAt giảm dần)
+    getNewest: async (params = {}) => {
+        try {
+            const query = new URLSearchParams(params).toString();
+            const url = `${API_BASE}/api/products/newest${query ? `?${query}` : ''}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch newest products');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching newest products:', error);
+            throw error;
+        }
+    },
+
+    // 3. Sản phẩm giảm giá (sale giảm dần như ảnh 1)
+    getOnSale: async (params = {}) => {
+        try {
+            const query = new URLSearchParams(params).toString();
+            const url = `${API_BASE}/api/products/on-sale${query ? `?${query}` : ''}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch on-sale products');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching on-sale products:', error);
+            throw error;
         }
     }
 };

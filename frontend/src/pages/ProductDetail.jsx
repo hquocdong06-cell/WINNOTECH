@@ -2013,7 +2013,7 @@ export default function ProductDetail() {
                       </div>
                       <span style={{ color: '#333' }}>|</span>
                       <span style={{ color: '#ffb703', fontWeight: 600 }}>
-                        Đã bán: {product.sold_count ?? product.sold_quantity ?? 0}
+                        Đã bán: {product.sold_count ?? 0}
                       </span>
                       <span style={{ color: '#333' }}>|</span>
                       <span className="status-badge" style={{ 

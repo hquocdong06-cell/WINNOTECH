@@ -57,7 +57,7 @@ export default function ProductCard({ product, onAddToCart, favoriteIds, onToggl
 
   const isOutOfStock = defaultVariant && defaultVariant.stock_quantity !== undefined ? defaultVariant.stock_quantity <= 0 : false
   const isFav = favoriteIds?.has(product._id)
-  const soldCount = product.sold_count ?? product.sold_quantity ?? product.buyturn ?? 0
+  const soldCount = product.sold_count ?? product.buyturn ?? 0
 
   const handleCartClick = (e) => {
     e.preventDefault()

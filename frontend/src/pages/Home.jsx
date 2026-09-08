@@ -471,7 +471,7 @@ export default function Home() {
         const saleIds = new Set(saleList.map(p => String(p._id)))
 
         // 2. BÁN CHẠY / FEATURED — sản phẩm có lượt bán cao nhất từ lớn đến nhỏ
-        const getSold = (p) => Number(p.sold_count ?? p.sold_quantity ?? p.buyturn ?? 0)
+        const getSold = (p) => Number(p.sold_count ?? p.buyturn ?? 0)
         const featuredList = [...all]
           .sort((a, b) => getSold(b) - getSold(a) || (b.sale || 0) - (a.sale || 0))
 
@@ -725,7 +725,7 @@ export default function Home() {
         titleLine1="TOP SẢN PHẨM"
         titleLine2="ĐANG BÁN CHẠY"
         viewAllText="XEM TẤT CẢ TOP SẢN PHẨM →"
-        viewAllHref="/shop"
+        viewAllHref="/products?sort=popular"
         favoriteIds={favoriteIds}
         onToggleFavorite={toggleFavorite}
         onAddToCart={handleQuickAddToCart}
@@ -741,7 +741,7 @@ export default function Home() {
         titleLine1="HÀNG MỚI VỀ"
         titleLine2="ĐÓN ĐẦU CÔNG NGHỆ MỚI"
         viewAllText="XEM TẤT CẢ SẢN PHẨM →"
-        viewAllHref="/shop"
+        viewAllHref="/products?sort=newest"
         favoriteIds={favoriteIds}
         onToggleFavorite={toggleFavorite}
         onAddToCart={handleQuickAddToCart}
@@ -757,7 +757,7 @@ export default function Home() {
         titleLine1="SẢN PHẨM GIẢM GIÁ"
         titleLine2="SĂN DEAL HỜI CỰC KHỦNG"
         viewAllText="XEM TẤT CẢ KHUYẾN MÃI →"
-        viewAllHref="/shop"
+        viewAllHref="/products?sort=discount"
         className="products-section-sale"
         favoriteIds={favoriteIds}
         onToggleFavorite={toggleFavorite}

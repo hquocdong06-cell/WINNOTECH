@@ -1002,11 +1002,10 @@ app.get("/products", async (req, res, next) => {
     }));
 
     const finalProducts = products.map((product) => {
-      const sold = product.sold_count ?? product.sold_quantity ?? 0;
+      const sold = product.sold_count ?? 0;
       return {
         ...product,
         sold_count: sold,
-        sold_quantity: sold,
         AnhSP: images.filter(
           (img) => img.p_id.toString() === product._id.toString(),
         ),
@@ -1085,11 +1084,10 @@ app.get("/products/home/newest", async (req, res) => {
 
     const finalProducts = newestProducts.map((product) => {
       const pIdStr = product._id.toString();
-      const soldCount = product.sold_count || product.sold_quantity || productSalesMapNewest[pIdStr] || product.buyturn || 0;
+      const soldCount = product.sold_count || productSalesMapNewest[pIdStr] || product.buyturn || 0;
       return {
         ...product,
         sold_count: soldCount,
-        sold_quantity: soldCount,
         AnhSP: images.filter(
           (img) => img.p_id.toString() === pIdStr,
         ),
@@ -1153,11 +1151,10 @@ app.get("/products/home/featured", async (req, res) => {
 
     const finalProducts = featuredProducts.map((product) => {
       const pIdStr = product._id.toString();
-      const soldCount = product.sold_count || product.sold_quantity || productSalesMapFeatured[pIdStr] || product.buyturn || 0;
+      const soldCount = product.sold_count || productSalesMapFeatured[pIdStr] || product.buyturn || 0;
       return {
         ...product,
         sold_count: soldCount,
-        sold_quantity: soldCount,
         AnhSP: images.filter(
           (img) => img.p_id.toString() === pIdStr,
         ),
@@ -1263,7 +1260,7 @@ app.get(["/products/home/flash-sale", "/api/products/flash-sale"], async (req, r
 
       const productsWithSales = products.map((p) => {
         const pIdStr = p._id.toString();
-        const soldCount = productSalesMap[pIdStr] || p.sold_quantity || p.buyturn || 0;
+        const soldCount = productSalesMap[pIdStr] || p.sold_count || p.buyturn || 0;
         return {
           ...p,
           sold_count: soldCount,
@@ -1275,7 +1272,7 @@ app.get(["/products/home/flash-sale", "/api/products/flash-sale"], async (req, r
     } else {
       selectedProducts = selectedProducts.map(p => ({
         ...p,
-        sold_count: p.sold_quantity || p.buyturn || 0
+        sold_count: p.sold_count || p.buyturn || 0
       }));
     }
 
@@ -1780,6 +1777,167 @@ app.get("/products/home/Sale", async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Lỗi Server, không thể lấy danh sách sản phẩm đang giảm giá",
+    });
+  }
+});
+
+// ============================================================
+// Helper: Gắn hình ảnh (AnhSP) và biến thể (Variants) kèm thuộc tính cho danh sách sản phẩm
+// ============================================================
+async function attachProductDetails(products) {
+  if (!products || products.length === 0) return [];
+  const productIds = products.map((p) => p._id);
+
+  const variants = await ProductVariantModel.find({
+    p_id: { $in: productIds },
+  }).lean();
+  const images = await ImageModel.find({ p_id: { $in: productIds } }).lean();
+
+  const variantIds = variants.map((v) => v._id);
+  const variantAttrMap = await getVariantAttributeMap(variantIds);
+
+  const variantsWithAttributes = variants.map((variant) => ({
+    ...variant,
+    Attributes: variantAttrMap[variant._id.toString()] || [],
+  }));
+
+  return products.map((product) => {
+    const pIdStr = product._id.toString();
+    const sold = product.sold_count ?? 0;
+    return {
+      ...product,
+      sold_count: sold,
+      AnhSP: images.filter((img) => img.p_id.toString() === pIdStr),
+      Variants: variantsWithAttributes.filter(
+        (v) => v.p_id.toString() === pIdStr,
+      ),
+    };
+  });
+}
+
+// ============================================================
+// 3 API GET DATA CHO NÚT "XEM TẤT CẢ" Ở 3 SECTION TRANG CHỦ:
+// 1. /api/products/best-sellers -> Sắp xếp theo lượt bán (sold_count) giảm dần
+// 2. /api/products/newest       -> Sắp xếp theo ngày tạo (createdAt) giảm dần
+// 3. /api/products/on-sale      -> Sắp xếp theo mức giảm giá (sale) giảm dần (ví dụ: -15%)
+// ============================================================
+
+// API 1: Lấy danh sách sản phẩm bán chạy nhất (sold_count giảm dần)
+app.get(["/api/products/best-sellers", "/products/best-sellers", "/api/products/top-selling"], async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 0;
+    const page = parseInt(req.query.page) || 1;
+
+    let query = ProductModel.find({
+      status: { $nin: ["hidden", "inactive", "draft"] },
+    })
+      .sort({ sold_count: -1, createdAt: -1 })
+      .populate("cat_id brand_id")
+      .lean();
+
+    if (limit > 0) {
+      query = query.skip((page - 1) * limit).limit(limit);
+    }
+
+    const products = await query;
+    const finalProducts = await attachProductDetails(products);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lấy danh sách sản phẩm bán chạy thành công",
+      total: finalProducts.length,
+      data: finalProducts,
+    });
+  } catch (error) {
+    console.error("Lỗi API get best-sellers:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server, không thể lấy danh sách sản phẩm bán chạy",
+    });
+  }
+});
+
+// API 2: Lấy danh sách sản phẩm mới nhất (createdAt giảm dần)
+app.get(["/api/products/newest", "/products/newest", "/api/products/new-arrivals"], async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 0;
+    const page = parseInt(req.query.page) || 1;
+
+    let query = ProductModel.find({
+      status: { $nin: ["hidden", "inactive", "draft"] },
+    })
+      .sort({ createdAt: -1 })
+      .populate("cat_id brand_id")
+      .lean();
+
+    if (limit > 0) {
+      query = query.skip((page - 1) * limit).limit(limit);
+    }
+
+    const products = await query;
+    const finalProducts = await attachProductDetails(products);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lấy danh sách sản phẩm mới nhất thành công",
+      total: finalProducts.length,
+      data: finalProducts,
+    });
+  } catch (error) {
+    console.error("Lỗi API get newest:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server, không thể lấy danh sách sản phẩm mới nhất",
+    });
+  }
+});
+
+// API 3: Lấy danh sách sản phẩm giảm giá (sale giảm dần như ảnh 1: -15%)
+app.get(["/api/products/on-sale", "/products/on-sale", "/api/products/discounted"], async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 0;
+    const page = parseInt(req.query.page) || 1;
+    const onlySale = req.query.onlySale !== "false";
+
+    const filter = {
+      status: { $nin: ["hidden", "inactive", "draft"] },
+    };
+    if (onlySale) {
+      filter.sale = { $gt: 0 };
+    }
+
+    let query = ProductModel.find(filter)
+      .sort({ sale: -1, createdAt: -1 })
+      .populate("cat_id brand_id")
+      .lean();
+
+    if (limit > 0) {
+      query = query.skip((page - 1) * limit).limit(limit);
+    }
+
+    let products = await query;
+    if (products.length === 0 && onlySale) {
+      products = await ProductModel.find({
+        status: { $nin: ["hidden", "inactive", "draft"] },
+      })
+        .sort({ sale: -1, createdAt: -1 })
+        .populate("cat_id brand_id")
+        .lean();
+    }
+
+    const finalProducts = await attachProductDetails(products);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lấy danh sách sản phẩm giảm giá thành công",
+      total: finalProducts.length,
+      data: finalProducts,
+    });
+  } catch (error) {
+    console.error("Lỗi API get on-sale:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server, không thể lấy danh sách sản phẩm giảm giá",
     });
   }
 });
@@ -4765,14 +4923,14 @@ app.get("/admin/products", checklogin, checkAdmin, async (req, res) => {
       const validSaleVariants = validVariants.filter(v => Number(v.sale_price) > 0 && Number(v.sale_price) < Number(v.price));
       const minSalePrice = validSaleVariants.length > 0 ? Math.min(...validSaleVariants.map(v => Number(v.sale_price))) : 0;
       const totalStock = pVariants.reduce((sum, v) => sum + (Number(v.stock_quantity) || 0), 0);
-      const soldQty = productSalesMap[pidStr] || p.sold_quantity || p.buyturn || 0;
+      const soldQty = productSalesMap[pidStr] || p.sold_count || p.buyturn || 0;
 
       return {
         ...p,
         price: minPrice,
         sale_price: minSalePrice,
         stock: totalStock,
-        sold_quantity: soldQty,
+        sold_count: soldQty,
         Variants: pVariants,
         AnhSP: pImages,
       };
@@ -5582,7 +5740,7 @@ app.get("/admin/orders/:id", checklogin, checkAdmin, async (req, res) => {
   }
 });
 
-// Helper: Tự động cộng sold_count, sold_quantity & buyturn khi đơn hàng chuyển sang 'completed'
+// Helper: Tự động cộng sold_count & buyturn khi đơn hàng chuyển sang 'completed'
 async function incrementProductSalesForOrder(orderId) {
   try {
     const orderItems = await OrderItem.find({ order_id: orderId }).lean();
@@ -5595,8 +5753,7 @@ async function incrementProductSalesForOrder(orderId) {
         const qty = item.Quantity || item.quantity || 1;
         await ProductModel.findByIdAndUpdate(productId, {
           $inc: {
-            sold_count: 1,
-            sold_quantity: qty,
+            sold_count: qty,
             buyturn: 1
           }
         });
@@ -9445,8 +9602,13 @@ app.use("/api/api/chatbot", getAiChatbotRouter);
 app.use("/chatbot", getAiChatbotRouter);
 app.use("/api/chat", getAiChatbotRouter);
 
-app.listen(port, () => {
-  console.log(`Server started on port ${port}`);
-  fixCartItemsInDB();
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server started on port ${port}`);
+    fixCartItemsInDB();
+  });
+}
+
+module.exports = app;
+
 

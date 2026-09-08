@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { addToCart } from '../redux/cartSlice'
 import { toast } from 'react-toastify'
@@ -344,12 +344,22 @@ export default function CategoryPage({ slug: propSlug, title: propTitle }) {
   const { isLoggedIn } = useAuth()
   const mainRef = useRef(null)
 
+  const [searchParams] = useSearchParams()
+  const initialSort = searchParams.get('sort') || 'popular'
   const [products, setProducts] = useState([])
   const [categoryName, setCategoryName] = useState(propTitle || 'Tất cả sản phẩm')
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [addedCartIds, setAddedCartIds] = useState(new Set())
-  const [sortBy, setSortBy] = useState('popular')
+  const [sortBy, setSortBy] = useState(initialSort)
+
+  useEffect(() => {
+    const s = searchParams.get('sort')
+    if (s) {
+      setSortBy(s)
+      setCurrentPage(1)
+    }
+  }, [searchParams])
 
   // Bộ lọc
   const [selectedBrands, setSelectedBrands] = useState([])
@@ -553,6 +563,8 @@ export default function CategoryPage({ slug: propSlug, title: propTitle }) {
       list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     } else if (sortBy === 'discount') {
       list.sort((a, b) => (b.sale || 0) - (a.sale || 0))
+    } else if (sortBy === 'popular') {
+      list.sort((a, b) => (b.sold_count ?? b.buyturn ?? 0) - (a.sold_count ?? a.buyturn ?? 0))
     }
     return list
   }, [filteredProducts, sortBy])

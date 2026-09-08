@@ -28,7 +28,7 @@ const Reports = () => {
       setLowStockProducts(lowStock);
 
       // Best Sellers
-      const sorted = [...products].sort((a, b) => (b.sold_quantity || b.buyturn || 0) - (a.sold_quantity || a.buyturn || 0));
+      const sorted = [...products].sort((a, b) => (b.sold_count || b.buyturn || 0) - (a.sold_count || a.buyturn || 0));
       setBestSellers(sorted.slice(0, 5));
 
     } catch (err) {
@@ -215,7 +215,7 @@ const Reports = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-gray-400">Đã bán</div>
-                  <div className="font-bold text-white text-sm">{p.sold_quantity || p.buyturn || 0} cái</div>
+                  <div className="font-bold text-white text-sm">{p.sold_count || p.buyturn || 0} cái</div>
                 </div>
               </div>
             ))}
