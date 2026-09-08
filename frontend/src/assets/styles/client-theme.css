@@ -744,6 +744,59 @@ html.light-mode .ai-chat-input {
 }
 
 /* ═════════════════════════════════════════════════════════════
+   8.5. PRODUCT DETAIL PAGE LIGHT MODE (FIX VIỀN ĐEN & MÀU TỐI)
+   ═════════════════════════════════════════════════════════════ */
+html.light .gallery-main,
+html.light-mode .gallery-main,
+[data-theme="light"] .gallery-main {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light .gallery-main:hover,
+html.light-mode .gallery-main:hover,
+[data-theme="light"] .gallery-main:hover {
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light .gallery-thumb,
+html.light-mode .gallery-thumb,
+[data-theme="light"] .gallery-thumb {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html.light .gallery-thumb.active,
+html.light-mode .gallery-thumb.active,
+html.light .gallery-thumb:hover,
+html.light-mode .gallery-thumb:hover,
+[data-theme="light"] .gallery-thumb.active,
+[data-theme="light"] .gallery-thumb:hover {
+  border: 2px solid #16a34a !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 12px rgba(22, 163, 74, 0.25) !important;
+}
+
+html.light .specs-table,
+html.light-mode .specs-table,
+[data-theme="light"] .specs-table {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+html.light .attribute-groups-container button,
+html.light-mode .attribute-groups-container button,
+[data-theme="light"] .attribute-groups-container button {
+  border-color: #cbd5e1 !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* ═════════════════════════════════════════════════════════════
    9. HIỆU ỨNG CHUYỂN ĐỔI MƯỢT MÀ (SMOOTH TRANSITIONS)
    ═════════════════════════════════════════════════════════════ */
 body,
@@ -757,3 +810,4 @@ footer,
 .newsletter-section {
   transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
+

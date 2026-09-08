@@ -944,21 +944,25 @@
 
 /* ── WHITE-GRAY BORDER STYLES FOR PRODUCT DETAIL ── */
 
-/* Active & Hover Gallery Thumbnails */
-.gallery-thumb.active,
-.gallery-thumb:hover {
+/* Active & Hover Gallery Thumbnails (Dark Mode) */
+[data-theme="dark"] .gallery-thumb.active,
+[data-theme="dark"] .gallery-thumb:hover,
+html:not([data-theme="light"]) .gallery-thumb.active,
+html:not([data-theme="light"]) .gallery-thumb:hover {
   position: relative !important;
   border: 2px solid #e4e4e7 !important;
   background: #0b0f19 !important;
   box-shadow: 0 0 14px rgba(255, 255, 255, 0.2) !important;
 }
 
-/* Gallery Main Image Hover */
-.gallery-main:hover {
+/* Gallery Main Image Hover (Dark Mode) */
+[data-theme="dark"] .gallery-main:hover,
+html:not([data-theme="light"]) .gallery-main:hover {
   border: 2px solid #e4e4e7 !important;
   background: #0a0a0f !important;
   box-shadow: 0 0 18px rgba(255, 255, 255, 0.15) !important;
 }
+
 
 /* Active Tabs */
 .tab-btn.active {
