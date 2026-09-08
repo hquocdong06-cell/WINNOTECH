@@ -58,8 +58,8 @@ html.light-mode,
 .default-layout.light,
 .default-layout.light-mode {
   --black: #ffffff;
-  --dark: #ffffff;
-  --dark2: #f8fafc;
+  --dark: #F8FAFC;
+  --dark2: #F8FAFC;
   --dark3: #f1f5f9;
   --gray: #475569;
   --gray2: #64748b;
@@ -73,14 +73,14 @@ html.light-mode,
   --border: #e2e8f0;
 
   /* Client Specific Tokens */
-  --c-bg: #f8fafc;
+  --c-bg: #F8FAFC;
   --c-card-bg: #ffffff;
   --c-card-hover: #f1f5f9;
   --c-header-bg: #ffffff;
   --c-topbar-bg: #f1f5f9;
   --c-nav-bg: #ffffff;
-  --c-catbar-bg: #f8fafc;
-  --c-footer-bg: #f8fafc;
+  --c-catbar-bg: #F8FAFC;
+  --c-footer-bg: #F8FAFC;
   --c-text-main: #0f172a;
   --c-text-sub: #334155;
   --c-text-muted: #64748b;
@@ -162,9 +162,19 @@ html.light-mode .client-theme-toggle-topbar:hover {
 
 html.light,
 html.light-mode,
+[data-theme="light"],
+html.light body,
+html.light-mode body,
+[data-theme="light"] body,
 .default-layout.light,
-.default-layout.light-mode {
-  background-color: var(--c-bg) !important;
+.default-layout.light-mode,
+[data-theme="light"] .default-layout,
+[data-theme="light"] main,
+[data-theme="light"] .hero-wrapper,
+[data-theme="light"] .trustbar,
+[data-theme="light"] .product-section,
+[data-theme="light"] .category-section {
+  background-color: #F8FAFC !important;
   color: var(--c-text-main) !important;
 }
 
