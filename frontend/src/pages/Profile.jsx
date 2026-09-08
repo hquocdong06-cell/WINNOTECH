@@ -2324,46 +2324,29 @@ export default function Profile() {
                                 #{order.code || order.id}
                               </div>
                               <div style={{display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap'}}>
-                                {/* Trạng thái đơn nếu đã hoàn tiền */}
-                                {(order.status === 'refunded' || order.status === 'refund') && (
+                                {/* Trạng thái thanh toán (chỉ hiển thị Đã thanh toán / Chưa thanh toán, không hiển thị Hoàn tiền thành công vì dây tiến trình đã có) */}
+                                {order.payment_status && order.payment_status !== 'refunded' && (
                                   <span style={{
                                     fontSize:'10px', fontWeight:700, padding:'3px 10px', borderRadius:'999px',
-                                    background: 'rgba(212, 255, 0, 0.12)',
-                                    color: 'var(--yellow, #d4ff00)',
-                                    border: '1px solid rgba(212, 255, 0, 0.3)',
-                                    display: 'inline-flex', alignItems: 'center', gap: '4px'
+                                    background: order.payment_status === 'paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.04)',
+                                    color: order.payment_status === 'paid' ? '#34d399' : '#9ca3af',
+                                    border: '1px solid currentColor'
                                   }}>
-                                    ↩ Đã hoàn tiền
+                                    {order.payment_status === 'paid' ? '✔ Đã thanh toán' : '⧘ Chưa thanh toán'}
                                   </span>
                                 )}
 
-                                {/* Trạng thái thanh toán: đúng 3 trạng thái duy nhất */}
-                                <span style={{
-                                  fontSize:'10px', fontWeight:700, padding:'3px 10px', borderRadius:'999px',
-                                  background: order.payment_status === 'paid' ? 'rgba(16, 185, 129, 0.15)' :
-                                              order.payment_status === 'refunded' ? 'rgba(212, 255, 0, 0.12)' :
-                                              'rgba(255,255,255,0.04)',
-                                  color: order.payment_status === 'paid' ? '#34d399' :
-                                         order.payment_status === 'refunded' ? 'var(--yellow, #d4ff00)' :
-                                         '#9ca3af',
-                                  border: '1px solid currentColor'
-                                }}>
-                                  {order.payment_status === 'paid' ? '✔ Đã thanh toán' :
-                                   order.payment_status === 'refunded' ? '↩ Hoàn tiền thành công' :
-                                   '⧘ Chưa thanh toán'}
-                                </span>
-
-                                {/* Trạng thái đổi trả hàng nếu có */}
-                                {order.return_request && order.return_request.status && order.return_request.status !== 'none' && (
+                                {/* Trạng thái đổi trả hàng nếu có (chỉ hiển thị các bước đang xử lý, ẩn 'returned_success' - Đã về kho & Hoàn tiền vì dây trạng thái đã có) */}
+                                {order.return_request && order.return_request.status && 
+                                 order.return_request.status !== 'none' && 
+                                 order.return_request.status !== 'returned_success' && (
                                   <span style={{
                                     fontSize:'10px', fontWeight:700, padding:'3px 10px', borderRadius:'999px',
                                     background: order.return_request.status === 'return_approved' ? 'rgba(34, 197, 94, 0.15)' :
                                                 order.return_request.status === 'return_rejected' ? 'rgba(239, 68, 68, 0.15)' :
-                                                order.return_request.status === 'returned_success' ? 'rgba(212, 255, 0, 0.12)' :
                                                 'rgba(245, 158, 11, 0.15)',
                                     color: order.return_request.status === 'return_approved' ? '#4ade80' :
                                            order.return_request.status === 'return_rejected' ? '#f87171' :
-                                           order.return_request.status === 'returned_success' ? 'var(--yellow, #d4ff00)' :
                                            '#fbbf24',
                                     border: '1px solid currentColor',
                                     display: 'inline-flex', alignItems: 'center', gap: '4px'

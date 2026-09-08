@@ -312,6 +312,41 @@ html.light-mode .cart-badge-new {
   color: #ffffff !important;
 }
 
+html.light .btn-continue-shopping,
+html.light-mode .btn-continue-shopping {
+  background: #f0fdf4 !important;
+  border: 1.5px solid #16a34a !important;
+  color: #16a34a !important;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.15) !important;
+}
+
+html.light .btn-continue-shopping:hover,
+html.light-mode .btn-continue-shopping:hover {
+  background: #dcfce7 !important;
+  border-color: #15803d !important;
+  color: #15803d !important;
+  box-shadow: 0 0 12px rgba(22, 163, 74, 0.25) !important;
+}
+
+html.light .btn-continue-shopping-link:hover,
+html.light-mode .btn-continue-shopping-link:hover {
+  color: #16a34a !important;
+}
+
+html.light .cart-empty .btn-primary,
+html.light-mode .cart-empty .btn-primary {
+  background: #f0fdf4 !important;
+  border: 1.5px solid #16a34a !important;
+  color: #16a34a !important;
+}
+
+html.light .cart-empty .btn-primary:hover,
+html.light-mode .cart-empty .btn-primary:hover {
+  background: #dcfce7 !important;
+  border-color: #15803d !important;
+  color: #15803d !important;
+}
+
 /* Category Bar */
 html.light .nav-catbar,
 html.light-mode .nav-catbar {

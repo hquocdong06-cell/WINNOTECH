@@ -89,19 +89,25 @@
 
 .btn-continue-shopping {
   display: inline-block;
-  background: var(--yellow);
-  color: #000;
+  background: #0d0e12;
+  border: 1.5px solid #76b900;
+  color: #76b900;
   padding: 12px 28px;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   text-decoration: none;
-  transition: background 0.2s, transform 0.15s;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 15px rgba(118, 185, 0, 0.15);
+  transition: all 0.2s ease;
 }
 
 .btn-continue-shopping:hover {
-  background: var(--yellow2);
+  background: rgba(118, 185, 0, 0.15);
+  border-color: #8ae400;
+  color: #8ae400;
+  box-shadow: 0 0 16px rgba(118, 185, 0, 0.35);
   transform: translateY(-1px);
 }
 
@@ -338,7 +344,7 @@
 }
 
 .btn-continue-shopping-link:hover {
-  color: var(--white);
+  color: #76b900;
 }
 
 /* ═══════════════════════════════════════════════════

@@ -74,6 +74,28 @@
   color: #aaa;
 }
 
+.cart-empty .btn-primary {
+  background: #0d0e12 !important;
+  border: 1.5px solid #76b900 !important;
+  color: #76b900 !important;
+  border-radius: 6px !important;
+  padding: 10px 24px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px !important;
+  box-shadow: 0 0 12px rgba(118, 185, 0, 0.15) !important;
+  transition: all 0.2s ease !important;
+  margin: 12px auto 0 !important;
+  width: auto !important;
+}
+
+.cart-empty .btn-primary:hover {
+  background: rgba(118, 185, 0, 0.15) !important;
+  border-color: #8ae400 !important;
+  color: #8ae400 !important;
+  box-shadow: 0 0 16px rgba(118, 185, 0, 0.35) !important;
+  transform: translateY(-1px);
+}
+
 .drawer-items {
   display: flex;
   flex-direction: column;
