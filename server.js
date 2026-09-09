@@ -9602,6 +9602,10 @@ app.use("/api/api/chatbot", getAiChatbotRouter);
 app.use("/chatbot", getAiChatbotRouter);
 app.use("/api/chat", getAiChatbotRouter);
 
+app.get(["/api-test", "/test-apis", "/postman"], (req, res) => {
+  res.redirect("/public/api_tester.html");
+});
+
 if (require.main === module) {
   app.listen(port, () => {
     console.log(`Server started on port ${port}`);
