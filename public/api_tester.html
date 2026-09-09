@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WINNOTECH API Specification & Interactive Tester</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f1117;
+      --sidebar-bg: #161822;
+      --card-bg: #1c1f2e;
+      --border-color: #272b3f;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent-yellow: #d4ff00;
+      --accent-green: #10b981;
+      --accent-blue: #38bdf8;
+      --accent-purple: #a855f7;
+      --method-get: #059669;
+      --method-get-bg: rgba(16, 185, 129, 0.15);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    /* SIDEBAR */
+    .sidebar {
+      width: 380px;
+      min-width: 380px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo-badge {
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-badge span { color: var(--accent-yellow); }
+    .sidebar-tree {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 12px;
+    }
+    .tree-collection {
+      font-size: 13px;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: default;
+    }
+    .tree-folder {
+      margin-left: 10px;
+      margin-bottom: 6px;
+    }
+    .folder-title {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .folder-title:hover { background: rgba(255,255,255,0.03); color: #fff; }
+    .tree-items {
+      margin-left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .api-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .api-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+    .api-item.active { background: #262a3f; color: #fff; font-weight: 600; }
+    .badge-get {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 800;
+      color: #34d399;
+      background: var(--method-get-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      flex-shrink: 0;
+    }
+    .api-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+    .example-item {
+      margin-left: 36px;
+      font-size: 11.5px;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .example-item:hover { color: var(--accent-yellow); }
+    .example-icon {
+      font-size: 10px;
+      border: 1px solid #475569;
+      border-radius: 3px;
+      padding: 1px 3px;
+    }
+
+    /* MAIN CONTENT */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .top-toolbar {
+      padding: 14px 24px;
+      background: var(--sidebar-bg);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .url-bar {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+    .url-method {
+      background: var(--method-get-bg);
+      color: #34d399;
+      font-weight: 700;
+      padding: 10px 14px;
+      border-right: 1px solid var(--border-color);
+    }
+    .url-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 10px 14px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    .btn-send {
+      background: var(--accent-yellow);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.15s;
+    }
+    .btn-send:hover { opacity: 0.9; }
+    .btn-runall {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-runall:hover { opacity: 0.9; }
+
+    /* CONTENT PANELS */
+    .content-area {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    .panel-meta {
+      width: 320px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-color);
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .meta-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+    .meta-desc {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+    }
+    .test-result-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 10px;
+    }
+    .test-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .test-item:last-child { margin-bottom: 0; }
+    .icon-pass { color: var(--accent-green); font-weight: bold; }
+    .icon-fail { color: #ef4444; font-weight: bold; }
+
+    .panel-response {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-dark);
+      overflow: hidden;
+    }
+    .resp-header {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--sidebar-bg);
+    }
+    .resp-stats {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 12px;
+    }
+    .stat-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    .stat-200 { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .stat-time { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+    .resp-code {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: #93c5fd;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR (Mô phỏng 100% giao diện Postman / Thunder Client) -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-badge">WINNO<span>TECH</span> API Spec</div>
+      <button class="btn-runall" onclick="runAllTests()">⚡ Run All</button>
+    </div>
+
+    <div class="sidebar-tree">
+      <div class="tree-collection">
+        <span>⌄</span>
+        <span>WINNOTECH API Specification V2</span>
+      </div>
+
+      <div class="tree-folder">
+        <div class="folder-title">
+          <span>⌄</span>
+          <span>📁 1. Home Section Products (Xem Tất Cả)</span>
+        </div>
+
+        <div class="tree-items">
+          <!-- API 1 -->
+          <div>
+            <div class="api-item active" id="item-1" onclick="selectApi(1)">
+              <span class="badge-get">GET</span>
+              <span class="api-name">Sản phẩm Bán chạy (sold_count ↓)</span>
+            </div>
+            <div class="example-item" onclick="selectApi(1)">
+              <span class="example-icon">e.g.</span>
+              <span>200 OK / Response Success</span>
+            </div>
+          </div>
+
+          <!-- API 2 -->
+          <div>
+            <div class="api-item" id="item-2" onclick="selectApi(2)">
+              <span class="badge-get">GET</span>
+              <span class="api-name">Sản phẩm Mới nhất (createdAt ↓)</span>
+            </div>
+            <div class="example-item" onclick="selectApi(2)">
+              <span class="example-icon">e.g.</span>
+              <span>200 OK / Response Success</span>
+            </div>
+          </div>
+
+          <!-- API 3 -->
+          <div>
+            <div class="api-item" id="item-3" onclick="selectApi(3)">
+              <span class="badge-get">GET</span>
+              <span class="api-name">Sản phẩm Giảm giá (sale ↓ -15%)</span>
+            </div>
+            <div class="example-item" onclick="selectApi(3)">
+              <span class="example-icon">e.g.</span>
+              <span>200 OK / Response Success</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN VIEW -->
+  <div class="main">
+    <div class="top-toolbar">
+      <div class="url-bar">
+        <span class="url-method">GET</span>
+        <input type="text" class="url-input" id="urlInput" value="http://localhost:3000/api/products/best-sellers">
+      </div>
+      <button class="btn-send" onclick="sendCurrentRequest()">▶ Send (Gửi Request)</button>
+    </div>
+
+    <div class="content-area">
+      <!-- PANEL METADATA & TESTS -->
+      <div class="panel-meta">
+        <div class="meta-title">Chi Tiết Endpoint</div>
+        <div class="meta-desc" id="apiDesc">
+          API phục vụ nút <strong>"XEM TẤT CẢ TOP SẢN PHẨM →"</strong> tại Section 1 Trang chủ. Trả về danh sách sắp xếp theo lượt bán (<code>sold_count</code>) giảm dần.
+        </div>
+
+        <div class="meta-title">Postman Test Results</div>
+        <div class="test-result-box" id="testResults">
+          <div style="color: var(--text-muted); font-size: 12px;">Nhấn <strong>Send</strong> để chạy kiểm thử...</div>
+        </div>
+      </div>
+
+      <!-- PANEL RESPONSE JSON -->
+      <div class="panel-response">
+        <div class="resp-header">
+          <div class="resp-stats">
+            <span class="stat-badge stat-200" id="statusBadge">Status: ---</span>
+            <span class="stat-time" id="timeBadge">Time: ---</span>
+            <span class="stat-time" id="countBadge">Count: ---</span>
+          </div>
+          <button style="background:transparent;border:1px solid var(--border-color);color:#cbd5e1;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;" onclick="copyResponse()">📋 Copy JSON</button>
+        </div>
+        <div class="resp-code" id="responseCode">// Bấm vào các API bên trái hoặc nhấn "Send" để nhận dữ liệu...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const APIS = {
+      1: {
+        id: 1,
+        name: "Sản phẩm Bán chạy nhất (sold_count giảm dần)",
+        url: "http://localhost:3000/api/products/best-sellers?limit=10",
+        desc: "API phục vụ nút <strong>'XEM TẤT CẢ TOP SẢN PHẨM →'</strong> tại Section 1 Trang chủ.<br><br>• Sắp xếp: <code>sold_count</code> giảm dần.<br>• Đã loại bỏ hoàn toàn <code>sold_quantity</code>.<br>• Tự động nạp đầy đủ Variants & AnhSP.",
+        validate: (data) => {
+          const tests = [];
+          tests.push({ pass: data.success === true, name: "Response success: true" });
+          tests.push({ pass: Array.isArray(data.data), name: "Data trả về là Array" });
+          
+          let sorted = true;
+          for (let i = 0; i < (data.data?.length || 0) - 1; i++) {
+            if ((data.data[i].sold_count ?? 0) < (data.data[i+1].sold_count ?? 0)) sorted = false;
+          }
+          tests.push({ pass: sorted, name: "Sắp xếp sold_count giảm dần chính xác" });
+
+          let noSoldQty = true;
+          data.data?.forEach(p => { if ('sold_quantity' in p) noSoldQty = false; });
+          tests.push({ pass: noSoldQty, name: "Đã loại bỏ hoàn toàn trường thừa sold_quantity" });
+          return tests;
+        }
+      },
+      2: {
+        id: 2,
+        name: "Sản phẩm Mới nhất (createdAt giảm dần)",
+        url: "http://localhost:3000/api/products/newest?limit=10",
+        desc: "API phục vụ nút <strong>'XEM TẤT CẢ SẢN PHẨM →'</strong> tại Section 2 Trang chủ (Hàng mới về).<br><br>• Sắp xếp: <code>createdAt</code> giảm dần (mới nhất đến cũ nhất).<br>• Đã loại bỏ hoàn toàn <code>sold_quantity</code>.",
+        validate: (data) => {
+          const tests = [];
+          tests.push({ pass: data.success === true, name: "Response success: true" });
+          tests.push({ pass: Array.isArray(data.data), name: "Data trả về là Array" });
+          
+          let sorted = true;
+          for (let i = 0; i < (data.data?.length || 0) - 1; i++) {
+            if (new Date(data.data[i].createdAt) < new Date(data.data[i+1].createdAt)) sorted = false;
+          }
+          tests.push({ pass: sorted, name: "Sắp xếp createdAt giảm dần (mới nhất trước)" });
+
+          let noSoldQty = true;
+          data.data?.forEach(p => { if ('sold_quantity' in p) noSoldQty = false; });
+          tests.push({ pass: noSoldQty, name: "Đã loại bỏ hoàn toàn trường thừa sold_quantity" });
+          return tests;
+        }
+      },
+      3: {
+        id: 3,
+        name: "Sản phẩm Giảm giá (sale giảm dần như -15%)",
+        url: "http://localhost:3000/api/products/on-sale?limit=10&onlySale=true",
+        desc: "API phục vụ nút <strong>'XEM TẤT CẢ KHUYẾN MÃI →'</strong> tại Section 3 Trang chủ (Siêu ưu đãi).<br><br>• Sắp xếp: <code>sale</code> giảm dần (từ mức giảm cao nhất như 15%, 14%, 13%...).<br>• Chỉ lấy các sản phẩm có khuyến mãi (<code>sale > 0</code>).<br>• Đã loại bỏ hoàn toàn <code>sold_quantity</code>.",
+        validate: (data) => {
+          const tests = [];
+          tests.push({ pass: data.success === true, name: "Response success: true" });
+          tests.push({ pass: Array.isArray(data.data), name: "Data trả về là Array" });
+          
+          let sorted = true;
+          for (let i = 0; i < (data.data?.length || 0) - 1; i++) {
+            if ((data.data[i].sale ?? 0) < (data.data[i+1].sale ?? 0)) sorted = false;
+          }
+          tests.push({ pass: sorted, name: "Sắp xếp mức giảm giá (sale) giảm dần" });
+
+          let allOnSale = true;
+          data.data?.forEach(p => { if ((p.sale || 0) <= 0) allOnSale = false; });
+          tests.push({ pass: allOnSale, name: "Tất cả sản phẩm đều có sale > 0" });
+
+          let noSoldQty = true;
+          data.data?.forEach(p => { if ('sold_quantity' in p) noSoldQty = false; });
+          tests.push({ pass: noSoldQty, name: "Đã loại bỏ hoàn toàn trường thừa sold_quantity" });
+          return tests;
+        }
+      }
+    };
+
+    let currentApiId = 1;
+
+    function selectApi(id) {
+      currentApiId = id;
+      document.querySelectorAll('.api-item').forEach(el => el.classList.remove('active'));
+      document.getElementById(`item-${id}`).classList.add('active');
+
+      const api = APIS[id];
+      document.getElementById('urlInput').value = api.url;
+      document.getElementById('apiDesc').innerHTML = api.desc;
+      sendCurrentRequest();
+    }
+
+    async function sendCurrentRequest() {
+      const url = document.getElementById('urlInput').value;
+      const api = APIS[currentApiId];
+      document.getElementById('responseCode').textContent = "⏳ Đang gửi request và tải dữ liệu từ máy chủ...";
+      document.getElementById('statusBadge').textContent = "Status: Loading...";
+
+      const t0 = performance.now();
+      try {
+        const res = await fetch(url);
+        const t1 = performance.now();
+        const duration = Math.round(t1 - t0);
+
+        const data = await res.json();
+        document.getElementById('statusBadge').textContent = `${res.status} ${res.statusText || 'OK'}`;
+        document.getElementById('statusBadge').className = `stat-badge ${res.ok ? 'stat-200' : 'stat-fail'}`;
+        document.getElementById('timeBadge').textContent = `${duration} ms`;
+        document.getElementById('countBadge').textContent = `${data.data?.length || 0} sản phẩm`;
+        document.getElementById('responseCode').textContent = JSON.stringify(data, null, 2);
+
+        // Run tests
+        const tests = api.validate(data);
+        renderTests(tests);
+      } catch (err) {
+        document.getElementById('statusBadge').textContent = "Lỗi kết nối";
+        document.getElementById('responseCode').textContent = `Lỗi gọi API: ${err.message}\n\nHãy đảm bảo server đang chạy trên cổng 3000!`;
+      }
+    }
+
+    function renderTests(tests) {
+      const container = document.getElementById('testResults');
+      container.innerHTML = tests.map(t => `
+        <div class="test-item">
+          <span class="${t.pass ? 'icon-pass' : 'icon-fail'}">${t.pass ? '✔ PASS' : '✖ FAIL'}</span>
+          <span>${t.name}</span>
+        </div>
+      `).join('');
+    }
+
+    async function runAllTests() {
+      for (const id of [1, 2, 3]) {
+        selectApi(id);
+        await new Promise(r => setTimeout(r, 600));
+      }
+    }
+
+    function copyResponse() {
+      const text = document.getElementById('responseCode').textContent;
+      navigator.clipboard.writeText(text).then(() => alert('Đã sao chép toàn bộ JSON vào Clipboard!'));
+    }
+
+    // Chạy tự động API 1 khi mở trang
+    window.addEventListener('DOMContentLoaded', () => {
+      sendCurrentRequest();
+    });
+  </script>
+</body>
+</html>

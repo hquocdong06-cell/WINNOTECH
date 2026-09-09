@@ -14,6 +14,7 @@ const formatPrice = (price) => {
 }
 
 import { API_BASE as API_URL } from '../services/apiService';
+import { getSocket, joinUserRoom } from '../services/socket';
 
 const RETURN_REASONS = [
   { key: 'damaged', label: 'Sản phẩm bị hư hỏng / bể vỡ khi nhận' },
@@ -332,13 +333,34 @@ export default function Profile() {
   }
 
   // ── Fetch orders ──
-  const fetchOrders = async () => {
-    setOrdersLoading(true)
+  const fetchOrders = async (showLoading = true) => {
+    if (showLoading) setOrdersLoading(true)
     try {
       const res = await fetch(API_URL + '/orders', { credentials: 'include' })
       const data = await res.json()
       if (data.success) setOrders(data.data || [])
-    } catch {} finally { setOrdersLoading(false) }
+    } catch {} finally {
+      if (showLoading) setOrdersLoading(false)
+    }
+  }
+
+  // ── Silent fetch order detail để làm mới modal mà không gián đoạn UI ──
+  const fetchOrderDetailSilently = async (orderId) => {
+    if (!orderId) return
+    try {
+      const res = await fetch(API_URL + '/orders/' + orderId, { credentials: 'include' })
+      const data = await res.json()
+      if (data.success && data.data) {
+        setSelectedOrder(prev => {
+          if (!prev) return null
+          const prevId = (prev._id || prev.id || '').toString()
+          if (prevId === orderId.toString() || prev.code === data.data.code) {
+            return data.data
+          }
+          return prev
+        })
+      }
+    } catch (err) {}
   }
 
   // ── Fetch addresses ──
@@ -723,11 +745,124 @@ export default function Profile() {
             setMyVouchers([...avail, ...hist])
           }
         })
-        .catch(err => console.error('Lỗi tải ví voucher:', err))
+        .catch(() => {})
         .finally(() => setVouchersLoading(false))
     }
+  }, [activeTab])
 
-  }, [activeTab]);
+  // ── Đồng bộ đơn hàng thời gian thực qua Socket.io ──
+  useEffect(() => {
+    const rawUid = user?._id || user?.id;
+    if (!rawUid) return;
+    const uidStr = rawUid.toString();
+
+    const socket = getSocket();
+    joinUserRoom(uidStr, user?.role || 'member');
+
+    const handleOrderUpdated = (payload) => {
+      if (!payload) return;
+      const targetOrderId = (payload.orderId || '').toString();
+      const targetCode = payload.code || '';
+      const payloadUserId = (payload.userId || payload.order?.user_id?._id || payload.order?.user_id || '').toString();
+
+      // Chỉ xử lý nếu đơn hàng thuộc về user hiện tại
+      if (payloadUserId && payloadUserId !== uidStr) {
+        return;
+      }
+
+      console.log('⚡ [Profile] Nhận cập nhật đơn hàng qua Socket:', payload);
+
+      // 1. Cập nhật tức thì vào danh sách orders (bảng hiển thị & các tab đếm)
+      setOrders(prev => {
+        const matchIndex = prev.findIndex(o => {
+          const oId = (o._id || o.id || '').toString();
+          return oId === targetOrderId || (targetCode && o.code === targetCode);
+        });
+
+        if (matchIndex === -1) {
+          if (payload.action === 'order_created' && payload.order) {
+            return [payload.order, ...prev];
+          }
+          return prev;
+        }
+
+        const nextOrders = [...prev];
+        const currentOrder = nextOrders[matchIndex];
+        const newOrderData = payload.order || {};
+
+        nextOrders[matchIndex] = {
+          ...currentOrder,
+          ...newOrderData,
+          status: payload.status || newOrderData.status || currentOrder.status,
+          payment_status: payload.payment_status || newOrderData.payment_status || currentOrder.payment_status,
+          tracking_code: payload.tracking_code !== undefined ? payload.tracking_code : (newOrderData.tracking_code !== undefined ? newOrderData.tracking_code : currentOrder.tracking_code),
+          shipping_carrier: payload.shipping_carrier !== undefined ? payload.shipping_carrier : (newOrderData.shipping_carrier !== undefined ? newOrderData.shipping_carrier : currentOrder.shipping_carrier),
+          estimated_delivery: payload.estimated_delivery !== undefined ? payload.estimated_delivery : (newOrderData.estimated_delivery !== undefined ? newOrderData.estimated_delivery : currentOrder.estimated_delivery),
+          statusHistory: payload.statusHistory || newOrderData.statusHistory || currentOrder.statusHistory,
+          return_request: payload.return_request !== undefined ? payload.return_request : (newOrderData.return_request !== undefined ? newOrderData.return_request : currentOrder.return_request),
+          refund_info: payload.refund_info !== undefined ? payload.refund_info : (newOrderData.refund_info !== undefined ? newOrderData.refund_info : currentOrder.refund_info),
+          cancel_reason: payload.cancel_reason !== undefined ? payload.cancel_reason : (newOrderData.cancel_reason !== undefined ? newOrderData.cancel_reason : currentOrder.cancel_reason),
+        };
+        return nextOrders;
+      });
+
+      // 2. Nếu Modal chi tiết đơn hàng đang mở cho đơn này, cập nhật dữ liệu ngay lập tức
+      setSelectedOrder(prev => {
+        if (!prev) return null;
+        const pId = (prev._id || prev.id || '').toString();
+        if (pId === targetOrderId || (targetCode && prev.code === targetCode)) {
+          const newOrderData = payload.order || {};
+          return {
+            ...prev,
+            ...newOrderData,
+            status: payload.status || newOrderData.status || prev.status,
+            payment_status: payload.payment_status || newOrderData.payment_status || prev.payment_status,
+            tracking_code: payload.tracking_code !== undefined ? payload.tracking_code : (newOrderData.tracking_code !== undefined ? newOrderData.tracking_code : prev.tracking_code),
+            shipping_carrier: payload.shipping_carrier !== undefined ? payload.shipping_carrier : (newOrderData.shipping_carrier !== undefined ? newOrderData.shipping_carrier : prev.shipping_carrier),
+            estimated_delivery: payload.estimated_delivery !== undefined ? payload.estimated_delivery : (newOrderData.estimated_delivery !== undefined ? newOrderData.estimated_delivery : prev.estimated_delivery),
+            statusHistory: payload.statusHistory || newOrderData.statusHistory || prev.statusHistory,
+            return_request: payload.return_request !== undefined ? payload.return_request : (newOrderData.return_request !== undefined ? newOrderData.return_request : prev.return_request),
+            refund_info: payload.refund_info !== undefined ? payload.refund_info : (newOrderData.refund_info !== undefined ? newOrderData.refund_info : prev.refund_info),
+            cancel_reason: payload.cancel_reason !== undefined ? payload.cancel_reason : (newOrderData.cancel_reason !== undefined ? newOrderData.cancel_reason : prev.cancel_reason),
+          };
+        }
+        return prev;
+      });
+
+      // 3. Tải ngầm chi tiết để làm mới mọi dữ liệu liên kết và thống kê
+      if (targetOrderId) {
+        fetchOrderDetailSilently(targetOrderId);
+      }
+      fetchOrders(false);
+      fetchStats();
+
+      // Nếu trạng thái liên quan hoàn tiền, làm mới số dư ví của user
+      if (payload.action === 'refund_processed' || payload.action === 'returned_goods_received' || payload.payment_status === 'refunded') {
+        fetchProfile();
+      }
+
+      // 4. Toast thông báo trực quan cho khách hàng
+      const statusText = statusMap[payload.status] || payload.status || 'Đã cập nhật';
+      toast.info(`🔔 Đơn hàng #${targetCode || (targetOrderId ? targetOrderId.slice(-8).toUpperCase() : '')}: ${statusText}`);
+    };
+
+    const handleOrderChangeFallback = (changeData) => {
+      if (!changeData) return;
+      const chUserId = (changeData.userId || '').toString();
+      if (!chUserId || chUserId === uidStr) {
+        fetchOrders(false);
+        fetchStats();
+      }
+    };
+
+    socket.on('order:updated', handleOrderUpdated);
+    socket.on('order:change', handleOrderChangeFallback);
+
+    return () => {
+      socket.off('order:updated', handleOrderUpdated);
+      socket.off('order:change', handleOrderChangeFallback);
+    };
+  }, [user?._id, user?.id]);
 
   const handleRemoveFavorite = async (productId) => {
     try {

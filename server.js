@@ -1,4 +1,5 @@
 const express = require("express");
+const http = require("http");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const connectDB = require("./config/db");
@@ -6,6 +7,8 @@ const cors = require("cors");
 require('dotenv').config();
 
 var app = express();
+const server = http.createServer(app);
+const { initSocket, emitOrderUpdate } = require("./utils/socket");
 const nodemailer = require('nodemailer');
 var port = 3000;
 const passport = require("passport");
@@ -358,6 +361,11 @@ const allowedOrigins = [
   'http://localhost:3000',
   process.env.CLIENT_URL
 ].filter(Boolean);
+
+// Khởi tạo Socket.io Server gắn với HTTP Server và cấu hình CORS
+const io = initSocket(server, allowedOrigins);
+app.set("io", io);
+app.set("server", server);
 
 app.use(
   cors({
@@ -3121,6 +3129,8 @@ app.post("/orders", checklogin, async (req, res) => {
       variant_id: { $in: variantIds },
     });
 
+    emitOrderUpdate(newOrder, 'order_created');
+
     return res.status(201).json({ success: true, message: "Đặt hàng thành công", data: newOrder });
 
   } catch (error) {
@@ -3412,6 +3422,8 @@ app.put("/orders/:orderId/cancel", checklogin, async (req, res) => {
 
     await order.save();
 
+    emitOrderUpdate(order, 'cancelled');
+
     return res.json({
       success: true,
       message: totalRefundToWallet > 0
@@ -3496,6 +3508,8 @@ app.post("/orders/:orderId/return-request", checklogin, uploadReturn.array("imag
 
     await order.save();
 
+    emitOrderUpdate(order, 'return_requested');
+
     return res.json({
       success: true,
       message: "Gửi yêu cầu trả hàng / hoàn tiền thành công. Cửa hàng sẽ xét duyệt trong vòng 24h.",
@@ -3576,6 +3590,8 @@ app.put("/admin/orders/:orderId/return-request/review", checklogin, async (req, 
         statusHistory: order.statusHistory
       }
     });
+
+    emitOrderUpdate(order, 'return_review');
 
     return res.json({
       success: true,
@@ -3660,6 +3676,8 @@ app.put("/admin/orders/:orderId/return-request/receive-goods", checklogin, async
       }
     });
 
+    emitOrderUpdate(order, 'returned_goods_received');
+
     return res.json({
       success: true,
       message: `Đã xác nhận nhận hàng hoàn về kho, hoàn lại tồn kho, chuyển trạng thái đơn sang Đã hoàn tiền và tự động hoàn ${refundAmount.toLocaleString('vi-VN')}₫ vào số dư của khách hàng.`,
@@ -3716,6 +3734,9 @@ app.put("/admin/orders/:orderId/process-refund", checklogin, async (req, res) =>
     });
 
     await order.save();
+
+    emitOrderUpdate(order, 'refund_processed');
+
     return res.json({
       success: true,
       message: `Đã hoàn tất quyết toán hoàn tiền ${finalAmount.toLocaleString('vi-VN')}₫ cho khách hàng.`,
@@ -6101,6 +6122,9 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
     } else if (paymentChanged) {
       msg = `Cập nhật trạng thái (${STATUS_LABELS_VI[status] || status}) và thanh toán (${order.payment_status === 'paid' ? 'Đã thanh toán' : order.payment_status === 'refunded' ? 'Hoàn tiền thành công' : 'Chưa thanh toán'}) thành công`;
     }
+
+    emitOrderUpdate(order, 'status_updated');
+
     return res.json({ success: true, message: msg, data: order });
   } catch (error) {
     console.error("Lỗi PUT /admin/orders/:id/status:", error);
@@ -6202,6 +6226,8 @@ app.put("/admin/orders/:id/payment-status", checklogin, checkAdmin, async (req, 
       await incrementProductSalesForOrder(order._id);
     }
 
+    emitOrderUpdate(order, 'payment_status_updated');
+
     return res.json({
       success: true,
       message: `Cập nhật trạng thái thanh toán thành công${order.status === 'completed' ? ' — Đơn hàng đã tự động chuyển sang Hoàn thành' : ''}`,
@@ -6230,6 +6256,8 @@ app.post("/admin/orders/:id/note", checklogin, checkAdmin, async (req, res) => {
     });
     await order.save();
 
+    emitOrderUpdate(order, 'note_added');
+
     return res.json({ success: true, message: "Đã thêm ghi chú", data: order.admin_notes });
   } catch (error) {
     console.error("Lỗi POST /admin/orders/:id/note:", error);
@@ -6252,6 +6280,8 @@ app.delete("/admin/orders/:id", checklogin, checkAdmin, async (req, res) => {
       changedAt: new Date()
     });
     await order.save();
+
+    emitOrderUpdate(order, 'cancelled');
 
     return res.json({ success: true, message: "Đã hủy đơn hàng (Soft delete/cancel thành công)", data: order });
   } catch (error) {
@@ -9607,8 +9637,8 @@ app.get(["/api-test", "/test-apis", "/postman"], (req, res) => {
 });
 
 if (require.main === module) {
-  app.listen(port, () => {
-    console.log(`Server started on port ${port}`);
+  server.listen(port, () => {
+    console.log(`Server started on port ${port} with Socket.io enabled`);
     fixCartItemsInDB();
   });
 }

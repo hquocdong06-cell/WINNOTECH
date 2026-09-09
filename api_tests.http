@@ -1,0 +1,27 @@
+### ============================================================
+### WINNOTECH API TESTER — 3 Section Trang Chủ (Xem Tất Cả)
+### Nhấn vào nút "Send Request" phía trên mỗi API để chạy và xem dữ liệu trực tiếp trong VS Code!
+### ============================================================
+
+@baseUrl = http://localhost:3000
+
+### 1. Section Bán Chạy Nhất (sold_count giảm dần)
+# Phục vụ nút "XEM TẤT CẢ TOP SẢN PHẨM →"
+GET {{baseUrl}}/api/products/best-sellers?limit=10
+Content-Type: application/json
+
+###
+
+### 2. Section Hàng Mới Về (createdAt giảm dần - mới nhất trước)
+# Phục vụ nút "XEM TẤT CẢ SẢN PHẨM →"
+GET {{baseUrl}}/api/products/newest?limit=10
+Content-Type: application/json
+
+###
+
+### 3. Section Giảm Giá (sale giảm dần như -15%)
+# Phục vụ nút "XEM TẤT CẢ KHUYẾN MÃI →"
+GET {{baseUrl}}/api/products/on-sale?limit=10&onlySale=true
+Content-Type: application/json
+
+###

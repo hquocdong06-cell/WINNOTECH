@@ -13,6 +13,7 @@ import {
   getOrderPdfUrl, reviewAdminReturnRequest, confirmAdminReturnedGoods, 
   API_BASE 
 } from '../services/adminService';
+import { getSocket } from '../../services/socket';
 
 // ── Trạng thái đổi trả hàng (Return status labels) ──────────────────────────
 const RETURN_STATUS_LABELS = {
@@ -1548,9 +1549,11 @@ const Orders = () => {
     setCurrentPage(1);
   }, [searchQuery, filterStatus, filterPaymentStatus, filterReturnStatus]);
 
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
-    setError('');
+  const fetchOrders = useCallback(async (showLoading = true) => {
+    if (showLoading) {
+      setLoading(true);
+      setError('');
+    }
     try {
       const data = await fetchAdminOrders();
       if (data.success) {
@@ -1577,13 +1580,32 @@ const Orders = () => {
         setCounts(c);
       }
     } catch (err) {
-      setError(err.message || 'Không thể tải đơn hàng');
+      if (showLoading) setError(err.message || 'Không thể tải đơn hàng');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, []);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+  // ── Đồng bộ đơn hàng thời gian thực qua Socket.io ──
+  useEffect(() => {
+    const socket = getSocket();
+    socket.emit('join:admin');
+
+    const handleOrderSync = (payload) => {
+      console.log('⚡ [Admin Orders] Đồng bộ đơn hàng Socket:', payload);
+      fetchOrders(false);
+    };
+
+    socket.on('order:updated', handleOrderSync);
+    socket.on('order:change', handleOrderSync);
+
+    return () => {
+      socket.off('order:updated', handleOrderSync);
+      socket.off('order:change', handleOrderSync);
+    };
+  }, [fetchOrders]);
 
   // Đóng dropdown thanh toán khi click ra ngoài
   useEffect(() => {

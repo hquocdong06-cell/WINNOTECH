@@ -1,0 +1,383 @@
+{
+  "info": {
+    "_postman_id": "winnotech-api-spec-v2",
+    "name": "WINNOTECH API Specification (Full Refactored DB)",
+    "description": "Bộ sưu tập kiểm thử API hệ thống WINNOTECH phục vụ cho 3 Section Trang chủ (Xem Tất Cả), hiển thị cấu trúc thư mục và ví dụ mẫu 200 OK Response Success chuẩn Postman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "📁 1. Home Section Products (Xem Tất Cả)",
+      "description": "Các API GET dữ liệu phục vụ cho nút 'Xem tất cả' tại 3 section trang chủ WINNOTECH.",
+      "item": [
+        {
+          "name": "GET Lấy danh sách sản phẩm Bán chạy nhất (sold_count giảm dần)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 1. Kiểm tra HTTP Status Code là 200 OK",
+                  "pm.test(\"Status code là 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// 2. Parse JSON Response",
+                  "const response = pm.response.json();",
+                  "",
+                  "// 3. Kiểm tra cấu trúc Response",
+                  "pm.test(\"Response thành công và có cấu trúc hợp lệ\", function () {",
+                  "    pm.expect(response).to.be.an(\"object\");",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.data).to.be.an(\"array\");",
+                  "    pm.expect(response).to.have.property(\"total\");",
+                  "});",
+                  "",
+                  "// 4. Kiểm tra sắp xếp lượt bán (sold_count) giảm dần",
+                  "pm.test(\"Danh sách được sắp xếp theo sold_count giảm dần\", function () {",
+                  "    const products = response.data;",
+                  "    for (let i = 0; i < products.length - 1; i++) {",
+                  "        const currentSold = products[i].sold_count ?? 0;",
+                  "        const nextSold = products[i + 1].sold_count ?? 0;",
+                  "        pm.expect(currentSold).to.be.at.least(",
+                  "            nextSold,",
+                  "            `Lỗi thứ tự tại vị trí ${i}: [${products[i].name} (${currentSold})] < [${products[i + 1].name} (${nextSold})]`",
+                  "        );",
+                  "    }",
+                  "});",
+                  "",
+                  "// 5. Kiểm tra trường 'sold_quantity' đã bị loại bỏ hoàn toàn",
+                  "pm.test(\"Không còn trường thừa 'sold_quantity' trong sản phẩm\", function () {",
+                  "    response.data.forEach((p, idx) => {",
+                  "        pm.expect(p).to.not.have.property(",
+                  "            \"sold_quantity\",",
+                  "            `Sản phẩm [${idx}] ${p.name} vẫn còn trường sold_quantity`",
+                  "        );",
+                  "    });",
+                  "});",
+                  "",
+                  "// 6. Kiểm tra cấu trúc chi tiết của từng sản phẩm",
+                  "pm.test(\"Mỗi sản phẩm có đầy đủ _id, name, slug, Variants và AnhSP\", function () {",
+                  "    if (response.data.length > 0) {",
+                  "        const p = response.data[0];",
+                  "        pm.expect(p).to.have.property(\"_id\");",
+                  "        pm.expect(p).to.have.property(\"name\");",
+                  "        pm.expect(p).to.have.property(\"slug\");",
+                  "        pm.expect(p).to.have.property(\"Variants\").that.is.an(\"array\");",
+                  "        pm.expect(p).to.have.property(\"AnhSP\").that.is.an(\"array\");",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/best-sellers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "best-sellers"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Tùy chọn: Giới hạn số lượng sản phẩm",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Tùy chọn: Số trang",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "API lấy danh sách sản phẩm bán chạy nhất, sắp xếp theo số lượt bán (sold_count) giảm dần phục vụ cho nút 'XEM TẤT CẢ TOP SẢN PHẨM →' tại Section 1 Trang chủ."
+          },
+          "response": [
+            {
+              "name": "200 OK / Response Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/products/best-sellers",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "products",
+                    "best-sellers"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Lấy danh sách sản phẩm bán chạy thành công\",\n  \"total\": 3,\n  \"data\": [\n    {\n      \"_id\": \"6a79ded9d9c7c632c6aed7e6\",\n      \"name\": \"AMD Ryzen 7 7800X3D\",\n      \"sale\": 15,\n      \"thumnail\": \"http://localhost:3000/public/images/anh_cpu_amd/image_1.png\",\n      \"slug\": \"amd-ryzen-7-7800x3d\",\n      \"description\": \"# AMD Ryzen 7 7800X3D\\n\\nBộ vi xử lý Gaming đỉnh cao hàng đầu thế giới tích hợp công nghệ 3D V-Cache 96MB độc quyền từ AMD.\\n\\n## Thông Số Kỹ Thuật Chi Tiết\\n\\n| Thông số | Giá trị |\\n| :--- | :--- |\\n| **Socket** | AM5 |\\n| **Số Nhân / Luồng** | 8 Nhân / 16 Luồng |\\n| **Xung Nhịp Boost** | 5.0 GHz |\\n| **Bộ Nhớ Đệm (Cache)** | 96MB 3D V-Cache |\\n| **Công Suất Tiêu Thụ (TDP)** | 120W |\\n| **Đồ Họa Tích Hợp (iGPU)** | Có (AMD Radeon Graphics) |\\n| **Chuẩn RAM Hỗ Trợ** | DDR5 |\\n\",\n      \"short_desc\": \"8C/16T, Boost 5.0GHz, 96MB 3D V-Cache, Socket AM5, TDP 120W\",\n      \"status\": \"active\",\n      \"cat_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7c1\",\n        \"name\": \"CPU\",\n        \"slug\": \"cpu\",\n        \"image\": \"http://localhost:3000/public/images/anh_cpu_amd/image_1.png\",\n        \"status\": \"active\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.154Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.933Z\"\n      },\n      \"brand_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7c9\",\n        \"name\": \"AMD\",\n        \"slug\": \"amd\",\n        \"logo\": \"http://localhost:3000/public/images/brands/amd.png\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.161Z\",\n        \"updatedAt\": \"2026-09-03T07:16:11.090Z\",\n        \"image\": \"http://localhost:3000/public/images/brands/amd.png\",\n        \"status\": \"active\"\n      },\n      \"__v\": 0,\n      \"createdAt\": \"2026-08-10T14:23:21.194Z\",\n      \"updatedAt\": \"2026-09-07T13:59:14.693Z\",\n      \"sold_count\": 3,\n      \"AnhSP\": [\n        {\n          \"_id\": \"6a79ded9d9c7c632c6aed7f0\",\n          \"p_id\": \"6a79ded9d9c7c632c6aed7e6\",\n          \"url\": \"http://localhost:3000/public/images/anh_cpu_amd/image_1.png\",\n          \"alt\": \"AMD Ryzen 7 7800X3D - Ảnh chính\",\n          \"is_main\": true,\n          \"__v\": 0\n        },\n        {\n          \"_id\": \"6a79ded9d9c7c632c6aed7f1\",\n          \"p_id\": \"6a79ded9d9c7c632c6aed7e6\",\n          \"url\": \"http://localhost:3000/public/images/anh_cpu_amd/image_1.png\",\n          \"alt\": \"AMD Ryzen 7 7800X3D - Góc nghiêng\",\n          \"is_main\": false,\n          \"__v\": 0\n        }\n      ],\n      \"Variants\": [\n        {\n          \"_id\": \"6a79ded9d9c7c632c6aed804\",\n          \"variant_name\": \"Ryzen 7 7800X3D - Box Chính Hãng\",\n          \"price\": 8990000,\n          \"sku\": \"CPU-7800X3D-BOX\",\n          \"sale_price\": 7641500,\n          \"status\": \"active\",\n          \"stock_quantity\": 23,\n          \"p_id\": \"6a79ded9d9c7c632c6aed7e6\",\n          \"__v\": 0,\n          \"Attributes\": [\n            {\n              \"attribute_id\": \"6a79ded9d9c7c632c6aed7d8\",\n              \"attribute_name\": \"Socket CPU\",\n              \"name\": \"Socket CPU\",\n              \"value_id\": \"6a79ded9d9c7c632c6aed7e2\",\n              \"value_name\": \"AM5\",\n              \"value\": \"AM5\"\n            },\n            {\n              \"attribute_id\": \"6a79ded9d9c7c632c6aed7d9\",\n              \"attribute_name\": \"Quy cách đóng gói\",\n              \"name\": \"Quy cách đóng gói\",\n              \"value_id\": \"6a79ded9d9c7c632c6aed7e4\",\n              \"value_name\": \"Box Chính Hãng\",\n              \"value\": \"Box Chính Hãng\"\n            }\n          ]\n        },\n        {\n          \"_id\": \"6a79ded9d9c7c632c6aed805\",\n          \"variant_name\": \"Ryzen 7 7800X3D - Tray Không Quạt\",\n          \"price\": 8190000,\n          \"sku\": \"CPU-7800X3D-TRAY\",\n          \"sale_price\": 6961500,\n          \"status\": \"active\",\n          \"stock_quantity\": 15,\n          \"p_id\": \"6a79ded9d9c7c632c6aed7e6\",\n          \"__v\": 0,\n          \"Attributes\": [\n            {\n              \"attribute_id\": \"6a79ded9d9c7c632c6aed7d8\",\n              \"attribute_name\": \"Socket CPU\",\n              \"name\": \"Socket CPU\",\n              \"value_id\": \"6a79ded9d9c7c632c6aed7e2\",\n              \"value_name\": \"AM5\",\n              \"value\": \"AM5\"\n            },\n            {\n              \"attribute_id\": \"6a79ded9d9c7c632c6aed7d9\",\n              \"attribute_name\": \"Quy cách đóng gói\",\n              \"name\": \"Quy cách đóng gói\",\n              \"value_id\": \"6a79ded9d9c7c632c6aed7e5\",\n              \"value_name\": \"Tray Không Quạt\",\n              \"value\": \"Tray Không Quạt\"\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"_id\": \"6a79ded9d9c7c632c6aed7e7\",\n      \"name\": \"Intel Core i7-14700K\",\n      \"sale\": 10,\n      \"thumnail\": \"http://localhost:3000/public/images/anh_cpu_intel/image_5.png\",\n      \"slug\": \"intel-core-i7-14700k\",\n      \"description\": \"# Intel Core i7-14700K\\n\\nBộ vi xử lý Intel Core thế hệ 14 Raptor Lake Refresh với 20 nhân (8 P-Core + 12 E-Core), 28 luồng.\\n\\n## Thông Số Kỹ Thuật Chi Tiết\\n\\n| Thông số | Giá trị |\\n| :--- | :--- |\\n| **Socket** | LGA1700 |\\n| **Số Nhân / Luồng** | 20 Nhân / 28 Luồng |\\n| **Xung Nhịp Boost** | 5.6 GHz |\\n| **Bộ Nhớ Đệm (Cache)** | 33MB Intel Smart Cache |\\n| **Công Suất Tiêu Thụ (TDP)** | 125W |\\n| **Đồ Họa Tích Hợp (iGPU)** | Có (Intel UHD Graphics 770) |\\n| **Chuẩn RAM Hỗ Trợ** | DDR4 / DDR5 |\\n\",\n      \"short_desc\": \"20C/28T, Boost 5.6GHz, Socket LGA1700, TDP 125W, iGPU UHD 770\",\n      \"status\": \"active\",\n      \"cat_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7c1\",\n        \"name\": \"CPU\",\n        \"slug\": \"cpu\",\n        \"image\": \"http://localhost:3000/public/images/anh_cpu_amd/image_1.png\",\n        \"status\": \"active\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.154Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.933Z\"\n      },\n      \"brand_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7ca\",\n        \"name\": \"Intel\",\n        \"slug\": \"intel\",\n        \"logo\": \"http://localhost:3000/public/images/brands/intel.png\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.161Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.909Z\"\n      },\n      \"__v\": 0,\n      \"createdAt\": \"2026-08-10T14:23:21.194Z\",\n      \"updatedAt\": \"2026-09-07T13:24:39.430Z\",\n      \"sold_count\": 2,\n      \"AnhSP\": [\n        {\n          \"_id\": \"6a79ded9d9c7c632c6aed7f2\",\n          \"p_id\": \"6a79ded9d9c7c632c6aed7e7\",\n          \"url\": \"http://localhost:3000/public/images/anh_cpu_intel/image_5.png\",\n          \"alt\": \"Intel Core i7-14700K - Ảnh chính\",\n          \"is_main\": true,\n          \"__v\": 0\n        },\n        {\n          \"_id\": \"6a79ded9d9c7c632c6aed7f3\",\n          \"p_id\": \"6a79ded9d9c7c632c6aed7e7\",\n          \"url\": \"http://localhost:3000/public/images/anh_cpu_intel/image_5.png\",\n          \"alt\": \"Intel Core i7-14700K - Góc nghiêng\",\n          \"is_main\": false,\n          \"__v\": 0\n        }\n      ],\n      \"Variants\": [\n        {\n          \"_id\": \"6a79ded9d9c7c632c6aed806\",\n          \"variant_name\": \"i7-14700K - Box Chính Hãng\",\n          \"price\": 9490000,\n          \"sku\": \"CPU-14700K-BOX\",\n          \"sale_price\": 8541000,\n          \"status\": \"active\",\n          \"stock_quantity\": 20,\n          \"p_id\": \"6a79ded9d9c7c632c6aed7e7\",\n          \"__v\": 0,\n          \"Attributes\": [\n            {\n              \"attribute_id\": \"6a79ded9d9c7c632c6aed7d8\",\n              \"attribute_name\": \"Socket CPU\",\n              \"name\": \"Socket CPU\",\n              \"value_id\": \"6a79ded9d9c7c632c6aed7e3\",\n              \"value_name\": \"LGA1700\",\n              \"value\": \"LGA1700\"\n            },\n            {\n              \"attribute_id\": \"6a79ded9d9c7c632c6aed7d9\",\n              \"attribute_name\": \"Quy cách đóng gói\",\n              \"name\": \"Quy cách đóng gói\",\n              \"value_id\": \"6a79ded9d9c7c632c6aed7e4\",\n              \"value_name\": \"Box Chính Hãng\",\n              \"value\": \"Box Chính Hãng\"\n            }\n          ]\n        },\n        {\n          \"_id\": \"6a79ded9d9c7c632c6aed807\",\n          \"variant_name\": \"i7-14700K - Tray Không Quạt\",\n          \"price\": 8790000,\n          \"sku\": \"CPU-14700K-TRAY\",\n          \"sale_price\": 7911000,\n          \"status\": \"active\",\n          \"stock_quantity\": 15,\n          \"p_id\": \"6a79ded9d9c7c632c6aed7e7\",\n          \"__v\": 0,\n          \"Attributes\": []\n        }\n      ]\n    },\n    {\n      \"_id\": \"6a85b48c05a2d8a4d92b04fd\",\n      \"name\": \"Corsair Vengeance RGB DDR5 32GB (2x16GB) 5600MHz\",\n      \"sale\": 9,\n      \"slug\": \"corsair-vengeance-rgb-ddr5-32gb-5600mhz\",\n      \"description\": \"# Corsair Vengeance RGB DDR5 32GB\\n\\nBộ nhớ RAM DDR5 tốc độ cao với dải LED RGB đa vùng rực rỡ.\\n\",\n      \"short_desc\": \"DDR5 32GB (2x16GB), Bus 5600MHz, CL36, LED RGB\",\n      \"status\": \"active\",\n      \"cat_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7c4\",\n        \"name\": \"RAM\",\n        \"slug\": \"ram\",\n        \"image\": \"http://localhost:3000/public/images/anh_ram_kingston/image_15.png\",\n        \"status\": \"active\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.155Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.935Z\"\n      },\n      \"brand_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7cf\",\n        \"name\": \"Corsair\",\n        \"slug\": \"corsair\",\n        \"logo\": \"http://localhost:3000/public/images/brands/corsair.png\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.161Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.927Z\"\n      },\n      \"createdAt\": \"2026-08-19T13:50:04.891Z\",\n      \"updatedAt\": \"2026-09-07T14:26:07.483Z\",\n      \"__v\": 0,\n      \"sold_count\": 1,\n      \"AnhSP\": [\n        {\n          \"_id\": \"6a85b48c05a2d8a4d92b04ff\",\n          \"p_id\": \"6a85b48c05a2d8a4d92b04fd\",\n          \"url\": \"https://images.unsplash.com/photo-1562976540-1502c2145186?w=500\",\n          \"is_main\": true,\n          \"__v\": 0\n        }\n      ],\n      \"Variants\": [\n        {\n          \"_id\": \"6a85b48c05a2d8a4d92b04fe\",\n          \"variant_name\": \"Mặc định\",\n          \"price\": 3490000,\n          \"sku\": \"SKU-CORSAIR-VENGEAN\",\n          \"sale_price\": 3190000,\n          \"status\": \"active\",\n          \"stock_quantity\": 19,\n          \"p_id\": \"6a85b48c05a2d8a4d92b04fd\",\n          \"__v\": 0,\n          \"Attributes\": []\n        }\n      ]\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET Lấy danh sách sản phẩm Mới nhất (createdAt giảm dần)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 1. Kiểm tra HTTP Status Code là 200 OK",
+                  "pm.test(\"Status code là 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// 2. Parse JSON Response",
+                  "const response = pm.response.json();",
+                  "",
+                  "// 3. Kiểm tra cấu trúc Response",
+                  "pm.test(\"Response thành công và có cấu trúc hợp lệ\", function () {",
+                  "    pm.expect(response).to.be.an(\"object\");",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.data).to.be.an(\"array\");",
+                  "    pm.expect(response).to.have.property(\"total\");",
+                  "});",
+                  "",
+                  "// 4. Kiểm tra sắp xếp ngày tạo (createdAt) giảm dần (mới nhất trước)",
+                  "pm.test(\"Danh sách được sắp xếp theo createdAt giảm dần (mới nhất trước)\", function () {",
+                  "    const products = response.data;",
+                  "    for (let i = 0; i < products.length - 1; i++) {",
+                  "        const currentDate = new Date(products[i].createdAt).getTime();",
+                  "        const nextDate = new Date(products[i + 1].createdAt).getTime();",
+                  "        pm.expect(currentDate).to.be.at.least(",
+                  "            nextDate,",
+                  "            `Lỗi thứ tự ngày tạo tại vị trí ${i}: [${products[i].name} (${products[i].createdAt})] cũ hơn [${products[i + 1].name} (${products[i + 1].createdAt})]`",
+                  "        );",
+                  "    }",
+                  "});",
+                  "",
+                  "// 5. Kiểm tra trường 'sold_quantity' đã bị loại bỏ hoàn toàn",
+                  "pm.test(\"Không còn trường thừa 'sold_quantity' trong sản phẩm\", function () {",
+                  "    response.data.forEach((p, idx) => {",
+                  "        pm.expect(p).to.not.have.property(\"sold_quantity\");",
+                  "    });",
+                  "});",
+                  "",
+                  "// 6. Kiểm tra các trường dữ liệu quan trọng",
+                  "pm.test(\"Sản phẩm có đầy đủ _id, name, slug, Variants, AnhSP\", function () {",
+                  "    if (response.data.length > 0) {",
+                  "        const p = response.data[0];",
+                  "        pm.expect(p).to.have.property(\"_id\");",
+                  "        pm.expect(p).to.have.property(\"name\");",
+                  "        pm.expect(p).to.have.property(\"slug\");",
+                  "        pm.expect(p).to.have.property(\"Variants\").that.is.an(\"array\");",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/newest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "newest"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Tùy chọn: Giới hạn số lượng sản phẩm",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Tùy chọn: Số trang",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "API lấy danh sách sản phẩm mới nhất, sắp xếp theo thời gian tạo (createdAt) giảm dần phục vụ cho nút 'XEM TẤT CẢ SẢN PHẨM →' tại Section 2 Trang chủ."
+          },
+          "response": [
+            {
+              "name": "200 OK / Response Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/products/newest",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "products",
+                    "newest"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Lấy danh sách sản phẩm mới nhất thành công\",\n  \"total\": 3,\n  \"data\": [\n    {\n      \"_id\": \"6a85b48c05a2d8a4d92b0500\",\n      \"name\": \"Kingston Fury Beast DDR4 16GB (1x16GB) 3200MHz\",\n      \"sale\": 9,\n      \"slug\": \"kingston-fury-beast-ddr4-16gb-3200mhz\",\n      \"description\": \"# Kingston Fury Beast DDR4 16GB\\n\\nRAM DDR4 phổ thông ổn định cao cho PC Intel và AMD.\\n\",\n      \"short_desc\": \"DDR4 16GB (1x16GB), Bus 3200MHz, Tản nhiệt nhôm đen\",\n      \"status\": \"active\",\n      \"cat_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7c4\",\n        \"name\": \"RAM\",\n        \"slug\": \"ram\",\n        \"image\": \"http://localhost:3000/public/images/anh_ram_kingston/image_15.png\",\n        \"status\": \"active\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.155Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.935Z\"\n      },\n      \"brand_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7d0\",\n        \"name\": \"G.Skill\",\n        \"slug\": \"gskill\",\n        \"logo\": \"http://localhost:3000/public/images/brands/gskill.png\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.161Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.927Z\"\n      },\n      \"createdAt\": \"2026-08-19T13:50:04.895Z\",\n      \"updatedAt\": \"2026-09-03T07:15:10.149Z\",\n      \"__v\": 1,\n      \"compatibility_meta\": {\n        \"supported_ff\": []\n      },\n      \"sold_count\": 0,\n      \"AnhSP\": [\n        {\n          \"_id\": \"6a85b48c05a2d8a4d92b0502\",\n          \"p_id\": \"6a85b48c05a2d8a4d92b0500\",\n          \"url\": \"https://images.unsplash.com/photo-1562976540-1502c2145186?w=500\",\n          \"is_main\": true,\n          \"__v\": 0\n        }\n      ],\n      \"Variants\": [\n        {\n          \"_id\": \"6a85b48c05a2d8a4d92b0501\",\n          \"variant_name\": \"Mặc định\",\n          \"price\": 1090000,\n          \"sku\": \"SKU-KINGSTON-FURY-B\",\n          \"sale_price\": 990000,\n          \"status\": \"active\",\n          \"stock_quantity\": 20,\n          \"p_id\": \"6a85b48c05a2d8a4d92b0500\",\n          \"__v\": 0,\n          \"Attributes\": []\n        }\n      ]\n    },\n    {\n      \"_id\": \"6a85b48c05a2d8a4d92b04fd\",\n      \"name\": \"Corsair Vengeance RGB DDR5 32GB (2x16GB) 5600MHz\",\n      \"sale\": 9,\n      \"slug\": \"corsair-vengeance-rgb-ddr5-32gb-5600mhz\",\n      \"description\": \"# Corsair Vengeance RGB DDR5 32GB\\n\\nBộ nhớ RAM DDR5 tốc độ cao với dải LED RGB đa vùng rực rỡ.\\n\",\n      \"short_desc\": \"DDR5 32GB (2x16GB), Bus 5600MHz, CL36, LED RGB\",\n      \"status\": \"active\",\n      \"cat_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7c4\",\n        \"name\": \"RAM\",\n        \"slug\": \"ram\",\n        \"image\": \"http://localhost:3000/public/images/anh_ram_kingston/image_15.png\",\n        \"status\": \"active\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.155Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.935Z\"\n      },\n      \"brand_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7cf\",\n        \"name\": \"Corsair\",\n        \"slug\": \"corsair\",\n        \"logo\": \"http://localhost:3000/public/images/brands/corsair.png\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.161Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.927Z\"\n      },\n      \"createdAt\": \"2026-08-19T13:50:04.891Z\",\n      \"updatedAt\": \"2026-09-07T14:26:07.483Z\",\n      \"__v\": 0,\n      \"sold_count\": 1,\n      \"AnhSP\": [\n        {\n          \"_id\": \"6a85b48c05a2d8a4d92b04ff\",\n          \"p_id\": \"6a85b48c05a2d8a4d92b04fd\",\n          \"url\": \"https://images.unsplash.com/photo-1562976540-1502c2145186?w=500\",\n          \"is_main\": true,\n          \"__v\": 0\n        }\n      ],\n      \"Variants\": [\n        {\n          \"_id\": \"6a85b48c05a2d8a4d92b04fe\",\n          \"variant_name\": \"Mặc định\",\n          \"price\": 3490000,\n          \"sku\": \"SKU-CORSAIR-VENGEAN\",\n          \"sale_price\": 3190000,\n          \"status\": \"active\",\n          \"stock_quantity\": 19,\n          \"p_id\": \"6a85b48c05a2d8a4d92b04fd\",\n          \"__v\": 0,\n          \"Attributes\": []\n        }\n      ]\n    },\n    {\n      \"_id\": \"6a85b48c05a2d8a4d92b04fa\",\n      \"name\": \"NZXT RGB Fan Controller & Commander Hub\",\n      \"sale\": 11,\n      \"slug\": \"nzxt-rgb-fan-controller-commander-hub\",\n      \"description\": \"# NZXT RGB Fan Controller\\n\\nHub điều khiển hệ thống quạt và LED RGB chuyên dụng.\\n\",\n      \"short_desc\": \"Hub điều khiển 8 quạt tản nhiệt và 4 kênh LED RGB qua phần mềm NZXT CAM\",\n      \"status\": \"active\",\n      \"cat_id\": {\n        \"_id\": \"6a85b48c05a2d8a4d92b04f6\",\n        \"name\": \"Phụ kiện khác\",\n        \"slug\": \"extra\",\n        \"status\": \"active\",\n        \"createdAt\": \"2026-08-19T13:50:04.859Z\",\n        \"updatedAt\": \"2026-08-19T13:50:04.859Z\",\n        \"__v\": 0\n      },\n      \"brand_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7d3\",\n        \"name\": \"NZXT\",\n        \"slug\": \"nzxt\",\n        \"logo\": \"http://localhost:3000/public/images/brands/nzxt.png\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.161Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.929Z\"\n      },\n      \"createdAt\": \"2026-08-19T13:50:04.887Z\",\n      \"updatedAt\": \"2026-08-19T13:50:04.887Z\",\n      \"__v\": 0,\n      \"sold_count\": 0,\n      \"AnhSP\": [\n        {\n          \"_id\": \"6a85b48c05a2d8a4d92b04fc\",\n          \"p_id\": \"6a85b48c05a2d8a4d92b04fa\",\n          \"url\": \"https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500\",\n          \"is_main\": true,\n          \"__v\": 0\n        }\n      ],\n      \"Variants\": [\n        {\n          \"_id\": \"6a85b48c05a2d8a4d92b04fb\",\n          \"variant_name\": \"Mặc định\",\n          \"price\": 890000,\n          \"sku\": \"SKU-NZXT-RGB-FAN-CO\",\n          \"sale_price\": 790000,\n          \"status\": \"active\",\n          \"stock_quantity\": 20,\n          \"p_id\": \"6a85b48c05a2d8a4d92b04fa\",\n          \"__v\": 0,\n          \"Attributes\": []\n        }\n      ]\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET Lấy danh sách sản phẩm Giảm giá (sale giảm dần như -15%)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 1. Kiểm tra HTTP Status Code là 200 OK",
+                  "pm.test(\"Status code là 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// 2. Parse JSON Response",
+                  "const response = pm.response.json();",
+                  "",
+                  "// 3. Kiểm tra cấu trúc Response",
+                  "pm.test(\"Response thành công và có cấu trúc hợp lệ\", function () {",
+                  "    pm.expect(response).to.be.an(\"object\");",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.data).to.be.an(\"array\");",
+                  "    pm.expect(response).to.have.property(\"total\");",
+                  "});",
+                  "",
+                  "// 4. Kiểm tra sắp xếp phần trăm giảm giá (sale) giảm dần",
+                  "pm.test(\"Danh sách được sắp xếp theo mức giảm giá (sale) giảm dần\", function () {",
+                  "    const products = response.data;",
+                  "    for (let i = 0; i < products.length - 1; i++) {",
+                  "        const currentSale = products[i].sale ?? 0;",
+                  "        const nextSale = products[i + 1].sale ?? 0;",
+                  "        pm.expect(currentSale).to.be.at.least(",
+                  "            nextSale,",
+                  "            `Lỗi thứ tự giảm giá tại vị trí ${i}: [${products[i].name} (${currentSale}%)] < [${products[i + 1].name} (${nextSale}%)]`",
+                  "        );",
+                  "    }",
+                  "});",
+                  "",
+                  "// 5. Kiểm tra tất cả sản phẩm đều có khuyến mãi sale > 0",
+                  "pm.test(\"Tất cả sản phẩm trong danh sách khuyến mãi đều có sale > 0\", function () {",
+                  "    response.data.forEach((p, idx) => {",
+                  "        pm.expect(p.sale).to.be.above(",
+                  "            0,",
+                  "            `Sản phẩm [${idx}] ${p.name} không có giảm giá (sale = ${p.sale})`",
+                  "        );",
+                  "    });",
+                  "});",
+                  "",
+                  "// 6. Kiểm tra trường 'sold_quantity' đã bị loại bỏ hoàn toàn",
+                  "pm.test(\"Không còn trường thừa 'sold_quantity' trong sản phẩm\", function () {",
+                  "    response.data.forEach((p, idx) => {",
+                  "        pm.expect(p).to.not.have.property(\"sold_quantity\");",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/on-sale",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "on-sale"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Tùy chọn: Giới hạn số lượng sản phẩm",
+                  "disabled": true
+                },
+                {
+                  "key": "onlySale",
+                  "value": "true",
+                  "description": "Tùy chọn: Chỉ lấy sản phẩm có sale > 0",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "API lấy danh sách sản phẩm giảm giá, sắp xếp theo mức giảm (sale) giảm dần (deal đỉnh nhất -15%) phục vụ cho nút 'XEM TẤT CẢ KHUYẾN MÃI →' tại Section 3 Trang chủ."
+          },
+          "response": [
+            {
+              "name": "200 OK / Response Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/products/on-sale",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "products",
+                    "on-sale"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Lấy danh sách sản phẩm giảm giá thành công\",\n  \"total\": 3,\n  \"data\": [\n    {\n      \"_id\": \"6a85afa3b4241ff90898f1e3\",\n      \"name\": \"Corsair 4000D Airflow ATX Mid Tower Case\",\n      \"sale\": 15,\n      \"slug\": \"corsair-4000d-airflow-atx-mid-tower-case\",\n      \"description\": \"# Corsair 4000D Airflow ATX Mid Tower Case\\n\\nVỏ case PC gaming quốc dân phong cách hiện đại, luồng không khí vượt trội.\\n\\n## Thông Số Kỹ Thuật Chi Tiết\\n\\n| Thông số | Giá trị |\\n| :--- | :--- |\\n| **Chuẩn Form Factor Hỗ Trợ** | ATX, mATX, ITX |\\n| **Chiều Dài VGA Tối Đa** | 360 mm |\\n| **Chiều Cao Tản Khí Tối Đa** | 170 mm |\\n| **Kích Thước Radiator Hỗ Trợ** | 360mm, 280mm, 240mm |\\n\",\n      \"short_desc\": \"Chuẩn Form Factor ATX/mATX/ITX, Hỗ trợ VGA 360mm, Tản AIO 360mm, Tản khí 170mm\",\n      \"status\": \"active\",\n      \"cat_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7c8\",\n        \"name\": \"Vỏ case\",\n        \"slug\": \"case\",\n        \"image\": \"http://localhost:3000/public/images/anh_vo_case/image_40.png\",\n        \"status\": \"active\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.155Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.940Z\"\n      },\n      \"brand_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7cf\",\n        \"name\": \"Corsair\",\n        \"slug\": \"corsair\",\n        \"logo\": \"http://localhost:3000/public/images/brands/corsair.png\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.161Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.927Z\"\n      },\n      \"createdAt\": \"2026-08-19T13:29:07.285Z\",\n      \"updatedAt\": \"2026-09-07T12:51:43.679Z\",\n      \"__v\": 0,\n      \"sold_count\": 1,\n      \"AnhSP\": [],\n      \"Variants\": [\n        {\n          \"_id\": \"6a85afa3b4241ff90898f1e4\",\n          \"variant_name\": \"Mặc định\",\n          \"price\": 2690000,\n          \"sku\": \"CASE-CORSAIR-4000D-1787146147286\",\n          \"sale_price\": 2290000,\n          \"status\": \"active\",\n          \"stock_quantity\": 25,\n          \"p_id\": \"6a85afa3b4241ff90898f1e3\",\n          \"__v\": 0,\n          \"Attributes\": []\n        }\n      ]\n    },\n    {\n      \"_id\": \"6a79ded9d9c7c632c6aed7e6\",\n      \"name\": \"AMD Ryzen 7 7800X3D\",\n      \"sale\": 15,\n      \"thumnail\": \"http://localhost:3000/public/images/anh_cpu_amd/image_1.png\",\n      \"slug\": \"amd-ryzen-7-7800x3d\",\n      \"description\": \"# AMD Ryzen 7 7800X3D\\n\\nBộ vi xử lý Gaming đỉnh cao hàng đầu thế giới tích hợp công nghệ 3D V-Cache 96MB độc quyền từ AMD.\\n\\n## Thông Số Kỹ Thuật Chi Tiết\\n\\n| Thông số | Giá trị |\\n| :--- | :--- |\\n| **Socket** | AM5 |\\n| **Số Nhân / Luồng** | 8 Nhân / 16 Luồng |\\n| **Xung Nhịp Boost** | 5.0 GHz |\\n| **Bộ Nhớ Đệm (Cache)** | 96MB 3D V-Cache |\\n| **Công Suất Tiêu Thụ (TDP)** | 120W |\\n| **Đồ Họa Tích Hợp (iGPU)** | Có (AMD Radeon Graphics) |\\n| **Chuẩn RAM Hỗ Trợ** | DDR5 |\\n\",\n      \"short_desc\": \"8C/16T, Boost 5.0GHz, 96MB 3D V-Cache, Socket AM5, TDP 120W\",\n      \"status\": \"active\",\n      \"cat_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7c1\",\n        \"name\": \"CPU\",\n        \"slug\": \"cpu\",\n        \"image\": \"http://localhost:3000/public/images/anh_cpu_amd/image_1.png\",\n        \"status\": \"active\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.154Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.933Z\"\n      },\n      \"brand_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7c9\",\n        \"name\": \"AMD\",\n        \"slug\": \"amd\",\n        \"logo\": \"http://localhost:3000/public/images/brands/amd.png\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.161Z\",\n        \"updatedAt\": \"2026-09-03T07:16:11.090Z\",\n        \"image\": \"http://localhost:3000/public/images/brands/amd.png\",\n        \"status\": \"active\"\n      },\n      \"__v\": 0,\n      \"createdAt\": \"2026-08-10T14:23:21.194Z\",\n      \"updatedAt\": \"2026-09-07T13:59:14.693Z\",\n      \"sold_count\": 3,\n      \"AnhSP\": [\n        {\n          \"_id\": \"6a79ded9d9c7c632c6aed7f0\",\n          \"p_id\": \"6a79ded9d9c7c632c6aed7e6\",\n          \"url\": \"http://localhost:3000/public/images/anh_cpu_amd/image_1.png\",\n          \"alt\": \"AMD Ryzen 7 7800X3D - Ảnh chính\",\n          \"is_main\": true,\n          \"__v\": 0\n        },\n        {\n          \"_id\": \"6a79ded9d9c7c632c6aed7f1\",\n          \"p_id\": \"6a79ded9d9c7c632c6aed7e6\",\n          \"url\": \"http://localhost:3000/public/images/anh_cpu_amd/image_1.png\",\n          \"alt\": \"AMD Ryzen 7 7800X3D - Góc nghiêng\",\n          \"is_main\": false,\n          \"__v\": 0\n        }\n      ],\n      \"Variants\": [\n        {\n          \"_id\": \"6a79ded9d9c7c632c6aed804\",\n          \"variant_name\": \"Ryzen 7 7800X3D - Box Chính Hãng\",\n          \"price\": 8990000,\n          \"sku\": \"CPU-7800X3D-BOX\",\n          \"sale_price\": 7641500,\n          \"status\": \"active\",\n          \"stock_quantity\": 23,\n          \"p_id\": \"6a79ded9d9c7c632c6aed7e6\",\n          \"__v\": 0,\n          \"Attributes\": [\n            {\n              \"attribute_id\": \"6a79ded9d9c7c632c6aed7d8\",\n              \"attribute_name\": \"Socket CPU\",\n              \"name\": \"Socket CPU\",\n              \"value_id\": \"6a79ded9d9c7c632c6aed7e2\",\n              \"value_name\": \"AM5\",\n              \"value\": \"AM5\"\n            },\n            {\n              \"attribute_id\": \"6a79ded9d9c7c632c6aed7d9\",\n              \"attribute_name\": \"Quy cách đóng gói\",\n              \"name\": \"Quy cách đóng gói\",\n              \"value_id\": \"6a79ded9d9c7c632c6aed7e4\",\n              \"value_name\": \"Box Chính Hãng\",\n              \"value\": \"Box Chính Hãng\"\n            }\n          ]\n        },\n        {\n          \"_id\": \"6a79ded9d9c7c632c6aed805\",\n          \"variant_name\": \"Ryzen 7 7800X3D - Tray Không Quạt\",\n          \"price\": 8190000,\n          \"sku\": \"CPU-7800X3D-TRAY\",\n          \"sale_price\": 6961500,\n          \"status\": \"active\",\n          \"stock_quantity\": 15,\n          \"p_id\": \"6a79ded9d9c7c632c6aed7e6\",\n          \"__v\": 0,\n          \"Attributes\": [\n            {\n              \"attribute_id\": \"6a79ded9d9c7c632c6aed7d8\",\n              \"attribute_name\": \"Socket CPU\",\n              \"name\": \"Socket CPU\",\n              \"value_id\": \"6a79ded9d9c7c632c6aed7e2\",\n              \"value_name\": \"AM5\",\n              \"value\": \"AM5\"\n            },\n            {\n              \"attribute_id\": \"6a79ded9d9c7c632c6aed7d9\",\n              \"attribute_name\": \"Quy cách đóng gói\",\n              \"name\": \"Quy cách đóng gói\",\n              \"value_id\": \"6a79ded9d9c7c632c6aed7e5\",\n              \"value_name\": \"Tray Không Quạt\",\n              \"value\": \"Tray Không Quạt\"\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"_id\": \"6a85b48c05a2d8a4d92b04f7\",\n      \"name\": \"Dây cáp bọc lưới Sleeved Extension Kit RGB ATX 24Pin + PCIe\",\n      \"sale\": 14,\n      \"slug\": \"day-cap-boc-luoi-sleeved-extension-kit-rgb\",\n      \"description\": \"# Dây cáp bọc lưới Sleeved Extension Kit RGB\\n\\nPhụ kiện trang trí dây nguồn PC rực rỡ và chuyên nghiệp.\\n\",\n      \"short_desc\": \"Bộ dây cáp bọc lưới cao cấp cho PSU, chống cháy, dây 24pin ATX + CPU 8pin + PCIe 8pin\",\n      \"status\": \"active\",\n      \"cat_id\": {\n        \"_id\": \"6a85b48c05a2d8a4d92b04f6\",\n        \"name\": \"Phụ kiện khác\",\n        \"slug\": \"extra\",\n        \"status\": \"active\",\n        \"createdAt\": \"2026-08-19T13:50:04.859Z\",\n        \"updatedAt\": \"2026-08-19T13:50:04.859Z\",\n        \"__v\": 0\n      },\n      \"brand_id\": {\n        \"_id\": \"6a79ded9d9c7c632c6aed7cf\",\n        \"name\": \"Corsair\",\n        \"slug\": \"corsair\",\n        \"logo\": \"http://localhost:3000/public/images/brands/corsair.png\",\n        \"__v\": 0,\n        \"createdAt\": \"2026-08-10T14:23:21.161Z\",\n        \"updatedAt\": \"2026-08-19T13:49:54.927Z\"\n      },\n      \"createdAt\": \"2026-08-19T13:50:04.883Z\",\n      \"updatedAt\": \"2026-09-07T14:17:29.159Z\",\n      \"__v\": 0,\n      \"sold_count\": 1,\n      \"AnhSP\": [\n        {\n          \"_id\": \"6a85b48c05a2d8a4d92b04f9\",\n          \"p_id\": \"6a85b48c05a2d8a4d92b04f7\",\n          \"url\": \"https://images.unsplash.com/photo-1544652478-6653e09f18a2?w=500\",\n          \"is_main\": true,\n          \"__v\": 0\n        }\n      ],\n      \"Variants\": [\n        {\n          \"_id\": \"6a85b48c05a2d8a4d92b04f8\",\n          \"variant_name\": \"Mặc định\",\n          \"price\": 690000,\n          \"sku\": \"SKU-DAY-CAP-BOC-LUO\",\n          \"sale_price\": 590000,\n          \"status\": \"active\",\n          \"stock_quantity\": 20,\n          \"p_id\": \"6a85b48c05a2d8a4d92b04f7\",\n          \"__v\": 0,\n          \"Attributes\": []\n        }\n      ]\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

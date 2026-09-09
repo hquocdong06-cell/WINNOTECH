@@ -20,6 +20,7 @@ function sortObject(obj) {
 }
 
 const checklogin = require('../middleware/AuthMiddleware');
+const { emitOrderUpdate } = require('../utils/socket');
 
 router.post('/create_payment_url', checklogin, function (req, res, next) {
     if (!req.user) {
@@ -189,6 +190,7 @@ router.get('/vnpay_return', async function (req, res, next) {
                 }
 
                 await order.save();
+                emitOrderUpdate(order, 'vnpay_paid');
 
                 if (isBrowserNav) {
                     return res.redirect(`${clientBaseUrl}/payment-result?${querystring.stringify(req.query)}`);
@@ -214,6 +216,7 @@ router.get('/vnpay_return', async function (req, res, next) {
                 if (order) {
                     order.payment_status = "canceled";
                     await order.save();
+                    emitOrderUpdate(order, 'vnpay_canceled');
                 }
 
                 if (isBrowserNav) {
@@ -240,6 +243,7 @@ router.get('/vnpay_return', async function (req, res, next) {
                 if (order) {
                     order.payment_status = "failed";
                     await order.save();
+                    emitOrderUpdate(order, 'vnpay_failed');
                 }
 
                 if (isBrowserNav) {
