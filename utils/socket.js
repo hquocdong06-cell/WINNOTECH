@@ -134,7 +134,10 @@ async function emitOrderUpdate(orderOrId, action = "updated", extra = {}) {
     // 2. Phát vào phòng Admin
     io.to("admin").emit("order:updated", payload);
 
-    // 3. Broadcast fallback cho tất cả client
+    // 3. Broadcast toàn hệ thống để mọi client đang mở đơn hàng này cập nhật tức thì
+    io.emit("order:updated", payload);
+
+    // 4. Broadcast sự kiện order:change fallback
     io.emit("order:change", {
       orderId,
       userId,
@@ -148,8 +151,37 @@ async function emitOrderUpdate(orderOrId, action = "updated", extra = {}) {
   }
 }
 
+/**
+ * Phát sự kiện cập nhật ví Voucher đến User và Admin theo thời gian thực
+ * @param {string|object} userId ID của người dùng sở hữu voucher (hoặc null nếu toàn hệ thống)
+ * @param {string} action Loại hành động ('saved', 'used', 'released', 'admin_assigned', 'admin_updated', 'admin_deleted')
+ * @param {object} extra Dữ liệu phụ nếu có
+ */
+async function emitVoucherUpdate(userId, action = "updated", extra = {}) {
+  try {
+    if (!io) return;
+    const uid = (userId?._id || userId || "").toString();
+
+    const payload = {
+      action,
+      userId: uid,
+      timestamp: new Date().toISOString(),
+      ...extra
+    };
+
+    if (uid) {
+      io.to(`user_${uid}`).emit("voucher:updated", payload);
+    }
+    io.to("admin").emit("voucher:updated", payload);
+    io.emit("voucher:updated", payload);
+  } catch (err) {
+    console.error("Lỗi trong emitVoucherUpdate (Socket):", err);
+  }
+}
+
 module.exports = {
   initSocket,
   getIo,
-  emitOrderUpdate
+  emitOrderUpdate,
+  emitVoucherUpdate
 };

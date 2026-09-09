@@ -19,6 +19,7 @@ import {
 } from '../services/adminService';
 import AddUserVoucherModal from '../components/AddUserVoucherModal';
 import EditUserVoucherModal from '../components/EditUserVoucherModal';
+import { getSocket } from '../../services/socket';
 
 const formatPrice = (v) => {
   if (v === undefined || v === null) return '0₫';
@@ -93,6 +94,16 @@ const UserVouchers = () => {
 
   useEffect(() => {
     loadData();
+    const socket = getSocket();
+    const handleRealtime = () => {
+      loadData();
+    };
+    socket.on('voucher:updated', handleRealtime);
+    socket.on('order:updated', handleRealtime);
+    return () => {
+      socket.off('voucher:updated', handleRealtime);
+      socket.off('order:updated', handleRealtime);
+    };
   }, [loadData]);
 
   // Xóa / Thu hồi voucher khỏi ví của khách hàng

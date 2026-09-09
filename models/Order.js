@@ -41,6 +41,7 @@ const OrderSchema = new mongoose.Schema({
         rejected_reason: { type: String },
         admin_note: { type: String }
     },
+    note: { type: String, default: '', trim: true },
     admin_notes: [{
         content: { type: String, required: true },
         author: { type: String, default: 'Admin' },
