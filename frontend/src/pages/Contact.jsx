@@ -114,16 +114,6 @@ export default function Contact() {
 
   return (
     <DefaultLayout>
-      {/* ── Hero ── */}
-      <div className="contact-hero">
-        <div className="contact-hero-eyebrow">Hỗ trợ khách hàng</div>
-        <h1>Liên hệ với <span>WINNOTech</span></h1>
-        <p className="contact-hero-sub">
-          Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giải đáp mọi thắc mắc.
-          Phản hồi trong vòng <strong style={{ color: '#fff' }}>2–4 giờ</strong> trong giờ làm việc.
-        </p>
-      </div>
-
       {/* ── Breadcrumb ── */}
       <div className="contact-breadcrumb">
         <Link to="/">Trang chủ</Link>
@@ -171,7 +161,7 @@ export default function Contact() {
 
             {/* Phone */}
             <div className="contact-field">
-              <label>Số điện thoại <span style={{ color: '#555', fontWeight: 400 }}>(tuỳ chọn)</span></label>
+              <label>Số điện thoại <span style={{ color: '#888', fontWeight: 400 }}>(tuỳ chọn)</span></label>
               <input
                 type="tel"
                 name="phone"
@@ -260,7 +250,7 @@ export default function Contact() {
                 )}
               </button>
 
-              <p style={{ fontSize: '11px', color: '#444', textAlign: 'center', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '11px', color: '#888', textAlign: 'center', lineHeight: 1.5 }}>
                 Bằng cách gửi form này, bạn đồng ý để WINNOTech liên hệ lại qua email.
               </p>
             </div>
@@ -286,7 +276,7 @@ export default function Contact() {
                 <div className="contact-info-value">
                   <a href="tel:19001234">1900 1234</a>
                   <br />
-                  <span style={{ fontSize: '12px', color: '#555' }}>Miễn phí • 8:00–22:00 T2–T7</span>
+                  <span style={{ fontSize: '12px', color: '#888' }}>Miễn phí • 8:00–22:00 T2–T7</span>
                 </div>
               </div>
             </div>
@@ -303,7 +293,7 @@ export default function Contact() {
                 <div className="contact-info-value">
                   <a href="mailto:contact.winnotech@gmail.com">contact.winnotech@gmail.com</a>
                   <br />
-                  <span style={{ fontSize: '12px', color: '#555' }}>Phản hồi trong 2–4 giờ</span>
+                  <span style={{ fontSize: '12px', color: '#888' }}>Phản hồi trong 2–4 giờ</span>
                 </div>
               </div>
             </div>

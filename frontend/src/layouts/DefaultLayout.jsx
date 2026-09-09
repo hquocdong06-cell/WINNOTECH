@@ -125,8 +125,7 @@ export default function DefaultLayout({ children }) {
           <div className="topbar-right">
             <Link to="/uu-dai" style={{ color: '#FFE500', fontWeight: 'bold' }}>🎟️ Mã giảm giá</Link>
             <Link to="/contact">Hỗ trợ</Link>
-            <Link to="/blog">Blog</Link>
-            <Link to="/contact">FAQ</Link>
+            <Link to="/blog">Bài viết</Link>
             <button
               type="button"
               className="client-theme-toggle-topbar"
@@ -347,7 +346,7 @@ export default function DefaultLayout({ children }) {
                 <li>
                   <a href="#">Giới thiệu</a>
                 </li>
-                <li><Link to="/blog">Blog</Link></li>
+                <li><Link to="/blog">Bài viết</Link></li>
                 <li><Link to="/contact">Liên hệ</Link></li>
                 <li><a href="#">FAQ</a></li>
               </ul>

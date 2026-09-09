@@ -609,14 +609,40 @@ export default function Home() {
               const imgSrc = banner.image
                 ? (banner.image.startsWith('http') ? banner.image : `${API_URL}${banner.image.startsWith('/') ? '' : '/'}${banner.image}`)
                 : null
-              return imgSrc ? (
+              if (!imgSrc) return null
+              const isCurrent = currentBanner === index
+              const bannerLink = banner.link || '/products'
+              const isExternal = bannerLink.startsWith('http://') || bannerLink.startsWith('https://')
+
+              const imgElement = (
                 <img
-                  key={banner._id || index}
                   src={imgSrc}
                   alt={banner.name || `Banner ${index + 1}`}
-                  className={currentBanner === index ? 'active' : ''}
+                  className={isCurrent ? 'active' : ''}
                 />
-              ) : null
+              )
+
+              return isExternal ? (
+                <a
+                  key={banner._id || index}
+                  href={bannerLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`hero-banner-link ${isCurrent ? 'active' : ''}`}
+                  title={banner.name}
+                >
+                  {imgElement}
+                </a>
+              ) : (
+                <Link
+                  key={banner._id || index}
+                  to={bannerLink}
+                  className={`hero-banner-link ${isCurrent ? 'active' : ''}`}
+                  title={banner.name}
+                >
+                  {imgElement}
+                </Link>
+              )
             })}
           </div>
           <div className="hero-inner">

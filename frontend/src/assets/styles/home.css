@@ -372,9 +372,26 @@ nav {
 .hero-bg {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 1;
   border-radius: 12px;
-  overflow: hidden
+  overflow: hidden;
+}
+
+.hero-banner-link {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 1;
+  pointer-events: none;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.hero-banner-link.active {
+  pointer-events: auto;
+  z-index: 2;
 }
 
 .hero-bg img {
@@ -394,7 +411,7 @@ nav {
 
 .hero-inner {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
@@ -403,13 +420,19 @@ nav {
   flex-direction: column;
   justify-content: flex-end;
   padding-bottom: 60px;
-  min-height: 560px
+  min-height: 560px;
+  pointer-events: none;
 }
 
 .hero-text {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.hero-ctas {
+  pointer-events: auto;
 }
 
 .hero-badge {
