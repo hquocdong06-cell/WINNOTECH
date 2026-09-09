@@ -8,7 +8,7 @@ require('dotenv').config();
 
 var app = express();
 const server = http.createServer(app);
-const { initSocket, emitOrderUpdate } = require("./utils/socket");
+const { initSocket, emitOrderUpdate, emitVoucherUpdate } = require("./utils/socket");
 const nodemailer = require('nodemailer');
 var port = 3000;
 const passport = require("passport");
@@ -2943,7 +2943,7 @@ app.post("/orders", checklogin, async (req, res) => {
         message: "Tài khoản Quản trị viên (Admin) không được phép thực hiện chức năng mua hàng!"
       });
     }
-    const { Name, Phone, Adress, payment_method, voucher_code, items } = req.body;
+    const { Name, Phone, Adress, payment_method, voucher_code, items, note } = req.body;
 
     if (!Name || !Phone || !Adress || !payment_method || !items || items.length === 0) {
       return res.status(400).json({ success: false, message: "Thiếu thông tin đặt hàng" });
@@ -3096,6 +3096,7 @@ app.post("/orders", checklogin, async (req, res) => {
       user_id: req.user._id,
       code,
       Name, Phone, Adress,
+      note: note ? String(note).trim() : '',
       total_amount: remaining_amount,
       payment_method,
       voucher_code: validVoucher ? voucher_code : null,
@@ -3120,8 +3121,9 @@ app.post("/orders", checklogin, async (req, res) => {
       await Voucher.findByIdAndUpdate(validVoucher._id, { $inc: { used_count: 1 } });
       await UserVoucher.findOneAndUpdate(
         { user_id: req.user._id, voucher_id: validVoucher._id },
-        { is_used: true }
+        { is_used: true, used_at: new Date(), usedAt: new Date() }
       );
+      emitVoucherUpdate(req.user._id, 'used', { voucherCode: voucher_code, voucherId: validVoucher._id });
     }
 
     await CartItemModel.deleteMany({
@@ -3420,6 +3422,24 @@ app.put("/orders/:orderId/cancel", checklogin, async (req, res) => {
       changedAt: new Date()
     });
 
+    // Hoàn trả voucher nếu đơn hàng có sử dụng mã giảm giá
+    if (order.voucher_code) {
+      try {
+        const v = await Voucher.findOne({ code: order.voucher_code });
+        if (v) {
+          await Voucher.findByIdAndUpdate(v._id, { $inc: { used_count: -1 } });
+          const uId = order.user_id?._id || order.user_id;
+          await UserVoucher.findOneAndUpdate(
+            { user_id: uId, voucher_id: v._id },
+            { is_used: false, used_at: null, usedAt: null }
+          );
+          emitVoucherUpdate(uId, 'released', { voucherCode: order.voucher_code, voucherId: v._id });
+        }
+      } catch (vErr) {
+        console.error("Lỗi hoàn trả voucher khi hủy đơn:", vErr);
+      }
+    }
+
     await order.save();
 
     emitOrderUpdate(order, 'cancelled');
@@ -3433,6 +3453,67 @@ app.put("/orders/:orderId/cancel", checklogin, async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi hủy đơn hàng:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// ============================================================
+// PUT /orders/:orderId/note — Khách hàng cập nhật hoặc hủy ghi chú đơn hàng
+// ============================================================
+app.put("/orders/:orderId/note", checklogin, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { note } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ success: false, message: "Mã đơn hàng không hợp lệ" });
+    }
+
+    const order = await Order.findById(orderId).populate("payment_method");
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+    }
+
+    // Kiểm tra quyền sở hữu
+    const isAdmin = req.user && (req.user.role === "admin" || req.user.role === 1);
+    if (!isAdmin && order.user_id?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Bạn không có quyền chỉnh sửa ghi chú cho đơn hàng này" });
+    }
+
+    // Chỉ cho phép thêm, sửa, hủy ghi chú khi đơn hàng đang ở trạng thái pending (chờ xác nhận)
+    if (order.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: "Chỉ có thể thêm, chỉnh sửa hoặc hủy ghi chú khi đơn hàng đang ở trạng thái Chờ xác nhận"
+      });
+    }
+
+    const trimmedNote = (note !== undefined && note !== null) ? String(note).trim() : '';
+
+    // Kiểm tra giới hạn 255 từ
+    if (trimmedNote) {
+      const words = trimmedNote.split(/\s+/).filter(Boolean);
+      if (words.length > 255) {
+        return res.status(400).json({
+          success: false,
+          message: `Ghi chú vượt quá giới hạn 255 từ (hiện tại: ${words.length} từ). Vui lòng rút gọn nội dung.`
+        });
+      }
+    }
+
+    order.note = trimmedNote;
+    await order.save();
+
+    // Phát sự kiện realtime
+    emitOrderUpdate(order, 'note_updated');
+
+    return res.json({
+      success: true,
+      message: trimmedNote ? "Lưu ghi chú đơn hàng thành công" : "Đã hủy ghi chú đơn hàng thành công",
+      data: order
+    });
+  } catch (error) {
+    console.error("Lỗi cập nhật ghi chú đơn hàng:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
   }
 });
@@ -3847,6 +3928,8 @@ app.post("/api/vouchers/:voucherId/save", checklogin, async (req, res) => {
       savedAt: new Date(),
       save_at: new Date()
     });
+
+    emitVoucherUpdate(userId, 'saved', { voucherId, code: voucher.code });
 
     return res.json({
       success: true,
@@ -5556,6 +5639,8 @@ app.post("/admin/user-vouchers", checklogin, checkAdmin, async (req, res) => {
       .populate("voucher_id")
       .lean();
 
+    emitVoucherUpdate(user_id, 'admin_assigned', { voucherId, code: voucher.code, userVoucher: populated });
+
     return res.status(201).json({
       success: true,
       message: `Đã thêm voucher [${voucher.code}] vào ví khách hàng "${user.name || user.email}" thành công!`,
@@ -5622,6 +5707,8 @@ app.put("/admin/user-vouchers/:id", checklogin, checkAdmin, async (req, res) => 
       .populate("voucher_id")
       .lean();
 
+    emitVoucherUpdate(currentRecord.user_id, 'admin_updated', { voucherId: newVoucher._id, code: newVoucher.code, userVoucher: populated });
+
     return res.json({
       success: true,
       message: `Đã đổi voucher trong ví sang [${newVoucher.code}] thành công!`,
@@ -5641,6 +5728,9 @@ app.delete("/admin/user-vouchers/:id", checklogin, checkAdmin, async (req, res) 
       return res.status(404).json({ success: false, message: "Không tìm thấy bản ghi voucher trong ví" });
     }
     await UserVoucher.findByIdAndDelete(req.params.id);
+
+    emitVoucherUpdate(item.user_id, 'admin_deleted', { id: req.params.id, voucherId: item.voucher_id });
+
     return res.json({ success: true, message: "Đã xóa voucher khỏi ví của khách hàng thành công" });
   } catch (error) {
     console.error("Lỗi DELETE /admin/user-vouchers/:id:", error);
@@ -5874,6 +5964,14 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
     // Cập nhật payment_status nếu được gửi lên (chỉ 3 trạng thái duy nhất)
     if (payment_status && ['unpaid', 'paid', 'refunded'].includes(payment_status)) {
       if (order.payment_status !== payment_status) {
+        // Khóa: Khi trạng thái thanh toán đã là 'paid' hoặc 'refunded' thì không cho phép chuyển về trạng thái khác
+        if (order.payment_status === 'paid' || order.payment_status === 'refunded') {
+          return res.status(400).json({
+            success: false,
+            message: `Đơn hàng đã ${order.payment_status === 'paid' ? 'thanh toán' : 'hoàn tiền'} thành công, không thể chuyển về trạng thái thanh toán khác.`
+          });
+        }
+
         order.payment_status = payment_status;
         paymentChanged = true;
 
@@ -6143,6 +6241,20 @@ app.put("/admin/orders/:id/payment-status", checklogin, checkAdmin, async (req, 
 
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+
+    // Khóa: Khi trạng thái thanh toán đã là 'paid' hoặc 'refunded' thì không cho phép chuyển về trạng thái khác
+    if (order.payment_status === 'paid' && payment_status !== 'paid') {
+      return res.status(400).json({
+        success: false,
+        message: "Đơn hàng đã thanh toán thành công, không thể chuyển về trạng thái thanh toán khác."
+      });
+    }
+    if (order.payment_status === 'refunded' && payment_status !== 'refunded') {
+      return res.status(400).json({
+        success: false,
+        message: "Đơn hàng đã hoàn tiền thành công, không thể chuyển về trạng thái thanh toán khác."
+      });
+    }
 
     // Kiểm tra quyền chuyển sang Hoàn tiền thành công
     if (payment_status === 'refunded') {
@@ -8399,6 +8511,8 @@ app.post("/api/user-vouchers/save", async (req, res) => {
 
     const populated = await UserVoucher.findById(newUserVoucher._id).populate("voucher_id");
 
+    emitVoucherUpdate(userId, 'saved', { voucherId: voucher._id, code: voucher.code, userVoucher: populated });
+
     return res.status(201).json({
       success: true,
       message: "Lưu voucher vào ví thành công!",
@@ -8610,6 +8724,8 @@ app.post("/api/user-vouchers/use", async (req, res) => {
 
     // Tăng used_count của Voucher tương ứng
     await Voucher.findByIdAndUpdate(userVoucherDoc.voucher_id, { $inc: { used_count: 1 } });
+
+    emitVoucherUpdate(userId, 'used', { voucherId: userVoucherDoc.voucher_id, userVoucher: userVoucherDoc });
 
     return res.json({
       success: true,

@@ -132,6 +132,9 @@ export default function Profile() {
   const [expandedReviewItems, setExpandedReviewItems] = useState({}) // { [orderItemId]: boolean }
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
 
+  // ── Note modal ──
+  const [noteModal, setNoteModal] = useState({ isOpen: false, order: null, noteText: '', isSubmitting: false })
+
   // ── Cancel confirm modal ──
   const [cancelModal, setCancelModal] = useState(null) // { orderId, orderCode, isPaid }
   const [cancelReason, setCancelReason] = useState('')
@@ -373,6 +376,32 @@ export default function Profile() {
     } catch {} finally { setAddressesLoading(false) }
   }
 
+  // ── Fetch vouchers ──
+  const fetchMyVouchers = async (showLoading = true) => {
+    if (showLoading) setVouchersLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/vouchers/my-vouchers`, { credentials: 'include' });
+      const data = await res.json();
+      if (data.success && data.data) {
+        const avail = (data.data.available || []).map(item => ({
+          ...item,
+          is_used: false,
+          voucher: item.voucher || item.voucher_id || item
+        }));
+        const hist = (data.data.history || []).map(item => ({
+          ...item,
+          is_used: true,
+          voucher: item.voucher || item.voucher_id || item
+        }));
+        setMyVouchers([...avail, ...hist]);
+      }
+    } catch (err) {
+      console.error('Lỗi tải ví voucher:', err);
+    } finally {
+      if (showLoading) setVouchersLoading(false);
+    }
+  };
+
   // ── Fetch order detail → open modal ──
   const handleViewOrder = async (orderId) => {
     try {
@@ -406,6 +435,112 @@ export default function Profile() {
     })
     setReviewForm(initForm)
   }
+
+  // ── Note handlers ──
+  const handleOpenNoteModal = (targetOrder) => {
+    if (!targetOrder) return;
+    setNoteModal({
+      isOpen: true,
+      order: targetOrder,
+      noteText: targetOrder.note || '',
+      isSubmitting: false
+    });
+  };
+
+  const handleCloseNoteModal = () => {
+    if (noteModal.isSubmitting) return;
+    setNoteModal({
+      isOpen: false,
+      order: null,
+      noteText: '',
+      isSubmitting: false
+    });
+  };
+
+  const handleSaveNote = async () => {
+    if (!noteModal.order) return;
+    const text = (noteModal.noteText || '').trim();
+    const wordCount = text ? text.split(/\s+/).filter(Boolean).length : 0;
+    if (wordCount > 255) {
+      toast.error(`Ghi chú không được vượt quá 255 từ (hiện tại: ${wordCount} từ)`);
+      return;
+    }
+
+    setNoteModal(prev => ({ ...prev, isSubmitting: true }));
+    try {
+      const orderId = noteModal.order.id || noteModal.order._id;
+      const res = await fetch(`${API_URL}/orders/${orderId}/note`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ note: text })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || 'Đã lưu ghi chú thành công');
+        setOrders(prev => prev.map(o => {
+          if ((o._id || o.id) === orderId) {
+            return { ...o, note: text };
+          }
+          return o;
+        }));
+        setSelectedOrder(prev => {
+          if (!prev) return null;
+          if ((prev._id || prev.id) === orderId) {
+            return { ...prev, note: text };
+          }
+          return prev;
+        });
+        setNoteModal({ isOpen: false, order: null, noteText: '', isSubmitting: false });
+      } else {
+        toast.error(data.message || 'Không thể lưu ghi chú');
+        setNoteModal(prev => ({ ...prev, isSubmitting: false }));
+      }
+    } catch (err) {
+      toast.error('Lỗi kết nối máy chủ');
+      setNoteModal(prev => ({ ...prev, isSubmitting: false }));
+    }
+  };
+
+  const handleCancelNote = async () => {
+    if (!noteModal.order) return;
+    if (!window.confirm('Bạn có chắc chắn muốn hủy ghi chú cho đơn hàng này không?')) return;
+
+    setNoteModal(prev => ({ ...prev, isSubmitting: true }));
+    try {
+      const orderId = noteModal.order.id || noteModal.order._id;
+      const res = await fetch(`${API_URL}/orders/${orderId}/note`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ note: '' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || 'Đã hủy ghi chú đơn hàng');
+        setOrders(prev => prev.map(o => {
+          if ((o._id || o.id) === orderId) {
+            return { ...o, note: '' };
+          }
+          return o;
+        }));
+        setSelectedOrder(prev => {
+          if (!prev) return null;
+          if ((prev._id || prev.id) === orderId) {
+            return { ...prev, note: '' };
+          }
+          return prev;
+        });
+        setNoteModal({ isOpen: false, order: null, noteText: '', isSubmitting: false });
+      } else {
+        toast.error(data.message || 'Không thể hủy ghi chú');
+        setNoteModal(prev => ({ ...prev, isSubmitting: false }));
+      }
+    } catch (err) {
+      toast.error('Lỗi kết nối máy chủ');
+      setNoteModal(prev => ({ ...prev, isSubmitting: false }));
+    }
+  };
 
   const getTrackingDisplay = (order) => {
     if (!order) return { text: '—', isCode: false };
@@ -495,7 +630,7 @@ export default function Profile() {
       trackingCode: order.tracking_code || '',
       shippingCarrier: order.shipping_carrier || '',
       estimatedDelivery: estDeliveryText,
-      receiver: { name: order.Name || '—', phone: order.Phone || '—', address: order.Adress || '—', note: '' },
+      receiver: { name: order.Name || '—', phone: order.Phone || '—', address: order.Adress || '—', note: order.note || '' },
       products: items.map(oi => {
         const rawImg = oi.AnhSP?.[0]?.url || oi.product?.thumnail || oi.product?.AnhSP?.[0]?.url || ''
         const img = rawImg ? (rawImg.startsWith('http') ? rawImg : `${API_URL}${rawImg}`) : ''
@@ -553,6 +688,7 @@ export default function Profile() {
       total: formatPrice(o.total_amount),
       status: (o.isReviewed && o.status === 'delivered') ? 'completed' : o.status,
       payment_status: o.payment_status || 'unpaid',
+      note: o.note || '',
       isReviewed: !!o.isReviewed,
       items: (o.items || []).length,
       itemsList,
@@ -727,48 +863,25 @@ export default function Profile() {
       fetchAddresses()
     }
     if (activeTab === 'voucher') {
-      setVouchersLoading(true)
-      fetch(`${API_URL}/api/vouchers/my-vouchers`, { credentials: 'include' })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success && data.data) {
-            const avail = (data.data.available || []).map(item => ({
-              ...item,
-              is_used: false,
-              voucher: item.voucher || item.voucher_id || item
-            }))
-            const hist = (data.data.history || []).map(item => ({
-              ...item,
-              is_used: true,
-              voucher: item.voucher || item.voucher_id || item
-            }))
-            setMyVouchers([...avail, ...hist])
-          }
-        })
-        .catch(() => {})
-        .finally(() => setVouchersLoading(false))
+      fetchMyVouchers(true);
     }
   }, [activeTab])
 
   // ── Đồng bộ đơn hàng thời gian thực qua Socket.io ──
   useEffect(() => {
     const rawUid = user?._id || user?.id;
-    if (!rawUid) return;
-    const uidStr = rawUid.toString();
+    const uidStr = rawUid ? rawUid.toString() : '';
 
     const socket = getSocket();
-    joinUserRoom(uidStr, user?.role || 'member');
+    if (uidStr) {
+      joinUserRoom(uidStr, user?.role || 'member');
+    }
 
     const handleOrderUpdated = (payload) => {
       if (!payload) return;
       const targetOrderId = (payload.orderId || '').toString();
       const targetCode = payload.code || '';
       const payloadUserId = (payload.userId || payload.order?.user_id?._id || payload.order?.user_id || '').toString();
-
-      // Chỉ xử lý nếu đơn hàng thuộc về user hiện tại
-      if (payloadUserId && payloadUserId !== uidStr) {
-        return;
-      }
 
       console.log('⚡ [Profile] Nhận cập nhật đơn hàng qua Socket:', payload);
 
@@ -780,7 +893,7 @@ export default function Profile() {
         });
 
         if (matchIndex === -1) {
-          if (payload.action === 'order_created' && payload.order) {
+          if (payload.action === 'order_created' && payloadUserId && uidStr && payloadUserId === uidStr && payload.order) {
             return [payload.order, ...prev];
           }
           return prev;
@@ -789,12 +902,14 @@ export default function Profile() {
         const nextOrders = [...prev];
         const currentOrder = nextOrders[matchIndex];
         const newOrderData = payload.order || {};
+        const nextPaymentStatus = payload.payment_status || newOrderData.payment_status || currentOrder.payment_status;
+        const nextStatus = payload.status || newOrderData.status || currentOrder.status;
 
         nextOrders[matchIndex] = {
           ...currentOrder,
           ...newOrderData,
-          status: payload.status || newOrderData.status || currentOrder.status,
-          payment_status: payload.payment_status || newOrderData.payment_status || currentOrder.payment_status,
+          status: nextStatus,
+          payment_status: nextPaymentStatus,
           tracking_code: payload.tracking_code !== undefined ? payload.tracking_code : (newOrderData.tracking_code !== undefined ? newOrderData.tracking_code : currentOrder.tracking_code),
           shipping_carrier: payload.shipping_carrier !== undefined ? payload.shipping_carrier : (newOrderData.shipping_carrier !== undefined ? newOrderData.shipping_carrier : currentOrder.shipping_carrier),
           estimated_delivery: payload.estimated_delivery !== undefined ? payload.estimated_delivery : (newOrderData.estimated_delivery !== undefined ? newOrderData.estimated_delivery : currentOrder.estimated_delivery),
@@ -802,6 +917,7 @@ export default function Profile() {
           return_request: payload.return_request !== undefined ? payload.return_request : (newOrderData.return_request !== undefined ? newOrderData.return_request : currentOrder.return_request),
           refund_info: payload.refund_info !== undefined ? payload.refund_info : (newOrderData.refund_info !== undefined ? newOrderData.refund_info : currentOrder.refund_info),
           cancel_reason: payload.cancel_reason !== undefined ? payload.cancel_reason : (newOrderData.cancel_reason !== undefined ? newOrderData.cancel_reason : currentOrder.cancel_reason),
+          note: payload.note !== undefined ? payload.note : (newOrderData.note !== undefined ? newOrderData.note : currentOrder.note),
         };
         return nextOrders;
       });
@@ -817,6 +933,7 @@ export default function Profile() {
             ...newOrderData,
             status: payload.status || newOrderData.status || prev.status,
             payment_status: payload.payment_status || newOrderData.payment_status || prev.payment_status,
+            note: payload.note !== undefined ? payload.note : (newOrderData.note !== undefined ? newOrderData.note : prev.note),
             tracking_code: payload.tracking_code !== undefined ? payload.tracking_code : (newOrderData.tracking_code !== undefined ? newOrderData.tracking_code : prev.tracking_code),
             shipping_carrier: payload.shipping_carrier !== undefined ? payload.shipping_carrier : (newOrderData.shipping_carrier !== undefined ? newOrderData.shipping_carrier : prev.shipping_carrier),
             estimated_delivery: payload.estimated_delivery !== undefined ? payload.estimated_delivery : (newOrderData.estimated_delivery !== undefined ? newOrderData.estimated_delivery : prev.estimated_delivery),
@@ -842,25 +959,53 @@ export default function Profile() {
       }
 
       // 4. Toast thông báo trực quan cho khách hàng
+      const paymentText = payload.payment_status === 'paid' ? 'Đã thanh toán' : payload.payment_status === 'refunded' ? 'Hoàn tiền thành công' : 'Chưa thanh toán';
       const statusText = statusMap[payload.status] || payload.status || 'Đã cập nhật';
-      toast.info(`🔔 Đơn hàng #${targetCode || (targetOrderId ? targetOrderId.slice(-8).toUpperCase() : '')}: ${statusText}`);
+      if (payload.action === 'payment_status_updated') {
+        toast.info(`💳 Đơn hàng #${targetCode || (targetOrderId ? targetOrderId.slice(-8).toUpperCase() : '')}: Thanh toán - ${paymentText}`);
+      } else {
+        toast.info(`🔔 Đơn hàng #${targetCode || (targetOrderId ? targetOrderId.slice(-8).toUpperCase() : '')}: ${statusText}`);
+      }
+      // Nếu có sự kiện liên quan đến đơn hàng (tạo mới, hủy đơn, hoàn tất), làm mới ví voucher ngầm
+      if (payload.action === 'order_created' || payload.action === 'cancelled' || payload.status === 'cancelled') {
+        fetchMyVouchers(false);
+      }
     };
 
     const handleOrderChangeFallback = (changeData) => {
       if (!changeData) return;
-      const chUserId = (changeData.userId || '').toString();
-      if (!chUserId || chUserId === uidStr) {
-        fetchOrders(false);
-        fetchStats();
+      fetchOrders(false);
+      fetchStats();
+      fetchMyVouchers(false);
+    };
+
+    const handleVoucherUpdated = (payload) => {
+      if (!payload) return;
+      const targetUserId = (payload.userId || '').toString();
+      if (!targetUserId || targetUserId === uidStr) {
+        fetchMyVouchers(false);
+        if (payload.action === 'saved') {
+          toast.success('🎟️ Đã lưu voucher mới vào ví của bạn!');
+        } else if (payload.action === 'released') {
+          toast.success('🎟️ Voucher đã được hoàn trả lại vào ví của bạn!');
+        } else if (payload.action === 'admin_assigned') {
+          toast.success('🎁 Quản trị viên vừa thêm voucher mới vào ví của bạn!');
+        } else if (payload.action === 'admin_deleted') {
+          toast.info('🎟️ Ví voucher của bạn vừa có cập nhật');
+        } else if (payload.action === 'admin_updated') {
+          toast.info('🎟️ Mã voucher trong ví của bạn đã được cập nhật');
+        }
       }
     };
 
     socket.on('order:updated', handleOrderUpdated);
     socket.on('order:change', handleOrderChangeFallback);
+    socket.on('voucher:updated', handleVoucherUpdated);
 
     return () => {
       socket.off('order:updated', handleOrderUpdated);
       socket.off('order:change', handleOrderChangeFallback);
+      socket.off('voucher:updated', handleVoucherUpdated);
     };
   }, [user?._id, user?.id]);
 
@@ -1998,6 +2143,205 @@ export default function Profile() {
         </div>
       )}
 
+      {/* ── NOTE MODAL (Popup Ghi chú đơn giản, không dùng icon rườm rà) ── */}
+      {noteModal.isOpen && noteModal.order && (() => {
+        const currentOrder = noteModal.order;
+        const isPending = currentOrder.status === 'pending';
+        const hasExistingNote = Boolean(currentOrder.note && currentOrder.note.trim());
+        const words = (noteModal.noteText || '').trim().split(/\s+/).filter(Boolean);
+        const wordCount = words.length;
+        const isOverLimit = wordCount > 255;
+
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 99999,
+              background: 'rgba(0, 0, 0, 0.75)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px'
+            }}
+            onClick={e => { if (e.target === e.currentTarget) handleCloseNoteModal(); }}
+          >
+            <div
+              style={{
+                background: '#141420',
+                border: '1px solid #2a2a3d',
+                borderRadius: '16px',
+                padding: '24px',
+                width: '100%',
+                maxWidth: '480px',
+                color: '#f3f4f6',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
+                fontFamily: 'inherit'
+              }}
+            >
+              {/* Header */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '16px',
+                  paddingBottom: '12px',
+                  borderBottom: '1px solid #232336'
+                }}
+              >
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: '#ffffff' }}>
+                    Ghi chú đơn hàng #{currentOrder.code || currentOrder.id}
+                  </h3>
+                  <span style={{ fontSize: '12px', color: '#9ca3af', marginTop: '3px', display: 'block' }}>
+                    {isPending
+                      ? 'Ghi chú cho đơn hàng đang chờ xác nhận'
+                      : 'Đơn hàng đã được tiếp nhận xử lý (chỉ xem)'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseNoteModal}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#9ca3af',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    padding: '4px 8px',
+                    lineHeight: 1
+                  }}
+                  title="Đóng"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body */}
+              <div style={{ marginBottom: '16px' }}>
+                <textarea
+                  value={noteModal.noteText}
+                  onChange={e => setNoteModal(prev => ({ ...prev, noteText: e.target.value }))}
+                  disabled={!isPending || noteModal.isSubmitting}
+                  placeholder={isPending ? 'Nhập ghi chú cho đơn hàng (tối đa 255 từ)...' : 'Không có ghi chú'}
+                  rows={5}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    background: isPending ? '#1b1b2a' : '#171724',
+                    border: isOverLimit ? '1px solid #ef4444' : '1px solid #2e2e44',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    lineHeight: '1.5',
+                    resize: 'vertical',
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                    opacity: !isPending ? 0.75 : 1
+                  }}
+                />
+
+                {/* Counter & Notice */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: '8px',
+                    fontSize: '12px'
+                  }}
+                >
+                  <span style={{ color: isOverLimit ? '#ef4444' : '#9ca3af', fontWeight: isOverLimit ? 600 : 400 }}>
+                    Số từ: {wordCount} / 255 từ {isOverLimit ? '(vượt quá giới hạn)' : ''}
+                  </span>
+                  {!isPending && (
+                    <span style={{ color: '#f59e0b', fontStyle: 'italic' }}>
+                      Đơn hàng đã xử lý, không thể thay đổi
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: '10px',
+                  paddingTop: '12px',
+                  borderTop: '1px solid #232336'
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={handleCloseNoteModal}
+                  disabled={noteModal.isSubmitting}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '7px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    background: 'transparent',
+                    border: '1px solid #374151',
+                    color: '#9ca3af',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  Đóng
+                </button>
+
+                {isPending && hasExistingNote && (
+                  <button
+                    type="button"
+                    onClick={handleCancelNote}
+                    disabled={noteModal.isSubmitting}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '7px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.35)',
+                      color: '#f87171',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    {noteModal.isSubmitting ? 'Đang xử lý...' : 'Hủy ghi chú'}
+                  </button>
+                )}
+
+                {isPending && (
+                  <button
+                    type="button"
+                    onClick={handleSaveNote}
+                    disabled={isOverLimit || noteModal.isSubmitting}
+                    style={{
+                      padding: '8px 18px',
+                      borderRadius: '7px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      background: 'rgba(255, 255, 255, 0.12)',
+                      border: '1px solid #ffffff',
+                      color: '#ffffff',
+                      cursor: (isOverLimit || noteModal.isSubmitting) ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit',
+                      opacity: (isOverLimit || noteModal.isSubmitting) ? 0.5 : 1
+                    }}
+                  >
+                    {noteModal.isSubmitting ? 'Đang lưu...' : 'Lưu ghi chú'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="profile-page">
         <input type="file" ref={avatarInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleAvatarChange} />
         <div className="profile-inner">
@@ -2078,17 +2422,41 @@ export default function Profile() {
                   </div>
                   <div className="profile-table-wrapper">
                     <table className="profile-orders-table">
-                      <thead><tr><th>MÃ ĐƠN</th><th>NGÀY ĐẶT</th><th>TỔNG TIỀN</th><th>TRẠNG THÁI</th><th>THAO TÁC</th></tr></thead>
+                      <thead><tr><th style={{whiteSpace:'nowrap'}}>MÃ ĐƠN</th><th style={{whiteSpace:'nowrap'}}>NGÀY ĐẶT</th><th style={{whiteSpace:'nowrap'}}>TỔNG TIỀN</th><th style={{whiteSpace:'nowrap'}}>TRẠNG THÁI</th><th style={{whiteSpace:'nowrap'}}>THANH TOÁN</th><th style={{whiteSpace:'nowrap'}}>THAO TÁC</th></tr></thead>
                       <tbody>
                         {ordersLoading ? (
-                          <tr><td colSpan="5" style={{textAlign:'center',color:'var(--text-muted)',padding:'20px'}}>Đang tải...</td></tr>
+                          <tr><td colSpan="6" style={{textAlign:'center',color:'var(--text-muted)',padding:'20px'}}>Đang tải...</td></tr>
                         ) : orders_for_table.slice(0, 3).map(order => (
                           <tr key={order.id}>
-                            <td><span className="order-id">#{order.code}</span></td>
-                            <td><span className="order-date">{order.date}</span></td>
-                            <td><span className="order-total">{order.total}</span></td>
-                            <td><span className={'order-status status-' + order.status}>{statusMap[order.status]}</span></td>
-                            <td><button className="btn-view-detail" onClick={() => handleViewOrder(order.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết</button></td>
+                            <td style={{whiteSpace:'nowrap'}}><span className="order-id">#{order.code}</span></td>
+                            <td style={{whiteSpace:'nowrap'}}><span className="order-date">{order.date}</span></td>
+                            <td style={{whiteSpace:'nowrap'}}><span className="order-total">{order.total}</span></td>
+                            <td style={{whiteSpace:'nowrap'}}><span className={'order-status status-' + order.status}>{statusMap[order.status]}</span></td>
+                            <td style={{whiteSpace:'nowrap'}}>
+                              <span style={{
+                                fontSize:'11px', fontWeight:700, padding:'3px 10px', borderRadius:'999px',
+                                display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap',
+                                background: order.payment_status === 'paid' ? 'rgba(16, 185, 129, 0.15)' :
+                                            order.payment_status === 'refunded' ? 'rgba(212, 255, 0, 0.12)' :
+                                            'rgba(255,255,255,0.04)',
+                                color: order.payment_status === 'paid' ? '#34d399' :
+                                       order.payment_status === 'refunded' ? 'var(--yellow, #d4ff00)' : '#9ca3af',
+                                border: '1px solid currentColor'
+                              }}>
+                                {order.payment_status === 'paid' ? 'Đã thanh toán' :
+                                 order.payment_status === 'refunded' ? 'Đã hoàn tiền' : 'Chưa thanh toán'}
+                              </span>
+                            </td>
+                            <td style={{whiteSpace:'nowrap'}}>
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'nowrap' }}>
+                                <button className="btn-view-detail" onClick={() => handleOpenNoteModal(order)} title={order.note ? `Ghi chú: ${order.note}` : 'Thêm ghi chú'} style={{ whiteSpace: 'nowrap' }}>
+                                  {order.note ? 'Ghi chú' : 'Thêm ghi chú'}
+                                </button>
+                                <button className="btn-view-detail" onClick={() => handleViewOrder(order.id)} style={{ whiteSpace: 'nowrap' }}>
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -2459,15 +2827,19 @@ export default function Profile() {
                                 #{order.code || order.id}
                               </div>
                               <div style={{display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap'}}>
-                                {/* Trạng thái thanh toán (chỉ hiển thị Đã thanh toán / Chưa thanh toán, không hiển thị Hoàn tiền thành công vì dây tiến trình đã có) */}
-                                {order.payment_status && order.payment_status !== 'refunded' && (
+                                {/* Trạng thái thanh toán - Đủ 3 trạng thái duy nhất */}
+                                {order.payment_status && (
                                   <span style={{
                                     fontSize:'10px', fontWeight:700, padding:'3px 10px', borderRadius:'999px',
-                                    background: order.payment_status === 'paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.04)',
-                                    color: order.payment_status === 'paid' ? '#34d399' : '#9ca3af',
+                                    background: order.payment_status === 'paid' ? 'rgba(16, 185, 129, 0.15)' :
+                                                order.payment_status === 'refunded' ? 'rgba(212, 255, 0, 0.12)' :
+                                                'rgba(255,255,255,0.04)',
+                                    color: order.payment_status === 'paid' ? '#34d399' :
+                                           order.payment_status === 'refunded' ? 'var(--yellow, #d4ff00)' : '#9ca3af',
                                     border: '1px solid currentColor'
                                   }}>
-                                    {order.payment_status === 'paid' ? '✔ Đã thanh toán' : '⧘ Chưa thanh toán'}
+                                    {order.payment_status === 'paid' ? '✔ Đã thanh toán' :
+                                     order.payment_status === 'refunded' ? '↩ Hoàn tiền thành công' : '⧘ Chưa thanh toán'}
                                   </span>
                                 )}
 
@@ -2621,6 +2993,14 @@ export default function Profile() {
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Hủy đơn
                                   </button>
                                 )}
+                                <button
+                                  type="button"
+                                  className="profile-order-btn profile-order-btn--detail"
+                                  onClick={() => handleOpenNoteModal(order)}
+                                  title={order.note ? `Ghi chú: ${order.note}` : 'Thêm ghi chú cho đơn hàng'}
+                                >
+                                  {order.note ? 'Ghi chú' : 'Thêm ghi chú'}
+                                </button>
                                 <button className="profile-order-btn profile-order-btn--detail" onClick={() => handleViewOrder(order.id)}>
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Xem chi tiết
                                 </button>

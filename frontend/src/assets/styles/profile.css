@@ -400,6 +400,7 @@
   padding: 10px 12px;
   text-align: left;
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .profile-orders-table tbody td {
@@ -408,6 +409,7 @@
   padding: 12px 12px;
   border-bottom: 1px solid rgba(42, 42, 42, 0.5);
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 .profile-orders-table tbody tr:last-child td {
