@@ -5050,7 +5050,7 @@ app.get("/admin/products", checklogin, checkAdmin, async (req, res) => {
 // POST /admin/products — Thêm mới sản phẩm (Kiểm tra trùng tên/slug trước khi thêm)
 app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { name, sale, short_desc, cat_id, brand_id, thumnail, description, status, sub_images, subImages } = req.body;
+    const { name, sale, short_desc, cat_id, brand_id, thumnail, description, status, sub_images, subImages, specifications } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, message: "Vui lòng nhập tên sản phẩm" });
@@ -5073,6 +5073,31 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
 
     const numSale = Number(sale) || 0;
 
+    // Chuẩn hóa danh sách specifications
+    let specList = [];
+    if (Array.isArray(specifications)) {
+      specList = specifications
+        .filter(s => s && (s.name || s.value))
+        .map(s => ({
+          name: String(s.name || '').trim(),
+          value: String(s.value || '').trim(),
+          group: String(s.group || 'detail').trim()
+        }));
+    } else if (typeof specifications === 'string') {
+      try {
+        const parsed = JSON.parse(specifications);
+        if (Array.isArray(parsed)) {
+          specList = parsed
+            .filter(s => s && (s.name || s.value))
+            .map(s => ({
+              name: String(s.name || '').trim(),
+              value: String(s.value || '').trim(),
+              group: String(s.group || 'detail').trim()
+            }));
+        }
+      } catch (e) {}
+    }
+
     const newProduct = await ProductModel.create({
       name: trimmedName,
       slug: productSlug,
@@ -5083,6 +5108,7 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
       thumnail: thumnail || "",
       description: description || "",
       status: status || "active",
+      specifications: specList,
     });
 
     // TẠO ẢNH TRONG ImageModel
@@ -5115,7 +5141,7 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
 app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, sale, short_desc, cat_id, brand_id, thumnail, description, status, slug, sub_images, subImages } = req.body;
+    const { name, sale, short_desc, cat_id, brand_id, thumnail, description, status, slug, sub_images, subImages, specifications } = req.body;
 
     const product = await ProductModel.findById(id);
     if (!product) {
@@ -5150,6 +5176,33 @@ app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
     if (thumnail !== undefined) product.thumnail = thumnail;
     if (description !== undefined) product.description = description;
     if (status !== undefined) product.status = status;
+
+    if (specifications !== undefined) {
+      let specList = [];
+      if (Array.isArray(specifications)) {
+        specList = specifications
+          .filter(s => s && (s.name || s.value))
+          .map(s => ({
+            name: String(s.name || '').trim(),
+            value: String(s.value || '').trim(),
+            group: String(s.group || 'detail').trim()
+          }));
+      } else if (typeof specifications === 'string') {
+        try {
+          const parsed = JSON.parse(specifications);
+          if (Array.isArray(parsed)) {
+            specList = parsed
+              .filter(s => s && (s.name || s.value))
+              .map(s => ({
+                name: String(s.name || '').trim(),
+                value: String(s.value || '').trim(),
+                group: String(s.group || 'detail').trim()
+              }));
+          }
+        } catch (e) {}
+      }
+      product.specifications = specList;
+    }
 
     await product.save();
 

@@ -49,6 +49,22 @@ const SpecsTable = ({ product, activeVariant, attributes, groupedAttributes }) =
     const catName = (product?.cat_id?.name || product?.cat_id?.slug || '').toLowerCase()
     const isMonitor = catName.includes('man-hinh') || catName.includes('màn hình') || catName.includes('monitor') || pName.includes('MÀN HÌNH') || pName.includes('MONITOR')
 
+    // 0. ƯU TIÊN CAO NHẤT: Đọc thông số kỹ thuật thật từ trường specifications trong Database
+    const hasDBSpecs = Array.isArray(product?.specifications) && product.specifications.some(s => s && (s.name || s.value))
+    if (hasDBSpecs) {
+      product.specifications.forEach(spec => {
+        if (!spec) return
+        const n = (spec.name || '').trim()
+        const v = (spec.value || '').trim()
+        if (!n || !v) return
+        let grp = spec.group || 'detail'
+        const k = n.toLowerCase()
+        if (grp === 'detail' && generalKeys.includes(k)) grp = 'general'
+        else if (grp === 'detail' && dimensionKeys.includes(k)) grp = 'dimension'
+        addSpec(grp, n, v)
+      })
+    }
+
     // 1. Thêm thuộc tính từ DB (nếu có)
     if (Array.isArray(attributes) && attributes.length > 0) {
       attributes.forEach(a => {
@@ -81,6 +97,8 @@ const SpecsTable = ({ product, activeVariant, attributes, groupedAttributes }) =
     }
 
     // 2. Phân loại theo Danh Mục & Tên Sản Phẩm để tự động bổ sung bảng thông số kỹ thuật đầy đủ
+    // LƯU Ý: Khối này CHỈ CHẠY khi sản phẩm CHƯA CÓ specifications trong DB (!hasDBSpecs)
+    if (!hasDBSpecs) {
     // ── RAM ──
     if (catName.includes('ram') || pName.includes('DDR4') || pName.includes('DDR5')) {
       // Thông tin chung
@@ -849,14 +867,16 @@ const SpecsTable = ({ product, activeVariant, attributes, groupedAttributes }) =
         addSpec('dimension', 'Khối lượng (không chân)', w)
       }
     }
+    } // Kết thúc khối if (!hasDBSpecs)
+
     // Fallback
     if (!map.has('thương hiệu')) addSpec('general', 'Thương hiệu', product?.brand_id?.name || 'Chính hãng')
-    if (!map.has('bảo hành')) addSpec('general', 'Bảo hành', '12 Tháng')
+    if (!hasDBSpecs && !map.has('bảo hành')) addSpec('general', 'Bảo hành', '12 Tháng')
 
-    return { generalList, detailList, dimensionList }
+    return { generalList, detailList, dimensionList, hasDBSpecs }
   }
 
-  const { generalList, detailList, dimensionList } = getCategorizedSpecs()
+  const { generalList, detailList, dimensionList, hasDBSpecs } = getCategorizedSpecs()
   if (generalList.length === 0 && detailList.length === 0 && (!dimensionList || dimensionList.length === 0)) return null
 
   const renderSection = (title, items) => {
@@ -917,9 +937,15 @@ const SpecsTable = ({ product, activeVariant, attributes, groupedAttributes }) =
       {renderSection('Thông tin chung', generalList)}
       {renderSection('Cấu hình chi tiết', detailList)}
       {renderSection('Kích thước - Khối lượng', dimensionList)}
-      <div style={{ marginTop: '16px', fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>
-        * Thông số kỹ thuật đang được cập nhật
-      </div>
+      {hasDBSpecs ? (
+        <div style={{ marginTop: '16px', fontSize: '13px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span>✓</span> Thông số kỹ thuật chính thức từ nhà sản xuất
+        </div>
+      ) : (
+        <div style={{ marginTop: '16px', fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>
+          * Thông số kỹ thuật đang được cập nhật
+        </div>
+      )}
     </div>
   )
 }

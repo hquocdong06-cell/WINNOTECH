@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UploadCloud, X, Loader2 } from 'lucide-react';
+import { UploadCloud, X, Loader2, Plus, Trash2, Sparkles, Layers } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
   createProduct, updateProduct, uploadImage, fetchCategories, fetchBrands,
@@ -13,6 +13,7 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
     status: 'active', cat_id: '', brand_id: '',
     thumnail: '',
   });
+  const [specifications, setSpecifications] = useState([]);
   const [previewUrl, setPreviewUrl] = useState('');
   const [subImages, setSubImages] = useState([]); // mảng động chứa URL các ảnh phụ
   const [isUploadingMain, setIsUploadingMain] = useState(false);
@@ -63,16 +64,107 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
       });
       setPreviewUrl(imgUrl ? getFullUrl(imgUrl) : '');
       setSubImages(secondaryImgs.slice(0, 4));
+      setSpecifications(Array.isArray(product.specifications) ? product.specifications : []);
     } else {
       setForm({ name: '', description: '', short_desc: '', status: 'active', cat_id: '', brand_id: '', thumnail: '' });
       setPreviewUrl('');
       setSubImages([]);
+      setSpecifications([]);
     }
   }, [isOpen, product, categoriesProp]);
 
   if (!isOpen) return null;
 
   const setField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+  // Xử lý Thông số kỹ thuật (Specifications)
+  const handleAddSpec = () => {
+    setSpecifications(prev => [...prev, { name: '', value: '', group: 'detail' }]);
+  };
+
+  const handleSpecChange = (index, field, val) => {
+    setSpecifications(prev => prev.map((item, idx) => idx === index ? { ...item, [field]: val } : item));
+  };
+
+  const handleRemoveSpec = (index) => {
+    setSpecifications(prev => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleApplyTemplate = (type) => {
+    const templates = {
+      'CPU': [
+        { name: 'Socket Hỗ Trợ', value: '', group: 'detail' },
+        { name: 'Số Nhân / Số Luồng', value: '', group: 'detail' },
+        { name: 'Xung Nhịp Cơ Bản', value: '', group: 'detail' },
+        { name: 'Xung Nhịp Tối Đa (Boost)', value: '', group: 'detail' },
+        { name: 'Bộ Nhớ Đệm (Cache)', value: '', group: 'detail' },
+        { name: 'Công Suất Tiêu Thụ (TDP)', value: '', group: 'detail' },
+        { name: 'Chuẩn RAM Hỗ Trợ', value: '', group: 'detail' },
+        { name: 'Đồ Họa Tích Hợp (iGPU)', value: '', group: 'detail' },
+      ],
+      'VGA / Card màn hình': [
+        { name: 'Chipset Đồ Họa', value: '', group: 'detail' },
+        { name: 'Dung Lượng Bộ Nhớ (VRAM)', value: '', group: 'detail' },
+        { name: 'Chuẩn Bộ Nhớ', value: 'GDDR6X', group: 'detail' },
+        { name: 'Chuẩn Băng Thông', value: 'PCIe 4.0 x16', group: 'detail' },
+        { name: 'Nguồn Khuyến Nghị', value: '', group: 'detail' },
+        { name: 'Cổng Xuất Hình', value: '3x DisplayPort, 1x HDMI', group: 'detail' },
+        { name: 'Chiều Dài Card', value: '', group: 'dimension' },
+      ],
+      'RAM': [
+        { name: 'Dung Lượng', value: '', group: 'detail' },
+        { name: 'Chuẩn RAM', value: 'DDR5', group: 'detail' },
+        { name: 'Bus RAM', value: '', group: 'detail' },
+        { name: 'Độ Trễ (Timing)', value: '', group: 'detail' },
+        { name: 'Điện Áp (Voltage)', value: '', group: 'detail' },
+        { name: 'Đèn LED', value: 'RGB', group: 'general' },
+        { name: 'Bảo Hành', value: '36 Tháng', group: 'general' },
+      ],
+      'Mainboard': [
+        { name: 'Chuẩn Kích Thước (Form Factor)', value: 'ATX', group: 'detail' },
+        { name: 'Socket Hỗ Trợ', value: '', group: 'detail' },
+        { name: 'Chipset', value: '', group: 'detail' },
+        { name: 'Số Khe Cắm RAM', value: '4 Khe DDR5', group: 'detail' },
+        { name: 'Số Khe M.2 NVMe', value: '', group: 'detail' },
+        { name: 'Cổng Kết Nối Phía Sau', value: '', group: 'detail' },
+        { name: 'Kết Nối Không Dây', value: 'Wi-Fi 6E + Bluetooth 5.3', group: 'detail' },
+      ],
+      'SSD / Ổ cứng': [
+        { name: 'Dung Lượng', value: '', group: 'detail' },
+        { name: 'Chuẩn Giao Tiếp', value: 'PCIe Gen4 x4 M.2 NVMe', group: 'detail' },
+        { name: 'Kích Thước', value: 'M.2 2280', group: 'detail' },
+        { name: 'Tốc Độ Đọc Tối Đa', value: '', group: 'detail' },
+        { name: 'Tốc Độ Ghi Tối Đa', value: '', group: 'detail' },
+        { name: 'Độ Bền (TBW)', value: '', group: 'detail' },
+      ],
+      'Nguồn (PSU)': [
+        { name: 'Công Suất Tối Đa', value: '', group: 'detail' },
+        { name: 'Chuẩn Hiệu Suất', value: '80 Plus Gold', group: 'detail' },
+        { name: 'Kiểu Dây Cáp', value: 'Full Modular', group: 'detail' },
+        { name: 'Kích Thước Quạt', value: '120mm / 135mm', group: 'detail' },
+        { name: 'Bảo Hành', value: '60 Tháng', group: 'general' },
+      ],
+      'Màn hình': [
+        { name: 'Kích Thước Màn Hình', value: '', group: 'detail' },
+        { name: 'Độ Phân Giải', value: '', group: 'detail' },
+        { name: 'Tần Số Quét', value: '', group: 'detail' },
+        { name: 'Thời Gian Phản Hồi', value: '1ms (GTG)', group: 'detail' },
+        { name: 'Tấm Nền', value: 'Fast IPS', group: 'detail' },
+        { name: 'Độ Phủ Màu', value: '99% sRGB', group: 'detail' },
+        { name: 'Cổng Kết Nối', value: 'HDMI, DisplayPort', group: 'detail' },
+      ],
+    };
+
+    const tplList = templates[type] || [];
+    if (tplList.length === 0) return;
+
+    setSpecifications(prev => {
+      const existingNames = new Set(prev.map(p => (p.name || '').trim().toLowerCase()));
+      const toAdd = tplList.filter(t => !existingNames.has(t.name.trim().toLowerCase()));
+      return [...prev, ...toAdd];
+    });
+    toast.info(`Đã nạp bộ thông số mẫu cho ${type}`);
+  };
 
   // Upload ảnh chính
   const handleMainFileChange = async (e) => {
@@ -164,6 +256,14 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
     setIsSaving(true);
     try {
       const validSubImages = subImages.filter(url => url && typeof url === 'string' && url.trim() !== '');
+      const validSpecs = specifications
+        .filter(s => (s.name && s.name.trim()) || (s.value && s.value.trim()))
+        .map(s => ({
+          name: (s.name || '').trim(),
+          value: (s.value || '').trim(),
+          group: s.group || 'detail'
+        }));
+
       const payload = {
         name: form.name.trim(),
         description: form.description,
@@ -173,6 +273,7 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
         brand_id: form.brand_id || null,
         thumnail: form.thumnail,
         sub_images: validSubImages,
+        specifications: validSpecs,
       };
 
       if (product) {
@@ -466,6 +567,117 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
             </div>
 
           </div>
+
+          {/* Khối Thông số kỹ thuật (Specifications) ĐỘNG */}
+          <div className="mt-6 bg-[#1e1e1e] border border-[#333] rounded-lg p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#333] pb-3">
+              <div>
+                <h3 className="font-semibold text-[15px] text-white flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-[#d4ff00]" />
+                  Thông số kỹ thuật chi tiết (Specifications)
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Các thông số này sẽ hiển thị trực tiếp tại bảng "THÔNG SỐ KỸ THUẬT" ngoài trang chi tiết sản phẩm
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAddSpec}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d4ff00] hover:bg-[#bce600] text-black text-xs font-bold rounded-md transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Thêm thông số
+                </button>
+              </div>
+            </div>
+
+            {/* Thanh Nạp mẫu nhanh theo loại linh kiện */}
+            <div className="bg-[#141414] border border-[#2a2a2a] rounded-lg p-3">
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-[#d4ff00]" />
+                <span className="font-medium text-gray-300">Nạp mẫu thông số nhanh theo danh mục:</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {['CPU', 'VGA / Card màn hình', 'RAM', 'Mainboard', 'SSD / Ổ cứng', 'Nguồn (PSU)', 'Màn hình'].map(tpl => (
+                  <button
+                    key={tpl}
+                    type="button"
+                    onClick={() => handleApplyTemplate(tpl)}
+                    className="px-2.5 py-1 text-[11px] bg-[#222] hover:bg-[#2e2e2e] border border-[#444] hover:border-[#d4ff00] text-gray-300 hover:text-[#d4ff00] rounded transition-all font-medium"
+                  >
+                    + {tpl}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Danh sách các dòng thông số */}
+            {specifications.length === 0 ? (
+              <div className="text-center py-7 border border-dashed border-[#333] rounded-lg bg-[#141414]/40">
+                <p className="text-xs text-gray-400">Chưa có thông số kỹ thuật nào được nhập.</p>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  Bấm <strong>"+ Thêm thông số"</strong> hoặc chọn <strong>"Nạp mẫu nhanh"</strong> theo loại linh kiện ở trên.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                <div className="hidden sm:grid grid-cols-12 gap-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-1">
+                  <div className="col-span-5">Tên thông số</div>
+                  <div className="col-span-4">Giá trị</div>
+                  <div className="col-span-2">Nhóm hiển thị</div>
+                  <div className="col-span-1 text-center">Xóa</div>
+                </div>
+
+                {specifications.map((item, idx) => (
+                  <div key={idx} className="flex flex-col sm:grid sm:grid-cols-12 gap-2 bg-[#141414] border border-[#333] p-2.5 rounded-lg hover:border-[#444] transition-colors items-center">
+                    <div className="w-full sm:col-span-5">
+                      <input
+                        type="text"
+                        value={item.name}
+                        onChange={(e) => handleSpecChange(idx, 'name', e.target.value)}
+                        placeholder="Tên thông số (VD: Socket Hỗ Trợ, Xung Nhịp...)"
+                        className="w-full bg-[#1e1e1e] border border-[#3a3a3a] rounded px-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:border-[#d4ff00] transition-colors"
+                      />
+                    </div>
+                    <div className="w-full sm:col-span-4">
+                      <input
+                        type="text"
+                        value={item.value}
+                        onChange={(e) => handleSpecChange(idx, 'value', e.target.value)}
+                        placeholder="Giá trị (VD: AM5, 5.0 GHz, 120W...)"
+                        className="w-full bg-[#1e1e1e] border border-[#3a3a3a] rounded px-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:border-[#d4ff00] transition-colors"
+                      />
+                    </div>
+                    <div className="w-full sm:col-span-2">
+                      <select
+                        value={item.group || 'detail'}
+                        onChange={(e) => handleSpecChange(idx, 'group', e.target.value)}
+                        className="w-full bg-[#1e1e1e] border border-[#3a3a3a] rounded px-2 py-1.5 text-xs text-gray-300 outline-none focus:border-[#d4ff00] cursor-pointer"
+                        title="Chọn nhóm hiển thị"
+                      >
+                        <option value="detail">Cấu hình chi tiết</option>
+                        <option value="general">Thông tin chung</option>
+                        <option value="dimension">Kích thước - Khối lượng</option>
+                      </select>
+                    </div>
+                    <div className="w-full sm:col-span-1 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSpec(idx)}
+                        className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                        title="Xóa thông số này"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
 
         {/* Footer */}
