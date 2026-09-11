@@ -23,7 +23,9 @@ export default function UuDai() {
       const res = await fetch(`${API_URL}/api/vouchers/active`, { credentials: 'include' });
       const data = await res.json();
       if (data.success) {
-        setVouchers(data.data || []);
+        // Chỉ lấy những voucher chưa được thêm vào ví của người dùng (!v.isSaved)
+        const unSavedVouchers = (data.data || []).filter(v => !v.isSaved);
+        setVouchers(unSavedVouchers);
       }
     } catch (err) {
       console.error("Lỗi tải voucher:", err);
@@ -48,8 +50,8 @@ export default function UuDai() {
       const data = await res.json();
       if (data.success) {
         toast.success(data.message || "Đã lưu mã vào ví voucher!", { position: 'bottom-right' });
-        // Cập nhật trạng thái isSaved
-        setVouchers(prev => prev.map(v => v._id === voucherId ? { ...v, isSaved: true } : v));
+        // Xóa ngay voucher đó khỏi mảng vouchers trên state sau khi lưu thành công
+        setVouchers(prev => prev.filter(v => v._id !== voucherId));
       } else {
         toast.warn(data.message || "Không thể lưu voucher", { position: 'bottom-right' });
       }
