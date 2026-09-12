@@ -2096,9 +2096,8 @@ app.get("/products/:slug", async (req, res, next) => {
         };
       });
 
-    if (formattedSpecs.length > 0) {
-      productDetail.specifications = formattedSpecs;
-    }
+    // Bắt buộc lấy từ bảng Specification — không dùng specifications inline trong Product
+    productDetail.specifications = formattedSpecs;
 
     return res.json({
       success: true,
@@ -5234,32 +5233,9 @@ app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
     if (description !== undefined) product.description = description;
     if (status !== undefined) product.status = status;
 
-    if (specifications !== undefined) {
-      let specList = [];
-      if (Array.isArray(specifications)) {
-        specList = specifications
-          .filter(s => s && (s.name || s.value))
-          .map(s => ({
-            name: String(s.name || '').trim(),
-            value: String(s.value || '').trim(),
-            group: String(s.group || 'detail').trim()
-          }));
-      } else if (typeof specifications === 'string') {
-        try {
-          const parsed = JSON.parse(specifications);
-          if (Array.isArray(parsed)) {
-            specList = parsed
-              .filter(s => s && (s.name || s.value))
-              .map(s => ({
-                name: String(s.name || '').trim(),
-                value: String(s.value || '').trim(),
-                group: String(s.group || 'detail').trim()
-              }));
-          }
-        } catch (e) {}
-      }
-      product.specifications = specList;
-    }
+    // specifications KHÔNG còn lưu vào Product document
+    // — chỉ đồng bộ vào bảng Specification phía dưới
+
 
     await product.save();
 

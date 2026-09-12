@@ -13,14 +13,8 @@ const ProductSchema = new mongoose.Schema(
     // Foreign Keys
     cat_id:   { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
     brand_id: { type: mongoose.Schema.Types.ObjectId, ref: "Brand" },
-    // Thông số kỹ thuật động (Specifications)
-    specifications: [
-      {
-        name: { type: String, trim: true },
-        value: { type: String, trim: true },
-        group: { type: String, default: "detail", trim: true } // 'general' | 'detail' | 'dimension'
-      }
-    ],
+    // Thông số kỹ thuật được lưu trong bảng riêng: Specification (ref: p_id → id_attribute_value)
+    // KHÔNG lưu inline — bắt buộc truy vấn từ collection "Specifications"
   },
   {
     timestamps: true,
