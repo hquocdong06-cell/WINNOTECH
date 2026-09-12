@@ -49,20 +49,24 @@ const SpecsTable = ({ product, activeVariant, attributes, groupedAttributes }) =
     const catName = (product?.cat_id?.name || product?.cat_id?.slug || '').toLowerCase()
     const isMonitor = catName.includes('man-hinh') || catName.includes('màn hình') || catName.includes('monitor') || pName.includes('MÀN HÌNH') || pName.includes('MONITOR')
 
-    // 0. ƯU TIÊN CAO NHẤT: Đọc thông số kỹ thuật thật từ trường specifications trong Database
-    const hasDBSpecs = Array.isArray(product?.specifications) && product.specifications.some(s => s && (s.name || s.value))
+    // 0. ƯU TIÊN CAO NHẤT: Đọc thông số kỹ thuật thật từ bảng Specifications trong Database
+    const specsSource = Array.isArray(product?.specifications) && product.specifications.length > 0
+      ? product.specifications
+      : (Array.isArray(product?.Specifications) ? product.Specifications : []);
+
+    const hasDBSpecs = specsSource.some(s => s && (s.name || s.value || s.id_attribute_value));
     if (hasDBSpecs) {
-      product.specifications.forEach(spec => {
-        if (!spec) return
-        const n = (spec.name || '').trim()
-        const v = (spec.value || '').trim()
-        if (!n || !v) return
-        let grp = spec.group || 'detail'
-        const k = n.toLowerCase()
-        if (grp === 'detail' && generalKeys.includes(k)) grp = 'general'
-        else if (grp === 'detail' && dimensionKeys.includes(k)) grp = 'dimension'
-        addSpec(grp, n, v)
-      })
+      specsSource.forEach(spec => {
+        if (!spec) return;
+        const n = (spec.name || spec.category_name || spec.id_attribute_value?.id_categories_attribute?.name || '').trim();
+        const v = (spec.value || spec.id_attribute_value?.value || '').trim();
+        if (!n || !v) return;
+        let grp = spec.group || 'detail';
+        const k = n.toLowerCase();
+        if (grp === 'detail' && generalKeys.includes(k)) grp = 'general';
+        else if (grp === 'detail' && dimensionKeys.includes(k)) grp = 'dimension';
+        addSpec(grp, n, v);
+      });
     }
 
     // 1. Thêm thuộc tính từ DB (nếu có)

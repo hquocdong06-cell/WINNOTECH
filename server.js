@@ -31,6 +31,7 @@ const {
 } = require("./models/ProductVariant");
 const { Order, OrderItem } = require("./models/Order");
 const { Attribute, AttributeValue, CategoryAttribute } = require("./models/Attribute");
+const { Specification } = require("./models/Specification");
 const { Favorite, Compare, Review } = require("./models/FavoriteCompareReview");
 const {
   Banner,
@@ -2064,12 +2065,48 @@ app.get("/products/:slug", async (req, res, next) => {
       Attributes: variantAttrMap[v._id.toString()] || [],
     }));
 
+    // Lấy thông số kỹ thuật thật từ bảng Specifications
+    const specificationsList = await Specification.find({
+      p_id: productDetail._id,
+      status: "active",
+      is_deleted: false,
+    })
+      .populate({
+        path: "id_attribute_value",
+        populate: {
+          path: "id_categories_attribute id_attribute",
+          select: "name status",
+        },
+      })
+      .lean();
+
+    const formattedSpecs = specificationsList
+      .filter((s) => s.id_attribute_value && s.id_attribute_value.value)
+      .map((s) => {
+        const cat =
+          s.id_attribute_value.id_categories_attribute ||
+          s.id_attribute_value.id_attribute;
+        return {
+          _id: s._id,
+          name: cat?.name || "Thông số",
+          value: s.id_attribute_value.value,
+          group: "detail",
+          id_attribute_value: s.id_attribute_value._id,
+          id_categories_attribute: cat?._id,
+        };
+      });
+
+    if (formattedSpecs.length > 0) {
+      productDetail.specifications = formattedSpecs;
+    }
+
     return res.json({
       success: true,
       data: {
         product: productDetail,
         AnhSP: images,
         Variants: variantsWithAttributes,
+        Specifications: specificationsList,
       },
     });
   } catch (error) {
@@ -5125,6 +5162,26 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
       }
     }
 
+    // Đồng bộ thông số vào bảng Specifications (theo ERD)
+    if (Array.isArray(specifications) && specifications.length > 0) {
+      for (const item of specifications) {
+        const attrValId = item.id_attribute_value || item._id_attribute_value || (item._id && mongoose.Types.ObjectId.isValid(item._id) && !item.p_id ? item._id : null);
+        if (attrValId && mongoose.Types.ObjectId.isValid(attrValId)) {
+          await Specification.findOneAndUpdate(
+            { p_id: newProduct._id, id_attribute_value: attrValId },
+            {
+              p_id: newProduct._id,
+              id_attribute_value: attrValId,
+              status: item.status || "active",
+              is_deleted: item.status === "inactive" || item.is_deleted === true,
+              deleted_at: (item.status === "inactive" || item.is_deleted === true) ? new Date() : null,
+            },
+            { upsert: true, new: true }
+          );
+        }
+      }
+    }
+
     return res.status(201).json({
       success: true,
       message: "Thêm sản phẩm mới thành công",
@@ -5205,6 +5262,44 @@ app.put("/admin/products/:id", checklogin, checkAdmin, async (req, res) => {
     }
 
     await product.save();
+
+    // Đồng bộ vào bảng Specifications (theo ERD)
+    if (specifications !== undefined && Array.isArray(specifications)) {
+      const validAttrValIds = [];
+      for (const item of specifications) {
+        const attrValId = item.id_attribute_value || item._id_attribute_value || (item._id && mongoose.Types.ObjectId.isValid(item._id) && !item.p_id ? item._id : null);
+        if (attrValId && mongoose.Types.ObjectId.isValid(attrValId)) {
+          validAttrValIds.push(attrValId.toString());
+          await Specification.findOneAndUpdate(
+            { p_id: id, id_attribute_value: attrValId },
+            {
+              p_id: id,
+              id_attribute_value: attrValId,
+              status: item.status || "active",
+              is_deleted: item.status === "inactive" || item.is_deleted === true,
+              deleted_at: (item.status === "inactive" || item.is_deleted === true) ? new Date() : null,
+            },
+            { upsert: true, new: true }
+          );
+        }
+      }
+
+      // Xóa mềm các thông số cũ không còn nằm trong danh sách gửi lên
+      if (validAttrValIds.length > 0) {
+        await Specification.updateMany(
+          {
+            p_id: id,
+            id_attribute_value: { $nin: validAttrValIds },
+            is_deleted: false,
+          },
+          {
+            status: "inactive",
+            is_deleted: true,
+            deleted_at: new Date(),
+          }
+        );
+      }
+    }
 
     // 1. Cập nhật / Đồng bộ ảnh chính trong ImageModel
     if (thumnail && thumnail.trim()) {
@@ -7606,6 +7701,307 @@ app.delete("/admin/attributes/:id", checklogin, checkAdmin, async (req, res) => 
   } catch (error) {
     console.error("Lỗi soft delete attribute:", error);
     return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// ============================================================
+// ADMIN SPECIFICATIONS CRUD (Bảng Specifications theo ERD)
+// ============================================================
+
+// GET /admin/specifications/product/:productId — Lấy danh sách thông số của sản phẩm
+app.get("/admin/specifications/product/:productId", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { include_inactive } = req.query;
+
+    const query = { p_id: productId };
+    if (!include_inactive || include_inactive === 'false') {
+      query.status = "active";
+      query.is_deleted = false;
+    }
+
+    const specifications = await Specification.find(query)
+      .populate({
+        path: "id_attribute_value",
+        populate: {
+          path: "id_categories_attribute id_attribute",
+          select: "name status",
+        },
+      })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    const data = specifications.map((spec) => {
+      const attrVal = spec.id_attribute_value;
+      const cat = attrVal?.id_categories_attribute || attrVal?.id_attribute;
+      return {
+        _id: spec._id,
+        p_id: spec.p_id,
+        id_attribute_value: attrVal?._id || spec.id_attribute_value,
+        value: attrVal?.value || "",
+        category_id: cat?._id || null,
+        category_name: cat?.name || "Thông số",
+        status: spec.status,
+        is_deleted: spec.is_deleted,
+        createdAt: spec.createdAt,
+        updatedAt: spec.updatedAt,
+      };
+    });
+
+    return res.json({ success: true, count: data.length, data });
+  } catch (error) {
+    console.error("Lỗi GET specifications của sản phẩm:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// POST /admin/specifications — Thêm thông số kỹ thuật mới cho sản phẩm
+app.post("/admin/specifications", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { p_id, id_attribute_value } = req.body;
+    if (!p_id) {
+      return res.status(400).json({ success: false, message: "Vui lòng chọn sản phẩm (p_id)" });
+    }
+    if (!id_attribute_value) {
+      return res.status(400).json({ success: false, message: "Vui lòng chọn giá trị thuộc tính (id_attribute_value)" });
+    }
+
+    // Kiểm tra sản phẩm và thuộc tính có tồn tại không
+    const [productExists, attrExists] = await Promise.all([
+      ProductModel.findById(p_id),
+      AttributeValue.findById(id_attribute_value),
+    ]);
+    if (!productExists) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
+    }
+    if (!attrExists) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy giá trị thuộc tính" });
+    }
+
+    // Kiểm tra trùng lặp
+    let spec = await Specification.findOne({ p_id, id_attribute_value });
+    if (spec) {
+      if (spec.status === "active" && !spec.is_deleted) {
+        return res.status(400).json({ success: false, message: "Thông số này đã tồn tại trên sản phẩm" });
+      }
+      // Nếu đã từng bị xóa mềm -> Phục hồi lại
+      spec.status = "active";
+      spec.is_deleted = false;
+      spec.deleted_at = null;
+      await spec.save();
+    } else {
+      spec = await Specification.create({
+        p_id,
+        id_attribute_value,
+        status: "active",
+        is_deleted: false,
+      });
+    }
+
+    const populated = await Specification.findById(spec._id)
+      .populate({
+        path: "id_attribute_value",
+        populate: {
+          path: "id_categories_attribute id_attribute",
+          select: "name status",
+        },
+      })
+      .lean();
+
+    return res.status(201).json({
+      success: true,
+      message: "Thêm thông số kỹ thuật thành công",
+      data: populated,
+    });
+  } catch (error) {
+    console.error("Lỗi POST specification:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// PUT /admin/specifications/:id — Sửa thông số kỹ thuật
+app.put("/admin/specifications/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { id_attribute_value, status } = req.body;
+
+    const spec = await Specification.findById(id);
+    if (!spec) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy thông số kỹ thuật" });
+    }
+
+    if (id_attribute_value) {
+      const attrExists = await AttributeValue.findById(id_attribute_value);
+      if (!attrExists) {
+        return res.status(404).json({ success: false, message: "Không tìm thấy giá trị thuộc tính mới" });
+      }
+      spec.id_attribute_value = id_attribute_value;
+    }
+
+    if (status !== undefined) {
+      spec.status = status;
+      if (status === "inactive") {
+        spec.is_deleted = true;
+        spec.deleted_at = new Date();
+      } else if (status === "active") {
+        spec.is_deleted = false;
+        spec.deleted_at = null;
+      }
+    }
+
+    await spec.save();
+
+    const populated = await Specification.findById(id)
+      .populate({
+        path: "id_attribute_value",
+        populate: {
+          path: "id_categories_attribute id_attribute",
+          select: "name status",
+        },
+      })
+      .lean();
+
+    return res.json({
+      success: true,
+      message: "Cập nhật thông số kỹ thuật thành công",
+      data: populated,
+    });
+  } catch (error) {
+    console.error("Lỗi PUT specification:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+  }
+});
+
+// PATCH /admin/specifications/:id/status — Đổi trạng thái / Khôi phục xóa mềm thông số
+app.patch("/admin/specifications/:id/status", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const spec = await Specification.findById(id);
+    if (!spec) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy thông số kỹ thuật" });
+    }
+
+    const nextStatus = status || (spec.status === "active" ? "inactive" : "active");
+    spec.status = nextStatus;
+    if (nextStatus === "inactive") {
+      spec.is_deleted = true;
+      spec.deleted_at = new Date();
+    } else {
+      spec.is_deleted = false;
+      spec.deleted_at = null;
+    }
+
+    await spec.save();
+
+    return res.json({
+      success: true,
+      message: nextStatus === "active" ? "Đã kích hoạt thông số" : "Đã ẩn thông số (Soft delete thành công)",
+      data: spec,
+    });
+  } catch (error) {
+    console.error("Lỗi PATCH specification status:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// DELETE /admin/specifications/:id — XÓA MỀM thông số kỹ thuật (KHÔNG XÓA DB)
+app.delete("/admin/specifications/:id", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const spec = await Specification.findById(id);
+    if (!spec) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy thông số kỹ thuật" });
+    }
+
+    // SOFT DELETE: chuyển status inactive, is_deleted true, không xóa document
+    spec.status = "inactive";
+    spec.is_deleted = true;
+    spec.deleted_at = new Date();
+    await spec.save();
+
+    return res.json({
+      success: true,
+      message: "Đã xóa mềm thông số kỹ thuật thành công",
+      data: spec,
+    });
+  } catch (error) {
+    console.error("Lỗi DELETE specification:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server" });
+  }
+});
+
+// POST /admin/specifications/sync — Đồng bộ toàn bộ thông số cho 1 sản phẩm
+app.post("/admin/specifications/sync", checklogin, checkAdmin, async (req, res) => {
+  try {
+    const { p_id, specifications } = req.body;
+    if (!p_id) {
+      return res.status(400).json({ success: false, message: "Thiếu mã sản phẩm p_id" });
+    }
+
+    const list = Array.isArray(specifications) ? specifications : [];
+    const activeAttrValIds = [];
+
+    for (const item of list) {
+      const attrValId = typeof item === 'object' && item !== null
+        ? (item.id_attribute_value || item._id_attribute_value || item._id)
+        : item;
+
+      if (attrValId && mongoose.Types.ObjectId.isValid(attrValId)) {
+        activeAttrValIds.push(attrValId.toString());
+        await Specification.findOneAndUpdate(
+          { p_id, id_attribute_value: attrValId },
+          {
+            p_id,
+            id_attribute_value: attrValId,
+            status: "active",
+            is_deleted: false,
+            deleted_at: null,
+          },
+          { upsert: true, new: true }
+        );
+      }
+    }
+
+    // Xóa mềm các thông số của sản phẩm này mà không nằm trong danh sách truyền lên
+    await Specification.updateMany(
+      {
+        p_id,
+        id_attribute_value: { $nin: activeAttrValIds },
+        is_deleted: false,
+      },
+      {
+        status: "inactive",
+        is_deleted: true,
+        deleted_at: new Date(),
+      }
+    );
+
+    const updatedSpecs = await Specification.find({
+      p_id,
+      status: "active",
+      is_deleted: false,
+    })
+      .populate({
+        path: "id_attribute_value",
+        populate: {
+          path: "id_categories_attribute id_attribute",
+          select: "name status",
+        },
+      })
+      .lean();
+
+    return res.json({
+      success: true,
+      message: "Đồng bộ thông số kỹ thuật thành công",
+      count: updatedSpecs.length,
+      data: updatedSpecs,
+    });
+  } catch (error) {
+    console.error("Lỗi sync specifications:", error);
+    return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
   }
 });
 

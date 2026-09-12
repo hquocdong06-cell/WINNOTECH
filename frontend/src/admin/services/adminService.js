@@ -256,6 +256,56 @@ export async function deleteAttribute(id) {
 }
 
 // ============================================================
+// SPECIFICATIONS (ADMIN - Theo ERD)
+// ============================================================
+export async function fetchProductSpecifications(productId, params = {}) {
+  const query = typeof params === 'object' && params !== null
+    ? new URLSearchParams(params).toString()
+    : '';
+  const endpoint = query
+    ? `/admin/specifications/product/${productId}?${query}`
+    : `/admin/specifications/product/${productId}`;
+  const data = await apiFetch(endpoint);
+  return data.data || [];
+}
+
+export async function createSpecification(payload) {
+  return apiFetch('/admin/specifications', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateSpecification(id, payload) {
+  return apiFetch(`/admin/specifications/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function toggleSpecificationStatus(id, status) {
+  return apiFetch(`/admin/specifications/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function deleteSpecification(id) {
+  return apiFetch(`/admin/specifications/${id}`, { method: 'DELETE' });
+}
+
+export async function syncProductSpecifications(productId, specifications) {
+  return apiFetch('/admin/specifications/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_id: productId, specifications }),
+  });
+}
+
+// ============================================================
 // USERS / CUSTOMERS (ADMIN)
 // ============================================================
 export async function fetchAdminUsers() {

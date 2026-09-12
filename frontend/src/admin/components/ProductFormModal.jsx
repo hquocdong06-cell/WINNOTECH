@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UploadCloud, X, Loader2, Plus, Trash2, Sparkles, Layers } from 'lucide-react';
+import { UploadCloud, X, Loader2, Plus, Trash2, Layers, Edit2, Check, RotateCcw, PlusCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
   createProduct, updateProduct, uploadImage, fetchCategories, fetchBrands,
+  fetchCategoryAttributes, createCategoryAttribute,
+  fetchAttributes, createAttribute,
+  fetchProductSpecifications, deleteSpecification, toggleSpecificationStatus,
 } from '../services/adminService';
 
 import { API_BASE } from '../../services/apiService';
@@ -22,6 +25,24 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
   const [isSaving, setIsSaving] = useState(false);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+
+  // Bảng categories_attribute và attribute_value theo ERD
+  const [categoryAttributes, setCategoryAttributes] = useState([]);
+  const [allAttributes, setAllAttributes] = useState([]);
+  const [selectedCatId, setSelectedCatId] = useState('');
+  const [selectedAttrValId, setSelectedAttrValId] = useState('');
+
+  // Tạo nhanh 2 bảng categories_attribute & attribute_value cùng lúc tại popup
+  const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
+  const [quickCatMode, setQuickCatMode] = useState('existing'); // 'existing' | 'new'
+  const [quickNewCatName, setQuickNewCatName] = useState('');
+  const [quickSelectedCatId, setQuickSelectedCatId] = useState('');
+  const [quickNewValue, setQuickNewValue] = useState('');
+  const [isCreatingQuick, setIsCreatingQuick] = useState(false);
+
+  // Chỉnh sửa inline thông số
+  const [editingSpecIdx, setEditingSpecIdx] = useState(null);
+  const [editingAttrValId, setEditingAttrValId] = useState('');
   
   const fileInputRef = useRef(null);
   const addSubFileInputRef = useRef(null);
@@ -36,7 +57,7 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
     return url.startsWith('http') ? url : `${API_BASE}${url}`;
   };
 
-  // Load categories + brands khi mở modal
+  // Load categories + brands + categoryAttributes + attributes khi mở modal
   useEffect(() => {
     if (!isOpen) return;
     if (categoriesProp?.length) {
@@ -45,6 +66,21 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
       fetchCategories().then(setCategories).catch(() => {});
     }
     fetchBrands().then(setBrands).catch(() => {});
+
+    // Nạp danh mục thuộc tính và các giá trị thuộc tính có sẵn
+    const loadAttrs = async () => {
+      try {
+        const [cats, attrs] = await Promise.all([
+          fetchCategoryAttributes({ status: 'active' }),
+          fetchAttributes({ status: 'active' }),
+        ]);
+        setCategoryAttributes(cats || []);
+        setAllAttributes(attrs || []);
+      } catch (err) {
+        console.error('Lỗi nạp thuộc tính:', err);
+      }
+    };
+    loadAttrs();
 
     // Điền dữ liệu nếu là edit
     if (product) {
@@ -64,12 +100,41 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
       });
       setPreviewUrl(imgUrl ? getFullUrl(imgUrl) : '');
       setSubImages(secondaryImgs.slice(0, 4));
-      setSpecifications(Array.isArray(product.specifications) ? product.specifications : []);
+
+      // Lấy thông số từ bảng Specifications
+      if (product._id) {
+        fetchProductSpecifications(product._id, { include_inactive: 'true' })
+          .then((specs) => {
+            if (Array.isArray(specs) && specs.length > 0) {
+              setSpecifications(specs.map(s => ({
+                _id: s._id,
+                p_id: s.p_id,
+                id_attribute_value: s.id_attribute_value?._id || s.id_attribute_value,
+                value: s.value || s.id_attribute_value?.value || '',
+                category_id: s.category_id || s.id_attribute_value?.id_categories_attribute?._id || s.id_attribute_value?.id_categories_attribute || '',
+                category_name: s.category_name || s.id_attribute_value?.id_categories_attribute?.name || 'Thông số',
+                status: s.status || 'active',
+                is_deleted: Boolean(s.is_deleted || s.status === 'inactive'),
+              })));
+            } else if (Array.isArray(product.specifications)) {
+              setSpecifications(product.specifications);
+            }
+          })
+          .catch(() => {
+            setSpecifications(Array.isArray(product.specifications) ? product.specifications : []);
+          });
+      } else {
+        setSpecifications(Array.isArray(product.specifications) ? product.specifications : []);
+      }
     } else {
       setForm({ name: '', description: '', short_desc: '', status: 'active', cat_id: '', brand_id: '', thumnail: '' });
       setPreviewUrl('');
       setSubImages([]);
       setSpecifications([]);
+      setSelectedCatId('');
+      setSelectedAttrValId('');
+      setIsQuickCreateOpen(false);
+      setEditingSpecIdx(null);
     }
   }, [isOpen, product, categoriesProp]);
 
@@ -77,93 +142,203 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
 
   const setField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
-  // Xử lý Thông số kỹ thuật (Specifications)
-  const handleAddSpec = () => {
-    setSpecifications(prev => [...prev, { name: '', value: '', group: 'detail' }]);
+  // Danh sách các giá trị thuộc tính tương ứng với danh mục được chọn
+  const availableValuesForSelectedCat = allAttributes.filter(attr => {
+    const cId = typeof attr.id_categories_attribute === 'object'
+      ? attr.id_categories_attribute?._id
+      : (attr.id_categories_attribute || attr.id_attribute);
+    return String(cId) === String(selectedCatId);
+  });
+
+  // 1. Thêm thông số từ thuộc tính có sẵn
+  const handleAddExistingSpec = () => {
+    if (!selectedCatId) {
+      toast.warning('Vui lòng chọn danh mục thuộc tính!');
+      return;
+    }
+    if (!selectedAttrValId) {
+      toast.warning('Vui lòng chọn giá trị thuộc tính!');
+      return;
+    }
+
+    const foundVal = allAttributes.find(a => String(a._id) === String(selectedAttrValId));
+    const foundCat = categoryAttributes.find(c => String(c._id) === String(selectedCatId));
+    if (!foundVal || !foundCat) return;
+
+    // Kiểm tra xem đã có trong danh sách specifications chưa
+    const existingIndex = specifications.findIndex(
+      s => String(s.id_attribute_value) === String(selectedAttrValId)
+    );
+
+    if (existingIndex !== -1) {
+      const existingItem = specifications[existingIndex];
+      if (existingItem.status === 'active' && !existingItem.is_deleted) {
+        toast.info('Thông số này đã có trong danh sách thông số của sản phẩm!');
+        return;
+      }
+      // Nếu đang bị xóa mềm -> Phục hồi lại active
+      setSpecifications(prev => prev.map((s, idx) => idx === existingIndex ? {
+        ...s,
+        status: 'active',
+        is_deleted: false,
+      } : s));
+      toast.success(`Đã khôi phục lại thông số: ${foundCat.name} - ${foundVal.value}`);
+      setSelectedAttrValId('');
+      return;
+    }
+
+    setSpecifications(prev => [
+      ...prev,
+      {
+        id_attribute_value: foundVal._id,
+        category_id: foundCat._id,
+        category_name: foundCat.name,
+        value: foundVal.value,
+        status: 'active',
+        is_deleted: false,
+      }
+    ]);
+    setSelectedAttrValId('');
+    toast.success(`Đã thêm thông số: ${foundCat.name} - ${foundVal.value}`);
   };
 
-  const handleSpecChange = (index, field, val) => {
-    setSpecifications(prev => prev.map((item, idx) => idx === index ? { ...item, [field]: val } : item));
+  // 2. Tạo nhanh 2 bảng categories_attribute & attribute_value cùng lúc ngay tại popup
+  const handleQuickCreateAndAdd = async () => {
+    if (quickCatMode === 'new' && !quickNewCatName.trim()) {
+      toast.warning('Vui lòng nhập tên danh mục thuộc tính mới!');
+      return;
+    }
+    if (quickCatMode === 'existing' && !quickSelectedCatId) {
+      toast.warning('Vui lòng chọn danh mục thuộc tính!');
+      return;
+    }
+    if (!quickNewValue.trim()) {
+      toast.warning('Vui lòng nhập giá trị thuộc tính mới!');
+      return;
+    }
+
+    setIsCreatingQuick(true);
+    try {
+      let targetCatId = quickSelectedCatId;
+      let targetCatName = '';
+
+      if (quickCatMode === 'new') {
+        // Tạo categories_attribute mới
+        const catRes = await createCategoryAttribute({ name: quickNewCatName.trim() });
+        const createdCat = catRes.data || catRes;
+        targetCatId = createdCat._id;
+        targetCatName = createdCat.name;
+        setCategoryAttributes(prev => [createdCat, ...prev]);
+      } else {
+        const foundCat = categoryAttributes.find(c => String(c._id) === String(quickSelectedCatId));
+        targetCatName = foundCat ? foundCat.name : '';
+      }
+
+      // Tạo attribute_value mới gắn với categories_attribute
+      const attrRes = await createAttribute({
+        value: quickNewValue.trim(),
+        id_categories_attribute: targetCatId,
+      });
+      const createdAttr = attrRes.data || attrRes;
+      setAllAttributes(prev => [createdAttr, ...prev]);
+
+      // Thêm ngay vào Specifications của sản phẩm
+      setSpecifications(prev => [
+        ...prev,
+        {
+          id_attribute_value: createdAttr._id,
+          category_id: targetCatId,
+          category_name: targetCatName,
+          value: createdAttr.value,
+          status: 'active',
+          is_deleted: false,
+        }
+      ]);
+
+      setQuickNewValue('');
+      if (quickCatMode === 'new') {
+        setQuickNewCatName('');
+        setQuickSelectedCatId(targetCatId);
+        setQuickCatMode('existing');
+      }
+      setIsQuickCreateOpen(false);
+      toast.success(`Đã tạo và thêm thông số: ${targetCatName} - ${createdAttr.value}`);
+    } catch (err) {
+      toast.error(err.message || 'Lỗi khi tạo danh mục hoặc thuộc tính');
+    } finally {
+      setIsCreatingQuick(false);
+    }
   };
 
-  const handleRemoveSpec = (index) => {
-    setSpecifications(prev => prev.filter((_, idx) => idx !== index));
+  // 3. Xóa mềm thông số (Soft Delete: chuyển status sang inactive)
+  const handleSoftDeleteSpec = async (index) => {
+    const spec = specifications[index];
+    if (!spec) return;
+
+    if (spec._id) {
+      // Đã lưu trong DB -> gọi API xóa mềm
+      try {
+        await deleteSpecification(spec._id);
+        setSpecifications(prev => prev.map((s, idx) => idx === index ? {
+          ...s,
+          status: 'inactive',
+          is_deleted: true,
+        } : s));
+        toast.info(`Đã xóa mềm thông số: ${spec.category_name} - ${spec.value}`);
+      } catch (err) {
+        toast.error('Lỗi khi xóa mềm: ' + err.message);
+      }
+    } else {
+      // Bản ghi nháp mới thêm trong popup -> loại bỏ khỏi danh sách
+      setSpecifications(prev => prev.filter((_, idx) => idx !== index));
+      toast.info(`Đã xóa thông số: ${spec.category_name} - ${spec.value}`);
+    }
   };
 
-  const handleApplyTemplate = (type) => {
-    const templates = {
-      'CPU': [
-        { name: 'Socket Hỗ Trợ', value: '', group: 'detail' },
-        { name: 'Số Nhân / Số Luồng', value: '', group: 'detail' },
-        { name: 'Xung Nhịp Cơ Bản', value: '', group: 'detail' },
-        { name: 'Xung Nhịp Tối Đa (Boost)', value: '', group: 'detail' },
-        { name: 'Bộ Nhớ Đệm (Cache)', value: '', group: 'detail' },
-        { name: 'Công Suất Tiêu Thụ (TDP)', value: '', group: 'detail' },
-        { name: 'Chuẩn RAM Hỗ Trợ', value: '', group: 'detail' },
-        { name: 'Đồ Họa Tích Hợp (iGPU)', value: '', group: 'detail' },
-      ],
-      'VGA / Card màn hình': [
-        { name: 'Chipset Đồ Họa', value: '', group: 'detail' },
-        { name: 'Dung Lượng Bộ Nhớ (VRAM)', value: '', group: 'detail' },
-        { name: 'Chuẩn Bộ Nhớ', value: 'GDDR6X', group: 'detail' },
-        { name: 'Chuẩn Băng Thông', value: 'PCIe 4.0 x16', group: 'detail' },
-        { name: 'Nguồn Khuyến Nghị', value: '', group: 'detail' },
-        { name: 'Cổng Xuất Hình', value: '3x DisplayPort, 1x HDMI', group: 'detail' },
-        { name: 'Chiều Dài Card', value: '', group: 'dimension' },
-      ],
-      'RAM': [
-        { name: 'Dung Lượng', value: '', group: 'detail' },
-        { name: 'Chuẩn RAM', value: 'DDR5', group: 'detail' },
-        { name: 'Bus RAM', value: '', group: 'detail' },
-        { name: 'Độ Trễ (Timing)', value: '', group: 'detail' },
-        { name: 'Điện Áp (Voltage)', value: '', group: 'detail' },
-        { name: 'Đèn LED', value: 'RGB', group: 'general' },
-        { name: 'Bảo Hành', value: '36 Tháng', group: 'general' },
-      ],
-      'Mainboard': [
-        { name: 'Chuẩn Kích Thước (Form Factor)', value: 'ATX', group: 'detail' },
-        { name: 'Socket Hỗ Trợ', value: '', group: 'detail' },
-        { name: 'Chipset', value: '', group: 'detail' },
-        { name: 'Số Khe Cắm RAM', value: '4 Khe DDR5', group: 'detail' },
-        { name: 'Số Khe M.2 NVMe', value: '', group: 'detail' },
-        { name: 'Cổng Kết Nối Phía Sau', value: '', group: 'detail' },
-        { name: 'Kết Nối Không Dây', value: 'Wi-Fi 6E + Bluetooth 5.3', group: 'detail' },
-      ],
-      'SSD / Ổ cứng': [
-        { name: 'Dung Lượng', value: '', group: 'detail' },
-        { name: 'Chuẩn Giao Tiếp', value: 'PCIe Gen4 x4 M.2 NVMe', group: 'detail' },
-        { name: 'Kích Thước', value: 'M.2 2280', group: 'detail' },
-        { name: 'Tốc Độ Đọc Tối Đa', value: '', group: 'detail' },
-        { name: 'Tốc Độ Ghi Tối Đa', value: '', group: 'detail' },
-        { name: 'Độ Bền (TBW)', value: '', group: 'detail' },
-      ],
-      'Nguồn (PSU)': [
-        { name: 'Công Suất Tối Đa', value: '', group: 'detail' },
-        { name: 'Chuẩn Hiệu Suất', value: '80 Plus Gold', group: 'detail' },
-        { name: 'Kiểu Dây Cáp', value: 'Full Modular', group: 'detail' },
-        { name: 'Kích Thước Quạt', value: '120mm / 135mm', group: 'detail' },
-        { name: 'Bảo Hành', value: '60 Tháng', group: 'general' },
-      ],
-      'Màn hình': [
-        { name: 'Kích Thước Màn Hình', value: '', group: 'detail' },
-        { name: 'Độ Phân Giải', value: '', group: 'detail' },
-        { name: 'Tần Số Quét', value: '', group: 'detail' },
-        { name: 'Thời Gian Phản Hồi', value: '1ms (GTG)', group: 'detail' },
-        { name: 'Tấm Nền', value: 'Fast IPS', group: 'detail' },
-        { name: 'Độ Phủ Màu', value: '99% sRGB', group: 'detail' },
-        { name: 'Cổng Kết Nối', value: 'HDMI, DisplayPort', group: 'detail' },
-      ],
-    };
+  // 4. Khôi phục thông số đã xóa mềm
+  const handleRestoreSpec = async (index) => {
+    const spec = specifications[index];
+    if (!spec) return;
 
-    const tplList = templates[type] || [];
-    if (tplList.length === 0) return;
+    if (spec._id) {
+      try {
+        await toggleSpecificationStatus(spec._id, 'active');
+        setSpecifications(prev => prev.map((s, idx) => idx === index ? {
+          ...s,
+          status: 'active',
+          is_deleted: false,
+        } : s));
+        toast.success(`Đã khôi phục thông số: ${spec.category_name} - ${spec.value}`);
+      } catch (err) {
+        toast.error('Lỗi khôi phục: ' + err.message);
+      }
+    } else {
+      setSpecifications(prev => prev.map((s, idx) => idx === index ? {
+        ...s,
+        status: 'active',
+        is_deleted: false,
+      } : s));
+    }
+  };
 
-    setSpecifications(prev => {
-      const existingNames = new Set(prev.map(p => (p.name || '').trim().toLowerCase()));
-      const toAdd = tplList.filter(t => !existingNames.has(t.name.trim().toLowerCase()));
-      return [...prev, ...toAdd];
-    });
-    toast.info(`Đã nạp bộ thông số mẫu cho ${type}`);
+  // 5. Sửa thông số (đổi sang giá trị thuộc tính khác cùng danh mục)
+  const handleStartEditSpec = (index) => {
+    setEditingSpecIdx(index);
+    setEditingAttrValId(specifications[index].id_attribute_value || '');
+  };
+
+  const handleSaveEditSpec = (index) => {
+    if (!editingAttrValId) return;
+    const newAttr = allAttributes.find(a => String(a._id) === String(editingAttrValId));
+    if (!newAttr) return;
+
+    setSpecifications(prev => prev.map((s, idx) => idx === index ? {
+      ...s,
+      id_attribute_value: newAttr._id,
+      value: newAttr.value,
+    } : s));
+    setEditingSpecIdx(null);
+    toast.success('Đã cập nhật giá trị thông số!');
   };
 
   // Upload ảnh chính
@@ -257,11 +432,15 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
     try {
       const validSubImages = subImages.filter(url => url && typeof url === 'string' && url.trim() !== '');
       const validSpecs = specifications
-        .filter(s => (s.name && s.name.trim()) || (s.value && s.value.trim()))
+        .filter(s => s.id_attribute_value || s.value || s.name)
         .map(s => ({
-          name: (s.name || '').trim(),
-          value: (s.value || '').trim(),
-          group: s.group || 'detail'
+          _id: s._id,
+          id_attribute_value: s.id_attribute_value,
+          name: s.category_name || s.name || '',
+          value: s.value || '',
+          status: s.status || 'active',
+          is_deleted: Boolean(s.is_deleted || s.status === 'inactive'),
+          group: 'detail',
         }));
 
       const payload = {
@@ -568,112 +747,304 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
 
           </div>
 
-          {/* Khối Thông số kỹ thuật (Specifications) ĐỘNG */}
+          {/* Khối Thông số kỹ thuật (Specifications) theo ERD */}
           <div className="mt-6 bg-[#1e1e1e] border border-[#333] rounded-lg p-5 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#333] pb-3">
               <div>
                 <h3 className="font-semibold text-[15px] text-white flex items-center gap-2">
                   <Layers className="w-4 h-4 text-[#d4ff00]" />
-                  Thông số kỹ thuật chi tiết (Specifications)
+                  Thông số kỹ thuật chi tiết (Bảng Specifications theo ERD)
                 </h3>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Các thông số này sẽ hiển thị trực tiếp tại bảng "THÔNG SỐ KỸ THUẬT" ngoài trang chi tiết sản phẩm
+                  Dữ liệu được lưu trực tiếp vào bảng <strong>Specifications</strong> và hiển thị tại trang chi tiết sản phẩm.
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleAddSpec}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d4ff00] hover:bg-[#bce600] text-black text-xs font-bold rounded-md transition-colors"
+                  onClick={() => setIsQuickCreateOpen(!isQuickCreateOpen)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all border ${
+                    isQuickCreateOpen
+                      ? 'bg-amber-500/20 text-amber-400 border-amber-500/50'
+                      : 'bg-[#262626] hover:bg-[#333] text-gray-200 border-[#444]'
+                  }`}
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  Thêm thông số
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  {isQuickCreateOpen ? 'Đóng tạo nhanh 2 bảng' : '+ Tạo mới 2 bảng cùng lúc'}
                 </button>
               </div>
             </div>
 
-            {/* Thanh Nạp mẫu nhanh theo loại linh kiện */}
-            <div className="bg-[#141414] border border-[#2a2a2a] rounded-lg p-3">
-              <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
-                <Sparkles className="w-3.5 h-3.5 text-[#d4ff00]" />
-                <span className="font-medium text-gray-300">Nạp mẫu thông số nhanh theo danh mục:</span>
+            {/* Khối TẠO NHANH 2 BẢNG CÙNG LÚC (categories_attribute & attribute_value) */}
+            {isQuickCreateOpen && (
+              <div className="bg-[#141414] border border-amber-500/40 rounded-lg p-4 space-y-3 animate-fadeIn">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    ⚡ Tạo 1 lúc cả 2 bảng (Danh mục thuộc tính & Giá trị thuộc tính)
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-300 flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="quickCatMode"
+                        checked={quickCatMode === 'existing'}
+                        onChange={() => setQuickCatMode('existing')}
+                        className="accent-[#d4ff00]"
+                      />
+                      Chọn DM có sẵn
+                    </label>
+                    <label className="text-xs text-gray-300 flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="quickCatMode"
+                        checked={quickCatMode === 'new'}
+                        onChange={() => setQuickCatMode('new')}
+                        className="accent-[#d4ff00]"
+                      />
+                      Tạo DM mới
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                  <div className="md:col-span-5">
+                    <label className="block text-[11px] font-medium text-gray-400 mb-1">
+                      {quickCatMode === 'new' ? 'Tên danh mục thuộc tính mới *' : 'Chọn danh mục thuộc tính *'}
+                    </label>
+                    {quickCatMode === 'new' ? (
+                      <input
+                        type="text"
+                        value={quickNewCatName}
+                        onChange={(e) => setQuickNewCatName(e.target.value)}
+                        placeholder="VD: Chuẩn PCIe, Bus RAM, Socket..."
+                        className="w-full bg-[#1e1e1e] border border-[#3a3a3a] rounded px-3 py-2 text-xs text-white placeholder-gray-500 outline-none focus:border-amber-400"
+                      />
+                    ) : (
+                      <select
+                        value={quickSelectedCatId}
+                        onChange={(e) => setQuickSelectedCatId(e.target.value)}
+                        className="w-full bg-[#1e1e1e] border border-[#3a3a3a] rounded px-3 py-2 text-xs text-white outline-none focus:border-amber-400 cursor-pointer"
+                      >
+                        <option value="">-- Chọn danh mục thuộc tính --</option>
+                        {categoryAttributes.map((cat) => (
+                          <option key={cat._id} value={cat._id}>{cat.name}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  <div className="md:col-span-5">
+                    <label className="block text-[11px] font-medium text-gray-400 mb-1">
+                      Giá trị thuộc tính mới *
+                    </label>
+                    <input
+                      type="text"
+                      value={quickNewValue}
+                      onChange={(e) => setQuickNewValue(e.target.value)}
+                      placeholder="VD: PCIe 5.0 x16, 6000MHz, LGA1700..."
+                      className="w-full bg-[#1e1e1e] border border-[#3a3a3a] rounded px-3 py-2 text-xs text-white placeholder-gray-500 outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 flex items-end">
+                    <button
+                      type="button"
+                      disabled={isCreatingQuick}
+                      onClick={handleQuickCreateAndAdd}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded transition-colors disabled:opacity-50"
+                    >
+                      {isCreatingQuick ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                      Tạo & Thêm ngay
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {['CPU', 'VGA / Card màn hình', 'RAM', 'Mainboard', 'SSD / Ổ cứng', 'Nguồn (PSU)', 'Màn hình'].map(tpl => (
-                  <button
-                    key={tpl}
-                    type="button"
-                    onClick={() => handleApplyTemplate(tpl)}
-                    className="px-2.5 py-1 text-[11px] bg-[#222] hover:bg-[#2e2e2e] border border-[#444] hover:border-[#d4ff00] text-gray-300 hover:text-[#d4ff00] rounded transition-all font-medium"
+            )}
+
+            {/* Thanh CHỌN CÓ SẴN (CategoryAttribute + AttributeValue) */}
+            <div className="bg-[#141414] border border-[#2a2a2a] rounded-lg p-3">
+              <div className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5">
+                <span>Chọn thuộc tính & giá trị có sẵn để thêm vào thông số:</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
+                <div className="sm:col-span-5">
+                  <select
+                    value={selectedCatId}
+                    onChange={(e) => {
+                      setSelectedCatId(e.target.value);
+                      setSelectedAttrValId('');
+                    }}
+                    className="w-full bg-[#1e1e1e] border border-[#3a3a3a] rounded px-3 py-2 text-xs text-white outline-none focus:border-[#d4ff00] cursor-pointer"
                   >
-                    + {tpl}
+                    <option value="">-- Chọn danh mục thuộc tính (categories_attribute) --</option>
+                    {categoryAttributes.map((cat) => (
+                      <option key={cat._id} value={cat._id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sm:col-span-5">
+                  <select
+                    value={selectedAttrValId}
+                    onChange={(e) => setSelectedAttrValId(e.target.value)}
+                    disabled={!selectedCatId}
+                    className="w-full bg-[#1e1e1e] border border-[#3a3a3a] rounded px-3 py-2 text-xs text-white outline-none focus:border-[#d4ff00] disabled:opacity-40 cursor-pointer"
+                  >
+                    <option value="">
+                      {selectedCatId ? '-- Chọn giá trị thuộc tính (attribute_value) --' : '-- Hãy chọn danh mục trước --'}
+                    </option>
+                    {availableValuesForSelectedCat.map((attr) => (
+                      <option key={attr._id} value={attr._id}>{attr.value}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <button
+                    type="button"
+                    onClick={handleAddExistingSpec}
+                    disabled={!selectedCatId || !selectedAttrValId}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-[#d4ff00] hover:bg-[#bce600] text-black text-xs font-bold rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Thêm thông số
                   </button>
-                ))}
+                </div>
               </div>
             </div>
 
-            {/* Danh sách các dòng thông số */}
+            {/* Danh sách các dòng thông số trong bảng Specifications */}
             {specifications.length === 0 ? (
               <div className="text-center py-7 border border-dashed border-[#333] rounded-lg bg-[#141414]/40">
-                <p className="text-xs text-gray-400">Chưa có thông số kỹ thuật nào được nhập.</p>
+                <p className="text-xs text-gray-400">Chưa có thông số kỹ thuật nào trong bảng Specifications.</p>
                 <p className="text-[11px] text-gray-500 mt-1">
-                  Bấm <strong>"+ Thêm thông số"</strong> hoặc chọn <strong>"Nạp mẫu nhanh"</strong> theo loại linh kiện ở trên.
+                  Chọn <strong>thuộc tính có sẵn</strong> ở trên hoặc bấm <strong>"Tạo mới 2 bảng cùng lúc"</strong> để thêm thông số.
                 </p>
               </div>
             ) : (
               <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                <div className="hidden sm:grid grid-cols-12 gap-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-1">
-                  <div className="col-span-5">Tên thông số</div>
-                  <div className="col-span-4">Giá trị</div>
-                  <div className="col-span-2">Nhóm hiển thị</div>
-                  <div className="col-span-1 text-center">Xóa</div>
+                <div className="hidden sm:grid grid-cols-12 gap-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-2">
+                  <div className="col-span-4">Danh mục thuộc tính</div>
+                  <div className="col-span-4">Giá trị thuộc tính</div>
+                  <div className="col-span-2 text-center">Trạng thái</div>
+                  <div className="col-span-2 text-center">Thao tác</div>
                 </div>
 
-                {specifications.map((item, idx) => (
-                  <div key={idx} className="flex flex-col sm:grid sm:grid-cols-12 gap-2 bg-[#141414] border border-[#333] p-2.5 rounded-lg hover:border-[#444] transition-colors items-center">
-                    <div className="w-full sm:col-span-5">
-                      <input
-                        type="text"
-                        value={item.name}
-                        onChange={(e) => handleSpecChange(idx, 'name', e.target.value)}
-                        placeholder="Tên thông số (VD: Socket Hỗ Trợ, Xung Nhịp...)"
-                        className="w-full bg-[#1e1e1e] border border-[#3a3a3a] rounded px-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:border-[#d4ff00] transition-colors"
-                      />
+                {specifications.map((item, idx) => {
+                  const isSoftDeleted = item.status === 'inactive' || item.is_deleted === true;
+                  const isEditing = editingSpecIdx === idx;
+
+                  return (
+                    <div
+                      key={item._id || idx}
+                      className={`flex flex-col sm:grid sm:grid-cols-12 gap-2 p-2.5 rounded-lg border transition-colors items-center ${
+                        isSoftDeleted
+                          ? 'bg-[#181818]/60 border-red-900/30 opacity-60'
+                          : 'bg-[#141414] border-[#333] hover:border-[#444]'
+                      }`}
+                    >
+                      {/* Cột Tên danh mục thuộc tính */}
+                      <div className="w-full sm:col-span-4 flex items-center gap-2">
+                        <span className="text-xs font-semibold text-[#d4ff00]">
+                          {item.category_name || item.name || 'Thông số'}
+                        </span>
+                      </div>
+
+                      {/* Cột Giá trị thuộc tính */}
+                      <div className="w-full sm:col-span-4">
+                        {isEditing ? (
+                          <div className="flex items-center gap-1.5">
+                            <select
+                              value={editingAttrValId}
+                              onChange={(e) => setEditingAttrValId(e.target.value)}
+                              className="w-full bg-[#1e1e1e] border border-[#d4ff00] rounded px-2 py-1 text-xs text-white outline-none"
+                            >
+                              {allAttributes
+                                .filter(a => {
+                                  const cId = typeof a.id_categories_attribute === 'object'
+                                    ? a.id_categories_attribute?._id
+                                    : (a.id_categories_attribute || a.id_attribute);
+                                  return String(cId) === String(item.category_id);
+                                })
+                                .map(a => (
+                                  <option key={a._id} value={a._id}>{a.value}</option>
+                                ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveEditSpec(idx)}
+                              className="p-1 bg-[#d4ff00] text-black rounded hover:bg-[#bce600]"
+                              title="Lưu sửa"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingSpecIdx(null)}
+                              className="p-1 bg-[#333] text-gray-300 rounded hover:bg-[#444]"
+                              title="Hủy"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className={`text-xs ${isSoftDeleted ? 'line-through text-gray-500' : 'text-gray-200'}`}>
+                            {item.value || '—'}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Cột Trạng thái (hỗ trợ xóa mềm) */}
+                      <div className="w-full sm:col-span-2 flex justify-center">
+                        {isSoftDeleted ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                            Đã xóa mềm (Ẩn)
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            Đang hoạt động
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Cột Thao tác: Sửa, Xóa mềm, Khôi phục */}
+                      <div className="w-full sm:col-span-2 flex items-center justify-center gap-1.5">
+                        {!isSoftDeleted && !isEditing && (
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditSpec(idx)}
+                            className="p-1.5 text-gray-400 hover:text-[#d4ff00] hover:bg-[#222] rounded transition-colors"
+                            title="Sửa giá trị thông số"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {isSoftDeleted ? (
+                          <button
+                            type="button"
+                            onClick={() => handleRestoreSpec(idx)}
+                            className="flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/40 rounded transition-colors"
+                            title="Khôi phục thông số"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            Khôi phục
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleSoftDeleteSpec(idx)}
+                            className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                            title="Xóa mềm thông số (chuyển sang inactive)"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="w-full sm:col-span-4">
-                      <input
-                        type="text"
-                        value={item.value}
-                        onChange={(e) => handleSpecChange(idx, 'value', e.target.value)}
-                        placeholder="Giá trị (VD: AM5, 5.0 GHz, 120W...)"
-                        className="w-full bg-[#1e1e1e] border border-[#3a3a3a] rounded px-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:border-[#d4ff00] transition-colors"
-                      />
-                    </div>
-                    <div className="w-full sm:col-span-2">
-                      <select
-                        value={item.group || 'detail'}
-                        onChange={(e) => handleSpecChange(idx, 'group', e.target.value)}
-                        className="w-full bg-[#1e1e1e] border border-[#3a3a3a] rounded px-2 py-1.5 text-xs text-gray-300 outline-none focus:border-[#d4ff00] cursor-pointer"
-                        title="Chọn nhóm hiển thị"
-                      >
-                        <option value="detail">Cấu hình chi tiết</option>
-                        <option value="general">Thông tin chung</option>
-                        <option value="dimension">Kích thước - Khối lượng</option>
-                      </select>
-                    </div>
-                    <div className="w-full sm:col-span-1 flex justify-center">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSpec(idx)}
-                        className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
-                        title="Xóa thông số này"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
