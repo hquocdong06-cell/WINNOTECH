@@ -3169,7 +3169,7 @@ app.post("/orders", checklogin, async (req, res) => {
 
     emitOrderUpdate(newOrder, 'order_created');
 
-    return res.status(201).json({ success: true, message: "Đặt hàng thành công", data: newOrder });
+    return res.status(201).json({ success: true, message: "Đặt hàng thành công", data: newOrder, order: newOrder });
 
   } catch (error) {
     console.error("Lỗi API create order:", error);

@@ -782,7 +782,7 @@ const voucherCalc = voucherInfo?.rawVoucher
           setCartItems([])
           window.dispatchEvent(new CustomEvent('cartUpdated'))
         }
-        navigate(`/order-success?code=${data.order?.code || ''}`)
+        navigate(`/order-success?code=${data.order?.code || data.data?.code || ''}`)
       } else {
         setSubmitError(data.message || 'Đặt hàng thất bại, vui lòng thử lại!')
       }

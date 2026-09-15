@@ -35,14 +35,13 @@ const SpecsTable = ({ product }) => {
     }
 
     const generalKeys = [
-      'thương hiệu', 'bảo hành', 'thương hiệu cpu', 'nhu cầu', 'tên của case', 'chất liệu', 'kiểu ổ cứng', 'màu sắc của ổ cứng', 'loại hàng', 
-      'part-number', 'màu sắc', 'đèn led', 'tên', 'kết nối bàn phím', 
-      'loại bàn phím', 'brand', 'warranty', 'tình trạng'
+      'thương hiệu', 'bảo hành', 'gói bảo hành', 'thương hiệu cpu', 'nhu cầu', 'tên', 'tên sản phẩm',
+      'part-number', 'màu sắc', 'màu sắc vỏ case', 'loại phụ kiện', 'loại hàng', 'brand', 'warranty', 'tình trạng'
     ]
 
     const dimensionKeys = [
       'kích thước (có chân)', 'kích thước (không chân)', 'khối lượng (có chân)', 'khối lượng (không chân)',
-      'kích thước và trọng lượng', 'kích thước - khối lượng'
+      'kích thước và trọng lượng', 'kích thước - khối lượng', 'kích thước', 'khối lượng', 'trọng lượng'
     ]
 
 
