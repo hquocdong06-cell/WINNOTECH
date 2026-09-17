@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { DollarSign, ShoppingCart, TrendingUp, AlertTriangle, Package, Activity, Download } from 'lucide-react';
+import { DollarSign, ShoppingCart, TrendingUp, AlertTriangle, Package, Activity, Download, Calendar } from 'lucide-react';
 import { fetchRevenueStats, getRevenueExcelExportUrl, fetchAdminProducts, API_BASE } from '../services/adminService';
 
 const Reports = () => {
-  const [period, setPeriod] = useState('month'); // 'day' | 'week' | 'month' | 'year'
+  const [period, setPeriod] = useState('day'); // default 'day' to easily see daily breakdown up to today
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [revenueStats, setRevenueStats] = useState({ summary: {}, breakdown: [] });
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [bestSellers, setBestSellers] = useState([]);
@@ -13,7 +15,7 @@ const Reports = () => {
     setLoading(true);
     try {
       const [statsRes, products] = await Promise.all([
-        fetchRevenueStats(period).catch(() => ({ summary: {}, breakdown: [] })),
+        fetchRevenueStats(period, startDate, endDate).catch(() => ({ summary: {}, breakdown: [] })),
         fetchAdminProducts().catch(() => []),
       ]);
 
@@ -36,7 +38,7 @@ const Reports = () => {
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [period, startDate, endDate]);
 
   useEffect(() => {
     loadReportData();
@@ -47,24 +49,51 @@ const Reports = () => {
   return (
     <div className="p-8 text-white min-h-screen">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Báo cáo & Thống kê Kinh doanh</h1>
-          <p className="text-gray-400 text-sm">Phân tích hiệu suất doanh thu và tồn kho thực tế từ backend WINNOTECH</p>
+          <p className="text-gray-400 text-sm">Phân tích hiệu suất doanh thu liên tục tới ngày hiện tại từ WINNOTECH</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-[#1e1e2d] border border-[#333] rounded-xl px-3 py-1.5 text-xs text-gray-300">
+            <Calendar className="w-4 h-4 text-[#d4ff00]" />
+            <span>Từ:</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="bg-transparent text-white outline-none font-mono text-xs"
+            />
+            <span>Đến:</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              className="bg-transparent text-white outline-none font-mono text-xs"
+            />
+            {(startDate || endDate) && (
+              <button
+                onClick={() => { setStartDate(''); setEndDate(''); }}
+                className="text-xs text-red-400 hover:underline ml-1 font-bold"
+              >
+                Xóa lọc
+              </button>
+            )}
+          </div>
+
           <select
             value={period}
             onChange={e => setPeriod(e.target.value)}
-            className="bg-[#1e1e2d] border border-[#333] rounded-xl px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white font-semibold"
+            className="bg-[#1e1e2d] border border-[#333] rounded-xl px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white font-semibold cursor-pointer"
           >
             <option value="day">Thống kê theo Ngày</option>
             <option value="week">Thống kê theo Tuần</option>
             <option value="month">Thống kê theo Tháng</option>
             <option value="year">Thống kê theo Năm</option>
           </select>
+
           <a
-            href={getRevenueExcelExportUrl()}
+            href={getRevenueExcelExportUrl(period, startDate, endDate)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-5 py-2.5 bg-[#d4ff00] hover:bg-[#bce600] text-black font-bold rounded-xl transition-colors text-sm shadow-[0_0_15px_rgba(212,255,0,0.2)]"
@@ -124,29 +153,61 @@ const Reports = () => {
       {/* Row 2: Biểu đồ doanh thu */}
       <div className="bg-[#14141d] border border-[#333] rounded-2xl p-6 mb-8 shadow-xl">
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#2b2b36]">
-          <h3 className="text-lg font-bold flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-[#d4ff00]" /> Biểu Đồ Doanh Thu ({period.toUpperCase()})
+          <h3 className="text-lg font-bold flex items-center gap-2 text-white">
+            <TrendingUp className="w-5 h-5 text-emerald-400" /> Biểu Đồ Doanh Thu ({period.toUpperCase()})
           </h3>
+          <div className="flex items-center gap-4 text-xs text-gray-400">
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-gradient-to-t from-emerald-600/30 to-emerald-400 border border-emerald-400 inline-block"></span>
+              Doanh thu
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-teal-300 border border-teal-200 inline-block shadow-[0_0_8px_rgba(45,212,191,0.8)]"></span>
+              Ngày hiện tại (Hôm nay)
+            </span>
+          </div>
         </div>
         
         {revenueStats.breakdown && revenueStats.breakdown.length > 0 ? (
-          <div className="h-64 flex items-end gap-3 pt-8 pb-4 px-2 overflow-x-auto">
+          <div className="h-72 flex items-end gap-3 pt-10 pb-4 px-2 overflow-x-auto">
             {revenueStats.breakdown.map((item, idx) => {
               const heightPercent = Math.max(Math.round((item.revenue / maxRevenue) * 100), 6);
+              const isHighlight = item.isToday || item.isCurrent;
+
               return (
-                <div key={idx} className="flex-1 min-w-[50px] flex flex-col items-center gap-2 group relative">
-                  <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-black border border-[#d4ff00] text-white text-[11px] py-1 px-2.5 rounded-md pointer-events-none whitespace-nowrap z-20 shadow-xl">
-                    <div className="font-bold text-[#d4ff00]">{item.period}</div>
+                <div key={idx} className="flex-1 min-w-[55px] flex flex-col items-center gap-2 group relative">
+                  {/* Tooltip */}
+                  <div className="absolute -top-14 opacity-0 group-hover:opacity-100 transition-opacity bg-[#0d1117] border border-emerald-400 text-white text-[11px] py-1.5 px-3 rounded-lg pointer-events-none whitespace-nowrap z-20 shadow-2xl">
+                    <div className="font-bold text-emerald-400">{item.period} {isHighlight ? '(Hiện tại)' : ''}</div>
                     <div>{item.revenue.toLocaleString('vi-VN')}₫ ({item.orderCount} đơn)</div>
                   </div>
-                  <div className="w-full bg-[#1e1e2d] rounded-t-lg h-full flex items-end overflow-hidden p-1">
+
+                  {/* Top Badge for Today/Current */}
+                  {isHighlight && (
+                    <span className="absolute -top-7 text-[10px] bg-teal-400 text-black font-extrabold px-1.5 py-0.5 rounded shadow-[0_0_10px_rgba(45,212,191,0.6)]">
+                      Hôm nay
+                    </span>
+                  )}
+
+                  {/* Bar */}
+                  <div className={`w-full rounded-t-lg h-full flex items-end overflow-hidden p-1 transition-colors ${
+                    isHighlight ? 'bg-teal-950/40 border border-teal-500/50' : 'bg-[#1e1e2d]'
+                  }`}>
                     <div
                       style={{ height: `${heightPercent}%` }}
-                      className="w-full bg-gradient-to-t from-[#d4ff00]/20 to-[#d4ff00] rounded-t border-t-2 border-[#d4ff00] group-hover:brightness-125 transition-all"
+                      className={`w-full rounded-t transition-all group-hover:brightness-125 ${
+                        isHighlight
+                          ? 'bg-gradient-to-t from-emerald-500 via-teal-400 to-teal-200 border-t-2 border-teal-200 shadow-[0_0_15px_rgba(45,212,191,0.7)]'
+                          : 'bg-gradient-to-t from-emerald-950/40 via-emerald-600/70 to-emerald-400 border-t-2 border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                      }`}
                     ></div>
                   </div>
-                  <span className="text-[11px] text-gray-400 truncate w-full text-center font-mono">
-                    {item.period}
+
+                  {/* Label */}
+                  <span className={`text-[11px] truncate w-full text-center font-mono font-medium ${
+                    isHighlight ? 'text-teal-300 font-bold' : 'text-gray-300'
+                  }`}>
+                    {item.label || item.period}
                   </span>
                 </div>
               );

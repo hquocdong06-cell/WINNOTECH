@@ -6529,28 +6529,109 @@ app.delete("/admin/orders/:id", checklogin, checkAdmin, async (req, res) => {
 
 // 5. CHỨC NĂNG THỐNG KÊ DOANH THU & XUẤT FILE EXCEL
 
-// GET /admin/revenue/stats — Thống kê doanh thu theo Ngày, Tuần, Tháng, Năm
+// GET /admin/revenue/stats — Thống kê doanh thu theo Ngày, Tuần, Tháng, Năm (liên tục hiển thị tới ngày hiện tại)
 app.get("/admin/revenue/stats", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { type = "month", startDate, endDate } = req.query; // 'day' | 'week' | 'month' | 'year'
+    const { type = "day", startDate, endDate } = req.query; // 'day' | 'week' | 'month' | 'year'
 
+    const now = moment();
+    let endMoment = endDate ? moment(endDate).endOf("day") : now.clone().endOf("day");
+    let startMoment;
+
+    if (startDate) {
+      startMoment = moment(startDate).startOf("day");
+    } else {
+      if (type === "day") {
+        startMoment = now.clone().subtract(13, "days").startOf("day"); // 14 ngày gần nhất tới hôm nay
+      } else if (type === "week") {
+        startMoment = now.clone().subtract(7, "weeks").startOf("isoWeek"); // 8 tuần gần nhất tới tuần hiện tại
+      } else if (type === "year") {
+        startMoment = now.clone().subtract(4, "years").startOf("year"); // 5 năm gần nhất tới năm hiện tại
+      } else {
+        // month
+        startMoment = now.clone().subtract(11, "months").startOf("month"); // 12 tháng gần nhất tới tháng hiện tại
+      }
+    }
+
+    // Khởi tạo trước tất cả các cột mốc thời gian liên tục từ startMoment đến endMoment (tới ngày hiện tại)
+    const statsMap = {};
+    const curr = startMoment.clone();
+
+    if (type === "day") {
+      while (curr.isSameOrBefore(endMoment, "day")) {
+        const key = curr.format("YYYY-MM-DD");
+        const displayLabel = curr.format("DD/MM");
+        const isToday = curr.isSame(now, "day");
+        statsMap[key] = {
+          period: key,
+          label: isToday ? `${displayLabel} (Hôm nay)` : displayLabel,
+          orderCount: 0,
+          revenue: 0,
+          isToday
+        };
+        curr.add(1, "day");
+      }
+    } else if (type === "week") {
+      while (curr.isSameOrBefore(endMoment, "week")) {
+        const weekNum = curr.isoWeek();
+        const year = curr.format("YYYY");
+        const key = `Tuần ${weekNum} - ${year}`;
+        const isCurrentWeek = curr.isSame(now, "isoWeek");
+        if (!statsMap[key]) {
+          statsMap[key] = {
+            period: key,
+            label: isCurrentWeek ? `T${weekNum} (Hiện tại)` : `T${weekNum}`,
+            orderCount: 0,
+            revenue: 0,
+            isCurrent: isCurrentWeek
+          };
+        }
+        curr.add(1, "week");
+      }
+    } else if (type === "year") {
+      while (curr.isSameOrBefore(endMoment, "year")) {
+        const key = curr.format("YYYY");
+        const isCurrentYear = curr.isSame(now, "year");
+        statsMap[key] = {
+          period: key,
+          label: isCurrentYear ? `${key} (Hiện tại)` : key,
+          orderCount: 0,
+          revenue: 0,
+          isCurrent: isCurrentYear
+        };
+        curr.add(1, "year");
+      }
+    } else {
+      // month
+      while (curr.isSameOrBefore(endMoment, "month")) {
+        const key = curr.format("YYYY-MM");
+        const displayLabel = curr.format("MM/YYYY");
+        const isCurrentMonth = curr.isSame(now, "month");
+        statsMap[key] = {
+          period: key,
+          label: isCurrentMonth ? `${displayLabel} (Hiện tại)` : displayLabel,
+          orderCount: 0,
+          revenue: 0,
+          isCurrent: isCurrentMonth
+        };
+        curr.add(1, "month");
+      }
+    }
+
+    // Lấy các đơn hàng đã thanh toán hoặc đã hoàn thành trong mốc thời gian
     const query = {
       $or: [
         { status: { $in: ["completed", "delivered", "done"] } },
         { payment_status: "paid" }
-      ]
+      ],
+      createdAt: {
+        $gte: startMoment.toDate(),
+        $lte: endMoment.toDate()
+      }
     };
 
-    if (startDate || endDate) {
-      query.createdAt = {};
-      if (startDate) query.createdAt.$gte = moment(startDate).startOf("day").toDate();
-      if (endDate) query.createdAt.$lte = moment(endDate).endOf("day").toDate();
-    }
-
-    // Lấy các đơn hàng đã thanh toán hoặc đã hoàn thành
     const paidOrders = await Order.find(query).sort({ createdAt: 1 }).lean();
 
-    const statsMap = {};
     let totalRevenue = 0;
     let totalPaidOrders = paidOrders.length;
 
@@ -6570,11 +6651,10 @@ app.get("/admin/revenue/stats", checklogin, checkAdmin, async (req, res) => {
       const amount = ord.total_amount || 0;
       totalRevenue += amount;
 
-      if (!statsMap[key]) {
-        statsMap[key] = { period: key, orderCount: 0, revenue: 0 };
+      if (statsMap[key]) {
+        statsMap[key].orderCount += 1;
+        statsMap[key].revenue += amount;
       }
-      statsMap[key].orderCount += 1;
-      statsMap[key].revenue += amount;
     });
 
     const breakdown = Object.values(statsMap);
@@ -6584,8 +6664,8 @@ app.get("/admin/revenue/stats", checklogin, checkAdmin, async (req, res) => {
       success: true,
       summary: {
         type,
-        startDate: startDate || null,
-        endDate: endDate || null,
+        startDate: startMoment.format("YYYY-MM-DD"),
+        endDate: endMoment.format("YYYY-MM-DD"),
         totalRevenue,
         totalPaidOrders,
         avgOrderValue,

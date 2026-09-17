@@ -964,8 +964,9 @@ html:not([data-theme="light"]) .gallery-main:hover {
 }
 
 
-/* Active Tabs */
-.tab-btn.active {
+/* Active Tabs (Dark Mode) */
+[data-theme="dark"] .tab-btn.active,
+html:not([data-theme="light"]) .tab-btn.active {
   color: #ffffff !important;
   border-bottom: 3px solid #e4e4e7 !important;
   background: transparent !important;
