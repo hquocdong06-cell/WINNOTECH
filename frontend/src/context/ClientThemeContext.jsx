@@ -8,18 +8,12 @@ export const ClientThemeProvider = ({ children }) => {
   const [theme, setThemeState] = useState(() => {
     try {
       const saved = localStorage.getItem(THEME_STORAGE_KEY);
-      // Nếu trước đó bị lưu 'light' do auto-detect hệ điều hành, reset ngay về 'dark'
-      if (saved === 'light') {
-        localStorage.setItem(THEME_STORAGE_KEY, 'dark');
-        return 'dark';
-      }
-      if (saved === 'dark') {
-        return 'dark';
+      if (saved === 'light' || saved === 'dark') {
+        return saved;
       }
     } catch {
       // Bỏ qua lỗi truy cập localStorage
     }
-    // Mặc định luôn là 'dark' cho WINNOTech Gaming Store
     return 'dark';
   });
 

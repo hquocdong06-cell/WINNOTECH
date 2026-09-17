@@ -154,15 +154,15 @@ const Reports = () => {
       <div className="bg-[#14141d] border border-[#333] rounded-2xl p-6 mb-8 shadow-xl">
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#2b2b36]">
           <h3 className="text-lg font-bold flex items-center gap-2 text-white">
-            <TrendingUp className="w-5 h-5 text-emerald-400" /> Biểu Đồ Doanh Thu ({period.toUpperCase()})
+            <TrendingUp className="w-5 h-5 text-[#d4ff00]" /> Biểu Đồ Doanh Thu ({period.toUpperCase()})
           </h3>
           <div className="flex items-center gap-4 text-xs text-gray-400">
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-gradient-to-t from-emerald-600/30 to-emerald-400 border border-emerald-400 inline-block"></span>
+              <span className="w-3 h-3 rounded bg-[#52525b] border border-gray-500 inline-block"></span>
               Doanh thu
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-teal-300 border border-teal-200 inline-block shadow-[0_0_8px_rgba(45,212,191,0.8)]"></span>
+              <span className="w-3 h-3 rounded bg-[#d4ff00] border border-[#bce600] inline-block"></span>
               Ngày hiện tại (Hôm nay)
             </span>
           </div>
@@ -177,35 +177,35 @@ const Reports = () => {
               return (
                 <div key={idx} className="flex-1 min-w-[55px] flex flex-col items-center gap-2 group relative">
                   {/* Tooltip */}
-                  <div className="absolute -top-14 opacity-0 group-hover:opacity-100 transition-opacity bg-[#0d1117] border border-emerald-400 text-white text-[11px] py-1.5 px-3 rounded-lg pointer-events-none whitespace-nowrap z-20 shadow-2xl">
-                    <div className="font-bold text-emerald-400">{item.period} {isHighlight ? '(Hiện tại)' : ''}</div>
+                  <div className="absolute -top-14 opacity-0 group-hover:opacity-100 transition-opacity bg-black border border-gray-600 text-white text-[11px] py-1.5 px-3 rounded-lg pointer-events-none whitespace-nowrap z-20 shadow-2xl">
+                    <div className="font-bold text-[#d4ff00]">{item.period} {isHighlight ? '(Hiện tại)' : ''}</div>
                     <div>{item.revenue.toLocaleString('vi-VN')}₫ ({item.orderCount} đơn)</div>
                   </div>
 
                   {/* Top Badge for Today/Current */}
                   {isHighlight && (
-                    <span className="absolute -top-7 text-[10px] bg-teal-400 text-black font-extrabold px-1.5 py-0.5 rounded shadow-[0_0_10px_rgba(45,212,191,0.6)]">
+                    <span className="absolute -top-7 text-[10px] bg-[#d4ff00] text-black font-extrabold px-1.5 py-0.5 rounded shadow">
                       Hôm nay
                     </span>
                   )}
 
                   {/* Bar */}
                   <div className={`w-full rounded-t-lg h-full flex items-end overflow-hidden p-1 transition-colors ${
-                    isHighlight ? 'bg-teal-950/40 border border-teal-500/50' : 'bg-[#1e1e2d]'
+                    isHighlight ? 'bg-gray-800/60 border border-[#d4ff00]/40' : 'bg-[#1e1e2d]'
                   }`}>
                     <div
                       style={{ height: `${heightPercent}%` }}
-                      className={`w-full rounded-t transition-all group-hover:brightness-125 ${
+                      className={`w-full rounded-t transition-all group-hover:bg-[#9ca3af] ${
                         isHighlight
-                          ? 'bg-gradient-to-t from-emerald-500 via-teal-400 to-teal-200 border-t-2 border-teal-200 shadow-[0_0_15px_rgba(45,212,191,0.7)]'
-                          : 'bg-gradient-to-t from-emerald-950/40 via-emerald-600/70 to-emerald-400 border-t-2 border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                          ? 'bg-gradient-to-t from-[#52525b] to-[#d4ff00] border-t-2 border-[#d4ff00]'
+                          : 'bg-gradient-to-t from-[#3f3f46] to-[#52525b] border-t-2 border-gray-500'
                       }`}
                     ></div>
                   </div>
 
                   {/* Label */}
                   <span className={`text-[11px] truncate w-full text-center font-mono font-medium ${
-                    isHighlight ? 'text-teal-300 font-bold' : 'text-gray-300'
+                    isHighlight ? 'text-[#d4ff00] font-bold' : 'text-gray-400'
                   }`}>
                     {item.label || item.period}
                   </span>

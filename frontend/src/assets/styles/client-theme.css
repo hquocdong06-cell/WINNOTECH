@@ -58,9 +58,9 @@ html.light-mode,
 .default-layout.light,
 .default-layout.light-mode {
   --black: #ffffff;
-  --dark: #F8FAFC;
-  --dark2: #F8FAFC;
-  --dark3: #f1f5f9;
+  --dark: #F1F5F9;
+  --dark2: #F1F5F9;
+  --dark3: #e2e8f0;
   --gray: #475569;
   --gray2: #64748b;
   --gray3: #cbd5e1;
@@ -73,14 +73,14 @@ html.light-mode,
   --border: #e2e8f0;
 
   /* Client Specific Tokens */
-  --c-bg: #F8FAFC;
+  --c-bg: #F1F5F9;
   --c-card-bg: #ffffff;
-  --c-card-hover: #f1f5f9;
+  --c-card-hover: #e2e8f0;
   --c-header-bg: #ffffff;
-  --c-topbar-bg: #f1f5f9;
+  --c-topbar-bg: #e2e8f0;
   --c-nav-bg: #ffffff;
-  --c-catbar-bg: #F8FAFC;
-  --c-footer-bg: #F8FAFC;
+  --c-catbar-bg: #F1F5F9;
+  --c-footer-bg: #F1F5F9;
   --c-text-main: #0f172a;
   --c-text-sub: #334155;
   --c-text-muted: #64748b;
@@ -174,7 +174,7 @@ html.light-mode body,
 [data-theme="light"] .trustbar,
 [data-theme="light"] .product-section,
 [data-theme="light"] .category-section {
-  background-color: #F8FAFC !important;
+  background-color: #F1F5F9 !important;
   color: var(--c-text-main) !important;
 }
 

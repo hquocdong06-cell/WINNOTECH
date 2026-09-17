@@ -40,6 +40,16 @@ const Header = () => {
       </div>
 
       <div className="header-actions flex items-center gap-3">
+        {/* Nút chuyển đổi Giao diện Sáng / Tối trong Admin */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="flex items-center gap-2 px-3 py-1.5 bg-[#1e1e2d] hover:bg-[#28283c] text-xs font-semibold rounded-xl border border-[#333] transition-colors text-white cursor-pointer"
+          title={isDark ? "Chuyển sang Giao diện sáng (#F1F5F9)" : "Chuyển sang Giao diện tối"}
+        >
+          {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
+          <span>{isDark ? 'Giao diện sáng' : 'Giao diện tối'}</span>
+        </button>
 
         <div className="user-profile flex items-center gap-3 bg-[#1e1e2d] px-3 py-1.5 rounded-xl border border-[#333]">
           {adminUser?.avatar && !imgError ? (

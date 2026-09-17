@@ -227,32 +227,44 @@ const Dashboard = () => {
           <div className="h-56 flex items-center justify-center text-gray-500 text-sm">Chưa có dữ liệu trong khoảng thời gian này</div>
         ) : (
           <div>
-            <div className="flex gap-2 items-end h-52 mb-2" style={{ paddingLeft: '4px' }}>
+            <div className="flex gap-2 items-end h-52 mb-2 pt-6" style={{ paddingLeft: '4px' }}>
               {chartData.items.map((m, idx) => {
-                const heightPct = maxRevenue > 0 ? Math.max((m.revenue / maxRevenue) * 100, m.revenue > 0 ? 4 : 0) : 0;
+                const heightPct = maxRevenue > 0 ? Math.max((m.revenue / maxRevenue) * 100, m.revenue > 0 ? 5 : 0) : 0;
                 const isHovered = hoveredMonth === idx;
+                const isToday = m.isToday;
+
                 return (
                   <div
-                    key={m.key}
-                    className="flex-1 flex flex-col items-center justify-end h-full relative"
+                    key={m.key || idx}
+                    className="flex-1 flex flex-col items-center justify-end h-full relative group"
                     onMouseEnter={() => setHoveredMonth(idx)}
                     onMouseLeave={() => setHoveredMonth(null)}
                     style={{ cursor: 'pointer' }}
                   >
+                    {/* Tooltip */}
                     {isHovered && m.revenue > 0 && (
                       <div
                         className="absolute z-30 whitespace-nowrap pointer-events-none text-center"
-                        style={{ bottom: `calc(${heightPct}% + 6px)`, left: '50%', transform: 'translateX(-50%)' }}
+                        style={{ bottom: `calc(${Math.max(heightPct, 8)}% + 6px)`, left: '50%', transform: 'translateX(-50%)' }}
                       >
                         <div style={{ background: '#1a1a1a', border: '1px solid #4b5563', borderRadius: '8px', padding: '5px 8px', boxShadow: '0 4px 16px rgba(0,0,0,0.6)' }}>
                           <div style={{ color: '#e4e4e7', fontSize: '11px', fontWeight: 700, marginBottom: '2px' }}>
-                            {m.revenue >= 1_000_000 ? `${(m.revenue / 1_000_000).toFixed(1)}tr₫` : `${m.revenue.toLocaleString('vi-VN')}₫`}
+                            {m.revenue >= 1_000_000 ? `${(m.revenue / 1_000_000).toFixed(1)}tr₫` : `${m.revenue.toLocaleString('vi-VN')}₫`} {isToday ? '(Hôm nay)' : ''}
                           </div>
                           <div style={{ color: '#6b7280', fontSize: '10px' }}>{m.orderCount} đơn</div>
                         </div>
                         <div style={{ width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '5px solid #4b5563', margin: '0 auto' }} />
                       </div>
                     )}
+
+                    {/* Today Indicator */}
+                    {isToday && (
+                      <span className="absolute -top-5 text-[9px] text-[#d4ff00] font-bold">
+                        Hôm nay
+                      </span>
+                    )}
+
+                    {/* Bar */}
                     <div
                       className="w-full rounded-t-sm transition-all duration-150"
                       style={{
@@ -260,6 +272,7 @@ const Dashboard = () => {
                         minHeight: m.revenue > 0 ? '4px' : '2px',
                         background: isHovered ? '#9ca3af' : m.revenue > 0 ? '#52525b' : '#27272a',
                         boxShadow: isHovered ? '0 0 8px rgba(156,163,175,0.3)' : 'none',
+                        borderTop: isToday ? '2px solid #d4ff00' : 'none',
                       }}
                     />
                   </div>
@@ -267,13 +280,18 @@ const Dashboard = () => {
               })}
             </div>
             <div className="flex gap-2" style={{ paddingLeft: '4px' }}>
-              {chartData.items.map(m => (
-                <div key={m.key} className="flex-1 text-center" style={{ fontSize: '10px', color: '#6b7280', fontFamily: 'monospace' }}>
+              {chartData.items.map((m, idx) => (
+                <div
+                  key={m.key || idx}
+                  className={`flex-1 text-center font-mono text-[10px] ${
+                    m.isToday ? 'text-teal-300 font-bold' : 'text-gray-400'
+                  }`}
+                >
                   {viewMode === 'by_week' 
                     ? `${m.label}\n${m.date || ''}` 
                     : viewMode === 'by_month' 
                       ? m.label 
-                      : m.label.slice(0, 5)}
+                      : (m.label ? m.label.slice(0, 5) : '')}
                 </div>
               ))}
             </div>

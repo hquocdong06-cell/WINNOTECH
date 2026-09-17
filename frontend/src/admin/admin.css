@@ -49,13 +49,13 @@
 .admin-layout.light-mode,
 [data-admin-theme="light"],
 [data-theme="light"] {
-  --admin-bg: #f8fafc;
+  --admin-bg: #F1F5F9;
   --admin-sidebar-bg: #ffffff;
   --admin-header-bg: rgba(255, 255, 255, 0.95);
   --admin-card-bg: #ffffff;
-  --admin-card-inner: #f1f5f9;
-  --admin-border: #e2e8f0;
-  --admin-border-subtle: #f1f5f9;
+  --admin-card-inner: #e2e8f0;
+  --admin-border: #cbd5e1;
+  --admin-border-subtle: #e2e8f0;
   --admin-text-main: #0f172a;
   --admin-text-sub: #475569;
   --admin-text-muted: #94a3b8;
@@ -69,14 +69,14 @@
   --admin-input-text: #0f172a;
   --admin-input-placeholder: #94a3b8;
   --admin-nav-color: #64748b;
-  --admin-nav-hover-bg: #f8fafc;
+  --admin-nav-hover-bg: #e2e8f0;
   --admin-nav-hover-color: #0f172a;
   --admin-nav-active-bg: #f0fdf4;
   --admin-nav-active-color: #16a34a;
   --admin-nav-active-border: #16a34a;
-  --admin-table-header-bg: #f8fafc;
-  --admin-table-row-hover: #f8fafc;
-  --admin-scrollbar-track: #f1f5f9;
+  --admin-table-header-bg: #e2e8f0;
+  --admin-table-row-hover: #e2e8f0;
+  --admin-scrollbar-track: #e2e8f0;
   --admin-scrollbar-thumb: #cbd5e1;
   --admin-scrollbar-thumb-hover: #94a3b8;
   --admin-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
@@ -491,7 +491,7 @@ table td {
 .admin-layout.light-mode .bg-\[\#1e1e1e\],
 .admin-layout.light .bg-\[\#1e1e2d\],
 .admin-layout.light-mode .bg-\[\#1e1e2d\] {
-  background-color: #f8fafc !important;
+  background-color: #F1F5F9 !important;
   border-color: #cbd5e1 !important;
 }
 

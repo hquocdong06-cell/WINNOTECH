@@ -6724,30 +6724,49 @@ app.get("/admin/revenue/monthly", checklogin, checkAdmin, async (req, res) => {
   }
 });
 
-// GET /admin/revenue/by-month?month=YYYY-MM — Doanh thu từng ngày trong 1 tháng
+// GET /admin/revenue/by-month?month=YYYY-MM — Doanh thu từng ngày trong 1 tháng (chỉ hiển thị tới ngày hiện tại nếu là tháng hiện tại)
 app.get("/admin/revenue/by-month", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { month } = req.query; // e.g. "2026-08"
-    const target = month ? moment(month, "YYYY-MM") : moment();
-    const startOfMonth = target.clone().startOf("month").toDate();
-    const endOfMonth = target.clone().endOf("month").toDate();
-    const daysInMonth = target.daysInMonth();
+    const { month } = req.query; // e.g. "2026-09"
+    const now = moment();
+    const target = month ? moment(month, "YYYY-MM") : now.clone();
+    const isCurrentMonth = target.isSame(now, "month");
+    const isFutureMonth = target.isAfter(now, "month");
 
-    const days = [];
-    for (let d = 1; d <= daysInMonth; d++) {
-      days.push({ key: `${target.format("YYYY-MM")}-${String(d).padStart(2, "0")}`, label: String(d), revenue: 0, orderCount: 0 });
+    let maxDay = target.daysInMonth();
+    if (isFutureMonth) {
+      maxDay = 0; // Tháng tương lai không hiển thị cột nào
+    } else if (isCurrentMonth) {
+      maxDay = now.date(); // Nếu là tháng hiện tại, chỉ dừng lại ở ngày hôm nay
     }
 
-    const orders = await Order.find({
-      $or: [{ status: { $in: ["completed", "delivered", "done"] } }, { payment_status: "paid" }],
-      createdAt: { $gte: startOfMonth, $lte: endOfMonth }
-    }).lean();
+    const startOfMonth = target.clone().startOf("month").toDate();
+    const endOfPeriod = isCurrentMonth ? now.clone().endOf("day").toDate() : target.clone().endOf("month").toDate();
 
-    orders.forEach((ord) => {
-      const key = moment(ord.createdAt || ord.date).format("YYYY-MM-DD");
-      const entry = days.find(d => d.key === key);
-      if (entry) { entry.revenue += ord.total_amount || 0; entry.orderCount += 1; }
-    });
+    const days = [];
+    for (let d = 1; d <= maxDay; d++) {
+      const isToday = isCurrentMonth && d === now.date();
+      days.push({
+        key: `${target.format("YYYY-MM")}-${String(d).padStart(2, "0")}`,
+        label: String(d),
+        revenue: 0,
+        orderCount: 0,
+        isToday
+      });
+    }
+
+    if (maxDay > 0) {
+      const orders = await Order.find({
+        $or: [{ status: { $in: ["completed", "delivered", "done"] } }, { payment_status: "paid" }],
+        createdAt: { $gte: startOfMonth, $lte: endOfPeriod }
+      }).lean();
+
+      orders.forEach((ord) => {
+        const key = moment(ord.createdAt || ord.date).format("YYYY-MM-DD");
+        const entry = days.find(d => d.key === key);
+        if (entry) { entry.revenue += ord.total_amount || 0; entry.orderCount += 1; }
+      });
+    }
 
     const totalRevenue = days.reduce((s, d) => s + d.revenue, 0);
     const totalOrders = days.reduce((s, d) => s + d.orderCount, 0);
@@ -6757,23 +6776,38 @@ app.get("/admin/revenue/by-month", checklogin, checkAdmin, async (req, res) => {
   }
 });
 
-// GET /admin/revenue/by-week?start=YYYY-MM-DD — Doanh thu từng ngày trong 1 tuần (7 ngày từ start)
+// GET /admin/revenue/by-week?start=YYYY-MM-DD — Doanh thu từng ngày trong 1 tuần (chỉ hiển thị tới ngày hiện tại nếu tuần chứa hôm nay)
 app.get("/admin/revenue/by-week", checklogin, checkAdmin, async (req, res) => {
   try {
-    const { start } = req.query; // Monday date e.g. "2026-08-25"
-    const monday = start ? moment(start, "YYYY-MM-DD").startOf("isoWeek") : moment().startOf("isoWeek");
+    const { start } = req.query; // Monday date e.g. "2026-09-14"
+    const now = moment();
+    const monday = start ? moment(start, "YYYY-MM-DD").startOf("isoWeek") : now.clone().startOf("isoWeek");
     const sunday = monday.clone().endOf("isoWeek");
 
     const days = [];
     const dayNames = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
     for (let i = 0; i < 7; i++) {
       const d = monday.clone().add(i, "days");
-      days.push({ key: d.format("YYYY-MM-DD"), label: dayNames[i], date: d.format("DD/MM"), revenue: 0, orderCount: 0 });
+      // Bỏ qua các ngày ở tương lai (sau hôm nay)
+      if (d.isAfter(now, "day")) {
+        continue;
+      }
+      const isToday = d.isSame(now, "day");
+      days.push({
+        key: d.format("YYYY-MM-DD"),
+        label: dayNames[i],
+        date: d.format("DD/MM"),
+        revenue: 0,
+        orderCount: 0,
+        isToday
+      });
     }
+
+    const endQueryDate = sunday.isAfter(now) ? now.clone().endOf("day").toDate() : sunday.toDate();
 
     const orders = await Order.find({
       $or: [{ status: { $in: ["completed", "delivered", "done"] } }, { payment_status: "paid" }],
-      createdAt: { $gte: monday.toDate(), $lte: sunday.toDate() }
+      createdAt: { $gte: monday.toDate(), $lte: endQueryDate }
     }).lean();
 
     orders.forEach((ord) => {
