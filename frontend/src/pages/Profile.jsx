@@ -50,7 +50,7 @@ const RETURN_STATUS_CONFIG = {
   returned_success: {
     label: 'Đã về kho & Hoàn tiền',
     desc: 'Shop đã nhận lại hàng về kho và tự động hoàn tiền vào số dư của bạn',
-    badgeClass: 'bg-[#d4ff00]/20 text-[#d4ff00] border-[#d4ff00]/40'
+    badgeClass: 'bg-[#76b900]/20 text-[#76b900] border-[#76b900]/40'
   }
 };
 
@@ -2400,7 +2400,7 @@ export default function Profile() {
                       <div className="profile-info-item"><span className="profile-info-label">Họ tên</span><span className="profile-info-value">{user.name}</span></div>
                       <div className="profile-info-item"><span className="profile-info-label">Email</span><span className="profile-info-value">{user.email}</span></div>
                       <div className="profile-info-item"><span className="profile-info-label">Số điện thoại</span><span className="profile-info-value">{user.phone || 'Chưa cập nhật'}</span></div>
-                      <div className="profile-info-item"><span className="profile-info-label">Số dư tài khoản</span><span className="profile-info-value" style={{ color: '#d4ff00', fontWeight: 700, fontFamily: 'monospace' }}>{formatPrice(user.money || 0)}</span></div>
+                      <div className="profile-info-item"><span className="profile-info-label">Số dư tài khoản</span><span className="profile-info-value" style={{ color: '#76b900', fontWeight: 700, fontFamily: 'monospace' }}>{formatPrice(user.money || 0)}</span></div>
                       <div className="profile-info-item"><span className="profile-info-label">Ngày tham gia</span><span className="profile-info-value">{formatDate(user.createdAt)}</span></div>
                     </div>
                   </div>
@@ -2619,8 +2619,8 @@ export default function Profile() {
                   <div className="profile-card-title">SỐ DƯ TÀI KHOẢN</div>
 
                   <div style={{
-                    background: 'linear-gradient(135deg, rgba(212, 255, 0, 0.05) 0%, rgba(20, 20, 30, 0.9) 100%)',
-                    border: '1px solid rgba(212, 255, 0, 0.25)',
+                    background: 'linear-gradient(135deg, rgba(118, 185, 0, 0.08) 0%, rgba(20, 20, 30, 0.95) 100%)',
+                    border: '1px solid rgba(118, 185, 0, 0.35)',
                     borderRadius: '16px',
                     padding: '28px 32px',
                     marginBottom: '24px',
@@ -2628,13 +2628,14 @@ export default function Profile() {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     flexWrap: 'wrap',
-                    gap: '20px'
+                    gap: '20px',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(118, 185, 0, 0.08)'
                   }}>
                     <div>
                       <div style={{ fontSize: '13px', color: '#8888a0', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, marginBottom: '8px' }}>
                         Số dư hiện tại
                       </div>
-                      <div style={{ fontSize: '36px', fontWeight: 800, color: '#d4ff00', fontFamily: 'monospace', letterSpacing: '1px', lineHeight: 1.2 }}>
+                      <div style={{ fontSize: '36px', fontWeight: 800, color: '#76b900', fontFamily: 'monospace', letterSpacing: '1px', lineHeight: 1.2 }}>
                         {formatPrice(user?.money || 0)}
                       </div>
                       <div style={{ fontSize: '12px', color: '#9090a8', marginTop: '8px' }}>
@@ -2645,7 +2646,26 @@ export default function Profile() {
                       <button
                         className="profile-btn-save"
                         onClick={() => setActiveTab('orders')}
-                        style={{ padding: '10px 22px', fontSize: '13px', borderRadius: '10px', cursor: 'pointer' }}
+                        style={{
+                          padding: '10px 22px',
+                          fontSize: '13px',
+                          borderRadius: '10px',
+                          cursor: 'pointer',
+                          background: '#76b900',
+                          color: '#000',
+                          fontWeight: 700,
+                          border: 'none',
+                          boxShadow: '0 4px 14px rgba(118, 185, 0, 0.3)',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.filter = 'brightness(1.1)';
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.filter = 'none';
+                          e.currentTarget.style.transform = 'none';
+                        }}
                       >
                         Quản lý đơn hàng
                       </button>
@@ -2706,7 +2726,7 @@ export default function Profile() {
                                     <span className="order-date">{formatDate(refundDate)}</span>
                                   </td>
                                   <td>
-                                    <span style={{ color: '#d4ff00', fontWeight: 700, fontFamily: 'monospace' }}>
+                                    <span style={{ color: '#76b900', fontWeight: 700, fontFamily: 'monospace' }}>
                                       +{formatPrice(refundAmount)}
                                     </span>
                                   </td>
