@@ -506,17 +506,7 @@ const ProductFormModal = ({ isOpen, onClose, product, categories: categoriesProp
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Mô tả ngắn</label>
-                  <input
-                    type="text"
-                    value={form.short_desc}
-                    onChange={(e) => setField('short_desc', e.target.value)}
-                    placeholder="Mô tả ngắn gọn..."
-                    className="w-full bg-[#141414] border border-[#333] rounded-md px-4 py-2.5 text-sm focus:border-[#d4ff00] outline-none text-white transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Mô tả chi tiết</label>
+                  <label className="block text-sm text-gray-400 mb-2">Mô tả sản phẩm</label>
                   <textarea
                     rows="4"
                     value={form.description}

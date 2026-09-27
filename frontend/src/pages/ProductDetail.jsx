@@ -1552,7 +1552,7 @@ export default function ProductDetail() {
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    CHI TIẾT SẢN PHẨM
+                    MÔ TẢ SẢN PHẨM
                   </button>
                   <button 
                     className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
