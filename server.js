@@ -2068,8 +2068,8 @@ app.get("/products/:slug", async (req, res, next) => {
     // Lấy thông số kỹ thuật thật từ bảng Specifications
     const specificationsList = await Specification.find({
       p_id: productDetail._id,
-      status: "active",
-      is_deleted: false,
+      status: { $ne: "inactive" },
+      is_deleted: { $ne: true },
     })
       .populate({
         path: "id_attribute_value",
@@ -2080,7 +2080,7 @@ app.get("/products/:slug", async (req, res, next) => {
       })
       .lean();
 
-    const formattedSpecs = specificationsList
+    let formattedSpecs = specificationsList
       .filter((s) => s.id_attribute_value && s.id_attribute_value.value)
       .map((s) => {
         const cat =
@@ -2096,7 +2096,28 @@ app.get("/products/:slug", async (req, res, next) => {
         };
       });
 
-    // Bắt buộc lấy từ bảng Specification — không dùng specifications inline trong Product
+    // Fallback an toàn: nếu bảng Specification chưa có thông số, tự động trích xuất từ thuộc tính của biến thể
+    if (formattedSpecs.length === 0 && variantsWithAttributes.length > 0) {
+      const seenAttrs = new Set();
+      variantsWithAttributes.forEach((v) => {
+        (v.Attributes || []).forEach((a) => {
+          const key = (a.name || a.attribute_name || "").trim().toLowerCase();
+          const val = (a.value || a.value_name || "").trim();
+          if (key && val && !seenAttrs.has(key)) {
+            seenAttrs.add(key);
+            formattedSpecs.push({
+              name: a.name || a.attribute_name,
+              value: val,
+              group: "detail",
+              id_attribute_value: a.value_id,
+              id_categories_attribute: a.attribute_id,
+            });
+          }
+        });
+      });
+    }
+
+    // Đảm bảo specifications được gán vào productDetail
     productDetail.specifications = formattedSpecs;
 
     return res.json({
