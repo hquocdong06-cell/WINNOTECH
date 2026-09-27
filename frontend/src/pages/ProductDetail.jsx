@@ -621,57 +621,175 @@ export default function ProductDetail() {
     return cleaned
   }
 
-  // Lấy các nhóm Danh mục thuộc tính (categories_attribute) và Giá trị thuộc tính (attribute_value)
-  // nối với biến thể thông qua bảng variants_attributes
+  // Group attributes by Attribute Name for top purchasing section (ONLY selectable options like Màu sắc, Phiên bản)
+  const stripDiacritics = (s) => (s || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
+
+  // Group attributes by Attribute Name for top purchasing section (ONLY selectable options like Màu sắc, Phiên bản)
   const getGroupedAttributes = () => {
     if (!Variants || Variants.length === 0) return []
 
-    // Map: categoryName -> { attribute_name, attribute_id, optionsMap: Map(valueName -> { value_name, value_id }) }
-    const groupMap = new Map()
+    // Lọc danh sách biến thể đang hoạt động
+    const activeVariantsList = Variants.filter(v => v.status !== 'inactive')
+    if (activeVariantsList.length === 0) return []
 
-    Variants.forEach(v => {
-      const attrs = v.Attributes || v.attributes || []
-      attrs.forEach(a => {
-        const catName = (a.attribute_name || a.name || '').trim()
-        const valName = (a.value_name || a.value || '').trim()
-        if (!catName || !valName) return
+    // Kiểm tra sản phẩm có phải card màn hình không (GPU/VGA)
+    const catNameG = (product?.cat_id?.name || product?.cat_id?.slug || '').toLowerCase()
+    const pNameG = (product?.name || '').toUpperCase()
+    const isGPU = catNameG.includes('gpu') || catNameG.includes('vga') || catNameG.includes('card')
+      || pNameG.includes('RTX') || pNameG.includes('GTX') || pNameG.includes('RX ')
+      || pNameG.includes('ARC ') || pNameG.includes('GEFORCE') || pNameG.includes('RADEON')
+    const isMonitor = catNameG.includes('màn hình') || catNameG.includes('man hinh') || catNameG.includes('monitor')
 
-        if (!groupMap.has(catName)) {
-          groupMap.set(catName, {
-            attribute_name: catName,
-            attribute_id: a.attribute_id,
-            optionsMap: new Map()
-          })
-        }
-        const groupObj = groupMap.get(catName)
-        const valKey = valName.toLowerCase()
-        if (!groupObj.optionsMap.has(valKey)) {
-          groupObj.optionsMap.set(valKey, {
-            value_name: valName,
-            value_id: a.value_id,
-            attribute_id: a.attribute_id,
-            attribute_name: catName
-          })
-        }
-      })
-    })
+    // Danh sách tên variant "mặc định" không có ý nghĩa lựa chọn
+    const DEFAULT_VARIANT_NAMES = [
+      'mặc định', 'mac dinh', 'default',
+      'tiêu chuẩn', 'tieu chuan',
+      'tiêu chuẩn (standard)', 'tieu chuan (standard)',
+      'bản tiêu chuẩn (standard)', 'ban tieu chuan (standard)'
+    ]
+    const isDefaultVariant = (name) => {
+      const n = stripDiacritics(name)
+      return DEFAULT_VARIANT_NAMES.some(d => stripDiacritics(d) === n)
+    }
 
-    const groups = []
-    groupMap.forEach(groupObj => {
-      const options = Array.from(groupObj.optionsMap.values())
-      // Sắp xếp dung lượng theo thứ tự tăng dần nếu là dung lượng / RAM
-      const lower = groupObj.attribute_name.toLowerCase()
-      if (lower.includes('dung lượng') || lower.includes('ram')) {
-        options.sort((a, b) => (parseInt(a.value_name) || 0) - (parseInt(b.value_name) || 0))
+    // 1. Tạo nhóm biến thể theo variant_name (Tên biến thể do admin nhập)
+    let variantGroup = null
+    if (activeVariantsList.length > 1) {
+      variantGroup = {
+        attribute_name: isMonitor ? 'Phiên bản' : 'Phiên bản / Biến thể',
+        is_variant_list: true,
+        options: activeVariantsList.map(v => ({
+          value_name: v.variant_name || 'Tiêu chuẩn',
+          variant_id: v._id
+        }))
       }
-      groups.push({
-        attribute_name: groupObj.attribute_name,
-        attribute_id: groupObj.attribute_id,
-        options
+    } else if (activeVariantsList.length === 1 && activeVariantsList[0].variant_name && !isDefaultVariant(activeVariantsList[0].variant_name)) {
+      variantGroup = {
+        attribute_name: isMonitor ? 'Phiên bản' : 'Phiên bản / Biến thể',
+        is_variant_list: true,
+        options: [{
+          value_name: activeVariantsList[0].variant_name,
+          variant_id: activeVariantsList[0]._id
+        }]
+      }
+    }
+
+    // 2. Lọc các thuộc tính kỹ thuật để không hiển thị nhầm thành nút chọn mua
+    const specFilterOut = [
+      'thương hiệu', 'bảo hành', 'bao hanh', 'gói bảo hành', 'goi bao hanh',
+      'nhu cầu', 'kiểu kết nối', 'kết nối', 
+      'kiểu cầm', 'switch', 'độ phân giải (cpi/dpi)', 'độ phân giải', 
+      'tên cảm biến', 'cảm biến', 'số nút bấm', 'kích thước', 'khối lượng',
+      'tên', 'part-number', 'kết nối bàn phím', 'loại bàn phím', 'đèn', 'kiểu switch',
+      'loại hàng', 'đèn led', 'thế hệ', 'bus', 'timing', 'voltage',
+      'chipset', 'socket', 'khe ram tối đa', 'kiểu ram hỗ trợ', 'hỗ trợ bộ nhớ tối đa', 
+      'bus ram hỗ trợ', 'lưu trữ', 'kiểu khe m.2 hỗ trợ', 'cổng xuất hình', 'khe pci', 
+      'số cổng usb', 'lan', 'âm thanh',
+      'công suất tối đa', 'hiệu suất', 'số cổng cắm', 'quạt làm mát', 'nguồn đầu vào',
+      'dạng tản nhiệt', 'kích thước quạt (mm)', 'socket được hỗ trợ', 'chất liệu tản nhiệt', 
+      'kích thước radiator (cm)', 'chiều cao (cm)', 'số vòng quay của quạt (rpm)', 
+      'lưu lượng không khí (cfm)', 'độ ồn (dba)', 'khối lượng (kg)',
+      'tên của case', 'chất liệu', 'loại case', 'hỗ trợ mainboard', 'số lượng ổ đĩa hỗ trợ', 
+      'hỗ trợ tản nhiệt cpu cao', 'loại quạt hỗ trợ phía trên', 'loại quạt hỗ trợ phía sau', 
+      'loại quạt hỗ trợ bên dưới', 'ổ đĩa hỗ trợ', 'tản nhiệt cpu cao', 'quạt hỗ trợ',
+      'kiểu ổ cứng', 'màu sắc của ổ cứng', 'tốc độ vòng quay', 'tốc độ đọc', 'tốc độ ghi',
+      'giao tiếp', 'tbw', 'form factor', 'nand', 'controller',
+      'weight', 'dimensions', 'sensor',
+      'tần số quét', 'thời gian phản hồi', 'tỉ lệ', 'độ tương phản tĩnh', 'độ sáng',
+      'góc nhìn', 'độ phủ màu', 'số lượng màu', 'tấm nền', 'công nghệ đồng bộ',
+      'công suất', 'kiểu màn hình', 'chuẩn gắn arm', 'phụ kiện đi kèm',
+      'kích thước (có chân)', 'kích thước (không chân)', 'khối lượng (có chân)', 'khối lượng (không chân)',
+      'series', 'tính năng nổi bật', 'tốc độ quạt & lưu lượng gió', 'tốc độ quạt', 'lưu lượng gió'
+    ]
+
+    const hasExplicitAttributes = activeVariantsList.some(v => (v.Attributes && v.Attributes.length > 0))
+    let filteredGroups = []
+
+    if (hasExplicitAttributes) {
+      const groups = {}
+      activeVariantsList.forEach(v => {
+        const attrs = v.Attributes || []
+        attrs.forEach(a => {
+          let groupName = (a.attribute_name || a.name || 'Thuộc tính').trim()
+          const valName = (a.value_name || a.value || '').trim()
+          if (!groupName || !valName) return
+
+          // Lọc bỏ các thông số kỹ thuật cố định, nhưng luôn giữ lại các thuộc tính chọn mua cốt lõi
+          const lowerName = groupName.toLowerCase()
+          const normName = stripDiacritics(lowerName)
+          const isCoreVariantAttr = ['mau sac', 'dung luong', 'dung luong ram', 'dung luong luu tru', 'phien ban', 'phien ban / dung luong'].includes(normName)
+          if (!isCoreVariantAttr) {
+            if (specFilterOut.some(s => {
+              const normS = stripDiacritics(s)
+              return normName === normS || normName.includes(normS) || (normS.length > 4 && normS.includes(normName))
+            })) return
+          }
+
+          // Nếu là màn hình máy tính, loại bỏ hoàn toàn các thuộc tính chứa "dung lượng"
+          if (isMonitor && (normName.includes('dung luong'))) return
+
+          if (!groups[groupName]) {
+            groups[groupName] = { attribute_name: groupName, options: [] }
+          }
+          const normKey = getNormalizedKey(groupName, valName)
+          if (!groups[groupName].options.some(o => getNormalizedKey(groupName, o.value_name) === normKey)) {
+            groups[groupName].options.push({
+              value_name: valName,
+              value_id: a.value_id,
+              attribute_id: a.attribute_id,
+              variant_id: v._id
+            })
+          }
+        })
       })
+
+      // Sắp xếp các lựa chọn dung lượng (RAM/Ổ cứng) theo thứ tự tăng dần
+      Object.keys(groups).forEach(gName => {
+        const lowerG = gName.toLowerCase()
+        if (lowerG.includes('dung lượng') || lowerG.includes('ram')) {
+          groups[gName].options.sort((a, b) => {
+            const numA = parseInt(a.value_name) || 0
+            const numB = parseInt(b.value_name) || 0
+            return numA - numB
+          })
+        }
+      })
+
+      filteredGroups = Object.values(groups)
+    }
+
+    // Kết hợp nhóm biến thể và nhóm thuộc tính (ưu tiên biến thể variant_name lên trước)
+    const resultGroups = []
+    if (variantGroup) {
+      resultGroups.push(variantGroup)
+    }
+
+    filteredGroups.forEach(g => {
+      const normG = stripDiacritics(g.attribute_name)
+      if (!normG.includes('phien ban') && !normG.includes('bien the')) {
+        resultGroups.push(g)
+      }
     })
 
-    return groups
+    if (resultGroups.length > 0) return resultGroups
+
+    // Fallback cho trường hợp sản phẩm không khai báo Variants attributes
+    // Bỏ qua cho GPU và Monitor
+    if (!isGPU && !isMonitor && product?.name) {
+      const capMatch = product.name.match(/\b(\d+\s*GB|\d+\s*TB)\b/i)
+      if (capMatch) {
+        const extractedCap = capMatch[1].replace(/\s+/g, '').toUpperCase()
+        return [{
+          attribute_name: 'Dung lượng RAM',
+          options: [{
+            value_name: extractedCap,
+            variant_id: activeVariant?._id
+          }]
+        }]
+      }
+    }
+
+    return []
   }
 
   const isMatchStr = (s1, s2, groupName = '') => {
@@ -701,11 +819,36 @@ export default function ProductDetail() {
 
     if (!Variants || Variants.length === 0) return
 
-    // 2. Tìm biến thể (Product_variants) nối qua bảng variants_attributes có độ khớp cao nhất
+    if (group.is_variant_list || group.attribute_name === 'Phiên bản / Biến thể' || group.attribute_name === 'Phiên bản' || group.attribute_name === 'Phiên bản / Dung lượng') {
+      if (opt.variant_id) {
+        setSelectedVariantId(opt.variant_id)
+        setQuantity(1)
+      }
+      return
+    }
+
+    // 2. Lọc các biến thể bắt buộc khớp thuộc tính vừa click
+    let candidateVariants = Variants.filter(v => {
+      const attrs = v.Attributes || v.attributes || []
+      const matchedAttr = attrs.find(a => isMatchStr(a.attribute_name || a.name, group.attribute_name))
+      if (matchedAttr) {
+        return isMatchStr(matchedAttr.value_name || matchedAttr.value, opt.value_name, group.attribute_name)
+      }
+      if (opt.variant_id && String(v._id) === String(opt.variant_id)) {
+        return true
+      }
+      return false
+    })
+
+    if (candidateVariants.length === 0) {
+      candidateVariants = Variants
+    }
+
+    // 3. Tìm biến thể phù hợp nhất trong candidates theo điểm số
     let bestVariant = null
     let maxScore = -1
 
-    Variants.forEach(v => {
+    candidateVariants.forEach(v => {
       const attrs = v.Attributes || v.attributes || []
       let score = 0
 
@@ -752,7 +895,6 @@ export default function ProductDetail() {
       setSelectedAttributes(syncedAttrs)
     }
   }
-
   const handleQuantityChange = (e) => {
     const value = parseInt(e.target.value)
     if (value > 0) setQuantity(Math.min(value, availableStock))
@@ -1255,6 +1397,7 @@ export default function ProductDetail() {
                     return (
                       <div className="attribute-groups-container" style={{ margin: '14px 0 20px 0' }}>
                         {attributeGroups.map((group, groupIdx) => {
+                          const isFallbackGroup = group.is_variant_list || group.attribute_name === 'Phiên bản / Biến thể' || group.attribute_name === 'Phiên bản' || group.attribute_name === 'Phiên bản / Dung lượng'
                           const currentSelectedVal = selectedAttributes[group.attribute_name]
 
                           return (
@@ -1271,9 +1414,9 @@ export default function ProductDetail() {
                               </div>
                               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                                 {group.options.map((opt, optIdx) => {
-                                  const isSelected = currentSelectedVal
-                                    ? isMatchStr(currentSelectedVal, opt.value_name, group.attribute_name)
-                                    : (optIdx === 0)
+                                  const isSelected = isFallbackGroup
+                                    ? (opt.variant_id ? String(selectedVariantId) === String(opt.variant_id) : (currentSelectedVal ? isMatchStr(currentSelectedVal, opt.value_name, group.attribute_name) : optIdx === 0))
+                                    : (currentSelectedVal ? isMatchStr(currentSelectedVal, opt.value_name, group.attribute_name) : (optIdx === 0))
 
                                   return (
                                     <button

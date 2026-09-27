@@ -5202,10 +5202,22 @@ app.post("/admin/products", checklogin, checkAdmin, async (req, res) => {
       }
     }
 
+    // Tự động tạo biến thể gốc mặc định theo tên sản phẩm
+    const defaultSku = `SKU-${slugify(name).toUpperCase().slice(0, 10)}-${Date.now().toString().slice(-4)}`;
+    const baseVariant = await ProductVariantModel.create({
+      variant_name: name,
+      price: 0,
+      sku: defaultSku,
+      sale_price: 0,
+      stock_quantity: 0,
+      status: "active",
+      p_id: newProduct._id,
+    });
+
     return res.status(201).json({
       success: true,
       message: "Thêm sản phẩm mới thành công",
-      data: { ...newProduct.toObject(), Variants: [], AnhSP: createdImages }
+      data: { ...newProduct.toObject(), Variants: [baseVariant], AnhSP: createdImages }
     });
   } catch (error) {
     console.error("Lỗi POST admin product:", error);
