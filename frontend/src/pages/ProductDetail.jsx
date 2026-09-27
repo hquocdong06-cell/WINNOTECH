@@ -1348,39 +1348,16 @@ export default function ProductDetail() {
                                     <button
                                       key={v._id}
                                       type="button"
+                                      className={`variant-option-btn ${isSelected ? 'selected' : ''}`}
                                       onClick={() => {
                                         setSelectedVariantId(v._id)
                                         setQuantity(1)
                                       }}
-                                      style={{
-                                        position: 'relative',
-                                        background: isSelected ? 'rgba(200, 230, 0, 0.12)' : 'var(--dark2, #181c24)',
-                                        color: isSelected ? 'var(--accent-color, #c8e600)' : '#e2e8f0',
-                                        border: isSelected ? '1.5px solid var(--accent-color, #c8e600)' : '1px solid rgba(255, 255, 255, 0.15)',
-                                        padding: '8px 18px',
-                                        borderRadius: '6px',
-                                        fontSize: '13px',
-                                        fontWeight: isSelected ? 700 : 500,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        boxShadow: isSelected ? '0 0 12px rgba(200, 230, 0, 0.25)' : 'none',
-                                      }}
                                     >
                                       <span>{v.variant_name || 'Biến thể'}</span>
                                       {isSelected && (
-                                        <div style={{
-                                          position: 'absolute',
-                                          bottom: 0,
-                                          right: 0,
-                                          width: '14px',
-                                          height: '14px',
-                                          background: 'var(--accent-color, #c8e600)',
-                                          clipPath: 'polygon(100% 0, 0 100%, 100% 100%)',
-                                          display: 'flex',
-                                          alignItems: 'flex-end',
-                                          justifyContent: 'flex-end',
-                                        }}>
-                                          <span style={{ color: '#000000', fontSize: '8.5px', fontWeight: 900, lineHeight: 1, marginRight: '1px' }}>✓</span>
+                                        <div className="variant-check-badge">
+                                          <span>✓</span>
                                         </div>
                                       )}
                                     </button>
@@ -1422,49 +1399,13 @@ export default function ProductDetail() {
                                     <button
                                       key={opt.value_id || optIdx}
                                       type="button"
+                                      className={`variant-option-btn ${isSelected ? 'selected' : ''}`}
                                       onClick={() => handleSelectAttributeOption(group, opt)}
-                                      style={{
-                                        position: 'relative',
-                                        background: isSelected ? 'rgba(200, 230, 0, 0.12)' : 'var(--dark2, #181c24)',
-                                        color: isSelected ? 'var(--accent-color, #c8e600)' : '#e2e8f0',
-                                        border: isSelected ? '1.5px solid var(--accent-color, #c8e600)' : '1px solid rgba(255, 255, 255, 0.15)',
-                                        padding: '8px 18px',
-                                        borderRadius: '6px',
-                                        fontSize: '13px',
-                                        fontWeight: isSelected ? 700 : 500,
-                                        cursor: 'pointer',
-                                        overflow: 'hidden',
-                                        transition: 'all 0.2s ease',
-                                        minWidth: '75px',
-                                        textAlign: 'center',
-                                        boxShadow: isSelected ? '0 0 12px rgba(200, 230, 0, 0.25)' : 'none',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '6px'
-                                      }}
                                     >
                                       <span>{opt.value_name}</span>
                                       {isSelected && (
-                                        <div style={{
-                                          position: 'absolute',
-                                          bottom: 0,
-                                          right: 0,
-                                          width: '14px',
-                                          height: '14px',
-                                          background: 'var(--accent-color, #c8e600)',
-                                          clipPath: 'polygon(100% 0, 0 100%, 100% 100%)',
-                                          display: 'flex',
-                                          alignItems: 'flex-end',
-                                          justifyContent: 'flex-end',
-                                        }}>
-                                          <span style={{
-                                            color: '#000000',
-                                            fontSize: '8.5px',
-                                            fontWeight: 900,
-                                            lineHeight: 1,
-                                            marginRight: '1px'
-                                          }}>✓</span>
+                                        <div className="variant-check-badge">
+                                          <span>✓</span>
                                         </div>
                                       )}
                                     </button>
