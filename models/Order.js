@@ -41,6 +41,19 @@ const OrderSchema = new mongoose.Schema({
         rejected_reason: { type: String },
         admin_note: { type: String }
     },
+    wallet_refunded: { type: Boolean, default: false },
+    refund_info: {
+        refund_amount: { type: Number, default: 0 },
+        refunded_at: { type: Date },
+        wallet_refunded: { type: Boolean, default: false },
+        refund_method: { type: String, default: 'wallet' },
+        bank_name: { type: String, default: '' },
+        account_number: { type: String, default: '' },
+        account_holder: { type: String, default: '' },
+        refund_transaction_code: { type: String, default: '' },
+        refunded_by: { type: String, default: '' },
+        note: { type: String, default: '' }
+    },
     note: { type: String, default: '', trim: true },
     admin_notes: [{
         content: { type: String, required: true },

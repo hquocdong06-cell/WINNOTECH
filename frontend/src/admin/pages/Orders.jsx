@@ -48,6 +48,39 @@ const STATUS_LABELS = {
   done:             'Hoàn thành',
 };
 
+const getOrderOriginalTotal = (o) => {
+  if (!o) return 0;
+  const raw = o.rawOrder || o;
+  let balanceDeducted = 0;
+  if (raw.statusHistory && Array.isArray(raw.statusHistory)) {
+    const entry = raw.statusHistory.find(h => h.note && h.note.includes('[BALANCE_USE:') && (h.note.includes(':DEDUCTED]') || h.note.includes(':PENDING]')));
+    if (entry) {
+      const m = entry.note.match(/\[BALANCE_USE:(\d+):/);
+      balanceDeducted = m ? parseInt(m[1], 10) : 0;
+    }
+  }
+  return Number(raw.total_amount || 0) + balanceDeducted;
+};
+
+const getAdminRefundAmount = (o) => {
+  if (!o) return 0;
+  const raw = o.rawOrder || o;
+  if (raw.refund_info && Number(raw.refund_info.refund_amount) > 0) {
+    return Number(raw.refund_info.refund_amount);
+  }
+  if (raw.statusHistory && Array.isArray(raw.statusHistory)) {
+    for (let i = raw.statusHistory.length - 1; i >= 0; i--) {
+      const note = raw.statusHistory[i]?.note || '';
+      const matchRefund = note.match(/(?:hoàn|Hoàn)\s+([0-9.,]+)\s*₫/);
+      if (matchRefund && matchRefund[1]) {
+        const parsed = parseInt(matchRefund[1].replace(/\./g, '').replace(/,/g, ''), 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+    }
+  }
+  return getOrderOriginalTotal(raw);
+};
+
 // Luồng 5 bước tuần tự — dùng cho stepper/progress bar
 const STATUS_FLOW = ['pending', 'preparing', 'shipping', 'delivered', 'completed'];
 
@@ -611,8 +644,14 @@ const OrderDetailModal = ({ isOpen, onClose, orderId, onStatusUpdated }) => {
                       )}
                       <div className="flex justify-between font-bold text-base pt-2 border-t border-[#222234]">
                         <span className="text-white">TỔNG THANH TOÁN</span>
-                        <span className="text-[#d4ff00]">{fmtPrice(order.total_amount)}</span>
+                        <span className="text-[#d4ff00]">{fmtPrice(getOrderOriginalTotal(order))}</span>
                       </div>
+                      {(order.payment_status === 'refunded' || order.status === 'refunded') && (
+                        <div className="flex justify-between font-bold text-xs pt-1 text-green-400">
+                          <span>SỐ TIỀN ĐÃ HOÀN</span>
+                          <span className="text-[#d4ff00]">+{fmtPrice(getAdminRefundAmount(order))}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1372,7 +1411,7 @@ const ReturnReviewModal = ({ order, onClose, onSuccess }) => {
           </div>
           <div className="flex justify-between">
             <span className="text-gray-400">Tổng giá trị đơn:</span>
-            <span className="text-[#d4ff00] font-bold">{fmtPrice(order.total)}</span>
+            <span className="text-[#d4ff00] font-bold">{fmtPrice(getOrderOriginalTotal(order))}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-400">Trạng thái đổi trả hiện tại:</span>
@@ -1590,7 +1629,8 @@ const Orders = () => {
           code: o.code || o._id?.slice(-8).toUpperCase(),
           customer: o.Name || o.user_id?.name || 'Khách vãng lai',
           phone: o.Phone || o.user_id?.phone || '—',
-          total: o.total_amount || 0,
+          total: getOrderOriginalTotal(o),
+          total_amount: getOrderOriginalTotal(o),
           status: normalizeOrderStatus(o.status),  // normalize legacy
           date: o.createdAt ? new Date(o.createdAt).toLocaleDateString('vi-VN') : '—',
           payment_method: o.payment_method,

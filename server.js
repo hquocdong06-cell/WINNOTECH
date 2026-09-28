@@ -3468,6 +3468,14 @@ app.put("/orders/:orderId/cancel", checklogin, async (req, res) => {
         $inc: { money: totalRefundToWallet }
       });
       order.payment_status = "refunded";
+      order.wallet_refunded = true;
+      order.refund_info = {
+        refund_amount: totalRefundToWallet,
+        refunded_at: new Date(),
+        wallet_refunded: true,
+        refund_method: 'wallet',
+        note: 'Hoàn tiền vào số dư khi hủy đơn'
+      };
     }
 
     order.statusHistory.push({
@@ -3794,6 +3802,16 @@ app.put("/admin/orders/:orderId/return-request/receive-goods", checklogin, async
       });
     }
 
+    order.wallet_refunded = true;
+    order.refund_info = {
+      refund_amount: refundAmount,
+      refunded_at: new Date(),
+      wallet_refunded: true,
+      refund_method: 'wallet',
+      refunded_by: req.user.name || "Admin",
+      note: `Admin xác nhận hàng đã về kho, tự động hoàn ${refundAmount.toLocaleString('vi-VN')}₫ vào số dư`
+    };
+
     order.statusHistory = order.statusHistory || [];
     order.statusHistory.push({
       status: "refunded",
@@ -3810,6 +3828,8 @@ app.put("/admin/orders/:orderId/return-request/receive-goods", checklogin, async
         payment_status: "refunded",
         "return_request.status": "returned_success",
         "return_request.resolved_at": new Date(),
+        wallet_refunded: true,
+        refund_info: order.refund_info,
         statusHistory: order.statusHistory
       }
     });
@@ -3854,6 +3874,19 @@ app.put("/admin/orders/:orderId/process-refund", checklogin, async (req, res) =>
     const finalAmount = calculateOrderRefundAmount(order, refund_amount);
     order.status = "refunded";
     order.payment_status = "refunded";
+    order.wallet_refunded = true;
+    order.refund_info = {
+      refund_amount: finalAmount,
+      refunded_at: new Date(),
+      wallet_refunded: true,
+      refund_method: refund_method || 'wallet',
+      refund_transaction_code: refund_transaction_code || `REF_${Date.now().toString().slice(-6)}`,
+      bank_name: bank_name || '',
+      account_number: account_number || '',
+      account_holder: account_holder || '',
+      refunded_by: req.user.name || "Admin",
+      note: note || ''
+    };
 
     // Tự động hoàn vào số dư cột money của user (bao gồm tiền thanh toán + số dư đã trừ)
     if (order.user_id && finalAmount > 0) {
@@ -3872,6 +3905,15 @@ app.put("/admin/orders/:orderId/process-refund", checklogin, async (req, res) =>
     });
 
     await order.save();
+    await Order.findByIdAndUpdate(order._id, {
+      $set: {
+        status: "refunded",
+        payment_status: "refunded",
+        wallet_refunded: true,
+        refund_info: order.refund_info,
+        statusHistory: order.statusHistory
+      }
+    });
 
     emitOrderUpdate(order, 'refund_processed');
 
@@ -6216,6 +6258,15 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
             $inc: { money: refundAmount }
           });
         }
+        order.wallet_refunded = true;
+        order.refund_info = {
+          refund_amount: refundAmount,
+          refunded_at: new Date(),
+          wallet_refunded: true,
+          refund_method: 'wallet',
+          refunded_by: req.user?.name || "Admin",
+          note: 'Admin cập nhật luồng đơn hàng sang Đã hoàn tiền'
+        };
       }
 
       await order.save();
@@ -6224,6 +6275,8 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
           status: order.status,
           payment_status: order.payment_status,
           return_request: order.return_request,
+          wallet_refunded: order.wallet_refunded,
+          refund_info: order.refund_info,
           statusHistory: order.statusHistory
         }
       });
@@ -6346,6 +6399,15 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
           $inc: { money: refundAmount }
         });
       }
+      order.wallet_refunded = true;
+      order.refund_info = {
+        refund_amount: refundAmount,
+        refunded_at: new Date(),
+        wallet_refunded: true,
+        refund_method: 'wallet',
+        refunded_by: req.user?.name || "Admin",
+        note: 'Admin cập nhật trạng thái đơn hàng sang Đã hoàn tiền'
+      };
     }
 
     // Đồng bộ với return_request nếu trạng thái là các bước đổi trả
@@ -6363,6 +6425,8 @@ app.put("/admin/orders/:id/status", checklogin, checkAdmin, async (req, res) => 
         status: order.status,
         payment_status: order.payment_status,
         return_request: order.return_request,
+        wallet_refunded: order.wallet_refunded,
+        refund_info: order.refund_info,
         statusHistory: order.statusHistory
       }
     });
@@ -6470,6 +6534,15 @@ app.put("/admin/orders/:id/payment-status", checklogin, checkAdmin, async (req, 
           $inc: { money: refundAmount }
         });
       }
+      order.wallet_refunded = true;
+      order.refund_info = {
+        refund_amount: refundAmount,
+        refunded_at: new Date(),
+        wallet_refunded: true,
+        refund_method: 'wallet',
+        refunded_by: req.user?.name || "Admin",
+        note: 'Admin cập nhật thanh toán sang Đã hoàn tiền'
+      };
 
       const orderItems = await OrderItem.find({ order_id: order._id });
       for (const item of orderItems) {
@@ -6487,6 +6560,8 @@ app.put("/admin/orders/:id/payment-status", checklogin, checkAdmin, async (req, 
         status: order.status,
         payment_status: order.payment_status,
         return_request: order.return_request,
+        wallet_refunded: order.wallet_refunded,
+        refund_info: order.refund_info,
         statusHistory: order.statusHistory
       }
     });

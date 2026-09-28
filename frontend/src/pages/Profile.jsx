@@ -542,6 +542,36 @@ export default function Profile() {
     }
   };
 
+  const getOrderRefundAmount = (ord) => {
+    const raw = ord?.rawOrder || ord;
+    if (!raw) return 0;
+    // 1. Kiểm tra trực tiếp refund_info.refund_amount
+    if (raw.refund_info && Number(raw.refund_info.refund_amount) > 0) {
+      return Number(raw.refund_info.refund_amount);
+    }
+    // 2. Tìm trong statusHistory xem có ghi chú hoàn tiền không (vd: tự động hoàn 2.990.000₫...)
+    if (raw.statusHistory && Array.isArray(raw.statusHistory)) {
+      for (let i = raw.statusHistory.length - 1; i >= 0; i--) {
+        const note = raw.statusHistory[i]?.note || '';
+        const matchRefund = note.match(/(?:hoàn|Hoàn)\s+([0-9.,]+)\s*₫/);
+        if (matchRefund && matchRefund[1]) {
+          const parsed = parseInt(matchRefund[1].replace(/\./g, '').replace(/,/g, ''), 10);
+          if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+      }
+      // Hoặc tính: total_amount + balanceDeducted
+      const deductedEntry = raw.statusHistory.find(h => h.note && h.note.includes('[BALANCE_USE:') && h.note.includes(':DEDUCTED]'));
+      if (deductedEntry) {
+        const match = deductedEntry.note.match(/\[BALANCE_USE:(\d+):DEDUCTED\]/);
+        const balanceDeducted = match ? parseInt(match[1], 10) : 0;
+        if (balanceDeducted > 0) {
+          return Number(raw.total_amount || 0) + balanceDeducted;
+        }
+      }
+    }
+    return Number(raw.total_amount || 0);
+  };
+
   const getTrackingDisplay = (order) => {
     if (!order) return { text: '—', isCode: false };
     if (order.trackingCode && order.trackingCode !== '—') {
@@ -1410,6 +1440,23 @@ export default function Profile() {
                 <div className="odm-payment-row odm-payment-row--discount"><span>Voucher</span><span>{detail.payment.voucher}</span></div>
                 <div className="odm-payment-divider"/>
                 <div className="odm-payment-row odm-payment-row--total"><span>Tổng thanh toán</span><span>{detail.payment.total}</span></div>
+                {(detail.payment_status === 'refunded' || detail.status === 'refunded' || detail.return_request?.status === 'returned_success') && (
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '10px 14px',
+                    background: 'rgba(118, 185, 0, 0.08)',
+                    border: '1px solid rgba(118, 185, 0, 0.35)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ fontSize: '12px', color: '#76b900', fontWeight: 600 }}>Tiền đã hoàn vào Số dư tài khoản:</span>
+                    <span style={{ fontSize: '15px', color: '#76b900', fontWeight: 800, fontFamily: 'monospace' }}>
+                      +{formatPrice(getOrderRefundAmount(detail))}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2680,7 +2727,9 @@ export default function Profile() {
                     const refundTransactions = orders_for_table.filter(o => 
                       o.rawOrder?.wallet_refunded || 
                       o.payment_status === 'refunded' ||
-                      o.rawOrder?.refund_info?.wallet_refunded
+                      o.status === 'refunded' ||
+                      o.rawOrder?.refund_info?.wallet_refunded ||
+                      o.rawOrder?.return_request?.status === 'returned_success'
                     );
 
                     if (refundTransactions.length === 0) {
@@ -2715,8 +2764,11 @@ export default function Profile() {
                           </thead>
                           <tbody>
                             {refundTransactions.map(ord => {
-                              const refundAmount = ord.rawOrder?.refund_info?.refund_amount || ord.rawOrder?.total_amount || 0;
-                              const refundDate = ord.rawOrder?.refund_info?.refunded_at || ord.rawOrder?.updatedAt || ord.createdAt;
+                              const refundAmount = getOrderRefundAmount(ord);
+                              const refundDate = ord.rawOrder?.refund_info?.refunded_at || 
+                                ord.rawOrder?.return_request?.resolved_at || 
+                                ord.rawOrder?.updatedAt || 
+                                ord.createdAt;
                               return (
                                 <tr key={ord.id}>
                                   <td>
